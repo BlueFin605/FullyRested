@@ -1,0 +1,14 @@
+.content {
+    line-height: 2rem;
+    font-size: 1.2em;
+    margin: 48px 10%;
+    font-family: Arial, sans-serif
+  }
+  .card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    width: 85%;
+    padding: 16px 48px;
+    margin: 24px 0px;
+    background-color: whitesmoke;
+    font-family: sans-serif;
+  }
