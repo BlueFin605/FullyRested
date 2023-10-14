@@ -1,7 +1,7 @@
 {
   "name": "rest-easy",
   "version": "0.0.0",
-  "main" : "main.js",
+  "main": "main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
