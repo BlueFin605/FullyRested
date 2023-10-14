@@ -12,6 +12,7 @@ export class AppComponent implements OnInit {
   constructor(private imageService: ImagesService) {}
 
   ngOnInit(): void {
+    console.log('navigate root dir');
     this.imageService.navigateDirectory('.');
   }
 }

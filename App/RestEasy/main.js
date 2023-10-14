@@ -1,14 +1,25 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
+const fs = require('fs');
+const url = require('url');
+
+let win;
 
 const createWindow = () => {
-    const win = new BrowserWindow({
+    console.log('createWindow');
+    win = new BrowserWindow({
         width: 800,
-        height: 600
+        height: 600,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js')
+        }
     })
 
-    win.loadFile('dist/rest-easy/index.html')
+    win.webContents.openDevTools();
+
+    win.loadFile('dist/rest-easy/index.html');
+    console.log('createWindow, done');
 }
 
 app.whenReady().then(() => {
@@ -25,6 +36,7 @@ app.on('window-all-closed', () => {
 
 
 function getImages() {
+    console.log('getImages');
     const cwd = process.cwd();
     fs.readdir('.', {withFileTypes: true}, (err, files) => {
         if (!err) {
@@ -42,6 +54,7 @@ function getImages() {
   }
   
   function getDirectory() {
+    console.log('getDirectory');
     fs.readdir('.', {withFileTypes: true}, (err, files) => {
         if (!err) {
             const directories = files
@@ -50,9 +63,11 @@ function getImages() {
             if (!isRoot()) {
                 directories.unshift('..');
             }
+            console.log(`directories:[${JSON.stringify(directories)}]`);
             win.webContents.send("getDirectoryResponse", directories);
         }
     });
+    console.log('getDirectory, done');
   }
   
   ipcMain.on("navigateDirectory", (event, path) => {

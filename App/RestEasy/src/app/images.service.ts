@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-const electron = (<any>window).require('electron');
+//const electron = (<any>window).require('electron');
 
 @Injectable({
   providedIn: 'root'
@@ -10,15 +10,20 @@ export class ImagesService {
   directory = new BehaviorSubject<string[]>([]);
 
   constructor() {
-    electron.ipcRenderer.on('getImagesResponse', (event: any, images: string[]) => {
+    this.getIpcRenderer().receive('getImagesResponse', (images: string[]) => {
       this.images.next(images);
     });
-    electron.ipcRenderer.on('getDirectoryResponse', (event: any, directory: string[]) => {
+    this.getIpcRenderer().receive('getDirectoryResponse', (directory: string[]) => {
+      console.log(`getDirectoryResponse[${directory}]`);
       this.directory.next(directory);
     });
   }
 
+  getIpcRenderer(){
+    return (<any>window).ipc;
+  }
+
   navigateDirectory(path: string) {
-    electron.ipcRenderer.send('navigateDirectory', path);
+    this.getIpcRenderer().send('navigateDirectory', path);
   }
 }
