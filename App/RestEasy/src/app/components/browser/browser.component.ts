@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ImagesService } from '../images.service';
+import { ImagesService } from '../../services/image-services/images.service';
 
 @Component({
   selector: 'app-browser',
