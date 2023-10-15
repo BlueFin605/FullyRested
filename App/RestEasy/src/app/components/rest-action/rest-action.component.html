@@ -10,7 +10,7 @@
             </mat-select>
         </mat-form-field>
     </div>
-    
+
     <div class="verb-basics action-protocol">
         <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
@@ -20,7 +20,7 @@
             </mat-select>
         </mat-form-field>
     </div>
-    
+
     <div class="verb-basics action-url">
         <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
@@ -30,6 +30,13 @@
     </div>
 
     <div class="verb-basics action-send">
-        <button mat-raised-button color="primary">Send</button>
+        <button mat-raised-button color="primary" (click)='test()'>Send</button>
+    </div>
+</div>
+
+<div class="response">
+    <h2>Response</h2>
+    <div>
+        <pre>{{response | json}}</pre>
     </div>
 </div>

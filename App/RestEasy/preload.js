@@ -20,11 +20,10 @@ contextBridge.exposeInMainWorld(
                 ipcRenderer.on(channel, (event, ...args) => func(...args));
             }
         },
-        invoke: (channel, func) => {
-            let validChannels = ["request-key"];
+        invoke: (channel, args) => {
+            let validChannels = ["testRest"];
             if (validChannels.includes(channel)) {
-                // Deliberately strip event as it includes `sender` 
-                return ipcRenderer.invoke(channel);
+                return ipcRenderer.invoke(channel, args);
             }
         }
     }
