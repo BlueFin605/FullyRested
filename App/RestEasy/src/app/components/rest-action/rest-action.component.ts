@@ -8,6 +8,7 @@ import { Component, OnInit } from '@angular/core';
 export class RestActionComponent implements OnInit {
   verb = 'GET';
   protocol="HTTPS";
+  url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
 
   constructor() { }
 

@@ -24,7 +24,8 @@
     <div class="verb-basics action-url">
         <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
-            <input matInput>
+            <!-- <input matInput [(value)]="protocol"> -->
+            <input matInput [value]="url" type="text" required>
         </mat-form-field>
     </div>
 
