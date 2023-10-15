@@ -1,12 +1,34 @@
-<mat-form-field>
-    <mat-label>Select an option</mat-label>
-    <mat-select [(value)]="selected">
-      <mat-option value="GET">GET</mat-option>
-      <mat-option value="POST">POST</mat-option>
-      <mat-option value="PATCH">PATCH</mat-option>
-      <mat-option value="DELETE">DELETE</mat-option>
-    </mat-select>
-  </mat-form-field>
-  
-  <p>You selected: {{selected}}</p>
-  
+<div class="verb-header">
+    <div class="verb-basics">
+        <mat-form-field class="verb-selector">
+            <mat-label>http verb</mat-label>
+            <mat-select [(value)]="verb">
+                <mat-option value="GET">GET</mat-option>
+                <mat-option value="POST">POST</mat-option>
+                <mat-option value="PATCH">PATCH</mat-option>
+                <mat-option value="DELETE">DELETE</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    
+    <div class="verb-basics">
+        <mat-form-field class="verb-selector">
+            <mat-label>protocol</mat-label>
+            <mat-select [(value)]="protocol">
+                <mat-option value="HTTP">HTTP</mat-option>
+                <mat-option value="HTTPS">HTTPS</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    
+    <div class="verb-basics url">
+        <mat-form-field class="url-field">
+            <mat-label>URL</mat-label>
+            <input matInput>
+        </mat-form-field>
+    </div>
+
+    <div class="verb-basics">
+        <button mat-raised-button color="primary">Send</button>
+    </div>
+</div>

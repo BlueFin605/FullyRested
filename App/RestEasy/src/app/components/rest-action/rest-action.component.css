@@ -1,0 +1,20 @@
+.verb-header {
+    margin: 10px;
+}
+
+.verb-selector {
+    width: 70px;
+}
+
+.verb-basics {
+    float: left;
+    margin-right: 10px;
+}
+
+.url {
+    width: 75%;
+}
+
+.url-field {
+    width: 100%;
+}
