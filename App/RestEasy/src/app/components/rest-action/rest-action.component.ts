@@ -6,6 +6,7 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
+  selected = 'GET';
 
   constructor() { }
 

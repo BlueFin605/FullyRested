@@ -1,1 +1,12 @@
-<p>rest-action works!</p>
+<mat-form-field>
+    <mat-label>Select an option</mat-label>
+    <mat-select [(value)]="selected">
+      <mat-option value="GET">GET</mat-option>
+      <mat-option value="POST">POST</mat-option>
+      <mat-option value="PATCH">PATCH</mat-option>
+      <mat-option value="DELETE">DELETE</mat-option>
+    </mat-select>
+  </mat-form-field>
+  
+  <p>You selected: {{selected}}</p>
+  
