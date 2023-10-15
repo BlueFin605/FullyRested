@@ -25,7 +25,7 @@
         <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
             <!-- <input matInput [(value)]="protocol"> -->
-            <input matInput [value]="url" type="text" required>
+            <input matInput placeholder="Input" [(ngModel)]="url">
         </mat-form-field>
     </div>
 

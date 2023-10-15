@@ -41,8 +41,14 @@ app.whenReady().then(() => {
 
         var url = `${request.protocol}://${request.url}`;
         console.log(url);
-        var response = await axios.get(url, axios_request);
-        return {data: response.data, status: response.status, statusText: response.statusText, headers: response.headers};
+        try {
+            var response = await axios.get(url, axios_request);
+            console.log(response.statusText);
+            return { data: response.data, status: response.status, statusText: response.statusText, headers: response.headers };
+        }
+        catch (error) {
+            return { statusText: error.code };
+        }
     });
 })
 
