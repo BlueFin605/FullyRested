@@ -10,11 +10,15 @@ export class ImagesService {
   directory = new BehaviorSubject<string[]>([]);
 
   constructor() {
+    if (this.getIpcRenderer() == undefined)
+       return;
+
     this.getIpcRenderer().receive('getImagesResponse', (images: string[]) => {
       this.images.next(images);
     });
+
     this.getIpcRenderer().receive('getDirectoryResponse', (directory: string[]) => {
-      console.log(`getDirectoryResponse[${directory}]`);
+     console.log(`getDirectoryResponse[${directory}]`);
       this.directory.next(directory);
     });
   }
@@ -24,6 +28,9 @@ export class ImagesService {
   }
 
   navigateDirectory(path: string) {
+    if (this.getIpcRenderer() == undefined)
+       return;
+      
     this.getIpcRenderer().send('navigateDirectory', path);
   }
 }

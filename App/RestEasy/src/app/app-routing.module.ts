@@ -1,9 +1,9 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { BrowserComponent } from './components/browser/browser.component';
+import { RestActionComponent } from './components/rest-action/rest-action.component';
 
 const routes: Routes = [
-  { path: '', component: BrowserComponent }
+  { path: '', component: RestActionComponent }
 ];
 
 @NgModule({
