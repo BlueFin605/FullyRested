@@ -1,20 +1,35 @@
-.verb-header {
-    margin: 10px;
-}
-
-.verb-selector {
-    width: 70px;
+.action-header {
+    margin: 60px;
+    display: flex;
 }
 
 .verb-basics {
-    float: left;
     margin-right: 10px;
 }
 
-.url {
-    width: 75%;
+.verb-selector-form-field {
 }
 
-.url-field {
+.protocol-selector-form-field {
+}
+
+.url-form-field {
     width: 100%;
+}
+
+.action-verb {
+    width: 70px;
+    /* float: left; */
+}
+
+.action-protocol {
+    width: 65px;
+}
+
+.action-url {
+    flex-grow: 1;    
+}
+
+.action-send {
+    width: 10px;
 }

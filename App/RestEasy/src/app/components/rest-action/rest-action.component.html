@@ -1,6 +1,6 @@
-<div class="verb-header">
-    <div class="verb-basics">
-        <mat-form-field class="verb-selector">
+<div class="action-header">
+    <div class="verb-basics action-verb">
+        <mat-form-field class="verb-selector-form-field">
             <mat-label>http verb</mat-label>
             <mat-select [(value)]="verb">
                 <mat-option value="GET">GET</mat-option>
@@ -11,8 +11,8 @@
         </mat-form-field>
     </div>
     
-    <div class="verb-basics">
-        <mat-form-field class="verb-selector">
+    <div class="verb-basics action-protocol">
+        <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
             <mat-select [(value)]="protocol">
                 <mat-option value="HTTP">HTTP</mat-option>
@@ -21,14 +21,14 @@
         </mat-form-field>
     </div>
     
-    <div class="verb-basics url">
-        <mat-form-field class="url-field">
+    <div class="verb-basics action-url">
+        <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
             <input matInput>
         </mat-form-field>
     </div>
 
-    <div class="verb-basics">
+    <div class="verb-basics action-send">
         <button mat-raised-button color="primary">Send</button>
     </div>
 </div>
