@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { RestActionComponent } from 'src/app/components/rest-action/rest-action.component';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -7,12 +8,14 @@ export interface ExecuteRestAction {
 };
 
 export interface RestActionResult {
-  status:      number;
-  statusText:  string;
+  status:      number | undefined | string;
+  statusText:  string | undefined;
   headers:     { [header: string]: number };
   headersSent: { [header: string]: number };
   data:        any;
 }
+
+export const EmptyActionResult: RestActionResult = {status: "", statusText: undefined, headers: {}, headersSent: {}, data: {}};
 
 @Injectable({
   providedIn: 'root'

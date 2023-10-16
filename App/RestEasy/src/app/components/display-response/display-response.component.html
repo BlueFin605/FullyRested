@@ -1,6 +1,18 @@
 <div class="response">
     <h2>Response</h2>
+    <div attr.data-value="{{response.status}}">
+        {{response.status}} - 
+    </div>
+    {{response.statusText}}
     <div>
-        <pre>{{response | json}}</pre>
+        <h3>Body</h3>
+        <ngx-json-viewer [json]="response.data"></ngx-json-viewer>
+    </div>
+    <div>
+        <h3>Headers</h3>
+        <pre>{{response.headers| json}}</pre>x
+    </div>
+    <div>
+        <!-- <pre>{{response | json}}</pre>x -->
     </div>
 </div>

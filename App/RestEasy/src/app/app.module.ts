@@ -7,6 +7,8 @@ import { MatInputModule } from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
+
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserComponent } from './components/browser/browser.component';
@@ -25,6 +27,7 @@ import { DisplayResponseComponent } from './components/display-response/display-
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
+    NgxJsonViewerModule,
     MatFormFieldModule, 
     MatSelectModule,
     MatInputModule,

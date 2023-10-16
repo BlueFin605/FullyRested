@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { RestActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestActionResult, EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-display-response',
@@ -8,7 +8,7 @@ import { RestActionResult } from 'src/app/services/execute-rest-calls/execute-re
 })
 export class DisplayResponseComponent implements OnInit {
   @Input()
-  response: RestActionResult | undefined;
+  response: RestActionResult = EmptyActionResult;
 
   constructor() { }
 

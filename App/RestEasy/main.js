@@ -66,7 +66,7 @@ app.whenReady().then(() => {
                          headers: error.response.headers };
             }
 
-            return { statusText: error.code };
+            return { status: "", statusText: error.code };
         }
     });
 })
