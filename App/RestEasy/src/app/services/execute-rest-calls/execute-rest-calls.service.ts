@@ -8,7 +8,7 @@ export interface ExecuteRestAction {
 };
 
 export interface RestActionResult {
-  status:      number | undefined | string;
+  status:      number | string;
   statusText:  string | undefined;
   headers:     { [header: string]: number };
   headersSent: { [header: string]: number };

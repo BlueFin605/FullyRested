@@ -1,9 +1,10 @@
 <div class="response">
     <h2>Response</h2>
-    <div attr.data-value="{{response.status}}">
-        {{response.status}} - 
+    <div class="status" attr.level={{getlevel()}}>
+        <div class="statustext" attr.data-value="{{response.status}}">{{response.status}}</div>
+        <div class="statustext" attr.data-value="{{response.status}}">-</div>
+        <div class="statustext">{{response.statusText}}</div>
     </div>
-    {{response.statusText}}
     <div>
         <h3>Body</h3>
         <ngx-json-viewer [json]="response.data"></ngx-json-viewer>
