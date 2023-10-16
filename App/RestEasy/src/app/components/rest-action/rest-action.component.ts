@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ExecuteRestAction, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-rest-action',
@@ -10,7 +10,7 @@ export class RestActionComponent implements OnInit {
   verb = 'get';
   protocol="https";
   url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
-  response = "";
+  response: RestActionResult | undefined;
 
   constructor(private era: ExecuteRestCallsService) { }
 
@@ -18,7 +18,7 @@ export class RestActionComponent implements OnInit {
   }
 
   async test() {
-    this.response = "";
+    this.response = undefined;
     var headers = {"Accept":"*/*",
                    "Content-Type":"application/x-www-form-urlencoded",
                    "user-agent":"RestEasy1.0",

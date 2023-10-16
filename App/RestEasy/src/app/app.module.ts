@@ -12,12 +12,14 @@ import { AppComponent } from './app.component';
 import { BrowserComponent } from './components/browser/browser.component';
 import { RestActionComponent } from './components/rest-action/rest-action.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { DisplayResponseComponent } from './components/display-response/display-response.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     BrowserComponent,
-    RestActionComponent
+    RestActionComponent,
+    DisplayResponseComponent
   ],
   imports: [
     BrowserModule,
