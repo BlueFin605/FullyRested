@@ -19,6 +19,11 @@ export class RestActionComponent implements OnInit {
 
   async test() {
     this.response = "";
-    this.response = await this.era.executeTest(this.verb, this.protocol, this.url);
+    var headers = {"Accept":"*/*",
+                   "Content-Type":"application/x-www-form-urlencoded",
+                   "user-agent":"RestEasy1.0",
+                   "accept-encoding": ""
+                  };
+    this.response = await this.era.executeTest(this.verb, this.protocol, this.url, headers);
   }
 }

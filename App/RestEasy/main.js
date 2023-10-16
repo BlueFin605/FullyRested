@@ -50,9 +50,11 @@ app.whenReady().then(() => {
             })
             // var response = await axios.get(url, axios_request);
             console.log(response.statusText);
+            // console.log(`[${JSON.stringify(response.request)}]`)
             return { status: response.status, 
                      statusText: response.statusText, 
                      headers: response.headers, 
+                     headersSent: response.request._headers,
                      data: response.data };
         }
         catch (error) {
