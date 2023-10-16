@@ -42,11 +42,28 @@ app.whenReady().then(() => {
         var url = `${request.protocol}://${request.url}`;
         console.log(url);
         try {
-            var response = await axios.get(url, axios_request);
+            var response = await axios({
+                method: request.verb,
+                url: url,
+                data: request.data,
+                headers: request.headers
+            })
+            // var response = await axios.get(url, axios_request);
             console.log(response.statusText);
-            return { data: response.data, status: response.status, statusText: response.statusText, headers: response.headers };
+            return { status: response.status, 
+                     statusText: response.statusText, 
+                     headers: response.headers, 
+                     data: response.data };
         }
         catch (error) {
+            console.log(`Exception:[${JSON.stringify(error)}]`)
+            if (error.response != undefined) {
+                console.log(`[${error.response.status}, ${error.response.statusText}, ${error.response.headers}]`)
+                return { status: error.response.status, 
+                         statusText: error.response.statusText, 
+                         headers: error.response.headers };
+            }
+
             return { statusText: error.code };
         }
     });
