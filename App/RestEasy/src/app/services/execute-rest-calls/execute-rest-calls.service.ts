@@ -17,8 +17,8 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(verb: string, protocol: string, url: string) {
-    var response = await this.getIpcRenderer().invoke('testRest', { verb: verb, protocol: protocol, url: url });
+  async executeTest(verb: string, protocol: string, url: string, headers: any) {
+    var response = await this.getIpcRenderer().invoke('testRest', { verb: verb, protocol: protocol, url: url, headers: headers });
     console.log(response);
     return response;
   }

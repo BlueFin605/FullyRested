@@ -7,8 +7,8 @@ import { ExecuteRestAction, ExecuteRestCallsService } from 'src/app/services/exe
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
-  verb = 'GET';
-  protocol="HTTPS";
+  verb = 'get';
+  protocol="https";
   url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
   response = "";
 
@@ -19,7 +19,11 @@ export class RestActionComponent implements OnInit {
 
   async test() {
     this.response = "";
-    var r = await this.era.executeTest(this.verb, this.protocol, this.url);
-    this.response = r;
+    var headers = {"Accept":"*/*",
+                   "Content-Type":"application/x-www-form-urlencoded",
+                   "user-agent":"RestEasy1.0",
+                   "accept-encoding": ""
+                  };
+    this.response = await this.era.executeTest(this.verb, this.protocol, this.url, headers);
   }
 }
