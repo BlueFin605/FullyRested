@@ -4,23 +4,30 @@ div[data-value=""] {
 
 div[level="Ok"] {
     background-color: green;
+    color: white;
 }
 
 div[level="Warning"] {
     background-color: orange;
+    color: white;
 }
 
 div[level="Error"] {
     background-color: red;
+    color: white;
 }
 
 div[level="Empty"] {
     background-color: white;
 }
 
+.response {
+    border-style: groove;
+    box-shadow: inset;
+}
+
 .status {
     display: flex;
-    /* color: white; */
 }
 
 .statustext {
