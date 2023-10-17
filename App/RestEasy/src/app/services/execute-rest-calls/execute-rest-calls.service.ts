@@ -78,7 +78,16 @@ export class ExecuteRestCallsService {
         "userId": 1,
         "id": 1,
         "title": "delectus aut autem",
-        "completed": false
+        "completed": false,
+        "information": {
+          "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In magna neque, ultrices sit amet mattis tristique, fermentum vitae ipsum. In eu lorem mauris. Aliquam ut nulla consectetur, commodo erat id, malesuada sem. Morbi posuere eget augue eget eleifend. Mauris magna arcu, sodales at euismod et, mollis quis lectus. Phasellus varius id risus ut pharetra. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Quisque elementum metus velit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut non vestibulum elit. Suspendisse potenti. Aliquam posuere diam sed enim viverra vulputate. Praesent cursus sem sit amet turpis rhoncus bibendum.",
+          "details": "Quisque at quam sit amet tortor porta tempor. Cras in est in nibh facilisis sodales nec ac nisl. In tincidunt interdum mauris vitae mollis. Pellentesque sed molestie nulla, sed fringilla mauris. Integer egestas velit at massa gravida, ac consequat ante convallis. Sed lacinia ante non dui commodo vulputate. Quisque sit amet pharetra nisl. Aenean hendrerit venenatis erat eu tristique. Suspendisse molestie feugiat tristique. Quisque vitae semper massa. Proin id enim elementum, posuere arcu eget, finibus eros. Cras malesuada velit sed pellentesque finibus. Curabitur ac lorem eget risus tincidunt ullamcorper. Nunc luctus congue urna, at hendrerit quam sollicitudin in. Aenean eget tincidunt ligula, nec rutrum leo.  Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Vivamus pharetra augue vel orci pharetra maximus. Fusce vitae mi eu sem lacinia ornare. Morbi molestie dolor sit amet tempor consectetur. Morbi in dui at augue consectetur bibendum. Suspendisse a aliquet ex. Maecenas mi nulla, lacinia viverra suscipit at, porta et metus. Nullam lobortis sapien vitae risus laoreet mollis. Proin sit amet justo eget sapien mattis eleifend. Cras volutpat feugiat viverra. Maecenas ut diam sit amet metus laoreet vehicula. Quisque tortor felis, congue vel metus ac, pharetra consectetur felis. Duis porttitor, arcu ut luctus posuere, tellus quam convallis quam, ac condimentum nibh nibh iaculis ante. Aliquam ornare lobortis euismod. Integer diam ligula, rutrum ac tellus vel, commodo tempor ante. Sed vulputate aliquet lectus, ac sollicitudin justo placerat at. Sed rutrum auctor odio, sit amet imperdiet augue pretium et. Praesent at metus ut felis mattis dignissim ut eu lectus. Donec euismod mi sed enim pulvinar, nec consectetur ligula semper. Etiam blandit tortor sed orci fermentum, eget tincidunt massa tincidunt. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Duis vulputate odio non ipsum porttitor tristique. Proin vitae fringilla nulla, nec consequat nisi. Fusce vel ipsum sit amet sem luctus pellentesque. Aliquam iaculis est ac augue euismod, ac dapibus enim aliquam.",
+          "contributers": {
+            "author": "Marike Oissíne",
+            "editor": "Fabian Ieronim",
+            "factchecker": "Dov Seleucus"
+          }
+        }
       }
     };
 
