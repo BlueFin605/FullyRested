@@ -1,7 +1,7 @@
 table {
     width: 100%;
 }
-  
+
 .mat-column-key {
     word-wrap: break-word !important;
     white-space: unset !important;
@@ -16,4 +16,28 @@ table {
     -moz-hyphens: auto;
     -webkit-hyphens: auto;
     hyphens: auto;
+
+}
+
+.mat-column-value {
+    word-wrap: break-word !important;
+    white-space: unset !important;
+    flex: 0 0 28% !important;
+    width: 56% !important;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    
+    word-break: break-word;
+    
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+.mat-header-cell {
+    font-weight: bolder;
+    font-size: small;
+    color: black;
+    background-color: rgb(221, 217, 217);
   }
