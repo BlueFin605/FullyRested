@@ -13,12 +13,12 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { RestActionComponent } from './components/rest-action/rest-action.component';
+import { RestActionComponent } from './components/rest-action/rest-action/rest-action.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { DisplayResponseComponent } from './components/response/display-response/display-response.component';
-import { DisplayResponseBodyComponent } from './components/response/display-response-body/display-response-body.component';
-import { DisplayResponseHeadersComponent } from './components/response/display-response-headers/display-response-headers.component';
-import { EditRequestComponent } from './components/request/edit-request/edit-request.component';
+import { DisplayResponseComponent } from './components/rest-action/response/display-response/display-response.component';
+import { DisplayResponseBodyComponent } from './components/rest-action/response/display-response-body/display-response-body.component';
+import { DisplayResponseHeadersComponent } from './components/rest-action/response/display-response-headers/display-response-headers.component';
+import { EditRequestComponent } from './components/rest-action/request/edit-request/edit-request.component';
 
 @NgModule({
   declarations: [

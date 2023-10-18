@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { RestActionComponent } from 'src/app/components/rest-action/rest-action.component';
+import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
 
 export interface ExecuteRestAction {
   verb: string;
