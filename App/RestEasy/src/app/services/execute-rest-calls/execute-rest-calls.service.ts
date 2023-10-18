@@ -5,6 +5,7 @@ export interface ExecuteRestAction {
   verb: string;
   protocol: string;
   url: string;
+  headers: { [header: string]: string };
 };
 
 export interface RestActionResult {
@@ -28,16 +29,16 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(verb: string, protocol: string, url: string, headers: any): Promise<RestActionResult> {
+  async executeTest(action: ExecuteRestAction): Promise<RestActionResult> {
     if (this.getIpcRenderer() == undefined)
-      return this.BuildMockData(verb, protocol, url, headers);
+      return this.BuildMockData(action);
 
-    var response = await this.getIpcRenderer().invoke('testRest', { verb: verb, protocol: protocol, url: url, headers: headers });
+    var response = await this.getIpcRenderer().invoke('testRest', action);
     console.log(response);
     return response;
   }
 
-  BuildMockData(verb: string, protocol: string, url: string, headers: any): RestActionResult | PromiseLike<RestActionResult> {
+  BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
     var mockjson: RestActionResult = {
       "status": 200,
       "statusText": "OK",

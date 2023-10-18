@@ -1,0 +1,38 @@
+.action-header {
+    /* margin: 60px; */
+    margin-left: 60px;
+    margin-right: 60px;
+    display: flex;
+    margin-bottom: 5px;
+}
+
+.verb-basics {
+    margin-right: 10px;
+}
+
+.verb-selector-form-field {
+}
+
+.protocol-selector-form-field {
+}
+
+.url-form-field {
+    width: 100%;
+}
+
+.action-verb {
+    width: 70px;
+    /* float: left; */
+}
+
+.action-protocol {
+    width: 65px;
+}
+
+.action-url {
+    flex-grow: 1;    
+}
+
+.action-send {
+    width: 10px;
+}

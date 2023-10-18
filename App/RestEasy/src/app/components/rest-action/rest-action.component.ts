@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { RestActionResult, ExecuteRestCallsService, EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestAction, ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-rest-action',
@@ -7,23 +8,22 @@ import { RestActionResult, ExecuteRestCallsService, EmptyActionResult } from 'sr
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
-  verb = 'get';
-  protocol="https";
-  url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
+  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: ''};
+
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService) { }
+  // verb = 'get';
+  // protocol="https";
+  // url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
+
+  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { }
 
   ngOnInit(): void {
+    this.action = this.repository.getActionDetails();
   }
 
-  async test() {
-    this.response = {status: 0, statusText: "", headers: {}, headersSent: {}, data: {}};;
-    var headers = {"Accept":"*/*",
-                   "Content-Type":"application/x-www-form-urlencoded",
-                   "user-agent":"RestEasy1.0",
-                   "accept-encoding": ""
-                  };
-    this.response = await this.era.executeTest(this.verb, this.protocol, this.url, headers);
+  async executeAction(action: ExecuteRestAction) {
+    console.log(`executeAction[${action}]`)
+    this.response = await this.era.executeTest(action);
   }
 }

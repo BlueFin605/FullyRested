@@ -16,9 +16,10 @@ import { AppComponent } from './app.component';
 import { BrowserComponent } from './components/browser/browser.component';
 import { RestActionComponent } from './components/rest-action/rest-action.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { DisplayResponseComponent } from './components/display-response/display-response.component';
-import { DisplayResponseBodyComponent } from './components/display-response-body/display-response-body.component';
-import { DisplayResponseHeadersComponent } from './components/display-response-headers/display-response-headers.component';
+import { DisplayResponseComponent } from './components/response/display-response/display-response.component';
+import { DisplayResponseBodyComponent } from './components/response/display-response-body/display-response-body.component';
+import { DisplayResponseHeadersComponent } from './components/response/display-response-headers/display-response-headers.component';
+import { EditRequestComponent } from './components/request/edit-request/edit-request.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { DisplayResponseHeadersComponent } from './components/display-response-h
     RestActionComponent,
     DisplayResponseComponent,
     DisplayResponseBodyComponent,
-    DisplayResponseHeadersComponent
+    DisplayResponseHeadersComponent,
+    EditRequestComponent
   ],
   imports: [
     BrowserModule,
