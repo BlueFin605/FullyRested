@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { ImagesService } from './services/image-services/images.service';
 
 @Component({
   selector: 'app-root',
@@ -9,10 +8,8 @@ import { ImagesService } from './services/image-services/images.service';
 export class AppComponent implements OnInit {
   title = 'RestEasy';
 
-  constructor(private imageService: ImagesService) {}
+  constructor() {}
 
   ngOnInit(): void {
-    console.log('navigate root dir');
-    this.imageService.navigateDirectory('.');
   }
 }
