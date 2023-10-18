@@ -41,3 +41,8 @@ table {
     color: black;
     background-color: rgb(221, 217, 217);
   }
+
+  .addheader
+  {
+    margin: 2px;
+  }

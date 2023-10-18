@@ -56,7 +56,11 @@ export class EditRequestHeadersComponent implements OnInit {
   convertArraysAsValues(headers: headerTable[]): { [header: string]: string } 
   {
     var converted: { [header: string]: string } = {};
-    headers.forEach(v => converted[v.key]=v.value);
+    headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
     return converted;
+  }
+
+  add() {
+    this._headers = [...this._headers, {key: '', value: ''}];    
   }
 }

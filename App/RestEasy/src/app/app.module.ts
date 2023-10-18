@@ -8,6 +8,7 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTableModule} from '@angular/material/table';
 import { FormsModule } from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon'
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
@@ -46,7 +47,8 @@ import { EditRequestBodyComponent } from './components/rest-action/request/edit-
     MatButtonModule,
     MatTabsModule,
     MatTableModule,
-    FormsModule
+    FormsModule,
+    MatIconModule
   ],
   providers: [],
   bootstrap: [AppComponent]
