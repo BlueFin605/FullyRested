@@ -1,0 +1,12 @@
+.rest-action {
+    background-color: whitesmoke;
+    padding: 10px;
+}
+
+.section-border {
+    border-style: inset;
+    /* margin: 10px; */
+    background-color: white;
+    padding: 10px;
+    margin-bottom: 10px;
+}

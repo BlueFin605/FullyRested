@@ -21,11 +21,6 @@ div[level="Empty"] {
     background-color: white;
 }
 
-.response {
-    border-style: groove;
-    box-shadow: inset;
-}
-
 .status {
     display: flex;
 }
