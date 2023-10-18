@@ -21,6 +21,7 @@ import { DisplayResponseHeadersComponent } from './components/rest-action/respon
 import { EditRequestComponent } from './components/rest-action/request/edit-request/edit-request.component';
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
 import { EditRequestParamatersComponent } from './components/rest-action/request/edit-request-paramaters/edit-request-paramaters.component';
+import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
 
 @NgModule({
   declarations: [
@@ -31,7 +32,8 @@ import { EditRequestParamatersComponent } from './components/rest-action/request
     DisplayResponseHeadersComponent,
     EditRequestComponent,
     EditRequestHeadersComponent,
-    EditRequestParamatersComponent
+    EditRequestParamatersComponent,
+    EditRequestBodyComponent
   ],
   imports: [
     BrowserModule,
