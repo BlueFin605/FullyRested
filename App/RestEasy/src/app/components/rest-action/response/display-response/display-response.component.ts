@@ -16,25 +16,20 @@ export class DisplayResponseComponent implements OnInit {
   }
 
   getlevel() {
-    console.log(`getlevel status[${this.response.status}]   text[${this.response.statusText}]`);
     if (this.response.status === "" && this.response.statusText === undefined) {
-      console.log("Empty");
       return "Empty"
     }
 
     if (this.response.status === "") {
-      console.log("Error");
       return "Error"
     }
 
     var status = typeof this.response.status === "number" ? this.response.status : parseInt(this.response.status, 10);
 
     if (status >= 200 && status < 300) {
-      console.log("Ok");
       return "Ok"
     }
 
-    console.log("Error");
     return "Error"
   }
 }
