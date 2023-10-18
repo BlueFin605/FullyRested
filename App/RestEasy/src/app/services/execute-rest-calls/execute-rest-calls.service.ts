@@ -40,9 +40,9 @@ export class ExecuteRestCallsService {
 
   BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
     var mockjson: RestActionResult = {
-      "status": 200,
-      "statusText": "OK",
-      "headers": {
+      status: 200,
+      statusText: "OK",
+      headers: {
         "date": "Tue, 17 Oct 2023 00:21:40 GMT",
         "content-type": "application/json; charset=utf-8",
         "content-length": "83",
@@ -68,14 +68,8 @@ export class ExecuteRestCallsService {
         "cf-ray": "817461fe1d8da86e-SYD",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
-      "headersSent": {
-        "accept": "*/*",
-        "content-type": "application/x-www-form-urlencoded",
-        "user-agent": "RestEasy1.0",
-        "accept-encoding": "",
-        "host": "jsonplaceholder.typicode.com"
-      },
-      "data": {
+      headersSent: action.headers,
+      data: {
         "userId": 1,
         "id": 1,
         "title": "delectus aut autem",

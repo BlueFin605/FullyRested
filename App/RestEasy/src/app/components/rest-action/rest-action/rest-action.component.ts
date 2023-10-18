@@ -12,10 +12,6 @@ export class RestActionComponent implements OnInit {
 
   response: RestActionResult = EmptyActionResult;
 
-  // verb = 'get';
-  // protocol="https";
-  // url = 'jsonplaceholder.typicode.com/todos/1';  //see https://jsonplaceholder.typicode.com/
-
   constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { }
 
   ngOnInit(): void {
