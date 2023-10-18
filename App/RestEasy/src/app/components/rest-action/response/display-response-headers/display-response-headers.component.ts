@@ -9,6 +9,7 @@ export class DisplayResponseHeadersComponent implements OnInit {
   @Input()
   headers: { [header: string]: string } = {}
   displayedColumns: string[] = ['key', 'value'];
+  
   constructor() { }
 
   ngOnInit(): void {

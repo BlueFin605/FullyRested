@@ -5,6 +5,7 @@ export interface RestAction {
   verb: string;
   protocol: string;
   url: string;
+  headers: { [header: string]: string };
 }
 
 @Injectable({
@@ -18,7 +19,14 @@ export class ActionRepositoryService {
     var action: RestAction = {
       verb: "get",
       protocol: "https",
-      url: "jsonplaceholder.typicode.com/todos/1"
+      url: "jsonplaceholder.typicode.com/todos/1",
+      headers: {
+        "accept": "*/*",
+        "content-type": "application/x-www-form-urlencoded",
+        "user-agent": "RestEasy1.0",
+        "accept-encoding": "gzip, deflate, br",
+        "host": "jsonplaceholder.typicode.com"
+      }
     };  //see https://jsonplaceholder.typicode.com/
 
     return action;

@@ -10,7 +10,7 @@ import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-r
 export class EditRequestComponent implements OnInit {
 
   @Input()
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: ''};
+  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: {}};
 
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
@@ -28,17 +28,11 @@ export class EditRequestComponent implements OnInit {
   }
 
   async test() {
-    var headers = {"Accept":"*/*",
-                   "Content-Type":"application/x-www-form-urlencoded",
-                   "user-agent":"RestEasy1.0",
-                   "accept-encoding": ""
-                  };
-
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.action.url,
-      headers: headers
+      headers: this.action.headers
     };
 
     console.log(`emit[${action}]`)
