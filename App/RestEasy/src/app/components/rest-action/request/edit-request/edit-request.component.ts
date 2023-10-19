@@ -26,7 +26,7 @@ export class EditRequestComponent implements OnInit {
   convertArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 
   {
     var converted: { [header: string]: string } = {};
-    headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
+    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
     return converted;
   }
 

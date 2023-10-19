@@ -1,14 +1,15 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
-import {MatSelectModule} from '@angular/material/select';
-import {MatFormFieldModule, } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import {MatButtonModule} from '@angular/material/button';
-import {MatTabsModule} from '@angular/material/tabs';
-import {MatTableModule} from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatTableModule } from '@angular/material/table';
 import { FormsModule } from '@angular/forms';
-import {MatIconModule} from '@angular/material/icon'
+import { MatIconModule } from '@angular/material/icon'
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
@@ -48,6 +49,7 @@ import { EditRequestBodyComponent } from './components/rest-action/request/edit-
     MatTabsModule,
     MatTableModule,
     FormsModule,
+    MatCheckboxModule,
     MatIconModule
   ],
   providers: [],

@@ -3,19 +3,24 @@ import { HeaderTable } from 'src/app/services/action-repository/action-repositor
 
 const COLUMNS_SCHEMA = [
   {
-      key: "isdelete",
-      type: "isdelete",
-      label: ""
+    key: "isdelete",
+    type: "isdelete",
+    label: ""
   },
   {
-      key: "key",
-      type: "text",
-      label: "Key"
+    key: "isenabled",
+    type: "isenabled",
+    label: ""
   },
   {
-      key: "value",
-      type: "text",
-      label: "Value"
+    key: "key",
+    type: "text",
+    label: "Key"
+  },
+  {
+    key: "value",
+    type: "text",
+    label: "Value"
   },
 ]
 
@@ -26,17 +31,17 @@ const COLUMNS_SCHEMA = [
   styleUrls: ['./edit-request-headers.component.css']
 })
 export class EditRequestHeadersComponent implements OnInit {
-  
+
   @Input()
   headers: HeaderTable[] = [];
-  
+
   @Output()
   headersChange = new EventEmitter<any>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
-  
-  constructor() { 
+
+  constructor() {
   }
 
   ngOnInit(): void {
@@ -56,10 +61,18 @@ export class EditRequestHeadersComponent implements OnInit {
 
   add() {
     var max: number = Math.max(...this.headers.map(m => m.id));
-    this.headers = [...this.headers, {key: '', value: '', active: true, id: max + 1}];    
+    this.headers = [...this.headers, { key: '', value: '', active: true, id: max + 1 }];
   }
 
   delete(id: number) {
     this.headers = this.headers.filter(f => f.id != id);
+  }
+
+  activeClicked(id: number) {
+    var entry = this.headers.find(f => f.id == id);
+    if (entry == undefined)
+       return;
+
+    entry.active = !entry.active;
   }
 }
