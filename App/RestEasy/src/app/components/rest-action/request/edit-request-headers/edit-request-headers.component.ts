@@ -3,6 +3,11 @@ import { HeaderTable } from 'src/app/services/action-repository/action-repositor
 
 const COLUMNS_SCHEMA = [
   {
+      key: "isdelete",
+      type: "isdelete",
+      label: ""
+  },
+  {
       key: "key",
       type: "text",
       label: "Key"
@@ -11,7 +16,7 @@ const COLUMNS_SCHEMA = [
       key: "value",
       type: "text",
       label: "Value"
-  }
+  },
 ]
 
 
@@ -50,6 +55,11 @@ export class EditRequestHeadersComponent implements OnInit {
   // }
 
   add() {
-    this.headers = [...this.headers, {key: '', value: '', active: true, id: 10}];    
+    var max: number = Math.max(...this.headers.map(m => m.id));
+    this.headers = [...this.headers, {key: '', value: '', active: true, id: max + 1}];    
+  }
+
+  delete(id: number) {
+    this.headers = this.headers.filter(f => f.id != id);
   }
 }

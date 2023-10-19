@@ -2,6 +2,27 @@ table {
     width: 100%;
 }
 
+th.mat-header-cell:first-of-type, td.mat-cell:first-of-type, td.mat-footer-cell:first-of-type{
+    padding-left: 0px;
+}
+
+.mat-column-isdelete {
+    padding-left: 0px;
+    word-wrap: break-word !important;
+    white-space: unset !important;
+    flex: 0 0 1% !important;
+    width: 1% !important;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  
+    word-break: break-word;
+  
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
 .mat-column-key {
     word-wrap: break-word !important;
     white-space: unset !important;
@@ -44,5 +65,6 @@ table {
 
   .addheader
   {
-    margin: 2px;
+    padding: 10px;
+    background-color: rgb(221, 217, 217);
   }
