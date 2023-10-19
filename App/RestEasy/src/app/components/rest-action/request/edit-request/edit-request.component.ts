@@ -1,5 +1,5 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
-import { RestAction } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, HeaderTable } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 
@@ -11,7 +11,7 @@ import { EditRequestHeadersComponent } from '../edit-request-headers/edit-reques
 export class EditRequestComponent implements OnInit {
   
   @Input()
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: {}};
+  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: []};
   
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
@@ -23,12 +23,19 @@ export class EditRequestComponent implements OnInit {
   ngOnInit(): void {
   }
 
+  convertArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 
+  {
+    var converted: { [header: string]: string } = {};
+    headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
+    return converted;
+  }
+
   async test() {
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.action.url,
-      headers: this.headerChild?.headers ?? {}
+      headers: this.convertArraysAsValues(this.headerChild?.headers ?? [])
     };
 
     console.log(`emit[${action}]`)

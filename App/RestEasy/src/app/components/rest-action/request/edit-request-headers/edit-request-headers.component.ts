@@ -1,4 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { HeaderTable } from 'src/app/services/action-repository/action-repository.service'
 
 const COLUMNS_SCHEMA = [
   {
@@ -13,10 +14,6 @@ const COLUMNS_SCHEMA = [
   }
 ]
 
-interface headerTable {
-  key: string;
-  value: string;
-};
 
 @Component({
   selector: 'app-edit-request-headers',
@@ -24,18 +21,10 @@ interface headerTable {
   styleUrls: ['./edit-request-headers.component.css']
 })
 export class EditRequestHeadersComponent implements OnInit {
-  _headers: headerTable[] = [];
-
+  
   @Input()
-  set headers(headers: { [header: string]: string }) {
-    this._headers = this.convertValuesAsArray(headers);
-    console.log(`set headres[${JSON.stringify(this._headers)}]`)
-  }
-  get headers() { 
-    console.log(`get headres[${JSON.stringify(this._headers)}]`)
-    return this.convertArraysAsValues(this._headers);
-  }
-
+  headers: HeaderTable[] = [];
+  
   @Output()
   headersChange = new EventEmitter<any>();
 
@@ -48,19 +37,19 @@ export class EditRequestHeadersComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  convertValuesAsArray(headers: { [header: string]: string }): headerTable[]
-  {
-    return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
-  }
+  // convertValuesAsArray(headers: { [header: string]: string }): headerTable[]
+  // {
+  //   return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
+  // }
 
-  convertArraysAsValues(headers: headerTable[]): { [header: string]: string } 
-  {
-    var converted: { [header: string]: string } = {};
-    headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
-    return converted;
-  }
+  // convertArraysAsValues(headers: headerTable[]): { [header: string]: string } 
+  // {
+  //   var converted: { [header: string]: string } = {};
+  //   headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
+  //   return converted;
+  // }
 
   add() {
-    this._headers = [...this._headers, {key: '', value: ''}];    
+    this.headers = [...this.headers, {key: '', value: '', active: true, id: 10}];    
   }
 }
