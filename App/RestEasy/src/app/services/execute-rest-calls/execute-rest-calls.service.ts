@@ -6,6 +6,7 @@ export interface ExecuteRestAction {
   protocol: string;
   url: string;
   headers: { [header: string]: string };
+  body: any;
 };
 
 export interface RestActionResult {
@@ -13,10 +14,10 @@ export interface RestActionResult {
   statusText: string | undefined;
   headers: { [header: string]: string };
   headersSent: { [header: string]: string };
-  data: any;
+  body: any;
 }
 
-export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, data: {} };
+export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: {} };
 
 @Injectable({
   providedIn: 'root'
@@ -69,7 +70,7 @@ export class ExecuteRestCallsService {
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       headersSent: action.headers,
-      data: {
+      body: {
         "userId": 1,
         "id": 1,
         "title": "delectus aut autem",

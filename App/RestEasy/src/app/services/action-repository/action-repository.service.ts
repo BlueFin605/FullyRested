@@ -13,6 +13,7 @@ export interface RestAction {
   protocol: string;
   url: string;
   headers: HeaderTable[];
+  body: any;
 }
 
 @Injectable({
@@ -24,6 +25,7 @@ export class ActionRepositoryService {
 
   getActionDetails(): RestAction {
     var action: RestAction = {
+      body: {"products":[{"name":"car","product":[{"name":"honda","model":[{"id":"civic","name":"civic"},{"id":"accord","name":"accord"},{"id":"crv","name":"crv"},{"id":"pilot","name":"pilot"},{"id":"odyssey","name":"odyssey"}]}]}]},
       verb: "get",
       protocol: "https",
       url: "jsonplaceholder.typicode.com/todos/1",
