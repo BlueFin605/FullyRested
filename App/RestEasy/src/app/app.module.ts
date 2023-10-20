@@ -12,6 +12,8 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
+import { AngJsoneditorModule } from '@maaxgr/ang-jsoneditor' 
+
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -42,6 +44,7 @@ import { EditRequestBodyComponent } from './components/rest-action/request/edit-
     AppRoutingModule,
     BrowserAnimationsModule,
     NgxJsonViewerModule,
+    AngJsoneditorModule,
     MatFormFieldModule, 
     MatSelectModule,
     MatInputModule,
