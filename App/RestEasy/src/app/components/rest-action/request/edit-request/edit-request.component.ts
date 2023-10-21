@@ -34,12 +34,17 @@ export class EditRequestComponent implements OnInit {
   }
 
   async test() {
+    if (this.bodyChild?.isValidJSON == false) {
+      console.log('Body JSON is not valid, sorry cannot execute action')
+      return;
+    }
+
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.action.url,
       headers: this.convertArraysAsValues(this.headerChild?.headers ?? []),
-      body: this.bodyChild?.body ?? {}
+      body: this.bodyChild?.visibleData ?? {}
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)
