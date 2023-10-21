@@ -15,9 +15,9 @@ export class DisplayResponseBodyComponent implements OnInit {
   constructor() { 
     this.editorOptions = new JsonEditorOptions()
     this.editorOptions.enableTransform = true;
-    this.editorOptions.mode = 'text';
+    this.editorOptions.mode = 'code';
     this.editorOptions.modes = ['code', 'text', 'tree', 'view']; // set all allowed modes
-    this.editorOptions.mainMenuBar = false;
+    this.editorOptions.mainMenuBar = true;
     this.editorOptions.onEditable = function(){return false;}
   }
 
