@@ -35,7 +35,9 @@ export class EditRequestComponent implements OnInit {
 
   async test() {
     if (this.bodyChild?.isValidJSON == false) {
-      console.log('Body JSON is not valid, sorry cannot execute action')
+      console.log('Body JSON is not va lid, sorry cannot execute action');
+      // console.log(this.bodyChild?.jsonText);
+      
       return;
     }
 
@@ -44,7 +46,7 @@ export class EditRequestComponent implements OnInit {
       protocol: this.action.protocol,
       url: this.action.url,
       headers: this.convertArraysAsValues(this.headerChild?.headers ?? []),
-      body: this.bodyChild?.visibleData ?? {}
+      body: this.bodyChild?.json ?? {}
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)
