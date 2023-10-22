@@ -49,7 +49,6 @@ export class EditRequestParamatersComponent implements OnInit {
   }
 
   modelChangeFn(value: any) {
-    console.log(`modelChangeFn[${JSON.stringify(this.params)}]`);
     this.paramsChange.emit(this.params);
   }
 
@@ -70,5 +69,6 @@ export class EditRequestParamatersComponent implements OnInit {
        return;
 
     entry.active = !entry.active;
+    this.paramsChange.emit(this.params);
   }
 }

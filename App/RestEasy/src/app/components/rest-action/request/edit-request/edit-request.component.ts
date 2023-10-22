@@ -1,4 +1,8 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
+import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment } from "@angular/router";
+
+import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
+
 
 import { RestAction, HeaderTable, ParamTable } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
@@ -28,13 +32,26 @@ export class EditRequestComponent implements OnInit {
 
   onParamChange(params: any)
   {
-    console.log(`params change[${JSON.stringify(params)}]`);
+    const urlTree = new UrlTree();
+    urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
+    urlTree.queryParams = this.convertParamsArraysAsValues(params);
+    const urlSerializer = new CustomUrlSerializer();
+    const url = urlSerializer.serialize(urlTree);
+    console.log(JSON.stringify(url));
+
   }
 
-  convertArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 
+  convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 
   {
     var converted: { [header: string]: string } = {};
     headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
+    return converted;
+  }
+
+  convertParamsArraysAsValues(params: ParamTable[]): { [header: string]: string } 
+  {
+    var converted: { [params: string]: string } = {};
+    params.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
     return converted;
   }
 
@@ -50,7 +67,7 @@ export class EditRequestComponent implements OnInit {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.action.url,
-      headers: this.convertArraysAsValues(this.headerChild?.headers ?? []),
+      headers: this.convertHeaderArraysAsValues(this.headerChild?.headers ?? []),
       body: this.bodyChild?.json ?? {}
     };
 
