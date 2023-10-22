@@ -15,16 +15,29 @@ import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body
   styleUrls: ['./edit-request.component.css']
 })
 export class EditRequestComponent implements OnInit {
-  
+  private _action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: {}};
+
   @Input()
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: {}};
+  set action(action: RestAction) {
+    console.log(`set action[${JSON.stringify(action)}]`)
+    this._action = action;
+    this.onParamChange(this._action.parameters);
+  }
   
+
+  get action(): RestAction {
+    // console.log(`valid json:${this.bodyChild?.isValidJson()}`);
+    return this._action;
+  }
+
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
   
   @ViewChild('headerChild') headerChild: EditRequestHeadersComponent | undefined;
   @ViewChild('bodyChild') bodyChild: EditRequestBodyComponent | undefined;
   
+  displayUrl: string = '';
+
   constructor() { }
 
   ngOnInit(): void {
@@ -38,7 +51,7 @@ export class EditRequestComponent implements OnInit {
     const urlSerializer = new CustomUrlSerializer();
     const url = urlSerializer.serialize(urlTree);
     console.log(JSON.stringify(url));
-
+    this.displayUrl = url;
   }
 
   convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 
