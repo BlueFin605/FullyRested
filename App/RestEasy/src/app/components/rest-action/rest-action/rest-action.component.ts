@@ -8,7 +8,7 @@ import { RestAction, ActionRepositoryService } from 'src/app/services/action-rep
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], body: {}};
+  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: {}};
 
   response: RestActionResult = EmptyActionResult;
 

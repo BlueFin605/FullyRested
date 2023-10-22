@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 
-import { RestAction, HeaderTable } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, HeaderTable, ParamTable } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
@@ -13,7 +13,7 @@ import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body
 export class EditRequestComponent implements OnInit {
   
   @Input()
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], body: {}};
+  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: {}};
   
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
@@ -24,6 +24,11 @@ export class EditRequestComponent implements OnInit {
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  onParamChange(params: any)
+  {
+    console.log(`params change[${JSON.stringify(params)}]`);
   }
 
   convertArraysAsValues(headers: HeaderTable[]): { [header: string]: string } 

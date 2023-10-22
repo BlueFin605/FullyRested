@@ -7,12 +7,19 @@ export interface HeaderTable {
   active: boolean;
   id: number;
 };
+export interface ParamTable {
+  key: string;
+  value: string;
+  active: boolean;
+  id: number;
+};
 
 export interface RestAction {
   verb: string;
   protocol: string;
   url: string;
   headers: HeaderTable[];
+  parameters: ParamTable[];
   body: any;
 }
 
@@ -35,6 +42,9 @@ export class ActionRepositoryService {
         {key: "user-agent", value: "RestEasy1.0", active: true, id: 3},
         {key: "accept-encoding", value: "gzip, deflate, br", active: true, id: 4},
         {key: "host", value: "jsonplaceholder.typicode.com", active: true, id: 5}
+      ],
+      parameters: [
+        {key: "userid", value: "1", active: true, id: 1}
       ]
     };  //see https://jsonplaceholder.typicode.com/
 
