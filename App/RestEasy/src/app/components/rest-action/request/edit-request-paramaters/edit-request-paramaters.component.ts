@@ -64,7 +64,7 @@ export class EditRequestParamatersComponent implements OnInit {
   }
 
   activeClicked(id: number) {
-    var entry = this.params.find(f => f.id == id);
+    var entry = this.params.find(f => f.id === id);
     if (entry == undefined)
        return;
 
