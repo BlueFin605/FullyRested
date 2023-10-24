@@ -1,6 +1,9 @@
 .action-header {
-    margin: 60px;
+    /* margin: 60px; */
+    margin-left: 60px;
+    margin-right: 60px;
     display: flex;
+    margin-bottom: 5px;
 }
 
 .verb-basics {

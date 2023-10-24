@@ -2,7 +2,7 @@
     <div class="verb-basics action-verb">
         <mat-form-field class="verb-selector-form-field">
             <mat-label>http verb</mat-label>
-            <mat-select [(value)]="verb">
+            <mat-select [(value)]="action.verb">
                 <mat-option value="get">GET</mat-option>
                 <mat-option value="post">POST</mat-option>
                 <mat-option value="patch">PATCH</mat-option>
@@ -14,7 +14,7 @@
     <div class="verb-basics action-protocol">
         <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
-            <mat-select [(value)]="protocol">
+            <mat-select [(value)]="action.protocol">
                 <mat-option value="http">HTTP</mat-option>
                 <mat-option value="https">HTTPS</mat-option>
             </mat-select>
@@ -24,8 +24,7 @@
     <div class="verb-basics action-url">
         <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
-            <!-- <input matInput [(value)]="protocol"> -->
-            <input matInput placeholder="Input" [(ngModel)]="url">
+            <input matInput placeholder="Input" [ngModel]="displayUrl" (ngModelChange)="modelChangeFn($event)">
         </mat-form-field>
     </div>
 
@@ -33,10 +32,10 @@
         <button mat-raised-button color="primary" (click)='test()'>Send</button>
     </div>
 </div>
-
-<div class="response">
-    <h2>Response</h2>
-    <div>
-        <pre>{{response | json}}</pre>
-    </div>
+<div>
+    <mat-tab-group animationDuration="0ms">
+        <mat-tab label="Body"><app-edit-request-body [body]="action.body" #bodyChild></app-edit-request-body></mat-tab>
+        <mat-tab label="Headers"><app-edit-request-headers [headers]="action.headers" #headerChild></app-edit-request-headers></mat-tab>
+        <mat-tab label="Paramaters"><app-edit-request-paramaters [(params)]="action.parameters" (paramsChange)="onParamChange($event)"></app-edit-request-paramaters></mat-tab>
+    </mat-tab-group>
 </div>

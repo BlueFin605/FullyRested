@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { BrowserComponent } from './browser.component';
+import { EditRequestComponent } from './edit-request.component';
 
-describe('BrowserComponent', () => {
-  let component: BrowserComponent;
-  let fixture: ComponentFixture<BrowserComponent>;
+describe('EditRequestComponent', () => {
+  let component: EditRequestComponent;
+  let fixture: ComponentFixture<EditRequestComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ BrowserComponent ]
+      declarations: [ EditRequestComponent ]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(BrowserComponent);
+    fixture = TestBed.createComponent(EditRequestComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

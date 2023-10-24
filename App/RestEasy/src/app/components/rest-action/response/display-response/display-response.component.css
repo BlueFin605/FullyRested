@@ -1,0 +1,30 @@
+div[data-value=""] {
+    display: none
+}
+
+div[level="Ok"] {
+    background-color: green;
+    color: white;
+}
+
+div[level="Warning"] {
+    background-color: orange;
+    color: white;
+}
+
+div[level="Error"] {
+    background-color: red;
+    color: white;
+}
+
+div[level="Empty"] {
+    background-color: white;
+}
+
+.status {
+    display: flex;
+}
+
+.statustext {
+    margin-left: 10px;
+}
