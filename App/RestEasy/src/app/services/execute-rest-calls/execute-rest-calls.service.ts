@@ -70,7 +70,7 @@ export class ExecuteRestCallsService {
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       headersSent: action.headers,
-      body: {
+      body: JSON.stringify({
         "userId": 1,
         "id": 1,
         "title": "delectus aut autem",
@@ -84,7 +84,7 @@ export class ExecuteRestCallsService {
             "factchecker": "Dov Seleucus"
           }
         }
-      }
+      })
     };
 
     return new Promise((resolve, reject) => { resolve(mockjson); });

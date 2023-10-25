@@ -9,6 +9,9 @@ export class DisplayResponseBodyComponent implements OnInit {
   @Input()
   data: any = {};
 
+  @Input()
+  type: string = "";
+
   constructor() { 
   }
 

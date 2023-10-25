@@ -1,3 +1,9 @@
-<div>
-    <app-display-response-body-json [data]="data"></app-display-response-body-json>
-</div>
+{{type}}
+<div [ngSwitch]="type">
+    <div *ngSwitchCase="'json'">
+        <app-display-response-body-json [data]="data"></app-display-response-body-json>
+    </div>
+    <span *ngSwitchDefault>
+        <app-display-response-body-default [data]="data"></app-display-response-body-default>
+    </span>
+  </div>

@@ -7,8 +7,20 @@ import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
   styleUrls: ['./display-response-body-json.component.css']
 })
 export class DisplayResponseBodyJsonComponent implements OnInit {
+  rawData: string = '';
+  objData = {};
+  
   @Input()
-  data: any = {};
+  set data(data: any) {
+     this.rawData = data;
+     try {
+      this.objData = JSON.parse(data);
+     }
+     catch (error) {
+      console.log(`Invalid JSON[${data}]`);
+      this.objData = {};
+     }
+  }
 
   public editorOptions: JsonEditorOptions;
 

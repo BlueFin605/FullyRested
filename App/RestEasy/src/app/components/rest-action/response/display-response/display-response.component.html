@@ -7,7 +7,7 @@
     </div>
     <div>
         <mat-tab-group animationDuration="0ms">
-            <mat-tab label="Body"> <app-display-response-body [data]="response.body"></app-display-response-body></mat-tab>
+            <mat-tab label="Body"> <app-display-response-body [data]="response.body" [type]="responseType()"></app-display-response-body></mat-tab>
             <mat-tab label="Headers"><app-display-response-headers [headers]="response.headers"></app-display-response-headers></mat-tab>
             <mat-tab label="Request Headers"><app-display-response-headers [headers]="response.headersSent"></app-display-response-headers></mat-tab>
         </mat-tab-group>

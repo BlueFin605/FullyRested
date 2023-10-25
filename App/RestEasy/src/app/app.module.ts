@@ -27,6 +27,7 @@ import { EditRequestHeadersComponent } from './components/rest-action/request/ed
 import { EditRequestParamatersComponent } from './components/rest-action/request/edit-request-paramaters/edit-request-paramaters.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
 import { DisplayResponseBodyJsonComponent } from './components/rest-action/response/display-response-body-json/display-response-body-json.component';
+import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
 
 @NgModule({
   declarations: [
@@ -39,7 +40,8 @@ import { DisplayResponseBodyJsonComponent } from './components/rest-action/respo
     EditRequestHeadersComponent,
     EditRequestParamatersComponent,
     EditRequestBodyComponent,
-    DisplayResponseBodyJsonComponent
+    DisplayResponseBodyJsonComponent,
+    DisplayResponseBodyDefaultComponent
   ],
   imports: [
     BrowserModule,

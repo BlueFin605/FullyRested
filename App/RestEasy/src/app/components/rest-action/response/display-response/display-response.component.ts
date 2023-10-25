@@ -32,4 +32,22 @@ export class DisplayResponseComponent implements OnInit {
 
     return "Error"
   }
+
+  responseType(): string {
+//    console.log(`responseType[${this.response.headers['content-type']}]`);
+    var type = this.response.headers['content-type'];
+    if (type == undefined) {
+       return 'unknown';
+    }
+
+    type = type.substring(0, type.indexOf(';'));
+    console.log(type);
+
+    switch (type) {
+      case 'application/json':
+        return "json";
+      default:
+        return "unknown";
+    }
+  }
 }

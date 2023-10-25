@@ -46,7 +46,8 @@ app.whenReady().then(() => {
                 method: request.verb,
                 url: url,
                 data: request.data,
-                headers: request.headers
+                headers: request.headers,
+                transformResponse: (r) => r 
             })
             // var response = await axios.get(url, axios_request);
             console.log(response.statusText);

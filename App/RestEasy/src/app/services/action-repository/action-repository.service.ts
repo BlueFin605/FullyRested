@@ -41,7 +41,7 @@ export class ActionRepositoryService {
         {key: "content-type", value: "application/x-www-form-urlencoded", active: true, id: 2},
         {key: "user-agent", value: "RestEasy1.0", active: true, id: 3},
         {key: "accept-encoding", value: "gzip, deflate, br", active: true, id: 4},
-        {key: "host", value: "jsonplaceholder.typicode.com", active: true, id: 5}
+       // {key: "host", value: "jsonplaceholder.typicode.com", active: true, id: 5}
       ],
       parameters: [
         {key: "userid", value: "1", active: true, id: 1}
