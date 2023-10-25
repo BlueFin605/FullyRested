@@ -33,6 +33,10 @@ export class DisplayResponseComponent implements OnInit {
     return "Error"
   }
 
+  contentType(): string {
+    return this.response.headers['content-type'];
+  }
+  
   responseType(): string {
 //    console.log(`responseType[${this.response.headers['content-type']}]`);
     var type = this.response.headers['content-type'];

@@ -12,6 +12,9 @@ export class DisplayResponseBodyComponent implements OnInit {
   @Input()
   type: string = "";
 
+  @Input()
+  contenttype: string = "";
+
   constructor() { 
   }
 

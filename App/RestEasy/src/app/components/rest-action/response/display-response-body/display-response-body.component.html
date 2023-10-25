@@ -1,4 +1,5 @@
-{{type}}
+<div class="contenttype">Content Type: {{contenttype}}</div>
+
 <div [ngSwitch]="type">
     <div *ngSwitchCase="'json'">
         <app-display-response-body-json [data]="data"></app-display-response-body-json>
