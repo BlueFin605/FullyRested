@@ -35,7 +35,8 @@ export class ActionRepositoryService {
       body: {"products":[{"name":"car","product":[{"name":"honda","model":[{"id":"civic","name":"civic"},{"id":"accord","name":"accord"},{"id":"crv","name":"crv"},{"id":"pilot","name":"pilot"},{"id":"odyssey","name":"odyssey"}]}]}]},
       verb: "get",
       protocol: "https",
-      url: "jsonplaceholder.typicode.com/todos/1",
+      // url: "jsonplaceholder.typicode.com/todos/1",
+      url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
       headers: [
         {key: "accept", value: "*/*", active: true, id: 1},
         {key: "content-type", value: "application/x-www-form-urlencoded", active: true, id: 2},
@@ -44,7 +45,7 @@ export class ActionRepositoryService {
        // {key: "host", value: "jsonplaceholder.typicode.com", active: true, id: 5}
       ],
       parameters: [
-        {key: "userid", value: "1", active: true, id: 1}
+        {key: "userid", value: "1", active: false, id: 1}
       ]
     };  //see https://jsonplaceholder.typicode.com/
 

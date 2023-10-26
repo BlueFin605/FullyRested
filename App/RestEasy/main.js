@@ -47,16 +47,19 @@ app.whenReady().then(() => {
                 url: url,
                 data: request.data,
                 headers: request.headers,
-                transformResponse: (r) => r 
+                transformResponse: (r) => r,
+                responseType: 'arraybuffer'
             })
             // var response = await axios.get(url, axios_request);
             console.log(response.statusText);
+            console.log(`response data type:[${typeof(response.data)}][${response.data}]`);
+
             // console.log(`[${JSON.stringify(response.request)}]`)
             return { status: response.status, 
                      statusText: response.statusText, 
                      headers: response.headers, 
                      headersSent: response.request._headers,
-                     body: response.data };
+                     body: response.data};
         }
         catch (error) {
             console.log(`Exception:[${JSON.stringify(error)}]`)
