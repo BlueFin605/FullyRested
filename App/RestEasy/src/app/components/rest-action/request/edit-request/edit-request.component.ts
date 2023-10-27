@@ -51,7 +51,7 @@ export class EditRequestComponent implements OnInit {
       this.action.protocol = "https";
     } else
     if (value.startsWith("http://")) {
-      value = value.substring();
+      value = value.substring(7);
       this.action.protocol = "http";
     }
 
@@ -152,7 +152,9 @@ export class EditRequestComponent implements OnInit {
     urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
     urlTree.queryParams = this.convertParamsArraysAsValues(params);
     const urlSerializer = new CustomUrlSerializer();
-    const url = urlSerializer.serialize(urlTree);
+    var url = urlSerializer.serialize(urlTree);
+    if (url.startsWith('/'))
+      url = url.substring(1);
     console.log(`onParamChange:[${JSON.stringify(url)}]`);
     console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
