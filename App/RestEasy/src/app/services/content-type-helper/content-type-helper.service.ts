@@ -19,7 +19,9 @@ export class ContentTypeHelperService {
 
     var type = this.decode(contentType);
     var enc = new TextDecoder(type.encoding);
-    return enc.decode(buffer);
+    var str = enc.decode(buffer);
+    console.log(str);
+    return str;
   }
 
   decode(contentType: string): ContentType {
