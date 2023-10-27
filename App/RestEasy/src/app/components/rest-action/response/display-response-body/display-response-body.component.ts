@@ -25,7 +25,7 @@ export class DisplayResponseBodyComponent implements OnInit {
 
     var type = this.contentTypeHelper.decode(this.body.contentType);
 
-    console.log(type);
+    // console.log(type);
 
     switch (type.part1) {
       case 'application':
@@ -37,7 +37,16 @@ export class DisplayResponseBodyComponent implements OnInit {
               return "unknown";
           }
         }
-      case 'image':
+        case 'text':
+          {
+            switch (type.part2) {
+              case 'html':
+                return "html";
+              default:
+                return "unknown";
+            }
+          }
+        case 'image':
         {
           return "image"
         }

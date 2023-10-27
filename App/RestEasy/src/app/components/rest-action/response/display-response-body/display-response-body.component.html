@@ -4,6 +4,9 @@
     <div *ngSwitchCase="'json'">
         <app-display-response-body-json [body]="body"></app-display-response-body-json>
     </div>
+    <div *ngSwitchCase="'html'">
+        <app-display-response-body-html [body]="body"></app-display-response-body-html>
+    </div>
     <div *ngSwitchCase="'image'">
         <app-display-response-body-image [body]="body"></app-display-response-body-image>
     </div>
