@@ -1,5 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-display-response-body-image',
@@ -8,22 +9,28 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 })
 export class DisplayResponseBodyImageComponent implements OnInit {
   _data: Buffer | undefined;
-  _contenttype: string = "";
   _thumbnail: any;
   _objectURL: string = "";
+  _body: RestActionResultBody | undefined;
 
   @Input()
-  set data(data: ArrayBuffer) {
-    this._data = Buffer.from(data);
+  set body(body: RestActionResultBody | undefined) {
+    this._body = body;
+    this._data = undefined;
+    this._thumbnail = undefined;
+    this._objectURL = "";
+
+    //console.log(`DisplayResponseBodyImageComponent set body:[${JSON.stringify(body)}]`)
+    
+    if (body == undefined) {
+      console.log(`body is undefined`);
+      return;
+    }
+
+    this._data = Buffer.from(body.body);
     this.buildUrl();
   };
 
-  @Input()
-  set contenttype(contenttype: string) {
-    this._contenttype = contenttype;
-    this.buildUrl();
-
-  }
 
   constructor(private sanitizer: DomSanitizer) { }
 
@@ -31,7 +38,7 @@ export class DisplayResponseBodyImageComponent implements OnInit {
   }
 
   buildUrl() {
-    if (this._contenttype == "" || this._data == undefined)
+    if (this._body?.contentType == undefined || this._data == undefined)
       return;
 
     this._objectURL = 'data:image/jpeg;base64,' + this._data.toString('base64');

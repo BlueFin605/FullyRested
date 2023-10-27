@@ -1,4 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
+import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-display-response-body-default',
@@ -7,10 +8,7 @@ import { Component, OnInit, Input } from '@angular/core';
 })
 export class DisplayResponseBodyDefaultComponent implements OnInit {
   @Input()
-  data: any = {};
-
-  @Input()
-  type: string = "";
+  body: RestActionResultBody | undefined;
 
   constructor() { 
   }

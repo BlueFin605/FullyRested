@@ -1,4 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
+import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
+import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-display-response-body',
@@ -7,36 +9,28 @@ import { Component, OnInit, Input } from '@angular/core';
 })
 export class DisplayResponseBodyComponent implements OnInit {
   @Input()
-  data: any = {};
+  body: RestActionResultBody | undefined;
 
-  @Input()
-  contenttype: string = "";
-
-  constructor() {
+  constructor(private contentTypeHelper: ContentTypeHelperService) {
   }
 
   ngOnInit(): void {
   }
 
   get responseType(): string {
-    //    console.log(`responseType[${this.response.headers['content-type']}]`);
-    if (this.contenttype == undefined) {
+      //  console.log(`responseType[${this.body?.contentType}]`);
+    if (this.body == undefined) {
       return 'unknown';
     }
 
-    var split = this.contenttype.split(/[\s;/]+/);
-    var part1 = split[0];
-    var part2 = "";
+    var type = this.contentTypeHelper.decode(this.body.contentType);
 
-    if (split.length > 1)
-      part2 = split[1];
+    console.log(type);
 
-    // console.log(`part1[${part1}]/[${part2}];[${split[2]}]`);
-
-    switch (part1) {
+    switch (type.part1) {
       case 'application':
         {
-          switch (part2) {
+          switch (type.part2) {
             case 'json':
               return "json";
             default:

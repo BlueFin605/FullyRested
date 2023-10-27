@@ -32,9 +32,4 @@ export class DisplayResponseComponent implements OnInit {
 
     return "Error"
   }
-
-  contentType(): string {
-    return this.response.headers['content-type'];
-  }
-
 }

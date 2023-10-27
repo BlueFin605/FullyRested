@@ -1,13 +1,13 @@
-<div class="contenttype">Content Type: {{contenttype}}</div>
+<div class="contenttype">Content Type: {{body?.contentType}}</div>
 
 <div [ngSwitch]="responseType">
     <div *ngSwitchCase="'json'">
-        <app-display-response-body-json [data]="data"></app-display-response-body-json>
+        <app-display-response-body-json [body]="body"></app-display-response-body-json>
     </div>
     <div *ngSwitchCase="'image'">
-        <app-display-response-body-image [data]="data" [contenttype]="contenttype"></app-display-response-body-image>
+        <app-display-response-body-image [body]="body"></app-display-response-body-image>
     </div>
     <span *ngSwitchDefault>
-        <app-display-response-body-default [data]="data"></app-display-response-body-default>
+        <app-display-response-body-default [body]="body"></app-display-response-body-default>
     </span>
   </div>

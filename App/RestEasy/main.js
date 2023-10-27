@@ -59,7 +59,7 @@ app.whenReady().then(() => {
                      statusText: response.statusText, 
                      headers: response.headers, 
                      headersSent: response.request._headers,
-                     body: response.data};
+                     body: {contentType: response.headers['content-type'], body: response.data}};
         }
         catch (error) {
             console.log(`Exception:[${JSON.stringify(error)}]`)
