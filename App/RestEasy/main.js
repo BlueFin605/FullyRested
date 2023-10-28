@@ -30,7 +30,7 @@ app.whenReady().then(() => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 
-        // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
+    // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
     //    Just curious but what's the advantage of electron-json-storage vs just 
     // var someObj = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }))
     // fs.writeFileSync(path, JSON.stringify(someObj)}); // Even making it async would not add more than a few lines
@@ -57,22 +57,26 @@ app.whenReady().then(() => {
             })
             // var response = await axios.get(url, axios_request);
             console.log(response.statusText);
-            console.log(`response data type:[${typeof(response.data)}][${response.data}]`);
+            console.log(`response data type:[${typeof (response.data)}][${response.data}]`);
 
             // console.log(`[${JSON.stringify(response.request)}]`)
-            return { status: response.status, 
-                     statusText: response.statusText, 
-                     headers: response.headers, 
-                     headersSent: response.request._headers,
-                     body: {contentType: response.headers['content-type'], body: response.data}};
+            return {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                headersSent: response.request._headers,
+                body: { contentType: response.headers['content-type'], body: response.data }
+            };
         }
         catch (error) {
             console.log(`Exception:[${JSON.stringify(error)}]`)
             if (error.response != undefined) {
                 console.log(`[${error.response.status}, ${error.response.statusText}, ${error.response.headers}]`)
-                return { status: error.response.status, 
-                         statusText: error.response.statusText, 
-                         headers: error.response.headers };
+                return {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    headers: error.response.headers
+                };
             }
 
             return { status: "", statusText: error.code };
