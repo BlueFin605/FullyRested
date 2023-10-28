@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, EmptyAction } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-rest-action',
@@ -8,14 +8,14 @@ import { RestAction, ActionRepositoryService } from 'src/app/services/action-rep
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
-  action: RestAction = {verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: '{}'};
+  @Input()
+  action: RestAction = EmptyAction;
 
   response: RestActionResult = EmptyActionResult;
 
   constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { }
 
   ngOnInit(): void {
-    this.action = this.repository.getActionDetails();
   }
 
   async executeAction(action: ExecuteRestAction) {
