@@ -30,6 +30,11 @@ app.whenReady().then(() => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 
+        // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
+    //    Just curious but what's the advantage of electron-json-storage vs just 
+    // var someObj = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }))
+    // fs.writeFileSync(path, JSON.stringify(someObj)}); // Even making it async would not add more than a few lines
+
     ipcMain.handle("testRest", async (event, request) => {
         console.log(`request:[${JSON.stringify(request)})`);
         let axios_request = {
