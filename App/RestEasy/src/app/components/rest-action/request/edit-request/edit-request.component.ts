@@ -33,9 +33,6 @@ export class EditRequestComponent implements OnInit {
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
   
-  // @ViewChild('headerChild') headerChild: EditRequestHeadersComponent | undefined;
-  @ViewChild('bodyChild') bodyChild: EditRequestBodyComponent | undefined;
-  
   displayUrl: string = '';
   
   constructor() { }
@@ -182,13 +179,6 @@ export class EditRequestComponent implements OnInit {
 
   // convertParsedUrlParamsToArray
   async test() {
-    // if (this.bodyChild?.isValidJSON == false) {
-    //   console.log('Body JSON is not va lid, sorry cannot execute action');
-    //   // console.log(this.bodyChild?.jsonText);
-
-    //   return;
-    // }
-
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,

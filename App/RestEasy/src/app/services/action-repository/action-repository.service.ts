@@ -22,10 +22,14 @@ export interface RestAction {
   parameters: ParamTable[];
   body: string;
 }
+export interface LocalRestAction {
+  action: RestAction;
+  dirty: boolean;
+}
 
 export interface CurrentState
 {
-  actions: RestAction[];
+  actions: LocalRestAction[];
 }
 
 @Injectable({
@@ -34,6 +38,10 @@ export interface CurrentState
 
 export class ActionRepositoryService {
   constructor() { }
+
+  getCurrentState(): CurrentState {
+    return {actions: [{ action: this.getActionDetails(), dirty: false}]};
+  }
 
   getActionDetails(): RestAction {
     var action: RestAction = {
