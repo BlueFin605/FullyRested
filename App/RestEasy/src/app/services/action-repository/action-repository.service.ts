@@ -20,7 +20,12 @@ export interface RestAction {
   url: string;
   headers: HeaderTable[];
   parameters: ParamTable[];
-  body: any;
+  body: string;
+}
+
+export interface CurrentState
+{
+  actions: RestAction[];
 }
 
 @Injectable({
@@ -32,7 +37,7 @@ export class ActionRepositoryService {
 
   getActionDetails(): RestAction {
     var action: RestAction = {
-      body: {"products":[{"name":"car","product":[{"name":"honda","model":[{"id":"civic","name":"civic"},{"id":"accord","name":"accord"},{"id":"crv","name":"crv"},{"id":"pilot","name":"pilot"},{"id":"odyssey","name":"odyssey"}]}]}]},
+      body: JSON.stringify({"products":[{"name":"car","product":[{"name":"honda","model":[{"id":"civic","name":"civic"},{"id":"accord","name":"accord"},{"id":"crv","name":"crv"},{"id":"pilot","name":"pilot"},{"id":"odyssey","name":"odyssey"}]}]}]}),
       verb: "get",
       protocol: "https",
       // url: "jsonplaceholder.typicode.com/todos/1",

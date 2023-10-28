@@ -1,2 +1,2 @@
-<json-editor [options]="editorOptions" [data]="body" (change)="updateData($event)" #editor></json-editor>
+<json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor></json-editor>
 

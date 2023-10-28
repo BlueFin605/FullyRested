@@ -12,7 +12,7 @@
           </div>
           <span *ngSwitchDefault>
             <mat-form-field>
-              <input [type]="col.type" matInput [(ngModel)]="element[col.key]">
+              <input [type]="col.type" matInput [(ngModel)]="element[col.key]"  (ngModelChange)="modelChangeFn($event)">
             </mat-form-field>
           </span>
         </div>

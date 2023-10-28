@@ -62,10 +62,12 @@ export class EditRequestHeadersComponent implements OnInit {
   add() {
     var max: number = Math.max(...this.headers.map(m => m.id));
     this.headers = [...this.headers, { key: '', value: '', active: true, id: max + 1 }];
+    this.headersChange.emit(this.headers);
   }
 
   delete(id: number) {
     this.headers = this.headers.filter(f => f.id != id);
+    this.headersChange.emit(this.headers);
   }
 
   activeClicked(id: number) {
@@ -74,5 +76,10 @@ export class EditRequestHeadersComponent implements OnInit {
        return;
 
     entry.active = !entry.active;
+    this.headersChange.emit(this.headers);
   }
+
+  modelChangeFn(value: any) {
+    this.headersChange.emit(this.headers);
+  }  
 }
