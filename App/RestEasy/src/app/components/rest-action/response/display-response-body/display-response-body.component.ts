@@ -1,5 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
+import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 @Component({
   selector: 'app-display-response-body',
@@ -8,19 +9,51 @@ import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 })
 export class DisplayResponseBodyComponent implements OnInit {
   @Input()
-  data: any = {};
+  body: RestActionResultBody | undefined;
 
-  public editorOptions: JsonEditorOptions;
-
-  constructor() { 
-    this.editorOptions = new JsonEditorOptions()
-    this.editorOptions.enableTransform = true;
-    this.editorOptions.mode = 'code';
-    this.editorOptions.modes = ['code', 'text', 'tree', 'view']; // set all allowed modes
-    this.editorOptions.mainMenuBar = true;
-    this.editorOptions.onEditable = function(){return false;}
+  constructor(private contentTypeHelper: ContentTypeHelperService) {
   }
 
   ngOnInit(): void {
+  }
+
+  get responseType(): string {
+      //  console.log(`responseType[${this.body?.contentType}]`);
+    if (this.body == undefined) {
+      return 'unknown';
+    }
+
+    var type = this.contentTypeHelper.decode(this.body.contentType);
+
+    // console.log(type);
+
+    switch (type.part1) {
+      case 'application':
+        {
+          switch (type.part2) {
+            case 'json':
+              return "json";
+            default:
+              return "unknown";
+          }
+        }
+        case 'text':
+          {
+            switch (type.part2) {
+              case 'html':
+                return "html";
+                case 'xml':
+                  return "xml";
+                default:
+                return "unknown";
+            }
+          }
+        case 'image':
+        {
+          return "image"
+        }
+      default:
+        return "unknown";
+    }
   }
 }

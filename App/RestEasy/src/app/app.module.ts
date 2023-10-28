@@ -10,6 +10,7 @@ import { MatTableModule } from '@angular/material/table';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon'
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import {MatRadioModule} from '@angular/material/radio';
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { AngJsoneditorModule } from '@maaxgr/ang-jsoneditor' 
@@ -26,6 +27,11 @@ import { EditRequestComponent } from './components/rest-action/request/edit-requ
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
 import { EditRequestParamatersComponent } from './components/rest-action/request/edit-request-paramaters/edit-request-paramaters.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
+import { DisplayResponseBodyJsonComponent } from './components/rest-action/response/display-response-body-json/display-response-body-json.component';
+import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
+import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
+import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
+import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 
 @NgModule({
   declarations: [
@@ -37,7 +43,12 @@ import { EditRequestBodyComponent } from './components/rest-action/request/edit-
     EditRequestComponent,
     EditRequestHeadersComponent,
     EditRequestParamatersComponent,
-    EditRequestBodyComponent
+    EditRequestBodyComponent,
+    DisplayResponseBodyJsonComponent,
+    DisplayResponseBodyDefaultComponent,
+    DisplayResponseBodyImageComponent,
+    DisplayResponseBodyHtmlComponent,
+    DisplayResponseBodyXmlComponent
   ],
   imports: [
     BrowserModule,
@@ -53,7 +64,8 @@ import { EditRequestBodyComponent } from './components/rest-action/request/edit-
     MatTableModule,
     FormsModule,
     MatCheckboxModule,
-    MatIconModule
+    MatIconModule,
+    MatRadioModule
   ],
   providers: [],
   bootstrap: [AppComponent]

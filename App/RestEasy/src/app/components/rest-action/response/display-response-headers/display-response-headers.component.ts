@@ -17,6 +17,9 @@ export class DisplayResponseHeadersComponent implements OnInit {
 
   getValuesAsArray()
   {
+    if (this.headers == undefined)
+       return [];
+          
     return Object.entries(this.headers).map(h => {return {key: h[0], value: h[1]}});
   }
 }

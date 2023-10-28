@@ -45,16 +45,42 @@ export class EditRequestComponent implements OnInit {
 
   modelChangeFn(value: any) {
     console.log(`modelChangeFn[${value}]`);
+
+    if (value.startsWith("https://")) {
+      value = value.substring(8);
+      this.action.protocol = "https";
+    } else
+    if (value.startsWith("http://")) {
+      value = value.substring(7);
+      this.action.protocol = "http";
+    }
+
+    //find end of base url
+    var queryPos = value.indexOf('?');
+    if (queryPos == -1) {
+      this.action.url = value;
+      console.log(`url:[${value}] root:[${this.action.url}]`);
+    } else {
+      this.action.url = value.substring(0,queryPos);
+      console.log(`url:[${value}] root pos:[${queryPos}] root:[${this.action.url}]`);
+    }
+
     const urlSerializer = new DefaultUrlSerializer();
     var parsedUrl = urlSerializer.parse(value);
     console.log(`${JSON.stringify(parsedUrl.queryParams)}`);
     this.displayUrl = value;
 
-    // console.log(`parsed params:[${JSON.stringify(parsedUrl.queryParams)}]`)
+    console.log(`parsed url:[${JSON.stringify(parsedUrl.root.segments)}]`)
 
-    
-    var newParams = this.convertParsedUrlParamsToArray(parsedUrl.queryParams).filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
-    var oldParams = this.action.parameters.filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
+    this.action.parameters = this.updateParamTable(parsedUrl.queryParams, this.action.parameters);
+  }
+
+  updateParamTable(queryParams: {[key: string]: any}, origParamTable: ParamTable[]): ParamTable[] {
+
+    var paramsTable: ParamTable[] = JSON.parse(JSON.stringify(origParamTable));
+
+    var newParams = this.convertParsedUrlParamsToArray(queryParams).filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
+    var oldParams = paramsTable.filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
     
     console.log(`new params:[${JSON.stringify(newParams)}]`)
     console.log(`old params:[${JSON.stringify(oldParams)}]`)
@@ -70,20 +96,22 @@ export class EditRequestComponent implements OnInit {
       removedInNew.length == 1 &&
       addedInNew[0].key ===
       removedInNew[0].key) {
-      var index = this.action.parameters.findIndex(f => f.key === addedInNew[0].key);
+      var index = paramsTable.findIndex(f => f.key === addedInNew[0].key);
       if (index == -1) {
-        console.log(`!!!!!item not found [${addedInNew[0].key}] in []${JSON.stringify(this.action.parameters)}`);
-        return;
+        console.log(`!!!!!item not found [${addedInNew[0].key}] in []${JSON.stringify(paramsTable)}`);
+        console.log(`[C]after changes:[${JSON.stringify(paramsTable)}]`)
+        return paramsTable;
       }
 
-      this.action.parameters[index].value = addedInNew[0].value;
-      return;
+      paramsTable[index].value = addedInNew[0].value;
+      console.log(`[B]after changes:[${JSON.stringify(paramsTable)}]`)
+      return paramsTable;
     }
 
-    removedInNew.every(r => this.action.parameters = this.removeParam(this.action.parameters, r));
-    // console.log(`after remove:[${JSON.stringify(this.action.parameters)}]`)
-    addedInNew.every(r => this.action.parameters = this.addParam(this.action.parameters, r));
-    console.log(`after changes:[${JSON.stringify(this.action.parameters)}]`)
+    removedInNew.every(r => paramsTable = this.removeParam(paramsTable, r));
+    addedInNew.every(r => paramsTable = this.addParam(paramsTable, r));
+    console.log(`[A]after changes:[${JSON.stringify(paramsTable)}]`)
+    return paramsTable;
   }
 
   convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
@@ -103,6 +131,9 @@ export class EditRequestComponent implements OnInit {
   }
 
   addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
+    // console.log(`addParam adding[${JSON.stringify(added)}]`);
+    // console.log(`addParam parameters[${JSON.stringify(parameters)}]`);
+
     var inactive = parameters.find(f => f.active == false && f.key === added.key && f.value === added.value);
     if (inactive != undefined)
     {
@@ -111,9 +142,9 @@ export class EditRequestComponent implements OnInit {
       return parameters;
     }
 
-    var max: number = this.action.parameters.length == 0 ? 0 : Math.max(...this.action.parameters.map(m => m.id));
+    var max: number = parameters.length == 0 ? 0 : Math.max(...parameters.map(m => m.id));
     console.log(`max:[${max}]`);
-    return [...this.action.parameters, { key: added.key, value: added.value, active: true, id: max + 1 }];
+    return [...parameters, { key: added.key, value: added.value, active: true, id: max + 1 }];
   }
 
   onParamChange(params: any) {
@@ -121,7 +152,9 @@ export class EditRequestComponent implements OnInit {
     urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
     urlTree.queryParams = this.convertParamsArraysAsValues(params);
     const urlSerializer = new CustomUrlSerializer();
-    const url = urlSerializer.serialize(urlTree);
+    var url = urlSerializer.serialize(urlTree);
+    if (url.startsWith('/'))
+      url = url.substring(1);
     console.log(`onParamChange:[${JSON.stringify(url)}]`);
     console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
@@ -151,7 +184,7 @@ export class EditRequestComponent implements OnInit {
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
-      url: this.action.url,
+      url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.headerChild?.headers ?? []),
       body: this.bodyChild?.json ?? {}
     };

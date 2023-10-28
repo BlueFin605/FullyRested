@@ -1,0 +1,21 @@
+.xmlformatted {
+    white-space:pre; 
+    font-size:12px; 
+    font-family:monospace;
+}
+
+.xmlraw {
+
+}
+
+.displayoptions {
+    margin-bottom: 5px;
+    padding-bottom: 15px;
+    background-color: lightgray;
+}
+
+.mat-radio-button
+{
+    margin-left: 10px;
+    margin-right: 20px;
+}
