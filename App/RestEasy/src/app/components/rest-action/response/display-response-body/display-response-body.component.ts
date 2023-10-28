@@ -42,7 +42,9 @@ export class DisplayResponseBodyComponent implements OnInit {
             switch (type.part2) {
               case 'html':
                 return "html";
-              default:
+                case 'xml':
+                  return "xml";
+                default:
                 return "unknown";
             }
           }

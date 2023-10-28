@@ -184,7 +184,7 @@ export class EditRequestComponent implements OnInit {
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
-      url: this.action.url,
+      url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.headerChild?.headers ?? []),
       body: this.bodyChild?.json ?? {}
     };

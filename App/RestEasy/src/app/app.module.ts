@@ -31,6 +31,7 @@ import { DisplayResponseBodyJsonComponent } from './components/rest-action/respo
 import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
+import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 
 @NgModule({
   declarations: [
@@ -46,7 +47,8 @@ import { DisplayResponseBodyHtmlComponent } from './components/rest-action/respo
     DisplayResponseBodyJsonComponent,
     DisplayResponseBodyDefaultComponent,
     DisplayResponseBodyImageComponent,
-    DisplayResponseBodyHtmlComponent
+    DisplayResponseBodyHtmlComponent,
+    DisplayResponseBodyXmlComponent
   ],
   imports: [
     BrowserModule,
