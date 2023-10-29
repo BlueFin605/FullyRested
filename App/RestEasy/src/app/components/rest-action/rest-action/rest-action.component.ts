@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { RestAction, ActionRepositoryService, EmptyAction } from 'src/app/services/action-repository/action-repository.service'
 
@@ -10,6 +10,9 @@ import { RestAction, ActionRepositoryService, EmptyAction } from 'src/app/servic
 export class RestActionComponent implements OnInit {
   @Input()
   action: RestAction = EmptyAction;
+
+  @Output()
+  actionChange = new EventEmitter<RestAction>();
 
   response: RestActionResult = EmptyActionResult;
 
@@ -23,4 +26,10 @@ export class RestActionComponent implements OnInit {
     this.response = await this.era.executeTest(action);
     console.log(`response data type:[${typeof(this.response.body)}][${this.response.body}]`);
   }
+
+  onActionChange(event: any) {
+    // console.log(event)
+    this.actionChange.emit(this.action);
+  }
+
 }

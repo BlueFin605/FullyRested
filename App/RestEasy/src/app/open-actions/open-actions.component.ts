@@ -22,4 +22,8 @@ export class OpenActionsComponent implements OnInit {
     console.log(this.state);
     this.state.actions.push(EmptyLocalAction);
   }
+
+  onActionChange(event: any) {
+    console.log(event)
+  }
 }

@@ -2,7 +2,7 @@
     <a mat-tab-link *ngFor="let action of state.actions" (click)="activeAction = action" [active]="activeAction == action">{{action.action.name}} </a>
     <a mat-tab-link (click)="addAction($event)">+</a>
   </nav>
-  <mat-tab-nav-panel #tabPanel><app-rest-action [action]="activeAction.action"></app-rest-action></mat-tab-nav-panel>
+  <mat-tab-nav-panel #tabPanel><app-rest-action [(action)]="activeAction.action" (actionChange)="onActionChange($event)"></app-rest-action></mat-tab-nav-panel>
   
   <!-- <button mat-raised-button class="example-action-button" (click)="toggleBackground()">
     Toggle background

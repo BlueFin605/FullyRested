@@ -1,8 +1,15 @@
+<div class="action-name">
+    <mat-form-field class="url-form-field">
+        <mat-label>Name</mat-label>
+        <input matInput placeholder="Input" [ngModel]="action.name" (ngModelChange)="onNameChange($event)">
+    </mat-form-field>
+</div>
+
 <div class="action-header">
     <div class="verb-basics action-verb">
         <mat-form-field class="verb-selector-form-field">
             <mat-label>http verb</mat-label>
-            <mat-select [(value)]="action.verb">
+            <mat-select [(value)]="action.verb" (selectionChange)="onVerbChange($event)">
                 <mat-option value="get">GET</mat-option>
                 <mat-option value="post">POST</mat-option>
                 <mat-option value="patch">PATCH</mat-option>
@@ -14,7 +21,7 @@
     <div class="verb-basics action-protocol">
         <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
-            <mat-select [(value)]="action.protocol">
+            <mat-select [(value)]="action.protocol" (selectionChange)="onProtocolChange($event)">
                 <mat-option value="http">HTTP</mat-option>
                 <mat-option value="https">HTTPS</mat-option>
             </mat-select>
@@ -24,7 +31,7 @@
     <div class="verb-basics action-url">
         <mat-form-field class="url-form-field">
             <mat-label>URL</mat-label>
-            <input matInput placeholder="Input" [ngModel]="displayUrl" (ngModelChange)="modelChangeFn($event)">
+            <input matInput placeholder="Input" [ngModel]="displayUrl" (ngModelChange)="onUrlChange($event)">
         </mat-form-field>
     </div>
 

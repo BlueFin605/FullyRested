@@ -24,7 +24,9 @@ export class EditRequestComponent implements OnInit {
     this.onParamChange(this._action.parameters);
   }
   
-  
+  @Output()
+  actionChange = new EventEmitter<RestAction>();
+
   get action(): RestAction {
     // console.log(`valid json:${this.bodyChild?.isValidJson()}`);
     return this._action;
@@ -40,7 +42,7 @@ export class EditRequestComponent implements OnInit {
   ngOnInit(): void {
   }
   
-  modelChangeFn(value: any) {
+  onUrlChange(value: any) {
     console.log(`modelChangeFn[${value}]`);
     
     if (value.startsWith("https://")) {
@@ -70,9 +72,10 @@ export class EditRequestComponent implements OnInit {
     console.log(`parsed url:[${JSON.stringify(parsedUrl.root.segments)}]`)
     
     this.action.parameters = this.updateParamTable(parsedUrl.queryParams, this.action.parameters);
+    this.actionChange.emit(this.action);
   }
   
-  updateParamTable(queryParams: {[key: string]: any}, origParamTable: ParamTable[]): ParamTable[] {
+  private updateParamTable(queryParams: {[key: string]: any}, origParamTable: ParamTable[]): ParamTable[] {
     
     var paramsTable: ParamTable[] = JSON.parse(JSON.stringify(origParamTable));
     
@@ -111,12 +114,12 @@ export class EditRequestComponent implements OnInit {
       return paramsTable;
     }
     
-    convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
+    private convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
       var id = 1;
       return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: id++ } });
     }
     
-    removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
+    private removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
       var index = parameters.findIndex(f => f.key === remove.key && f.value === remove.value);
       if (index == -1) {
         console.log(`!!!!!item not found [${remove}] in []${JSON.stringify(parameters)}`);
@@ -127,7 +130,7 @@ export class EditRequestComponent implements OnInit {
       return parameters;
     }
     
-    addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
+    private addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
       // console.log(`addParam adding[${JSON.stringify(added)}]`);
       // console.log(`addParam parameters[${JSON.stringify(parameters)}]`);
       
@@ -155,16 +158,35 @@ export class EditRequestComponent implements OnInit {
     console.log(`onParamChange:[${JSON.stringify(url)}]`);
     console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
+    this.actionChange.emit(this.action);
   }
   
   onHeadersChange(event: any) {
-    // console.log(event);
-  }
-
-  onBodyChange(event: any) {
-    // console.log(event);
+    // console.log(event);    
+    this.actionChange.emit(this.action);
   }
   
+  onBodyChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+  
+  onVerbChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+  
+  onProtocolChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+  
+  onNameChange(value: any) {
+    // console.log(value);
+    this.action.name = value;
+    this.actionChange.emit(this.action);
+  }
+
   convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
     var converted: { [header: string]: string } = {};
     headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);

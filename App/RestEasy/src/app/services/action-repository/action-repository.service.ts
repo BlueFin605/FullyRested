@@ -32,7 +32,7 @@ export interface CurrentState {
   actions: LocalRestAction[];
 }
 
-export const EmptyAction: RestAction = {name: "<unnamed>", verb: 'GET', protocol:'HTTPS', url: '', headers: [], parameters: [], body: '{}'};
+export const EmptyAction: RestAction = {name: "<unnamed>", verb: 'get', protocol:'https', url: '', headers: [], parameters: [], body: '{}'};
 
 export const EmptyLocalAction = {action: EmptyAction, dirty: false};
 
