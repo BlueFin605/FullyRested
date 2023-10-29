@@ -32,9 +32,17 @@ export interface CurrentState {
   actions: LocalRestAction[];
 }
 
-export const EmptyAction: RestAction = { name: "<unnamed>", verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' };
+const EmptyActionJSON: string = JSON.stringify({ name: "<unnamed>", verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' });
+const EmptyLocalActionJSON: string = JSON.stringify({ action: CreateEmptyAction(), dirty: false });
 
-export const EmptyLocalAction = { action: EmptyAction, dirty: false };
+export function CreateEmptyLocalAction(): LocalRestAction {
+  return JSON.parse(EmptyLocalActionJSON);
+}
+
+export function CreateEmptyAction(): RestAction {
+  return JSON.parse(EmptyActionJSON);
+}
+
 
 @Injectable({
   providedIn: 'root'
@@ -53,7 +61,7 @@ export class ActionRepositoryService {
     };
   }
 
-  getActionDetails1(): RestAction {
+  private getActionDetails1(): RestAction {
     var action: RestAction = {
       name: "Image (trademe)",
       body: JSON.stringify({ "products": [{ "name": "car", "product": [{ "name": "honda", "model": [{ "id": "civic", "name": "civic" }, { "id": "accord", "name": "accord" }, { "id": "crv", "name": "crv" }, { "id": "pilot", "name": "pilot" }, { "id": "odyssey", "name": "odyssey" }] }] }] }),
@@ -73,7 +81,7 @@ export class ActionRepositoryService {
     return action;
   }
 
-  getActionDetails2(): RestAction {
+  private getActionDetails2(): RestAction {
     var action: RestAction = {
       name: "XML Result",
       body: "{}",
@@ -94,7 +102,7 @@ export class ActionRepositoryService {
     return action;
   }
 
-  getActionDetails3(): RestAction {
+  private getActionDetails3(): RestAction {
     var action: RestAction = {
       name: "JSON Result",
       body: "{}",

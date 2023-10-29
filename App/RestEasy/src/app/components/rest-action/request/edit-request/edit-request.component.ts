@@ -4,7 +4,7 @@ import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } fr
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
-import { RestAction, HeaderTable, ParamTable, EmptyAction } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
@@ -15,7 +15,7 @@ import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body
   styleUrls: ['./edit-request.component.css']
 })
 export class EditRequestComponent implements OnInit {
-  private _action: RestAction = EmptyAction;
+  private _action: RestAction = CreateEmptyAction();
 
   @Input()
   set action(action: RestAction) {

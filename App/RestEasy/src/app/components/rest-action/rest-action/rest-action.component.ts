@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, EmptyAction } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-rest-action',
@@ -9,14 +9,15 @@ import { RestAction, ActionRepositoryService, EmptyAction } from 'src/app/servic
 })
 export class RestActionComponent implements OnInit {
   @Input()
-  action: RestAction = EmptyAction;
+  action: RestAction = CreateEmptyAction();
 
   @Output()
   actionChange = new EventEmitter<RestAction>();
 
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { }
+  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { 
+  }
 
   ngOnInit(): void {
   }
