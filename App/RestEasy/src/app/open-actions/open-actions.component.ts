@@ -7,7 +7,7 @@ import { LocalRestAction, ActionRepositoryService, CurrentState, EmptyLocalActio
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = {actions: []};
+  state: CurrentState = { actions: [] };
   activeAction: LocalRestAction = EmptyLocalAction;
 
   constructor(private repo: ActionRepositoryService) { }

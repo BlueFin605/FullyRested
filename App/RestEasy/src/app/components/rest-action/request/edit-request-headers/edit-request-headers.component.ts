@@ -73,7 +73,7 @@ export class EditRequestHeadersComponent implements OnInit {
   activeClicked(id: number) {
     var entry = this.headers.find(f => f.id == id);
     if (entry == undefined)
-       return;
+      return;
 
     entry.active = !entry.active;
     this.headersChange.emit(this.headers);
@@ -81,5 +81,5 @@ export class EditRequestHeadersComponent implements OnInit {
 
   modelChangeFn(value: any) {
     this.headersChange.emit(this.headers);
-  }  
+  }
 }
