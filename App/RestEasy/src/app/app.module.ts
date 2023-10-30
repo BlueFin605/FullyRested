@@ -32,7 +32,7 @@ import { DisplayResponseBodyDefaultComponent } from './components/rest-action/re
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
-import { OpenActionsComponent } from './open-actions/open-actions.component';
+import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 
 @NgModule({
   declarations: [
