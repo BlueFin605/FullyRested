@@ -8,11 +8,15 @@ import { LocalRestAction, ActionRepositoryService, CurrentState, CreateEmptyLoca
 })
 export class OpenActionsComponent implements OnInit {
   state: CurrentState = { actions: [] };
+  selectedIndex: number = 0;
   
   constructor(private repo: ActionRepositoryService) { }
 
   ngOnInit(): void {
-    this.state = this.repo.getCurrentState();
+    this.repo.getCurrentState().then(s => {
+      this.state = s;
+      this.selectedIndex = 0;
+    });
   }
 
   addAction(event: any) {
@@ -24,8 +28,18 @@ export class OpenActionsComponent implements OnInit {
     this.state.actions.push(CreateEmptyLocalAction());
   }
 
+  addTab(event: any) {
+    console.log(`addAction`);
+    console.log(event);
+    if (event.index < this.state.actions.length)
+       return;
+
+    this.state.actions.push(CreateEmptyLocalAction());
+  }
+
   onActionChange(event: any) {
     // console.log(event)
     console.log(this.state);
+    this.repo.saveCurrentState(this.state);
   }
 }

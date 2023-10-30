@@ -51,7 +51,23 @@ export function CreateEmptyAction(): RestAction {
 export class ActionRepositoryService {
   constructor() { }
 
-  getCurrentState(): CurrentState {
+  getIpcRenderer() {
+    return (<any>window).ipc;
+  }
+
+  async getCurrentState(): Promise<CurrentState> {
+    if (this.getIpcRenderer() == undefined)
+      return this.mockCurrentState();
+
+     var state: CurrentState = await this.getIpcRenderer().invoke('readState','');
+    //  if (state.actions.length == 0)
+    //     state.actions.push(CreateEmptyLocalAction());
+
+     console.log(state);
+     return state;
+  }
+
+  private mockCurrentState(): CurrentState {
     return {
       actions: [
         { action: this.getActionDetails1(), dirty: false },
@@ -59,6 +75,13 @@ export class ActionRepositoryService {
         { action: this.getActionDetails3(), dirty: false }
       ]
     };
+  }
+
+  async saveCurrentState(state: CurrentState) {
+    if (this.getIpcRenderer() == undefined)
+      return;
+
+    await this.getIpcRenderer().send('saveState', state);
   }
 
   private getActionDetails1(): RestAction {
