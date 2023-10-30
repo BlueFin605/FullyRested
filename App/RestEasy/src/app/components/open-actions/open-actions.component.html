@@ -1,4 +1,4 @@
-<mat-tab-group animationDuration="0ms" [selectedIndex]="selectedIndex" (selectedTabChange)="addAction($event)">
+<mat-tab-group animationDuration="0ms" [(selectedIndex)]="selectedIndex" (selectedTabChange)="addAction($event)">
   <mat-tab *ngFor="let action of state.actions" [label]="action.action.name">
     <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
   </mat-tab>

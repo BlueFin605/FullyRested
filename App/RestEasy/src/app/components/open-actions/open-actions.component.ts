@@ -15,7 +15,7 @@ export class OpenActionsComponent implements OnInit {
   ngOnInit(): void {
     this.repo.getCurrentState().then(s => {
       this.state = s;
-      this.selectedIndex = 0;
+      this.selectedIndex =  0; //(this.state.actions.length + 1) % this.state.actions.length;
     });
   }
 
