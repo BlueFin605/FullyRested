@@ -37,7 +37,12 @@ export class OpenActionsComponent implements OnInit {
     if (event.index < this.state.actions.length)
       return;
 
-    this.state.actions.push(this.repo.createNewAction());
+    var count = Math.max(...this.state.actions.filter(f => f.action.name.startsWith('new request'))
+                                  .map(s => s.action.name.substring(12))
+                                  .map(m => m.length == 0 ? 1 : parseInt(m))
+                                  .filter(num => !isNaN(num)));
+
+    this.state.actions.push(this.repo.createNewAction(count + 1));
   }
 
   removeAction(event: any) {

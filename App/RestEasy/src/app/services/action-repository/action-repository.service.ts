@@ -56,10 +56,14 @@ export class ActionRepositoryService {
     return (<any>window).ipc;
   }
 
-  createNewAction(): LocalRestAction {
+  createNewAction(max: number): LocalRestAction {
+  console.log(max);
   var action = JSON.parse(EmptyLocalActionJSON);
   action.action.id = this.systemSupport.generateGUID();
-  action.action.name = "<unnamed>"
+  if (isFinite(max) == false)
+     action.action.name = "new request";
+  else
+     action.action.name = "new request " + max;
   return action;
 
   }
