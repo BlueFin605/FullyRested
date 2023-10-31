@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { LocalRestAction, ActionRepositoryService, CurrentState, CreateEmptyLocalAction } from 'src/app/services/action-repository/action-repository.service'
+import { MatTabGroup } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-open-actions',
@@ -8,38 +9,39 @@ import { LocalRestAction, ActionRepositoryService, CurrentState, CreateEmptyLoca
 })
 export class OpenActionsComponent implements OnInit {
   state: CurrentState = { actions: [] };
-  selectedIndex: number = 0;
-  
+
+  @ViewChild('tabs') tabs!: MatTabGroup;
+
   constructor(private repo: ActionRepositoryService) { }
 
   ngOnInit(): void {
     this.repo.getCurrentState().then(s => {
       this.state = s;
-      this.selectedIndex =  0; //(this.state.actions.length + 1) % this.state.actions.length;
+      // console.log(`tabs:[${this.tabs}]`)
+      this.tabs.selectedIndex = 0;
+    });
+  }
+
+
+  ngAfterViewInit() {
+    // doesn't work if outside setTimeOut()
+    setTimeout(() => {
+      this.tabs.selectedIndex = 0;
+      this.tabs.realignInkBar(); // re-align the bottom border of the tab
     });
   }
 
   addAction(event: any) {
-    console.log(`addAction`);
-    console.log(event);
+    // console.log(`addAction`);
+    // console.log(event);
     if (event.index < this.state.actions.length)
-       return;
-
-    this.state.actions.push(CreateEmptyLocalAction());
-  }
-
-  addTab(event: any) {
-    console.log(`addAction`);
-    console.log(event);
-    if (event.index < this.state.actions.length)
-       return;
+      return;
 
     this.state.actions.push(CreateEmptyLocalAction());
   }
 
   onActionChange(event: any) {
-    // console.log(event)
-    console.log(this.state);
+    // console.log(this.state);
     this.repo.saveCurrentState(this.state);
   }
 }
