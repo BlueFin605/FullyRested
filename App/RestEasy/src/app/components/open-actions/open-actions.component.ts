@@ -37,7 +37,12 @@ export class OpenActionsComponent implements OnInit {
     if (event.index < this.state.actions.length)
       return;
 
-    this.state.actions.push(CreateEmptyLocalAction());
+    this.state.actions.push(this.repo.createNewAction());
+  }
+
+  removeAction(event: any) {
+    var index = this.state.actions.findIndex(i => i.action.id == event);
+    this.state.actions.splice(index, 1);
   }
 
   onActionChange(event: any) {

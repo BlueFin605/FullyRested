@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
+import { SystemSupportService } from '../system-support/system-support.service';
 
 export interface HeaderTable {
   key: string;
@@ -15,6 +16,7 @@ export interface ParamTable {
 };
 
 export interface RestAction {
+  id: string;
   name: string;
   verb: string;
   protocol: string;
@@ -32,13 +34,12 @@ export interface CurrentState {
   actions: LocalRestAction[];
 }
 
-const EmptyActionJSON: string = JSON.stringify({ name: "<unnamed>", verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' });
+const EmptyActionJSON: string = JSON.stringify({ id: '', name: '', verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' });
 const EmptyLocalActionJSON: string = JSON.stringify({ action: CreateEmptyAction(), dirty: false });
 
 export function CreateEmptyLocalAction(): LocalRestAction {
   return JSON.parse(EmptyLocalActionJSON);
 }
-
 export function CreateEmptyAction(): RestAction {
   return JSON.parse(EmptyActionJSON);
 }
@@ -49,10 +50,18 @@ export function CreateEmptyAction(): RestAction {
 })
 
 export class ActionRepositoryService {
-  constructor() { }
+  constructor(private systemSupport: SystemSupportService) { }
 
-  getIpcRenderer() {
+  private getIpcRenderer() {
     return (<any>window).ipc;
+  }
+
+  createNewAction(): LocalRestAction {
+  var action = JSON.parse(EmptyLocalActionJSON);
+  action.action.id = this.systemSupport.generateGUID();
+  action.action.name = "<unnamed>"
+  return action;
+
   }
 
   async getCurrentState(): Promise<CurrentState> {
@@ -86,6 +95,7 @@ export class ActionRepositoryService {
 
   private getActionDetails1(): RestAction {
     var action: RestAction = {
+      id: this.systemSupport.generateGUID(),
       name: "Image (trademe)",
       body: JSON.stringify({ "products": [{ "name": "car", "product": [{ "name": "honda", "model": [{ "id": "civic", "name": "civic" }, { "id": "accord", "name": "accord" }, { "id": "crv", "name": "crv" }, { "id": "pilot", "name": "pilot" }, { "id": "odyssey", "name": "odyssey" }] }] }] }),
       verb: "get",
@@ -106,6 +116,7 @@ export class ActionRepositoryService {
 
   private getActionDetails2(): RestAction {
     var action: RestAction = {
+      id: this.systemSupport.generateGUID(),
       name: "XML Result",
       body: "{}",
       verb: "get",
@@ -127,6 +138,7 @@ export class ActionRepositoryService {
 
   private getActionDetails3(): RestAction {
     var action: RestAction = {
+      id: this.systemSupport.generateGUID(),
       name: "JSON Result",
       body: "{}",
       verb: "get",

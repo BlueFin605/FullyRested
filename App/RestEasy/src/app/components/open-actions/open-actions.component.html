@@ -1,5 +1,10 @@
 <mat-tab-group animationDuration="0ms" #tabs>
-  <mat-tab *ngFor="let action of state.actions" [label]="action.action.name"> 
+  <mat-tab *ngFor="let action of state.actions">
+    <ng-template mat-tab-label>{{action.action.name}}
+      <button mat-icon-button (click)="removeAction(action.action.id)">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </ng-template>
     <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
   </mat-tab>
   <mat-tab disabled>
