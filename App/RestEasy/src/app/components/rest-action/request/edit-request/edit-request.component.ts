@@ -4,7 +4,7 @@ import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } fr
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
-import { RestAction, HeaderTable, ParamTable } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
@@ -15,7 +15,7 @@ import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body
   styleUrls: ['./edit-request.component.css']
 })
 export class EditRequestComponent implements OnInit {
-  private _action: RestAction = { verb: 'GET', protocol: 'HTTPS', url: '', headers: [], parameters: [], body: {} };
+  private _action: RestAction = CreateEmptyAction();
 
   @Input()
   set action(action: RestAction) {
@@ -24,6 +24,8 @@ export class EditRequestComponent implements OnInit {
     this.onParamChange(this._action.parameters);
   }
 
+  @Output()
+  actionChange = new EventEmitter<RestAction>();
 
   get action(): RestAction {
     // console.log(`valid json:${this.bodyChild?.isValidJson()}`);
@@ -33,9 +35,6 @@ export class EditRequestComponent implements OnInit {
   @Output()
   execute = new EventEmitter<ExecuteRestAction>();
 
-  @ViewChild('headerChild') headerChild: EditRequestHeadersComponent | undefined;
-  @ViewChild('bodyChild') bodyChild: EditRequestBodyComponent | undefined;
-
   displayUrl: string = '';
 
   constructor() { }
@@ -43,17 +42,17 @@ export class EditRequestComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  modelChangeFn(value: any) {
+  onUrlChange(value: any) {
     console.log(`modelChangeFn[${value}]`);
 
     if (value.startsWith("https://")) {
       value = value.substring(8);
       this.action.protocol = "https";
     } else
-    if (value.startsWith("http://")) {
-      value = value.substring(7);
-      this.action.protocol = "http";
-    }
+      if (value.startsWith("http://")) {
+        value = value.substring(7);
+        this.action.protocol = "http";
+      }
 
     //find end of base url
     var queryPos = value.indexOf('?');
@@ -61,7 +60,7 @@ export class EditRequestComponent implements OnInit {
       this.action.url = value;
       console.log(`url:[${value}] root:[${this.action.url}]`);
     } else {
-      this.action.url = value.substring(0,queryPos);
+      this.action.url = value.substring(0, queryPos);
       console.log(`url:[${value}] root pos:[${queryPos}] root:[${this.action.url}]`);
     }
 
@@ -73,15 +72,16 @@ export class EditRequestComponent implements OnInit {
     console.log(`parsed url:[${JSON.stringify(parsedUrl.root.segments)}]`)
 
     this.action.parameters = this.updateParamTable(parsedUrl.queryParams, this.action.parameters);
+    this.actionChange.emit(this.action);
   }
 
-  updateParamTable(queryParams: {[key: string]: any}, origParamTable: ParamTable[]): ParamTable[] {
+  private updateParamTable(queryParams: { [key: string]: any }, origParamTable: ParamTable[]): ParamTable[] {
 
     var paramsTable: ParamTable[] = JSON.parse(JSON.stringify(origParamTable));
 
     var newParams = this.convertParsedUrlParamsToArray(queryParams).filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
     var oldParams = paramsTable.filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
-    
+
     console.log(`new params:[${JSON.stringify(newParams)}]`)
     console.log(`old params:[${JSON.stringify(oldParams)}]`)
 
@@ -114,12 +114,12 @@ export class EditRequestComponent implements OnInit {
     return paramsTable;
   }
 
-  convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
+  private convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
     var id = 1;
     return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: id++ } });
   }
 
-  removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
+  private removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
     var index = parameters.findIndex(f => f.key === remove.key && f.value === remove.value);
     if (index == -1) {
       console.log(`!!!!!item not found [${remove}] in []${JSON.stringify(parameters)}`);
@@ -130,13 +130,12 @@ export class EditRequestComponent implements OnInit {
     return parameters;
   }
 
-  addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
+  private addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
     // console.log(`addParam adding[${JSON.stringify(added)}]`);
     // console.log(`addParam parameters[${JSON.stringify(parameters)}]`);
 
     var inactive = parameters.find(f => f.active == false && f.key === added.key && f.value === added.value);
-    if (inactive != undefined)
-    {
+    if (inactive != undefined) {
       console.log(`activating inactive param;[${JSON.stringify(inactive)}]`);
       inactive.active = true;
       return parameters;
@@ -158,6 +157,33 @@ export class EditRequestComponent implements OnInit {
     console.log(`onParamChange:[${JSON.stringify(url)}]`);
     console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
+    this.actionChange.emit(this.action);
+  }
+
+  onHeadersChange(event: any) {
+    // console.log(event);    
+    this.actionChange.emit(this.action);
+  }
+
+  onBodyChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+
+  onVerbChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+
+  onProtocolChange(event: any) {
+    // console.log(event);
+    this.actionChange.emit(this.action);
+  }
+
+  onNameChange(value: any) {
+    // console.log(value);
+    this.action.name = value;
+    this.actionChange.emit(this.action);
   }
 
   convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
@@ -174,19 +200,12 @@ export class EditRequestComponent implements OnInit {
 
   // convertParsedUrlParamsToArray
   async test() {
-    if (this.bodyChild?.isValidJSON == false) {
-      console.log('Body JSON is not va lid, sorry cannot execute action');
-      // console.log(this.bodyChild?.jsonText);
-
-      return;
-    }
-
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.displayUrl,
-      headers: this.convertHeaderArraysAsValues(this.headerChild?.headers ?? []),
-      body: this.bodyChild?.json ?? {}
+      headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
+      body: this.action.body ?? {}
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)

@@ -62,17 +62,24 @@ export class EditRequestHeadersComponent implements OnInit {
   add() {
     var max: number = Math.max(...this.headers.map(m => m.id));
     this.headers = [...this.headers, { key: '', value: '', active: true, id: max + 1 }];
+    this.headersChange.emit(this.headers);
   }
 
   delete(id: number) {
     this.headers = this.headers.filter(f => f.id != id);
+    this.headersChange.emit(this.headers);
   }
 
   activeClicked(id: number) {
     var entry = this.headers.find(f => f.id == id);
     if (entry == undefined)
-       return;
+      return;
 
     entry.active = !entry.active;
+    this.headersChange.emit(this.headers);
+  }
+
+  modelChangeFn(value: any) {
+    this.headersChange.emit(this.headers);
   }
 }

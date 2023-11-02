@@ -27,11 +27,11 @@ const COLUMNS_SCHEMA = [
 
 
 @Component({
-  selector: 'app-edit-request-paramaters',
-  templateUrl: './edit-request-paramaters.component.html',
-  styleUrls: ['./edit-request-paramaters.component.css']
+  selector: 'app-edit-request-parameters',
+  templateUrl: './edit-request-parameters.component.html',
+  styleUrls: ['./edit-request-parameters.component.css']
 })
-export class EditRequestParamatersComponent implements OnInit {
+export class EditRequestParametersComponent implements OnInit {
 
   @Input()
   params: ParamTable[] = [];
@@ -66,7 +66,7 @@ export class EditRequestParamatersComponent implements OnInit {
   activeClicked(id: number) {
     var entry = this.params.find(f => f.id === id);
     if (entry == undefined)
-       return;
+      return;
 
     entry.active = !entry.active;
     this.paramsChange.emit(this.params);

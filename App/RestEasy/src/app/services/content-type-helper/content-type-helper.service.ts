@@ -35,7 +35,7 @@ export class ContentTypeHelperService {
 
     if (split.length > 2) {
       if (split[2].startsWith('charset='))
-         encoding = split[2].substring(8);
+        encoding = split[2].substring(8);
     }
 
     return { part1: part1, part2: part2, encoding: encoding };

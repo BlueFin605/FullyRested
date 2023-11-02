@@ -1,0 +1,21 @@
+.remove_button {
+    width: 24px;
+}
+
+.add_icon {
+    color:green;
+    font-size: 20px;
+}
+
+.remove_icon {
+    color:red;
+    font-size: 15px;
+}
+
+.mat-icon-button {
+
+}
+
+.add_tab {
+    padding: 0px;
+}

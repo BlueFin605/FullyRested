@@ -25,13 +25,14 @@ import { DisplayResponseBodyComponent } from './components/rest-action/response/
 import { DisplayResponseHeadersComponent } from './components/rest-action/response/display-response-headers/display-response-headers.component';
 import { EditRequestComponent } from './components/rest-action/request/edit-request/edit-request.component';
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
-import { EditRequestParamatersComponent } from './components/rest-action/request/edit-request-paramaters/edit-request-paramaters.component';
+import { EditRequestParametersComponent } from './components/rest-action/request/edit-request-parameters/edit-request-parameters.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
 import { DisplayResponseBodyJsonComponent } from './components/rest-action/response/display-response-body-json/display-response-body-json.component';
 import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
+import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 
 @NgModule({
   declarations: [
@@ -42,13 +43,14 @@ import { DisplayResponseBodyXmlComponent } from './components/rest-action/respon
     DisplayResponseHeadersComponent,
     EditRequestComponent,
     EditRequestHeadersComponent,
-    EditRequestParamatersComponent,
+    EditRequestParametersComponent,
     EditRequestBodyComponent,
     DisplayResponseBodyJsonComponent,
     DisplayResponseBodyDefaultComponent,
     DisplayResponseBodyImageComponent,
     DisplayResponseBodyHtmlComponent,
-    DisplayResponseBodyXmlComponent
+    DisplayResponseBodyXmlComponent,
+    OpenActionsComponent
   ],
   imports: [
     BrowserModule,
