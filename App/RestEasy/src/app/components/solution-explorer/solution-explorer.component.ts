@@ -1,19 +1,24 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Injectable } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
+
+
+@Injectable()
+export class ProductTreeviewConfig extends TreeviewConfig {
+  override hasAllCheckBox = true;
+  override hasFilter = true;
+  override hasCollapseExpand = false;
+  override maxHeight = 400;
+}
 
 @Component({
   selector: 'app-solution-explorer',
   templateUrl: './solution-explorer.component.html',
-  styleUrls: ['./solution-explorer.component.css']
+  styleUrls: ['./solution-explorer.component.css'],
+  providers: [
+    { provide: TreeviewConfig, useClass: ProductTreeviewConfig }
+  ]
 })
 export class SolutionExplorerComponent implements OnInit {
-  //   private config: TreeviewConfig = {
-  //     hasAllCheckBox: true,
-  //     hasFilter: false,
-  //     hasCollapseExpand: false,
-  //     decoupleChildFromParent: false,
-  //     maxHeight: 500
-  //  }
   itCategory = new TreeviewItem(
     {
       text: "Software",
@@ -63,12 +68,7 @@ export class SolutionExplorerComponent implements OnInit {
 
   items: TreeviewItem[] = [this.itCategory, this.itNetworking];
 
-  constructor(public config: TreeviewConfig) {
-    this.config.hasAllCheckBox = false;
-    this.config.hasFilter = true;
-    this.config.hasCollapseExpand = false;
-    this.config.decoupleChildFromParent = false;
-    this.config.maxHeight = 500;
+  constructor() {
   }
 
   ngOnInit(): void {
