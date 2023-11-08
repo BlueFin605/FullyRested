@@ -5,6 +5,7 @@ const fs = require('fs');
 const url = require('url');
 const axios = require('axios');
 // var path = require('path');
+// const prom = require('node:fs/promises');
 
 let win;
 
@@ -27,6 +28,46 @@ const createWindow = () => {
 app.whenReady().then(() => {
     createWindow()
 
+    // traverseDirectory();
+    // console.log(prom);
+    // const versions = process.versions;
+    // console.log(versions);
+
+    // prom.readdir(app.getPath("userData"), { recursive: true })
+    //     .then(files => console.log(files))
+    //     .catch(err => {
+    //         console.log(err)
+    //     });
+
+    // const isDirectory = path => statSync(path).isDirectory();
+    // const getDirectories = path =>
+    //     fs.readdirSync(path).map(name => join(path, name)).filter(isDirectory);
+
+    // const isFile = path => statSync(path).isFile();
+    // const getFiles = path =>
+    //     fs.readdirSync(path).map(name => join(path, name)).filter(isFile);
+
+    // const getFilesRecursively = (path) => {
+    //     let dirs = getDirectories(path);
+    //     let files = dirs
+    //         .map(dir => getFilesRecursively(dir)) // go through each directory
+    //         .reduce((a, b) => a.concat(b), []);    // map returns a 2d array (array of file arrays) so flatten
+    //     return files.concat(getFiles(path));
+    // };
+
+    // getFilesRecursively(app.getPath("userData"))
+    //     .then(files => console.log(files))
+    //     .catch(err => {
+    //         console.log(err)
+    //     });
+
+
+
+    // tree = {};
+    // for (const filePath of walkSync(app.getPath("userData"), tree)) {
+    //     console.log(filePath);
+    // }
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
@@ -38,6 +79,10 @@ app.whenReady().then(() => {
 
     ipcMain.handle("readState", (event, request) => {
         return readState(event, request);
+    });
+
+    ipcMain.handle("traverseDirectory", (event, request) => {
+        return traverseDirectory(event, request);
     });
 
     ipcMain.on("saveState", (event, request) => {
@@ -52,7 +97,6 @@ app.on('window-all-closed', () => {
 
 ipcMain.on("navigateDirectory", (event, path) => {
     process.chdir(path);
-    getImages();
     getDirectory();
 });
 
@@ -115,14 +159,13 @@ function saveState(event, request) {
 
 function readState(event, request) {
     try {
-
         var state = fs.readFileSync(buildStateFilename());
         console.log(state);
         return JSON.parse(state);
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.log(`File not found!:[${buildStateFilename()}]`);
-            return {actions: []};
+            return { actions: [] };
         } else {
             throw err;
         }
@@ -131,4 +174,31 @@ function readState(event, request) {
 
 function buildStateFilename() {
     return path.join(app.getPath("userData"), "current_state.json");
+}
+
+function traverseDirectory() {
+    // var path = app.getPath("userData");
+    var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
+    var tree = {dir: {name: 'root', path: path, fullPath: path}, subdirs: [], files: []};
+    walkSync(path, tree);
+    // var json = JSON.stringify(tree);
+    // console.log(json);
+    return tree;
+}
+
+function walkSync(dir, tree) {
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+    for (const file of files) {
+        if (file.isDirectory()) {
+            var fullPath = path.join(dir, file.name);
+            var node = {dir: file, subdirs: [], files: []};
+            node.dir.fullPath = fullPath;
+            tree.subdirs.push(node);
+            walkSync(fullPath, tree.subdirs[tree.subdirs.length - 1]);
+        } else
+            if (file.isFile()) {
+                file.fullPath = path.join(dir, file.name);
+                tree.files.push(file);
+            }
+    }
 }

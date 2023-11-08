@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld(
             }
         },
         invoke: (channel, args) => {
-            let validChannels = ["testRest","readState"];
+            let validChannels = ["testRest","readState", "traverseDirectory"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);
             }
