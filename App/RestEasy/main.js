@@ -85,7 +85,7 @@ app.whenReady().then(() => {
         return traverseDirectory(event, request);
     });
 
-    ipcMain.handle("loadSolution", (event, request) => {
+    ipcMain.on("loadSolution", (event, request) => {
         return loadSolution(event, request);
     });
 
@@ -212,16 +212,17 @@ function walkSync(dir, tree) {
 
 function loadSolution() {
     dialog.showOpenDialog(win, {
-        // properties: ['openDirectory']
     }).then(file => {
         try {
             console.log(file);
-            var solution = fs.readFileSync(file);
-            console.log(solution);
-            win.webContents.send("loadSolutionResponse", solution);
+            if (file.canceled == false) {
+                var filename = file.filePaths[0];
+                var solutionConfig = JSON.parse(fs.readFileSync(filename));
+                console.log(solutionConfig);
+                win.webContents.send("loadSolutionResponse", {config: solutionConfig, filename: filename});
+            }
         } catch (err) {
-            console.log(`Solution File not found!:[${file}] - [${err}]`);
-            // throw err;
+            console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
         }
     });
 }

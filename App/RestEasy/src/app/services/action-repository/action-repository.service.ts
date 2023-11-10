@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { SystemSupportService } from '../system-support/system-support.service';
 
@@ -35,8 +36,13 @@ export interface CurrentState {
   actions: LocalRestAction[];
 }
 
-export interface Solution {
+export interface SolutionConfig {
   solutionGuid: string
+}
+
+export interface Solution {
+  config: SolutionConfig;
+  filename: string;
 }
 
 export interface TraversedDrectory {
@@ -73,7 +79,16 @@ export function CreateEmptyAction(): RestAction {
 })
 
 export class ActionRepositoryService {
-  constructor(private systemSupport: SystemSupportService) { }
+  solutions = new BehaviorSubject<Solution>({config: { solutionGuid: '' }, filename: '<filename>'});
+
+  constructor(private systemSupport: SystemSupportService) {
+    if (this.getIpcRenderer() == undefined)
+      return;
+
+    this.getIpcRenderer().receive('loadSolutionResponse', (solution: Solution) => {
+      this.solutions.next(solution);
+    });
+  }
 
   private getIpcRenderer() {
     return (<any>window).ipc;
@@ -95,7 +110,7 @@ export class ActionRepositoryService {
     if (this.getIpcRenderer() == undefined)
       return this.mockTraverseDirectory();
 
-      return this.getIpcRenderer().invoke('traverseDirectory')
+    return this.getIpcRenderer().invoke('traverseDirectory')
   }
 
   public async getCurrentState(): Promise<CurrentState> {
@@ -117,16 +132,18 @@ export class ActionRepositoryService {
     await this.getIpcRenderer().send('saveState', state);
   }
 
-  public async loadSolution(): Promise<Solution> {
-    if (this.getIpcRenderer() == undefined)
-      return this.mockSolution();
+  public async loadSolution() {
+    if (this.getIpcRenderer() == undefined) {
+      this.solutions.next(this.mockSolution());
+      return;
+    }
 
-      return this.getIpcRenderer().invoke('loadSolution')
+    console.log("loadSolution");
+    this.getIpcRenderer().send("loadSolution");
   }
 
-  private mockSolution(): Solution
-  {
-    return {solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab'};
+  private mockSolution(): Solution {
+    return {config: { solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>'};
   }
 
   private mockTraverseDirectory(): TraversedDrectory {

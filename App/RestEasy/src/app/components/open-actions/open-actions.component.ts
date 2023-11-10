@@ -13,7 +13,9 @@ export class OpenActionsComponent implements OnInit {
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
-  constructor(private repo: ActionRepositoryService) { }
+  constructor(private repo: ActionRepositoryService) {
+    this.repo.solutions.subscribe(s => console.log(s));
+   }
 
   ngOnInit(): void {
     this.repo.getCurrentState().then(s => {
@@ -58,6 +60,6 @@ export class OpenActionsComponent implements OnInit {
 
   openSolution() {
       console.log('openSolution');
-      this.repo.loadSolution().then(s => console.log(s));
+      this.repo.loadSolution();
     }
 }

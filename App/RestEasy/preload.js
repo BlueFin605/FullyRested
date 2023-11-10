@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld(
     "ipc", {
         send: (channel, data) => {
             // whitelist channels
-            let validChannels = ["saveState", "saveSolution"];
+            let validChannels = ["loadSolution","saveState", "saveSolution"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }
@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld(
             }
         },
         invoke: (channel, args) => {
-            let validChannels = ["testRest","readState", "traverseDirectory", "loadSolution"];
+            let validChannels = ["testRest","readState", "traverseDirectory"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);
             }
