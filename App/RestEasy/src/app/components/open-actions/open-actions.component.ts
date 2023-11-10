@@ -56,15 +56,8 @@ export class OpenActionsComponent implements OnInit {
     this.repo.saveCurrentState(this.state);
   }
 
-  openFile() {
-    console.log('openFile');
-    // console.log(document.querySelector('input'));
-    // document.querySelector('input')?.click()
-    const e: HTMLElement = this.FileSelectInputDialog.nativeElement;
-    e.click();  }
-
-  handle(e: any) {
-    console.log('Change input file')
-    console.log(e);
-  }
+  openSolution() {
+      console.log('openSolution');
+      this.repo.loadSolution().then(s => console.log(s));
+    }
 }

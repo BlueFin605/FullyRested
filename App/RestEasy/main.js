@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
@@ -210,15 +210,20 @@ function walkSync(dir, tree) {
     }
 }
 
-function loadSolution(solFile) {
-    try {
-        var solution = fs.readFileSync(solFile);
-        console.log(state);
-        return JSON.parse(state);
-    } catch (err) {
-        console.log(`Solution File not found!:[${solFile}] - [${err}]`);
-        throw err;
-    }
+function loadSolution() {
+    dialog.showOpenDialog(win, {
+        // properties: ['openDirectory']
+    }).then(file => {
+        try {
+            console.log(file);
+            var solution = fs.readFileSync(file);
+            console.log(solution);
+            win.webContents.send("loadSolutionResponse", solution);
+        } catch (err) {
+            console.log(`Solution File not found!:[${file}] - [${err}]`);
+            // throw err;
+        }
+    });
 }
 
 function saveSolution(event, request) {

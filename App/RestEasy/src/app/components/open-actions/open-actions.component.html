@@ -1,10 +1,8 @@
-<input #FileSelectInputDialog style="display:none" type="file" multiple />
-
 <div class="menubar">
   <button mat-button [matMenuTriggerFor]="menu">File</button>
   <mat-menu #menu="matMenu">
     <!-- <input type="file" id="myfile" name="myfile"> -->
-    <button mat-menu-item (click)="openFile()">Open Solution</button>
+    <button mat-menu-item (click)="openSolution()">Open Solution</button>
     <button mat-menu-item>Save</button>
   </mat-menu>
 </div>

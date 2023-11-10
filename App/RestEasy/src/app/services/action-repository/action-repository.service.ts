@@ -117,11 +117,11 @@ export class ActionRepositoryService {
     await this.getIpcRenderer().send('saveState', state);
   }
 
-  public async loadSolution(solFile: string): Promise<Solution> {
+  public async loadSolution(): Promise<Solution> {
     if (this.getIpcRenderer() == undefined)
       return this.mockSolution();
 
-      return this.getIpcRenderer().invoke('loadSolution', solFile)
+      return this.getIpcRenderer().invoke('loadSolution')
   }
 
   private mockSolution(): Solution
