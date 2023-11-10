@@ -85,15 +85,22 @@ app.whenReady().then(() => {
         return traverseDirectory(event, request);
     });
 
+    ipcMain.handle("loadSolution", (event, request) => {
+        return loadSolution(event, request);
+    });
+
     ipcMain.on("saveState", (event, request) => {
         saveState(event, request);
+    });
+
+    ipcMain.on("saveSolution", (event, request) => {
+        saveSolution(event, request);
     });
 })
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
-
 
 ipcMain.on("navigateDirectory", (event, path) => {
     process.chdir(path);
@@ -179,7 +186,7 @@ function buildStateFilename() {
 function traverseDirectory() {
     // var path = app.getPath("userData");
     var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
-    var tree = {dir: {name: 'root', path: path, fullPath: path}, subdirs: [], files: []};
+    var tree = { dir: { name: 'root', path: path, fullPath: path }, subdirs: [], files: [] };
     walkSync(path, tree);
     // var json = JSON.stringify(tree);
     // console.log(json);
@@ -191,7 +198,7 @@ function walkSync(dir, tree) {
     for (const file of files) {
         if (file.isDirectory()) {
             var fullPath = path.join(dir, file.name);
-            var node = {dir: file, subdirs: [], files: []};
+            var node = { dir: file, subdirs: [], files: [] };
             node.dir.fullPath = fullPath;
             tree.subdirs.push(node);
             walkSync(fullPath, tree.subdirs[tree.subdirs.length - 1]);
@@ -201,4 +208,19 @@ function walkSync(dir, tree) {
                 tree.files.push(file);
             }
     }
+}
+
+function loadSolution(solFile) {
+    try {
+        var solution = fs.readFileSync(solFile);
+        console.log(state);
+        return JSON.parse(state);
+    } catch (err) {
+        console.log(`Solution File not found!:[${solFile}] - [${err}]`);
+        throw err;
+    }
+}
+
+function saveSolution(event, request) {
+    fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
 }

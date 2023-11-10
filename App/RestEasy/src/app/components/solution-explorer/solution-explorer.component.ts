@@ -7,7 +7,7 @@ export class ProductTreeviewConfig extends TreeviewConfig {
   override hasAllCheckBox = true;
   override hasFilter = true;
   override hasCollapseExpand = false;
-  override maxHeight = 400;
+  // override maxHeight = 400;
   override compact = true;
 }
 

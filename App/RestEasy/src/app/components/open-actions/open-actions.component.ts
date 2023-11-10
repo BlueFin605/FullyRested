@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { LocalRestAction, ActionRepositoryService, CurrentState, CreateEmptyLocalAction } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
@@ -8,9 +8,10 @@ import { MatTabGroup } from '@angular/material/tabs';
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { actions: [] };
+  state: CurrentState = { currentSolution: '', actions: [] };
 
   @ViewChild('tabs') tabs!: MatTabGroup;
+  @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
   constructor(private repo: ActionRepositoryService) { }
 
@@ -38,9 +39,9 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     var count = Math.max(...this.state.actions.filter(f => f.action.name.startsWith('new request'))
-                                  .map(s => s.action.name.substring(12))
-                                  .map(m => m.length == 0 ? 1 : parseInt(m))
-                                  .filter(num => !isNaN(num)));
+      .map(s => s.action.name.substring(12))
+      .map(m => m.length == 0 ? 1 : parseInt(m))
+      .filter(num => !isNaN(num)));
 
     this.state.actions.push(this.repo.createNewAction(count + 1));
   }
@@ -53,5 +54,17 @@ export class OpenActionsComponent implements OnInit {
   onActionChange(event: any) {
     // console.log(this.state);
     this.repo.saveCurrentState(this.state);
+  }
+
+  openFile() {
+    console.log('openFile');
+    // console.log(document.querySelector('input'));
+    // document.querySelector('input')?.click()
+    const e: HTMLElement = this.FileSelectInputDialog.nativeElement;
+    e.click();  }
+
+  handle(e: any) {
+    console.log('Change input file')
+    console.log(e);
   }
 }
