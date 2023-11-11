@@ -3,6 +3,11 @@ import { BehaviorSubject } from 'rxjs';
 import { RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { SystemSupportService } from '../system-support/system-support.service';
 
+export const REConstants = {
+  SolutionExtension: ".reasycol",
+  ActionExtension: ".reasyreq"
+};
+
 export interface HeaderTable {
   key: string;
   value: string;
@@ -31,9 +36,14 @@ export interface LocalRestAction {
   dirty: boolean;
 }
 
+export interface LocalRestSession {
+  solutionGuid: string;
+  actions: LocalRestAction[];
+}
+
 export interface CurrentState {
   currentSolution: string;
-  actions: LocalRestAction[];
+  sessions: LocalRestSession[]
 }
 
 export interface SolutionConfig {
@@ -43,6 +53,7 @@ export interface SolutionConfig {
 export interface Solution {
   config: SolutionConfig;
   filename: string;
+  path: string;
 }
 
 export interface TraversedDrectory {
@@ -79,7 +90,8 @@ export function CreateEmptyAction(): RestAction {
 })
 
 export class ActionRepositoryService {
-  solutions = new BehaviorSubject<Solution>({config: { solutionGuid: '' }, filename: '<filename>'});
+  // solutions = new BehaviorSubject<Solution>({config: { solutionGuid: 'abcd' }, filename: '<filename>', path: '<path>'});
+  solutions = new BehaviorSubject<Solution | undefined>(undefined);
 
   constructor(private systemSupport: SystemSupportService) {
     if (this.getIpcRenderer() == undefined)
@@ -106,11 +118,11 @@ export class ActionRepositoryService {
     return action;
   }
 
-  public async traverseDirectory(): Promise<TraversedDrectory> {
+  public async traverseDirectory(pathname: string, filter: string[]): Promise<TraversedDrectory> {
     if (this.getIpcRenderer() == undefined)
       return this.mockTraverseDirectory();
 
-    return this.getIpcRenderer().invoke('traverseDirectory')
+    return this.getIpcRenderer().invoke('traverseDirectory', { pathname: pathname, filter: filter });
   }
 
   public async getCurrentState(): Promise<CurrentState> {
@@ -134,16 +146,16 @@ export class ActionRepositoryService {
 
   public async loadSolution() {
     if (this.getIpcRenderer() == undefined) {
+      console.log('send Mock');
       this.solutions.next(this.mockSolution());
       return;
     }
 
-    console.log("loadSolution");
     this.getIpcRenderer().send("loadSolution");
   }
 
   private mockSolution(): Solution {
-    return {config: { solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>'};
+    return { config: { solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>', path: '<path>' };
   }
 
   private mockTraverseDirectory(): TraversedDrectory {
@@ -153,10 +165,22 @@ export class ActionRepositoryService {
   private mockCurrentState(): CurrentState {
     return {
       currentSolution: '',
-      actions: [
-        { action: this.getActionDetails1(), dirty: false },
-        { action: this.getActionDetails2(), dirty: false },
-        { action: this.getActionDetails3(), dirty: false }
+      sessions: [
+        {
+          "solutionGuid": "nosolution",
+          actions: [
+            { action: this.getActionDetails1(), dirty: false },
+            { action: this.getActionDetails2(), dirty: false },
+            { action: this.getActionDetails3(), dirty: false }
+          ]
+        },
+        {
+          "solutionGuid": "992f54a1-be78-4605-968d-13e456a94aab",
+          actions: [
+            { action: this.getActionDetails2(), dirty: false }
+          ]
+        }
+
       ]
     };
   }

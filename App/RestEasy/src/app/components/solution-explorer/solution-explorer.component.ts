@@ -1,7 +1,8 @@
-import { Component, OnInit, Injectable } from '@angular/core';
+import { Component, OnInit, Injectable, Input } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
-import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { TraversedDrectory } from 'src/app/services/action-repository/action-repository.service';
+// import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
+
 @Injectable()
 export class ProductTreeviewConfig extends TreeviewConfig {
   override hasAllCheckBox = true;
@@ -20,6 +21,24 @@ export class ProductTreeviewConfig extends TreeviewConfig {
   ]
 })
 export class SolutionExplorerComponent implements OnInit {
+  _solution: Solution | undefined;
+
+  @Input()
+  set solution(solution: Solution | undefined) {
+    if (solution == undefined) {
+      this._solution = solution;
+      this.items = [];
+      return;
+    }
+
+    console.log('set solution');
+    console.log(solution);
+    this._solution = solution;
+    this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
+      this.items = [this.convertDirToTreeviewItem(t)]; 
+      console.log(this.items);
+    });
+  }
 
   items: TreeviewItem[] = [];
 
@@ -27,20 +46,19 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.repo.traverseDirectory().then(t => {
-      this.items = [this.convertDirToTreeviewItem(t)]; 
-      // console.log(this.items);
-    });
   }
 
-  convertDirToTreeviewItem(traverse: TraversedDrectory) : TreeviewItem {
+  convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
     var children = traverse.subdirs.map(s => this.convertDirToTreeviewItem(s));
-    children = children.concat(traverse.files.map(f => new TreeviewItem({text: f.name,
-                                                                         value: {type: 'file', key: f.fullPath}})));
+    children = children.concat(traverse.files.map(f => new TreeviewItem({
+      text: f.name,
+      value: { type: 'file', key: f.fullPath }
+    })));
 
-    return new TreeviewItem({text: traverse.dir.name, 
-                            value: {type: 'dir', key: traverse.dir.fullPath}, 
-                            children: children
+    return new TreeviewItem({
+      text: traverse.dir.name,
+      value: { type: 'dir', key: traverse.dir.fullPath },
+      children: children
     });
   }
 

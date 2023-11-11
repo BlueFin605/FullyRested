@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { LocalRestAction, ActionRepositoryService, CurrentState, CreateEmptyLocalAction } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, ActionRepositoryService, CurrentState, CreateEmptyLocalAction, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
 @Component({
@@ -8,14 +8,18 @@ import { MatTabGroup } from '@angular/material/tabs';
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { currentSolution: '', actions: [] };
+  state: CurrentState = { currentSolution: '', sessions: [] };
+  public solution: Solution | undefined;
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
   constructor(private repo: ActionRepositoryService) {
-    this.repo.solutions.subscribe(s => console.log(s));
-   }
+    this.repo.solutions.subscribe(s => {
+      console.log(`this.repo.solutions.subscribe => [${s}]`);
+      this.solution = s;
+    });
+  }
 
   ngOnInit(): void {
     this.repo.getCurrentState().then(s => {
@@ -34,23 +38,44 @@ export class OpenActionsComponent implements OnInit {
     });
   }
 
+  public currentSession(): LocalRestSession
+  {
+    // console.log(`currentSession:[${this.solution?.config?.solutionGuid}]`);
+
+    if (this.solution?.config?.solutionGuid == undefined)
+       return this.locateSession("nosolution");
+
+    return this.locateSession(this.solution.config.solutionGuid);
+  }
+
+  private locateSession(sessionGuid: string): LocalRestSession
+  {
+    var session = this.state.sessions.find(f => f.solutionGuid == sessionGuid);
+    if (session != undefined)
+       return session;
+
+    var newSession: LocalRestSession = {solutionGuid: sessionGuid, actions: []};
+    this.state.sessions.push(newSession);
+    return newSession;
+  }
+
   addAction(event: any) {
     // console.log(`addAction`);
     // console.log(event);
-    if (event.index < this.state.actions.length)
+    if (event.index < this.currentSession().actions.length)
       return;
 
-    var count = Math.max(...this.state.actions.filter(f => f.action.name.startsWith('new request'))
+    var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
       .map(s => s.action.name.substring(12))
       .map(m => m.length == 0 ? 1 : parseInt(m))
       .filter(num => !isNaN(num)));
 
-    this.state.actions.push(this.repo.createNewAction(count + 1));
+    this.currentSession().actions.push(this.repo.createNewAction(count + 1));
   }
 
   removeAction(event: any) {
-    var index = this.state.actions.findIndex(i => i.action.id == event);
-    this.state.actions.splice(index, 1);
+    var index = this.currentSession().actions.findIndex(i => i.action.id == event);
+    this.currentSession().actions.splice(index, 1);
   }
 
   onActionChange(event: any) {
@@ -59,7 +84,12 @@ export class OpenActionsComponent implements OnInit {
   }
 
   openSolution() {
-      console.log('openSolution');
-      this.repo.loadSolution();
-    }
+    console.log('openSolution');
+    this.repo.loadSolution();
+  }
+
+  closeSolution() {
+    console.log('closeSolution');
+    this.solution = undefined;
+  }
 }

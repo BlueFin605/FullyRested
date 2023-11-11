@@ -4,16 +4,17 @@
     <!-- <input type="file" id="myfile" name="myfile"> -->
     <button mat-menu-item (click)="openSolution()">Open Solution</button>
     <button mat-menu-item>Save</button>
+    <button mat-menu-item (click)="closeSolution()">Close</button>
   </mat-menu>
 </div>
 
 <div class="explorer">
-  <app-solution-explorer></app-solution-explorer>
+  <app-solution-explorer [solution]="solution"></app-solution-explorer>
 </div>
 
 <div class="opendocuments">
   <mat-tab-group animationDuration="0ms" #tabs>
-    <mat-tab *ngFor="let action of state.actions">
+    <mat-tab *ngFor="let action of currentSession().actions">
       <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
       <ng-template mat-tab-label>{{action.action.name}}
         <button class="remove_button" mat-icon-button (click)="removeAction(action.action.id)">
