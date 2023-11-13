@@ -35,7 +35,8 @@ export class SolutionExplorerComponent implements OnInit {
     console.log(solution);
     this._solution = solution;
     this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
-      this.items = [this.convertDirToTreeviewItem(t)]; 
+      this.items = [this.convertDirToTreeviewItem(t)];
+      this.expandTree(this.items);
       console.log(this.items);
     });
   }
@@ -58,8 +59,28 @@ export class SolutionExplorerComponent implements OnInit {
     return new TreeviewItem({
       text: traverse.dir.name,
       value: { type: 'dir', key: traverse.dir.fullPath },
-      children: children
+      children: children,
+      collapsed: true,
     });
+  }
+
+  expandTree(items: TreeviewItem[]): boolean {
+    if (items == undefined)
+       return false;
+      
+    var hasFiles = false;
+    //if there are any files then we should expand the folder
+    if (items.some(i => i.value.type == 'file')) {
+      hasFiles = true;
+    }
+
+    //if any of the children have files expand the node
+    var childrenHaveFles = items.some(i => {
+      i.collapsed = !this.expandTree(i.children);
+      return !i.collapsed;
+    });
+
+    return hasFiles || childrenHaveFles;
   }
 
   onSelectedChange($event: any) {
