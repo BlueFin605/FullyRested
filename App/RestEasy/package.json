@@ -23,6 +23,7 @@
     "@angular/platform-browser-dynamic": "^14.0.0",
     "@angular/router": "^14.0.0",
     "@maaxgr/ang-jsoneditor": "^14.0.0",
+    "@treeview/ngx-treeview": "^14.0.0",
     "axios": "^1.5.1",
     "jsoneditor": "^9.10.3",
     "ngx-json-viewer": "^3.2.1",

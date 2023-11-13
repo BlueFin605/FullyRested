@@ -11,3 +11,7 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .mat-form-field-infix {
   width: auto !important;
 }
+
+.treeview-container {
+  max-height: calc(100vh - 50px) !important;
+}

@@ -10,11 +10,12 @@ import { MatTableModule } from '@angular/material/table';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon'
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import {MatRadioModule} from '@angular/material/radio';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { AngJsoneditorModule } from '@maaxgr/ang-jsoneditor' 
-
+import { TreeviewModule } from '@treeview/ngx-treeview';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -33,6 +34,7 @@ import { DisplayResponseBodyImageComponent } from './components/rest-action/resp
 import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
+import { SolutionExplorerComponent } from './components/solution-explorer/solution-explorer.component';
 
 @NgModule({
   declarations: [
@@ -50,7 +52,8 @@ import { OpenActionsComponent } from './components/open-actions/open-actions.com
     DisplayResponseBodyImageComponent,
     DisplayResponseBodyHtmlComponent,
     DisplayResponseBodyXmlComponent,
-    OpenActionsComponent
+    OpenActionsComponent,
+    SolutionExplorerComponent
   ],
   imports: [
     BrowserModule,
@@ -58,12 +61,14 @@ import { OpenActionsComponent } from './components/open-actions/open-actions.com
     BrowserAnimationsModule,
     NgxJsonViewerModule,
     AngJsoneditorModule,
+    TreeviewModule.forRoot(),
     MatFormFieldModule, 
     MatSelectModule,
     MatInputModule,
     MatButtonModule,
     MatTabsModule,
     MatTableModule,
+    MatMenuModule,
     FormsModule,
     MatCheckboxModule,
     MatIconModule,

@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
 const url = require('url');
 const axios = require('axios');
 // var path = require('path');
+// const prom = require('node:fs/promises');
 
 let win;
 
@@ -27,6 +28,46 @@ const createWindow = () => {
 app.whenReady().then(() => {
     createWindow()
 
+    // traverseDirectory();
+    // console.log(prom);
+    // const versions = process.versions;
+    // console.log(versions);
+
+    // prom.readdir(app.getPath("userData"), { recursive: true })
+    //     .then(files => console.log(files))
+    //     .catch(err => {
+    //         console.log(err)
+    //     });
+
+    // const isDirectory = path => statSync(path).isDirectory();
+    // const getDirectories = path =>
+    //     fs.readdirSync(path).map(name => join(path, name)).filter(isDirectory);
+
+    // const isFile = path => statSync(path).isFile();
+    // const getFiles = path =>
+    //     fs.readdirSync(path).map(name => join(path, name)).filter(isFile);
+
+    // const getFilesRecursively = (path) => {
+    //     let dirs = getDirectories(path);
+    //     let files = dirs
+    //         .map(dir => getFilesRecursively(dir)) // go through each directory
+    //         .reduce((a, b) => a.concat(b), []);    // map returns a 2d array (array of file arrays) so flatten
+    //     return files.concat(getFiles(path));
+    // };
+
+    // getFilesRecursively(app.getPath("userData"))
+    //     .then(files => console.log(files))
+    //     .catch(err => {
+    //         console.log(err)
+    //     });
+
+
+
+    // tree = {};
+    // for (const filePath of walkSync(app.getPath("userData"), tree)) {
+    //     console.log(filePath);
+    // }
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
@@ -37,11 +78,25 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle("readState", (event, request) => {
-        return readState(event, request);
+        return readState();
+    });
+
+    ipcMain.handle("traverseDirectory", (event, request) => {
+        console.log('ipcMain.handle -> traverseDirectory');
+        return traverseDirectory(request);
+    });
+
+    ipcMain.on("loadSolution", (event, request) => {
+        console.log('ipcMain.handle -> loadSolution');
+        return loadSolution();
     });
 
     ipcMain.on("saveState", (event, request) => {
-        saveState(event, request);
+        saveState(request);
+    });
+
+    ipcMain.on("saveSolution", (event, request) => {
+        saveSolution(request);
     });
 })
 
@@ -49,10 +104,8 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
 
-
 ipcMain.on("navigateDirectory", (event, path) => {
     process.chdir(path);
-    getImages();
     getDirectory();
 });
 
@@ -104,25 +157,25 @@ async function executeAction(event, request) {
     }
 }
 
-function saveState(event, request) {
+function saveState(request) {
     console.log(app.getPath("userData"));
     //  console.log(userPath);
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
     //    Just curious but what's the advantage of electron-json-storage vs just 
     // var someObj = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }))
-    fs.writeFileSync(buildStateFilename(), JSON.stringify(request)); // Even making it async would not add more than a few lines
+    fs.writeFileSync(buildStateFilename(), JSON.stringify(request, null, 4)); // Even making it async would not add more than a few lines
 }
 
-function readState(event, request) {
+function readState() {
     try {
-
+        console.log(buildStateFilename());
         var state = fs.readFileSync(buildStateFilename());
         console.log(state);
         return JSON.parse(state);
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.log(`File not found!:[${buildStateFilename()}]`);
-            return {actions: []};
+            return { actions: [] };
         } else {
             throw err;
         }
@@ -131,4 +184,66 @@ function readState(event, request) {
 
 function buildStateFilename() {
     return path.join(app.getPath("userData"), "current_state.json");
+}
+
+function traverseDirectory(request) {
+    console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
+    // var path = app.getPath("userData");
+    //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
+    var tree = { dir: { name: 'root', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
+    walkSync(request.pathname, request.filter, tree);
+    // var json = JSON.stringify(tree);
+    // console.log(json);
+    console.log(`function traverseDirectory[${request.pathname}][${request.filter}], completed`);
+    return tree;
+}
+
+function walkSync(dir, filter, tree) {
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+    for (const file of files) {
+        if (file.isDirectory()) {
+            var fullPath = path.join(dir, file.name);
+            var node = { dir: file, subdirs: [], files: [] };
+            node.dir.fullPath = fullPath;
+            tree.subdirs.push(node);
+            walkSync(fullPath, filter, tree.subdirs[tree.subdirs.length - 1]);
+        } else
+            if (file.isFile() && filter.some(f => file.name.endsWith(f))) {
+                file.fullPath = path.join(dir, file.name);
+                tree.files.push(file);
+            }
+    }
+}
+
+function loadSolution() {
+    dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] }).then(file => {
+        try {
+            console.log(file);
+            if (file.canceled == false) {
+                var filename = file.filePaths[0];
+                var pathname = path.dirname(filename);
+                loadSolutionFromFile(filename,pathname);
+            }
+        } catch (err) {
+            console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
+        }
+    });
+}
+
+function loadSolutionFromFile(filename, pathname) {
+    try {
+        console.log(`loadSolutionFromFile(${filename}, ${pathname})`);
+        fs.readFile(filename, (err, data) => {
+            console.log(`loadSolutionFromFile response (${err},${data}`);
+            var solutionConfig = JSON.parse(data);
+            console.log(solutionConfig);
+            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, path: pathname });
+        });
+    }
+    catch (err) {
+        console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
+    }
+}
+function saveSolution(request) {
+    fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
 }

@@ -7,21 +7,24 @@ const {contextBridge,ipcRenderer} = require("electron");
 contextBridge.exposeInMainWorld(
     "ipc", {
         send: (channel, data) => {
+            console.log(`send[${channel}][${data}]`);
             // whitelist channels
-            let validChannels = ["saveState"];
+            let validChannels = ["loadSolution","saveState", "saveSolution"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }
         },
         receive: (channel, func) => {
-            let validChannels = ["getDirectoryResponse","getImagesResponse"];
+            console.log(`receieve[${channel}][${func}]`);
+            let validChannels = ["loadSolutionResponse", "getDirectoryResponse","getImagesResponse"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
                 ipcRenderer.on(channel, (event, ...args) => func(...args));
             }
         },
         invoke: (channel, args) => {
-            let validChannels = ["testRest","readState"];
+            console.log(`invoke[${channel}][${args}]`);
+            let validChannels = ["testRest","readState", "traverseDirectory"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);
             }

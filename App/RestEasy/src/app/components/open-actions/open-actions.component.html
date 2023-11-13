@@ -1,17 +1,33 @@
-<mat-tab-group animationDuration="0ms" #tabs>
-  <mat-tab *ngFor="let action of state.actions">
-    <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
-    <ng-template mat-tab-label>{{action.action.name}}
-      <button class="remove_button" mat-icon-button (click)="removeAction(action.action.id)">
-        <mat-icon class="remove_icon">cancel</mat-icon>
-      </button>
-    </ng-template>
-  </mat-tab>
-  <mat-tab class="add_tab" disabled>
-    <ng-template mat-tab-label>
-      <button class="add_button" mat-icon-button (click)="addAction($event)">
-        <mat-icon class="add_icon">add_circle</mat-icon>
-      </button>
-    </ng-template>
-  </mat-tab>
-</mat-tab-group>
+<div class="menubar">
+  <button mat-button [matMenuTriggerFor]="menu">File</button>
+  <mat-menu #menu="matMenu">
+    <!-- <input type="file" id="myfile" name="myfile"> -->
+    <button mat-menu-item (click)="openSolution()">Open Solution</button>
+    <button mat-menu-item>Save</button>
+    <button mat-menu-item (click)="closeSolution()">Close</button>
+  </mat-menu>
+</div>
+
+<div class="explorer">
+  <app-solution-explorer [solution]="solution"></app-solution-explorer>
+</div>
+
+<div class="opendocuments">
+  <mat-tab-group animationDuration="0ms" #tabs>
+    <mat-tab *ngFor="let action of currentSession().actions">
+      <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
+      <ng-template mat-tab-label>{{action.action.name}}
+        <button class="remove_button" mat-icon-button (click)="removeAction(action.action.id)">
+          <mat-icon class="remove_icon">cancel</mat-icon>
+        </button>
+      </ng-template>
+    </mat-tab>
+    <mat-tab class="add_tab" disabled>
+      <ng-template mat-tab-label>
+        <button class="add_button" mat-icon-button (click)="addAction($event)">
+          <mat-icon class="add_icon">add_circle</mat-icon>
+        </button>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</div>
