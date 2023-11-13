@@ -163,7 +163,7 @@ function saveState(request) {
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
     //    Just curious but what's the advantage of electron-json-storage vs just 
     // var someObj = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }))
-    fs.writeFileSync(buildStateFilename(), JSON.stringify(request)); // Even making it async would not add more than a few lines
+    fs.writeFileSync(buildStateFilename(), JSON.stringify(request, null, 4)); // Even making it async would not add more than a few lines
 }
 
 function readState() {
@@ -216,22 +216,34 @@ function walkSync(dir, filter, tree) {
 }
 
 function loadSolution() {
-    dialog.showOpenDialog(win, {filters: [{name: 'RestEasy Projects', extensions: ['reasycol']}]}).then(file => {
+    dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] }).then(file => {
         try {
             console.log(file);
             if (file.canceled == false) {
                 var filename = file.filePaths[0];
                 var pathname = path.dirname(filename);
-                var solutionConfig = JSON.parse(fs.readFileSync(filename));
-                console.log(solutionConfig);
-                win.webContents.send("loadSolutionResponse", {config: solutionConfig, filename: filename, path: pathname});
+                loadSolutionFromFile(filename,pathname);
             }
         } catch (err) {
-            console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
+            console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
         }
     });
 }
 
+function loadSolutionFromFile(filename, pathname) {
+    try {
+        console.log(`loadSolutionFromFile(${filename}, ${pathname})`);
+        fs.readFile(filename, (err, data) => {
+            console.log(`loadSolutionFromFile response (${err},${data}`);
+            var solutionConfig = JSON.parse(data);
+            console.log(solutionConfig);
+            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, path: pathname });
+        });
+    }
+    catch (err) {
+        console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
+    }
+}
 function saveSolution(request) {
     fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
 }

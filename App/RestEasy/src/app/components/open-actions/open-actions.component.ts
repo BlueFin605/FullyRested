@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
 import { LocalRestSession, ActionRepositoryService, CurrentState, CreateEmptyLocalAction, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
@@ -14,10 +14,12 @@ export class OpenActionsComponent implements OnInit {
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
-  constructor(private repo: ActionRepositoryService) {
+  constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
     this.repo.solutions.subscribe(s => {
       console.log(`this.repo.solutions.subscribe => [${s}]`);
       this.solution = s;
+      this.appRef.tick();
+      console.log(`this.repo.solutions.subscribe, sent`)
     });
   }
 
@@ -38,23 +40,21 @@ export class OpenActionsComponent implements OnInit {
     });
   }
 
-  public currentSession(): LocalRestSession
-  {
+  public currentSession(): LocalRestSession {
     // console.log(`currentSession:[${this.solution?.config?.solutionGuid}]`);
 
     if (this.solution?.config?.solutionGuid == undefined)
-       return this.locateSession("nosolution");
+      return this.locateSession("nosolution");
 
     return this.locateSession(this.solution.config.solutionGuid);
   }
 
-  private locateSession(sessionGuid: string): LocalRestSession
-  {
+  private locateSession(sessionGuid: string): LocalRestSession {
     var session = this.state.sessions.find(f => f.solutionGuid == sessionGuid);
     if (session != undefined)
-       return session;
+      return session;
 
-    var newSession: LocalRestSession = {solutionGuid: sessionGuid, actions: []};
+    var newSession: LocalRestSession = { solutionGuid: sessionGuid, actions: [] };
     this.state.sessions.push(newSession);
     return newSession;
   }
