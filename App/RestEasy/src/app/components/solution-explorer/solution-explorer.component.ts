@@ -43,6 +43,8 @@ export class SolutionExplorerComponent implements OnInit {
 
   items: TreeviewItem[] = [];
 
+  selected: string = '';
+
   constructor(private repo: ActionRepositoryService) {
   }
 
@@ -60,14 +62,14 @@ export class SolutionExplorerComponent implements OnInit {
       text: traverse.dir.name,
       value: { type: 'dir', key: traverse.dir.fullPath },
       children: children,
-      collapsed: true,
+      collapsed: true
     });
   }
 
   expandTree(items: TreeviewItem[]): boolean {
     if (items == undefined)
        return false;
-      
+
     var hasFiles = false;
     //if there are any files then we should expand the folder
     if (items.some(i => i.value.type == 'file')) {
@@ -75,16 +77,29 @@ export class SolutionExplorerComponent implements OnInit {
     }
 
     //if any of the children have files expand the node
-    var childrenHaveFles = items.some(i => {
+    var childrenHaveFles = false;
+    items.forEach(i => {
       i.collapsed = !this.expandTree(i.children);
-      return !i.collapsed;
+      childrenHaveFles = childrenHaveFles || !i.collapsed;
     });
 
     return hasFiles || childrenHaveFles;
   }
 
   onSelectedChange($event: any) {
+    console.log($event);
 
+  }
+
+  onClick($event: TreeviewItem) {
+    console.log('onClick');
+    console.log($event.value.key);
+    this.selected = $event.value.key;
+  }
+
+  onDblClick($event: TreeviewItem) {
+    console.log('onDblClick');
+    console.log($event);
   }
 
   onFilterChange($event: any) {
