@@ -33,6 +33,7 @@ export interface RestAction {
 }
 export interface LocalRestAction {
   action: RestAction;
+  fullFilename: string;
   dirty: boolean;
 }
 
@@ -82,6 +83,12 @@ export interface File {
   fullPath: string;
 }
 
+export interface SavedAsCompleted {
+  id: string;
+  fullFilename: string;
+  name: string;
+}
+
 const EmptyActionJSON: string = JSON.stringify({ id: '', name: '', verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' });
 const EmptyLocalActionJSON: string = JSON.stringify({ action: CreateEmptyAction(), dirty: false });
 
@@ -100,6 +107,7 @@ export function CreateEmptyAction(): RestAction {
 export class ActionRepositoryService {
   // solutions = new BehaviorSubject<Solution>({config: { solutionGuid: 'abcd' }, filename: '<filename>', path: '<path>'});
   solutions = new BehaviorSubject<Solution | undefined>(undefined);
+  savedAs = new BehaviorSubject<SavedAsCompleted | undefined>(undefined);
 
   constructor(private systemSupport: SystemSupportService) {
     if (this.getIpcRenderer() == undefined)
@@ -107,6 +115,10 @@ export class ActionRepositoryService {
 
     this.getIpcRenderer().receive('loadSolutionResponse', (solution: Solution) => {
       this.solutions.next(solution);
+    });
+
+    this.getIpcRenderer().receive('savedAsCompleted', (savedAs: SavedAsCompleted) => {
+      this.savedAs.next(savedAs);
     });
   }
 
@@ -194,15 +206,15 @@ export class ActionRepositoryService {
         {
           "solutionGuid": "nosolution",
           actions: [
-            { action: this.getActionDetails1(), dirty: false },
-            { action: this.getActionDetails2(), dirty: false },
-            { action: this.getActionDetails3(), dirty: false }
+            { action: this.getActionDetails1(), dirty: false, fullFilename: 'filename1.reasycol' },
+            { action: this.getActionDetails2(), dirty: false, fullFilename: 'filename2.reasycol' },
+            { action: this.getActionDetails3(), dirty: false, fullFilename: 'filename3.reasycol' }
           ]
         },
         {
           "solutionGuid": "992f54a1-be78-4605-968d-13e456a94aab",
           actions: [
-            { action: this.getActionDetails2(), dirty: false }
+            { action: this.getActionDetails2(), dirty: false, fullFilename: 'filename2.reasycol' }
           ]
         }
       ],

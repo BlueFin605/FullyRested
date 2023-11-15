@@ -277,7 +277,15 @@ function saveAsRequest(request){
     if(userChosenPath == undefined){
         return;
     }
-    saveRequest (userChosenPath, request)
+    saveRequest (userChosenPath, request);
+    if (request.name.startsWith("<unnamed")) {
+        console.log(request.name);
+        var basename = path.basename(userChosenPath);
+        console.log(basename);
+        request.name = basename.substring(0,basename.length - 9);
+        console.log(request.name);
+    }
+    win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }
 
 function saveRequest (filename, request) {

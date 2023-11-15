@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld(
         },
         receive: (channel, func) => {
             console.log(`receieve[${channel}][${func}]`);
-            let validChannels = ["loadSolutionResponse", "getDirectoryResponse","getImagesResponse"];
+            let validChannels = ["loadSolutionResponse", "savedAsCompleted"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
                 ipcRenderer.on(channel, (event, ...args) => func(...args));

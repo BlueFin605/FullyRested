@@ -16,7 +16,7 @@ export class OpenActionsComponent implements OnInit {
 
   constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
     this.repo.solutions.subscribe(s => {
-      console.log(`this.repo.solutions.subscribe => [${s}]`);
+      console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
       console.log(this.state);
       this.solution = s;
       this.appRef.tick();
@@ -28,6 +28,24 @@ export class OpenActionsComponent implements OnInit {
       };
 
       console.log(`this.repo.solutions.subscribe, sent`)
+    });
+
+    this.repo.savedAs.subscribe(a => {
+      console.log(`this.repo.savedAs.subscribe => [${JSON.stringify(a)}]`);
+
+      if (a == undefined)
+        return;
+
+      var action = this.currentSession().actions.find(f => f.action.id == a.id);  
+      if (action != undefined)
+      {
+        action.dirty = false;
+        action.fullFilename = a.fullFilename;
+        action.action.name = a.name;
+      }
+
+      this.appRef.tick();
+      this.repo.saveCurrentState(this.state);
     });
   }
 
