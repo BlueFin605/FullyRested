@@ -1,10 +1,11 @@
 <div class="menubar">
   <button mat-button [matMenuTriggerFor]="menu">File</button>
   <mat-menu #menu="matMenu">
-    <!-- <input type="file" id="myfile" name="myfile"> -->
     <button mat-menu-item (click)="openSolution()">Open Solution</button>
     <button mat-menu-item>Save</button>
     <button mat-menu-item (click)="closeSolution()">Close</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="newRequest()">New Request</button>
   </mat-menu>
 </div>
 

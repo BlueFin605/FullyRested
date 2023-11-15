@@ -60,36 +60,39 @@ export class OpenActionsComponent implements OnInit {
   }
 
   addAction(event: any) {
-    // console.log(`addAction`);
-    // console.log(event);
     if (event.index < this.currentSession().actions.length)
       return;
 
-    var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
-      .map(s => s.action.name.substring(12))
-      .map(m => m.length == 0 ? 1 : parseInt(m))
-      .filter(num => !isNaN(num)));
-
-    this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+    this.newRequest();
   }
-
+  
   removeAction(event: any) {
     var index = this.currentSession().actions.findIndex(i => i.action.id == event);
     this.currentSession().actions.splice(index, 1);
   }
-
+  
   onActionChange(event: any) {
     // console.log(this.state);
     this.repo.saveCurrentState(this.state);
   }
-
+  
   openSolution() {
     console.log('openSolution');
     this.repo.loadSolution();
   }
-
+  
   closeSolution() {
     console.log('closeSolution');
     this.solution = undefined;
+  }
+  
+  newRequest() {
+    console.log('closeSolution');
+    var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
+      .map(s => s.action.name.substring(12))
+      .map(m => m.length == 0 ? 1 : parseInt(m))
+      .filter(num => !isNaN(num)));
+    
+    this.currentSession().actions.push(this.repo.createNewAction(count + 1));    
   }
 }
