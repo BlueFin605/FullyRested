@@ -41,9 +41,16 @@ export interface LocalRestSession {
   actions: LocalRestAction[];
 }
 
+export interface RecentFile {
+  name: string;
+  fullFileName: string;
+  path: string;
+}
+
 export interface CurrentState {
   currentSolution: string;
-  sessions: LocalRestSession[]
+  sessions: LocalRestSession[];
+  recentSolutions: RecentFile[];
 }
 
 export interface SolutionConfig {
@@ -53,6 +60,7 @@ export interface SolutionConfig {
 export interface Solution {
   config: SolutionConfig;
   filename: string;
+  name: string;
   path: string;
 }
 
@@ -144,6 +152,13 @@ export class ActionRepositoryService {
     await this.getIpcRenderer().send('saveState', state);
   }
 
+  public async saveAsRequest(request: LocalRestAction) {
+    if (this.getIpcRenderer() == undefined)
+      return;
+
+    await this.getIpcRenderer().send('saveAsRequest', request.action);
+  }
+
   public async loadSolution() {
     if (this.getIpcRenderer() == undefined) {
       console.log('send Mock');
@@ -154,8 +169,18 @@ export class ActionRepositoryService {
     this.getIpcRenderer().send("loadSolution");
   }
 
+  public async loadSolutionFromFile(file: RecentFile) {
+    if (this.getIpcRenderer() == undefined) {
+      console.log('send Mock');
+      this.solutions.next(this.mockSolution());
+      return;
+    }
+
+    this.getIpcRenderer().send("loadSolutionFromFile", file);
+  }
+
   private mockSolution(): Solution {
-    return { config: { solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>', path: '<path>' };
+    return { config: { solutionGuid: '992f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>', path: '<path>', name: 'name' };
   }
 
   private mockTraverseDirectory(): TraversedDrectory {
@@ -180,8 +205,12 @@ export class ActionRepositoryService {
             { action: this.getActionDetails2(), dirty: false }
           ]
         }
-
-      ]
+      ],
+      recentSolutions: [{name: "file1.reasysol", fullFileName: ".dir/file1.reasysol", path: ".dir/"},
+               {name: "file2.reasysol", fullFileName: ".dir/file2.reasysol", path: ".dir/"},
+               {name: "file3.reasysol", fullFileName: ".dir/file3.reasysol", path: ".dir/"},
+               {name: "file3.reasysol", fullFileName: ".dir/file3.reasysol", path: ".dir/"},
+              ]
     };
   }
 

@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, ActionRepositoryService, CurrentState, CreateEmptyLocalAction, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
 @Component({
@@ -8,7 +8,7 @@ import { MatTabGroup } from '@angular/material/tabs';
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { currentSolution: '', sessions: [] };
+  state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
 
   @ViewChild('tabs') tabs!: MatTabGroup;
@@ -17,8 +17,14 @@ export class OpenActionsComponent implements OnInit {
   constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
     this.repo.solutions.subscribe(s => {
       console.log(`this.repo.solutions.subscribe => [${s}]`);
+      console.log(this.state);
       this.solution = s;
       this.appRef.tick();
+      if (s != undefined) {
+        this.state.recentSolutions.push({fullFileName: s.filename, name: s.name, path: s.path});
+        this.state.currentSolution = s.filename;
+      };
+
       console.log(`this.repo.solutions.subscribe, sent`)
     });
   }
@@ -94,5 +100,22 @@ export class OpenActionsComponent implements OnInit {
       .filter(num => !isNaN(num)));
     
     this.currentSession().actions.push(this.repo.createNewAction(count + 1));    
+  }
+
+  saveAsRequest() {
+    if (this.tabs?.selectedIndex == null)
+       return;
+
+    var action = this.currentSession().actions[this.tabs.selectedIndex];
+    this.repo.saveAsRequest(action);
+  }
+
+  saveRequest() {
+
+  }
+
+  openSoution(file: RecentFile) {
+    console.log(`openSolution:[${JSON.stringify(file)}]`);
+    this.repo.loadSolutionFromFile(file);
   }
 }
