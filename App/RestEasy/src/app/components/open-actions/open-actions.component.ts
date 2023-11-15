@@ -21,8 +21,10 @@ export class OpenActionsComponent implements OnInit {
       this.solution = s;
       this.appRef.tick();
       if (s != undefined) {
-        this.state.recentSolutions.push({fullFileName: s.filename, name: s.name, path: s.path});
+        this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0,4);
+        this.state.recentSolutions.unshift({fullFileName: s.filename, name: s.name, path: s.path});  //push to front
         this.state.currentSolution = s.filename;
+        this.repo.saveCurrentState(this.state);
       };
 
       console.log(`this.repo.solutions.subscribe, sent`)
