@@ -1,0 +1,42 @@
+{
+    "id": "3af54a2-ee12-1236-95aa-83e496a94ba4",
+    "name": "XML Result",
+    "body": "{}",
+    "verb": "get",
+    "protocol": "https",
+    "url": "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
+    "headers": [
+        {
+            "key": "accept",
+            "value": "*/*",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "content-type",
+            "value": "application/x-www-form-urlencoded",
+            "active": true,
+            "id": 2
+        },
+        {
+            "key": "user-agent",
+            "value": "RestEasy1.1",
+            "active": true,
+            "id": 3
+        },
+        {
+            "key": "accept-encoding",
+            "value": "gzip, deflate, br",
+            "active": true,
+            "id": 4
+        }
+    ],
+    "parameters": [
+        {
+            "key": "userid",
+            "value": "1",
+            "active": false,
+            "id": 1
+        }
+    ]
+}

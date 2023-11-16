@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
 @Component({
@@ -97,8 +97,9 @@ export class OpenActionsComponent implements OnInit {
     this.currentSession().actions.splice(index, 1);
   }
   
-  onActionChange(event: any) {
+  onActionChange(event: LocalRestAction) {
     // console.log(this.state);
+    event.dirty = true;
     this.repo.saveCurrentState(this.state);
   }
   

@@ -27,3 +27,8 @@
 .add_tab {
     padding: 0px;
 }
+
+.dirty {
+    color:red;
+    font-size: 8px;
+}

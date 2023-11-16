@@ -12,10 +12,11 @@
   </mat-menu>
 
   <mat-menu #recentSolutions>
-    <button mat-menu-item  (click)="openSoution(item)" *ngFor="let item of state.recentSolutions">
+    <button mat-menu-item (click)="openSoution(item)" *ngFor="let item of state.recentSolutions">
       {{ item.name }}
     </button>
-  </mat-menu></div>
+  </mat-menu>
+</div>
 
 <div class="explorer">
   <app-solution-explorer [solution]="solution"></app-solution-explorer>
@@ -23,14 +24,17 @@
 
 <div class="opendocuments">
   <mat-tab-group animationDuration="0ms" #tabs>
-    <mat-tab *ngFor="let action of currentSession().actions">
-      <app-rest-action [(action)]=action.action (actionChange)="onActionChange($event)"></app-rest-action>
-      <ng-template mat-tab-label>{{action.action.name}}
+    <mat-tab *ngFor="let action of currentSession().actions" labelClass='dirty'>
+      <ng-template mat-tab-label>
+        <mat-icon class="dirty" *ngIf="action.dirty == true">circle</mat-icon>
+        <label [matTooltip]="action.fullFilename">{{action.action.name}}</label>
         <button class="remove_button" mat-icon-button (click)="removeAction(action.action.id)">
           <mat-icon class="remove_icon">cancel</mat-icon>
         </button>
       </ng-template>
+      <app-rest-action [(action)]=action.action (actionChange)="onActionChange(action)"></app-rest-action>
     </mat-tab>
+
     <mat-tab class="add_tab" disabled>
       <ng-template mat-tab-label>
         <button class="add_button" mat-icon-button (click)="addAction($event)">

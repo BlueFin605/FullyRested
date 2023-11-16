@@ -1,0 +1,48 @@
+{
+    "id": "ddd54a4-ee95-4321-95aa-83e496a94ba4",
+    "name": "JSON Result",
+    "body": "{}",
+    "verb": "get",
+    "protocol": "https",
+    "url": "jsonplaceholder.typicode.com/todos/1",
+    "headers": [
+        {
+            "key": "accept",
+            "value": "*/*",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "content-type",
+            "value": "application/x-www-form-urlencoded",
+            "active": true,
+            "id": 2
+        },
+        {
+            "key": "user-agent",
+            "value": "RestEasy1.2",
+            "active": true,
+            "id": 3
+        },
+        {
+            "key": "accept-encoding",
+            "value": "gzip, deflate, br",
+            "active": true,
+            "id": 4
+        }
+    ],
+    "parameters": [
+        {
+            "key": "userid",
+            "value": "1",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "sort",
+            "value": "firstname",
+            "active": true,
+            "id": 1
+        }
+    ]
+}
