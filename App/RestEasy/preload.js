@@ -19,7 +19,9 @@ contextBridge.exposeInMainWorld(
             let validChannels = ["loadSolutionResponse", "savedAsCompleted"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
-                ipcRenderer.on(channel, (event, ...args) => func(...args));
+                ipcRenderer.on(channel, (event, ...args) => {
+                    setTimeout(() => func(...args));
+                });
             }
         },
         invoke: (channel, args) => {

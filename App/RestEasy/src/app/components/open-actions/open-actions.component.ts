@@ -19,7 +19,7 @@ export class OpenActionsComponent implements OnInit {
       console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
       console.log(this.state);
       this.solution = s;
-      this.appRef.tick();
+      // this.appRef.tick();
       if (s != undefined) {
         this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0,4);
         this.state.recentSolutions.unshift({fullFileName: s.filename, name: s.name, path: s.path});  //push to front
@@ -44,7 +44,7 @@ export class OpenActionsComponent implements OnInit {
         action.action.name = a.name;
       }
 
-      this.appRef.tick();
+      // this.appRef.tick();
       this.repo.saveCurrentState(this.state);
     });
   }
