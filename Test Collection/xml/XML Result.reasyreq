@@ -34,9 +34,15 @@
     "parameters": [
         {
             "key": "title",
-            "value": "4658?userid=123",
+            "value": "4658",
             "active": true,
             "id": 1
+        },
+        {
+            "key": "userid",
+            "value": "123",
+            "active": true,
+            "id": 2
         }
     ]
 }

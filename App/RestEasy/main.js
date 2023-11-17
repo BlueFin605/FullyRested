@@ -111,7 +111,10 @@ app.whenReady().then(() => {
     ipcMain.on("saveAsRequest", (event,request) => {
         saveAsRequest(request);
     });
-})
+
+    ipcMain.on("saveRequest", (event,request) => {
+        saveRequest(request);
+    });})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
@@ -297,7 +300,7 @@ function saveAsRequest(request){
     if(userChosenPath == undefined){
         return;
     }
-    saveRequest (userChosenPath, request);
+    fs.writeFileSync(filename, JSON.stringify(request, null, 4));
     if (request.name.startsWith("<unnamed")) {
         console.log(request.name);
         var basename = path.basename(userChosenPath);
@@ -308,7 +311,9 @@ function saveAsRequest(request){
     win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }
 
-function saveRequest (filename, request) {
-    // var file = fs.createWriteStream(filename);
-    fs.writeFileSync(filename, JSON.stringify(request, null, 4));
+function saveRequest (request) {
+    console.log(request);
+
+    fs.writeFileSync(request.fullFilename, JSON.stringify(request.action, null, 4));
+    win.webContents.send("savedAsCompleted", { id: request.action.id, fullFilename: request.fullFilename, name: request.action.name });
 };
