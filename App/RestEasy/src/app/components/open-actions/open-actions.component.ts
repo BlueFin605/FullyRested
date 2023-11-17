@@ -98,7 +98,8 @@ export class OpenActionsComponent implements OnInit {
   }
   
   onActionChange(event: LocalRestAction) {
-    // console.log(this.state);
+    console.log(event);
+    console.log('set dirty');
     event.dirty = true;
     this.repo.saveCurrentState(this.state);
   }

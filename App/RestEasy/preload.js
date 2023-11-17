@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld(
         },
         invoke: (channel, args) => {
             console.log(`invoke[${channel}][${args}]`);
-            let validChannels = ["testRest","readState", "traverseDirectory"];
+            let validChannels = ["testRest","readState", "traverseDirectory", "loadRequest"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);
             }

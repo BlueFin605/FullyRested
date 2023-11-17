@@ -1,6 +1,6 @@
 <div class="rest-action">
     <div class="section-border">
-        <app-edit-request [(action)]="action" (actionChange)="onActionChange($event)" (execute)="executeAction($event)"></app-edit-request>
+        <app-edit-request [(action)]="_action" (actionChange)="onActionChange($event)" (execute)="executeAction($event)"></app-edit-request>
     </div>
     <div class="section-border">
         <app-display-response [response]="response"></app-display-response>

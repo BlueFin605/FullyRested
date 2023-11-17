@@ -100,6 +100,10 @@ app.whenReady().then(() => {
         saveState(request);
     });
 
+    ipcMain.on("loadRequest", (event, request) => {
+        loadRequest(request);
+    });
+
     ipcMain.on("saveSolution", (event, request) => {
         saveSolution(request);
     });
@@ -184,6 +188,22 @@ function readState() {
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.log(`File not found!:[${buildStateFilename()}]`);
+            return { actions: [] };
+        } else {
+            throw err;
+        }
+    }
+}
+
+function loadRequest(fullFilename) {
+    try {
+        console.log(fullFilename);
+        var request = fs.readFileSync(fullFilename);
+        console.log(request);
+        return JSON.parse(request);
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            console.log(`File not found!:[${fullFilename}]`);
             return { actions: [] };
         } else {
             throw err;
