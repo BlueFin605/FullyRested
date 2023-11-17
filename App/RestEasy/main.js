@@ -80,6 +80,10 @@ app.whenReady().then(() => {
     ipcMain.handle("readState", (event, request) => {
         return readState();
     });
+    
+    ipcMain.handle("loadRequest", (event, request) => {
+        return loadRequest(request);
+    });
 
     ipcMain.handle("traverseDirectory", (event, request) => {
         console.log('ipcMain.handle -> traverseDirectory');
@@ -98,10 +102,6 @@ app.whenReady().then(() => {
 
     ipcMain.on("saveState", (event, request) => {
         saveState(request);
-    });
-
-    ipcMain.on("loadRequest", (event, request) => {
-        loadRequest(request);
     });
 
     ipcMain.on("saveSolution", (event, request) => {
@@ -204,7 +204,7 @@ function loadRequest(fullFilename) {
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.log(`File not found!:[${fullFilename}]`);
-            return { actions: [] };
+            return { actions: {} };
         } else {
             throw err;
         }

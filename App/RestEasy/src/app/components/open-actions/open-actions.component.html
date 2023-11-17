@@ -32,7 +32,7 @@
           <mat-icon class="remove_icon">cancel</mat-icon>
         </button>
       </ng-template>
-      <app-rest-action [(action)]=action.action (actionChange)="onActionChange(action)"></app-rest-action>
+      <app-rest-action [(action)]=action.action [fullFilename]="action.fullFilename" (actionChange)="onActionChange(action)" (dirtyChange)="onDirtyChange(action,$event)"></app-rest-action>
     </mat-tab>
 
     <mat-tab class="add_tab" disabled>

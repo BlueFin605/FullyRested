@@ -4,7 +4,7 @@
     "body": "{}",
     "verb": "get",
     "protocol": "https",
-    "url": "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
+    "url": "cdn.animenewsnetwork.com/encyclopedia/api.xml",
     "headers": [
         {
             "key": "accept",
@@ -33,9 +33,9 @@
     ],
     "parameters": [
         {
-            "key": "userid",
-            "value": "1",
-            "active": false,
+            "key": "title",
+            "value": "4658?userid=123",
+            "active": true,
             "id": 1
         }
     ]

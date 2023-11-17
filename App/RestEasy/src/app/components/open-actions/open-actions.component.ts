@@ -99,11 +99,15 @@ export class OpenActionsComponent implements OnInit {
   
   onActionChange(event: LocalRestAction) {
     console.log(event);
-    console.log('set dirty');
-    event.dirty = true;
+    // console.log('set dirty');
     this.repo.saveCurrentState(this.state);
   }
   
+  onDirtyChange(event: LocalRestAction, dirty: boolean) {
+    console.log(`onDirtyChange(${dirty})`);
+    event.dirty = dirty;
+  }
+
   openSolution() {
     console.log('openSolution');
     this.repo.loadSolution();
@@ -133,7 +137,11 @@ export class OpenActionsComponent implements OnInit {
   }
 
   saveRequest() {
+    if (this.tabs?.selectedIndex == null)
+       return;
 
+    var action = this.currentSession().actions[this.tabs.selectedIndex];
+    this.repo.saveRequest(action);
   }
 
   openSoution(file: RecentFile) {
