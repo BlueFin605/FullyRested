@@ -4,7 +4,7 @@
     "body": "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
     "verb": "get",
     "protocol": "https",
-    "url": "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
+    "url": "trademe.tmcdn.co.nz/photoserver/plus/2083024699.jpg",
     "headers": [
         {
             "key": "accept",

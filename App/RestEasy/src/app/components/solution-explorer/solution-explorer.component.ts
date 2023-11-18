@@ -1,4 +1,4 @@
-import { Component, OnInit, Injectable, Input } from '@angular/core';
+import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
@@ -40,6 +40,9 @@ export class SolutionExplorerComponent implements OnInit {
       console.log(this.items);
     });
   }
+
+  @Output()
+  openFile = new EventEmitter<string>();
 
   items: TreeviewItem[] = [];
 
@@ -99,7 +102,12 @@ export class SolutionExplorerComponent implements OnInit {
 
   onDblClick($event: TreeviewItem) {
     console.log('onDblClick');
-    console.log($event);
+    
+    if ($event.value.type != 'file')
+    return;
+  
+  console.log($event.value.key);
+    this.openFile.emit($event.value.key);
   }
 
   onFilterChange($event: any) {

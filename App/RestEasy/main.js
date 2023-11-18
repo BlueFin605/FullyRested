@@ -300,7 +300,7 @@ function saveAsRequest(request){
     if(userChosenPath == undefined){
         return;
     }
-    fs.writeFileSync(filename, JSON.stringify(request, null, 4));
+    fs.writeFileSync(userChosenPath, JSON.stringify(request, null, 4));
     if (request.name.startsWith("<unnamed")) {
         console.log(request.name);
         var basename = path.basename(userChosenPath);

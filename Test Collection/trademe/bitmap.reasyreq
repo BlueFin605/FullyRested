@@ -1,0 +1,35 @@
+{
+    "id": "3af54a2-ee78-1236-958d-83e496a94ba3",
+    "name": "bitmap",
+    "body": "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
+    "verb": "get",
+    "protocol": "https",
+    "url": "www.trademe.co.nz/images/frend/shielded-logo.png",
+    "headers": [
+        {
+            "key": "accept",
+            "value": "*/*",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "content-type",
+            "value": "application/x-www-form-urlencoded",
+            "active": true,
+            "id": 2
+        },
+        {
+            "key": "user-agent",
+            "value": "RestEasy1.0",
+            "active": true,
+            "id": 3
+        },
+        {
+            "key": "accept-encoding",
+            "value": "gzip, deflate, br",
+            "active": true,
+            "id": 4
+        }
+    ],
+    "parameters": []
+}

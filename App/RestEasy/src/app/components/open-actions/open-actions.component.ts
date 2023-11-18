@@ -21,8 +21,8 @@ export class OpenActionsComponent implements OnInit {
       this.solution = s;
       // this.appRef.tick();
       if (s != undefined) {
-        this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0,4);
-        this.state.recentSolutions.unshift({fullFileName: s.filename, name: s.name, path: s.path});  //push to front
+        this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0, 4);
+        this.state.recentSolutions.unshift({ fullFileName: s.filename, name: s.name, path: s.path });  //push to front
         this.state.currentSolution = s.filename;
         this.repo.saveCurrentState(this.state);
       };
@@ -36,9 +36,8 @@ export class OpenActionsComponent implements OnInit {
       if (a == undefined)
         return;
 
-      var action = this.currentSession().actions.find(f => f.action.id == a.id);  
-      if (action != undefined)
-      {
+      var action = this.currentSession().actions.find(f => f.action.id == a.id);
+      if (action != undefined) {
         action.dirty = false;
         action.fullFilename = a.fullFilename;
         action.action.name = a.name;
@@ -91,18 +90,18 @@ export class OpenActionsComponent implements OnInit {
 
     this.newRequest();
   }
-  
+
   removeAction(event: any) {
     var index = this.currentSession().actions.findIndex(i => i.action.id == event);
     this.currentSession().actions.splice(index, 1);
   }
-  
+
   onActionChange(event: LocalRestAction) {
     console.log(event);
     // console.log('set dirty');
     this.repo.saveCurrentState(this.state);
   }
-  
+
   onDirtyChange(event: LocalRestAction, dirty: boolean) {
     console.log(`onDirtyChange(${dirty})`);
     event.dirty = dirty;
@@ -112,33 +111,35 @@ export class OpenActionsComponent implements OnInit {
     console.log('openSolution');
     this.repo.loadSolution();
   }
-  
+
   closeSolution() {
     console.log('closeSolution');
     this.solution = undefined;
   }
-  
+
   newRequest() {
     console.log('closeSolution');
     var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
       .map(s => s.action.name.substring(12))
       .map(m => m.length == 0 ? 1 : parseInt(m))
       .filter(num => !isNaN(num)));
-    
-    this.currentSession().actions.push(this.repo.createNewAction(count + 1));    
+
+    this.currentSession().actions.push(this.repo.createNewAction(count + 1));
   }
 
   saveAsRequest() {
     if (this.tabs?.selectedIndex == null)
-       return;
+      return;
 
     var action = this.currentSession().actions[this.tabs.selectedIndex];
     this.repo.saveAsRequest(action);
   }
 
   saveRequest() {
+    console.log(`save[${this.tabs?.selectedIndex}]`)
+
     if (this.tabs?.selectedIndex == null)
-       return;
+      return;
 
     var action = this.currentSession().actions[this.tabs.selectedIndex];
     this.repo.saveRequest(action);
@@ -147,5 +148,17 @@ export class OpenActionsComponent implements OnInit {
   openSoution(file: RecentFile) {
     console.log(`openSolution:[${JSON.stringify(file)}]`);
     this.repo.loadSolutionFromFile(file);
+  }
+
+  loadAction($event: string) {
+    console.log(`loadAction:[${$event}]`);
+    if (this.currentSession().actions.some(a => a.fullFilename == $event))
+       return;
+      
+    this.repo.loadRequest($event).then(a => {
+      var newAction: LocalRestAction = {action: a, dirty: false, fullFilename: $event}; 
+      this.currentSession().actions.push(newAction);
+      this.tabs.selectedIndex = (this.tabs._tabs.length ?? 0) - 1;
+    });
   }
 }
