@@ -80,6 +80,10 @@ app.whenReady().then(() => {
     ipcMain.handle("readState", (event, request) => {
         return readState();
     });
+    
+    ipcMain.handle("loadRequest", (event, request) => {
+        return loadRequest(request);
+    });
 
     ipcMain.handle("traverseDirectory", (event, request) => {
         console.log('ipcMain.handle -> traverseDirectory');
@@ -91,6 +95,11 @@ app.whenReady().then(() => {
         return loadSolution();
     });
 
+    ipcMain.on("loadSolutionFromFile", (event, request) => {
+        console.log('ipcMain.handle -> loadSolutionFromFile');
+        return loadSolutionFromFile(request.fullFileName, request.name, request.path);
+    });
+
     ipcMain.on("saveState", (event, request) => {
         saveState(request);
     });
@@ -98,7 +107,14 @@ app.whenReady().then(() => {
     ipcMain.on("saveSolution", (event, request) => {
         saveSolution(request);
     });
-})
+
+    ipcMain.on("saveAsRequest", (event,request) => {
+        saveAsRequest(request);
+    });
+
+    ipcMain.on("saveRequest", (event,request) => {
+        saveRequest(request);
+    });})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
@@ -182,6 +198,22 @@ function readState() {
     }
 }
 
+function loadRequest(fullFilename) {
+    try {
+        console.log(fullFilename);
+        var request = fs.readFileSync(fullFilename);
+        console.log(request);
+        return JSON.parse(request);
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            console.log(`File not found!:[${fullFilename}]`);
+            return { actions: {} };
+        } else {
+            throw err;
+        }
+    }
+}
+
 function buildStateFilename() {
     return path.join(app.getPath("userData"), "current_state.json");
 }
@@ -222,7 +254,8 @@ function loadSolution() {
             if (file.canceled == false) {
                 var filename = file.filePaths[0];
                 var pathname = path.dirname(filename);
-                loadSolutionFromFile(filename,pathname);
+                var name = path.basename(filename);
+                loadSolutionFromFile(filename,name,pathname);
             }
         } catch (err) {
             console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
@@ -230,20 +263,57 @@ function loadSolution() {
     });
 }
 
-function loadSolutionFromFile(filename, pathname) {
+function loadSolutionFromFile(filename, name, path) {
     try {
-        console.log(`loadSolutionFromFile(${filename}, ${pathname})`);
+        console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
         fs.readFile(filename, (err, data) => {
             console.log(`loadSolutionFromFile response (${err},${data}`);
             var solutionConfig = JSON.parse(data);
+            if (solutionConfig.recentSolutions == undefined) {
+                solutionConfig.recentSolutions = [];
+            }
+
             console.log(solutionConfig);
-            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, path: pathname });
+            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
         });
     }
     catch (err) {
         console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
     }
 }
+
 function saveSolution(request) {
     fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
 }
+
+function saveAsRequest(request){
+    // app.getPath("desktop")       // User's Desktop folder
+    // app.getPath("documents")     // User's "My Documents" folder
+    // app.getPath("downloads")     // User's Downloads folder
+
+//    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
+
+// defaultPath: toLocalPath, 
+    console.log(request);
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Projects', extensions: ['reasyreq'] }] });
+    console.log(userChosenPath);
+    if(userChosenPath == undefined){
+        return;
+    }
+    fs.writeFileSync(userChosenPath, JSON.stringify(request, null, 4));
+    if (request.name.startsWith("<unnamed")) {
+        console.log(request.name);
+        var basename = path.basename(userChosenPath);
+        console.log(basename);
+        request.name = basename.substring(0,basename.length - 9);
+        console.log(request.name);
+    }
+    win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
+}
+
+function saveRequest (request) {
+    console.log(request);
+
+    fs.writeFileSync(request.fullFilename, JSON.stringify(request.action, null, 4));
+    win.webContents.send("savedAsCompleted", { id: request.action.id, fullFilename: request.fullFilename, name: request.action.name });
+};

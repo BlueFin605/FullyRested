@@ -1,4 +1,4 @@
-import { Component, OnInit, Injectable, Input } from '@angular/core';
+import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
@@ -41,7 +41,12 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
+  @Output()
+  openFile = new EventEmitter<string>();
+
   items: TreeviewItem[] = [];
+
+  selected: string = '';
 
   constructor(private repo: ActionRepositoryService) {
   }
@@ -60,14 +65,14 @@ export class SolutionExplorerComponent implements OnInit {
       text: traverse.dir.name,
       value: { type: 'dir', key: traverse.dir.fullPath },
       children: children,
-      collapsed: true,
+      collapsed: true
     });
   }
 
   expandTree(items: TreeviewItem[]): boolean {
     if (items == undefined)
        return false;
-      
+
     var hasFiles = false;
     //if there are any files then we should expand the folder
     if (items.some(i => i.value.type == 'file')) {
@@ -75,16 +80,34 @@ export class SolutionExplorerComponent implements OnInit {
     }
 
     //if any of the children have files expand the node
-    var childrenHaveFles = items.some(i => {
+    var childrenHaveFles = false;
+    items.forEach(i => {
       i.collapsed = !this.expandTree(i.children);
-      return !i.collapsed;
+      childrenHaveFles = childrenHaveFles || !i.collapsed;
     });
 
     return hasFiles || childrenHaveFles;
   }
 
   onSelectedChange($event: any) {
+    console.log($event);
 
+  }
+
+  onClick($event: TreeviewItem) {
+    console.log('onClick');
+    console.log($event.value.key);
+    this.selected = $event.value.key;
+  }
+
+  onDblClick($event: TreeviewItem) {
+    console.log('onDblClick');
+    
+    if ($event.value.type != 'file')
+    return;
+  
+  console.log($event.value.key);
+    this.openFile.emit($event.value.key);
   }
 
   onFilterChange($event: any) {

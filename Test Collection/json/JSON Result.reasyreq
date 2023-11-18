@@ -1,10 +1,10 @@
 {
-    "id": "3af54a2-ee78-1236-958d-83e496a94ba3",
-    "name": "bitmap",
-    "body": "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
+    "id": "ddd54a4-ee95-4321-95aa-83e496a94ba4",
+    "name": "JSON Result",
+    "body": "{}",
     "verb": "get",
     "protocol": "https",
-    "url": "www.trademe.co.nz/images/frend/shielded-logo.png",
+    "url": "jsonplaceholder.typicode.com/todos/1",
     "headers": [
         {
             "key": "accept",
@@ -20,7 +20,7 @@
         },
         {
             "key": "user-agent",
-            "value": "RestEasy1.0",
+            "value": "RestEasy1.2",
             "active": true,
             "id": 3
         },
@@ -31,5 +31,18 @@
             "id": 4
         }
     ],
-    "parameters": []
+    "parameters": [
+        {
+            "key": "userid",
+            "value": "123",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "sort",
+            "value": "firstname",
+            "active": true,
+            "id": 1
+        }
+    ]
 }

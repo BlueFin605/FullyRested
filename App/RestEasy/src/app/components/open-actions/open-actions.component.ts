@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, ActionRepositoryService, CurrentState, CreateEmptyLocalAction, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 
 @Component({
@@ -8,7 +8,7 @@ import { MatTabGroup } from '@angular/material/tabs';
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { currentSolution: '', sessions: [] };
+  state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
 
   @ViewChild('tabs') tabs!: MatTabGroup;
@@ -16,10 +16,35 @@ export class OpenActionsComponent implements OnInit {
 
   constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
     this.repo.solutions.subscribe(s => {
-      console.log(`this.repo.solutions.subscribe => [${s}]`);
+      console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
+      console.log(this.state);
       this.solution = s;
-      this.appRef.tick();
+      // this.appRef.tick();
+      if (s != undefined) {
+        this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0, 4);
+        this.state.recentSolutions.unshift({ fullFileName: s.filename, name: s.name, path: s.path });  //push to front
+        this.state.currentSolution = s.filename;
+        this.repo.saveCurrentState(this.state);
+      };
+
       console.log(`this.repo.solutions.subscribe, sent`)
+    });
+
+    this.repo.savedAs.subscribe(a => {
+      console.log(`this.repo.savedAs.subscribe => [${JSON.stringify(a)}]`);
+
+      if (a == undefined)
+        return;
+
+      var action = this.currentSession().actions.find(f => f.action.id == a.id);
+      if (action != undefined) {
+        action.dirty = false;
+        action.fullFilename = a.fullFilename;
+        action.action.name = a.name;
+      }
+
+      // this.appRef.tick();
+      this.repo.saveCurrentState(this.state);
     });
   }
 
@@ -60,17 +85,10 @@ export class OpenActionsComponent implements OnInit {
   }
 
   addAction(event: any) {
-    // console.log(`addAction`);
-    // console.log(event);
     if (event.index < this.currentSession().actions.length)
       return;
 
-    var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
-      .map(s => s.action.name.substring(12))
-      .map(m => m.length == 0 ? 1 : parseInt(m))
-      .filter(num => !isNaN(num)));
-
-    this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+    this.newRequest();
   }
 
   removeAction(event: any) {
@@ -78,9 +96,15 @@ export class OpenActionsComponent implements OnInit {
     this.currentSession().actions.splice(index, 1);
   }
 
-  onActionChange(event: any) {
-    // console.log(this.state);
+  onActionChange(event: LocalRestAction) {
+    console.log(event);
+    // console.log('set dirty');
     this.repo.saveCurrentState(this.state);
+  }
+
+  onDirtyChange(event: LocalRestAction, dirty: boolean) {
+    console.log(`onDirtyChange(${dirty})`);
+    event.dirty = dirty;
   }
 
   openSolution() {
@@ -91,5 +115,53 @@ export class OpenActionsComponent implements OnInit {
   closeSolution() {
     console.log('closeSolution');
     this.solution = undefined;
+  }
+
+  newRequest() {
+    console.log('closeSolution');
+    var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
+      .map(s => s.action.name.substring(12))
+      .map(m => m.length == 0 ? 1 : parseInt(m))
+      .filter(num => !isNaN(num)));
+
+    this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+  }
+
+  saveAsRequest() {
+    if (this.tabs?.selectedIndex == null)
+      return;
+
+    var action = this.currentSession().actions[this.tabs.selectedIndex];
+    this.repo.saveAsRequest(action);
+  }
+
+  saveRequest() {
+    console.log(`save[${this.tabs?.selectedIndex}]`)
+
+    if (this.tabs?.selectedIndex == null)
+      return;
+
+    var action = this.currentSession().actions[this.tabs.selectedIndex];
+    this.repo.saveRequest(action);
+  }
+
+  openSoution(file: RecentFile) {
+    console.log(`openSolution:[${JSON.stringify(file)}]`);
+    this.repo.loadSolutionFromFile(file);
+  }
+
+  loadAction($event: string) {
+    console.log(`loadAction:[${$event}]`);
+    var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == $event);
+    if (existingTab != -1) {
+      this.tabs.selectedIndex = existingTab;
+       return;
+    }
+
+    this.repo.loadRequest($event).then(a => {
+      var newAction: LocalRestAction = {action: a, dirty: false, fullFilename: $event}; 
+      this.currentSession().actions.push(newAction);
+      this.tabs.selectedIndex = (this.tabs._tabs.length ?? 0) - 1;
+    });
   }
 }

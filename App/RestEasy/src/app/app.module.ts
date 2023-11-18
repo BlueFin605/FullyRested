@@ -12,6 +12,9 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatListModule } from '@angular/material/list';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { AngJsoneditorModule } from '@maaxgr/ang-jsoneditor' 
@@ -72,7 +75,10 @@ import { SolutionExplorerComponent } from './components/solution-explorer/soluti
     FormsModule,
     MatCheckboxModule,
     MatIconModule,
-    MatRadioModule
+    MatRadioModule,
+    MatListModule,
+    MatTooltipModule,
+    MatToolbarModule
   ],
   providers: [],
   bootstrap: [AppComponent]

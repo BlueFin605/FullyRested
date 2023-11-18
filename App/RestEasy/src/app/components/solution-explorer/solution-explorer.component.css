@@ -2,6 +2,7 @@
     .treeview-item {
         .treeview-item {
             margin-left: .5rem !important;
+            width: 100%;
         }
     }
 }
@@ -14,4 +15,14 @@
     overflow: hidden;
     white-space: nowrap;
     text-align: left;
+}
+
+.row-item {
+    cursor: pointer;
+}
+
+.selected {
+    background-color: grey;
+    border-color: black;
+    border-style: solid;
 }

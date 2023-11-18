@@ -8,15 +8,46 @@ import { RestAction, ActionRepositoryService, CreateEmptyAction } from 'src/app/
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
+  _action: RestAction = CreateEmptyAction();
+  _laststate: string = "";
+  _fullFilename: string = "";
+  _originalSource: string = "";
+
   @Input()
-  action: RestAction = CreateEmptyAction();
+  set action(action: RestAction) {
+    console.log(`set action[${JSON.stringify(action)}]`)
+    this._action = action;
+    this._laststate = JSON.stringify(action);
+    this.dirtyChange.emit(this._laststate != this._originalSource);
+  }
 
   @Output()
   actionChange = new EventEmitter<RestAction>();
 
+  @Output()
+  dirtyChange = new EventEmitter<boolean>();
+
+  @Input()
+  set fullFilename(fullFlename: string) {
+    console.log(`set fullFilename[${fullFlename}]`)
+
+    if (this._fullFilename == fullFlename)
+      return;
+
+    this._fullFilename = fullFlename;
+    this.repository.loadRequest(fullFlename).then(a => { 
+      console.log(a);
+      this._originalSource = JSON.stringify(a)
+      var currentstate = JSON.stringify(this._action);
+      console.log(`[A]currentstate:[${currentstate}]`);
+      console.log(`[A]_originalSource:[${this._originalSource}]`);  
+      this.dirtyChange.emit(currentstate != this._originalSource);
+    });
+  }
+
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) { 
+  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
   }
 
   ngOnInit(): void {
@@ -29,8 +60,23 @@ export class RestActionComponent implements OnInit {
   }
 
   onActionChange(event: any) {
-    // console.log(event)
-    this.actionChange.emit(this.action);
+    console.log(event)
+
+    var currentstate = JSON.stringify(this._action);
+
+
+    if (currentstate == this._laststate)
+      return;
+
+    this._laststate = currentstate;
+    
+    console.log(`currentstate:[${currentstate}]`);
+    console.log(`_originalSource:[${this._originalSource}]`);
+    
+    this.dirtyChange.emit(currentstate != this._originalSource);
+
+    //TODO need to store oigin state in @Input nd then do a deep compare and only emit change when they re different
+    this.actionChange.emit(this._action);
   }
 
 }

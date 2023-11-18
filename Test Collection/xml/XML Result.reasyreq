@@ -1,10 +1,10 @@
 {
-    "id": "3af54a2-ee78-1236-958d-83e496a94ba3",
-    "name": "bitmap",
-    "body": "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
+    "id": "3af54a2-ee12-1236-95aa-83e496a94ba4",
+    "name": "XML Result",
+    "body": "{}",
     "verb": "get",
     "protocol": "https",
-    "url": "www.trademe.co.nz/images/frend/shielded-logo.png",
+    "url": "cdn.animenewsnetwork.com/encyclopedia/api.xml",
     "headers": [
         {
             "key": "accept",
@@ -20,7 +20,7 @@
         },
         {
             "key": "user-agent",
-            "value": "RestEasy1.0",
+            "value": "RestEasy1.1",
             "active": true,
             "id": 3
         },
@@ -31,5 +31,18 @@
             "id": 4
         }
     ],
-    "parameters": []
+    "parameters": [
+        {
+            "key": "title",
+            "value": "4658",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "userid",
+            "value": "123",
+            "active": true,
+            "id": 2
+        }
+    ]
 }

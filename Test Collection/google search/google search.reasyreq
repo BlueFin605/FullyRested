@@ -1,0 +1,71 @@
+{
+    "id": "ccc54c4-ee95-7654-95fd-86e496a94ba5",
+    "name": "google search",
+    "verb": "get",
+    "protocol": "https",
+    "url": "www.google.com/search",
+    "headers": [],
+    "parameters": [
+        {
+            "key": "q",
+            "value": "angular material select first tab .selectedIndex",
+            "active": true,
+            "id": 1
+        },
+        {
+            "key": "sca_esv",
+            "value": "578070544",
+            "active": true,
+            "id": 2
+        },
+        {
+            "key": "rlz",
+            "value": "1C5CHFA_enNZ1009NZ1009",
+            "active": true,
+            "id": 3
+        },
+        {
+            "key": "sxsrf",
+            "value": "AM9HkKllLm75pun144GmcZse4QxpFrlWNg:1698741847525",
+            "active": true,
+            "id": 4
+        },
+        {
+            "key": "ei",
+            "value": "V75AZa3bH_7n2roP186e8Aw",
+            "active": true,
+            "id": 5
+        },
+        {
+            "key": "ved",
+            "value": "0ahUKEwjt4ovD8p-CAxX-s1YBHVenB84Q4dUDCBE",
+            "active": true,
+            "id": 6
+        },
+        {
+            "key": "uact",
+            "value": "5",
+            "active": true,
+            "id": 7
+        },
+        {
+            "key": "oq",
+            "value": "angular material select first tab .selectedIndex",
+            "active": true,
+            "id": 8
+        },
+        {
+            "key": "gs_lp",
+            "value": "Egxnd3Mtd2l6LXNlcnAiMGFuZ3VsYXIgbWF0ZXJpYWwgc2VsZWN0IGZpcnN0IHRhYiAuc2VsZWN0ZWRJbmRleDIHECEYoAEYCkilD1C5BVjhCHABeAGQAQCYAb8CoAHSBKoBBTItMS4xuAEDyAEA-AEB-AECwgIKEAAYRxjWBBiwA8ICBRAhGKABwgIIECEYFhgeGB3iAwQYACBBiAYBkAYI",
+            "active": true,
+            "id": 9
+        },
+        {
+            "key": "sclient",
+            "value": "gws-wiz-serp",
+            "active": true,
+            "id": 10
+        }
+    ],
+    "body": "{}"
+}
