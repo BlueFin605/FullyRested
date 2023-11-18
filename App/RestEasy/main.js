@@ -222,7 +222,7 @@ function traverseDirectory(request) {
     console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
     // var path = app.getPath("userData");
     //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
-    var tree = { dir: { name: 'root', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
+    var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
     walkSync(request.pathname, request.filter, tree);
     // var json = JSON.stringify(tree);
     // console.log(json);
