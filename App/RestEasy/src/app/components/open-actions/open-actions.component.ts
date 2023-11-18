@@ -152,9 +152,12 @@ export class OpenActionsComponent implements OnInit {
 
   loadAction($event: string) {
     console.log(`loadAction:[${$event}]`);
-    if (this.currentSession().actions.some(a => a.fullFilename == $event))
+    var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == $event);
+    if (existingTab != -1) {
+      this.tabs.selectedIndex = existingTab;
        return;
-      
+    }
+
     this.repo.loadRequest($event).then(a => {
       var newAction: LocalRestAction = {action: a, dirty: false, fullFilename: $event}; 
       this.currentSession().actions.push(newAction);
