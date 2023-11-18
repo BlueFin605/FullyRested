@@ -21,6 +21,10 @@ export interface ParamTable {
   id: number;
 };
 
+export interface AuthenticationDetails {
+
+}
+
 export interface RestAction {
   id: string;
   name: string;
@@ -29,6 +33,7 @@ export interface RestAction {
   url: string;
   headers: HeaderTable[];
   parameters: ParamTable[];
+  authentication: AuthenticationDetails;
   body: string;
 }
 export interface LocalRestAction {

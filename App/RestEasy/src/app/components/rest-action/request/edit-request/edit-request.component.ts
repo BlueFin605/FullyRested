@@ -8,6 +8,7 @@ import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
+import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
 
 @Component({
   selector: 'app-edit-request',
@@ -158,6 +159,10 @@ export class EditRequestComponent implements OnInit {
     console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
     this.actionChange.emit(this.action);
+  }
+
+  onAuthChange(auth: AuthenticationDetails) {
+
   }
 
   onHeadersChange(event: any) {

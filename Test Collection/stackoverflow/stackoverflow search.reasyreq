@@ -1,0 +1,10 @@
+{
+    "id": "85adb6e4-3485-4bc5-8691-f2ccc0a677c7",
+    "name": "stackoverflow search",
+    "verb": "get",
+    "protocol": "https",
+    "url": "stackoverflow.com/questions/16945719/facebook-group-feed-php-sdk",
+    "headers": [],
+    "parameters": [],
+    "body": "{}"
+}

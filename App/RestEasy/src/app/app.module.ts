@@ -38,6 +38,7 @@ import { DisplayResponseBodyHtmlComponent } from './components/rest-action/respo
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 import { SolutionExplorerComponent } from './components/solution-explorer/solution-explorer.component';
+import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
 
 @NgModule({
   declarations: [
@@ -56,7 +57,8 @@ import { SolutionExplorerComponent } from './components/solution-explorer/soluti
     DisplayResponseBodyHtmlComponent,
     DisplayResponseBodyXmlComponent,
     OpenActionsComponent,
-    SolutionExplorerComponent
+    SolutionExplorerComponent,
+    EditRequestAuthenticationComponent
   ],
   imports: [
     BrowserModule,
