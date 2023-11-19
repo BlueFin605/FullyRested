@@ -3,6 +3,12 @@ import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
 
+export interface SelectedTreeItem {
+  enabledMenuOptions: string[];
+  type: string;
+  subtype: string;
+}
+
 @Injectable()
 export class ProductTreeviewConfig extends TreeviewConfig {
   override hasAllCheckBox = true;
@@ -45,7 +51,7 @@ export class SolutionExplorerComponent implements OnInit {
   openFile = new EventEmitter<string>();
 
   @Output()
-  enableMenuOptions = new EventEmitter<string[]>();
+  onSelectionChange = new EventEmitter<SelectedTreeItem>();
 
   items: TreeviewItem[] = [];
 
@@ -139,14 +145,13 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   onClick($event: TreeviewItem) {
-    console.log('onClick');
-    console.log($event.value.key);
+    console.log(`onClick:[${$event.value.key}]`);
     this.selected = $event.value.key;
-    this.enableMenuOptions.emit($event.value.actions);
+    this.onSelectionChange.emit({type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
   }
 
   onDblClick($event: TreeviewItem) {
-    console.log('onDblClick');
+    console.log(`onDblClick:[${$event.value.key}]`);
 
     if ($event.value.type != 'file')
       return;

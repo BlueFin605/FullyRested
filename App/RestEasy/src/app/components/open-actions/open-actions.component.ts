@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
 import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
+import { SelectedTreeItem } from '../solution-explorer/solution-explorer.component';
 
 @Component({
   selector: 'app-open-actions',
@@ -11,6 +12,8 @@ export class OpenActionsComponent implements OnInit {
   state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
   enabledMenuOptions: string[] = [];
+  selectedType: string = "";
+  selectedSubType: string = "";
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -179,22 +182,48 @@ export class OpenActionsComponent implements OnInit {
     });
   }
 
-  enableMenuOptions(menuOptions: string[]) {
-    console.log(menuOptions);
-    this.enabledMenuOptions = menuOptions ?? [];
+  onSelectionChange(selected: SelectedTreeItem) {
+    console.log(selected);
+    this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
+    this.selectedType = selected?.type;
+    this.selectedSubType = selected?.subtype;
   }
 
   createEnvironment() {
     if (this.solution == undefined)
       return;
-    
+
     console.log('createEnvironment');
-    this.solution?.config.environments.push({name: 'unnamed'});
+    this.solution?.config.environments.push({ name: 'unnamed' });
     console.log(this.solution);
     this.repo.saveSolution(this.solution);
   }
 
   actionDisabled(menuOption: string): boolean {
     return !this.enabledMenuOptions.some(e => e == menuOption);
+  }
+
+  actionsVisible(): boolean {
+    // console.log(`actionVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType != 'system')
+      return true;
+
+    return false;
+  }
+
+  variablesVisible(): boolean {
+    // console.log(`variablesVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'system' && this.selectedSubType == "variables")
+      return true;
+
+    return false;
+  }
+
+  authenticationVisible(): boolean {
+    // console.log(`authenticationVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'system' && this.selectedSubType == "authentication")
+      return true;
+
+    return false;
   }
 }

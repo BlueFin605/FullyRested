@@ -71,10 +71,10 @@
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (enableMenuOptions)="enableMenuOptions($event)"></app-solution-explorer>
+  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)"></app-solution-explorer>
 </div>
 
-<div class="opendocuments">
+<div class="opendocuments" [hidden]="!actionsVisible()">
   <mat-tab-group animationDuration="0ms" #tabs>
     <mat-tab *ngFor="let action of currentSession().actions" labelClass='dirty'>
       <ng-template mat-tab-label>
@@ -97,3 +97,6 @@
     </mat-tab>
   </mat-tab-group>
 </div>
+
+<div class="opendocuments" [hidden]="!variablesVisible()">Variables!!!</div>
+<div class="opendocuments" [hidden]="!authenticationVisible()">Authentication!!!</div>
