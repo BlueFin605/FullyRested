@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld(
         send: (channel, data) => {
             console.log(`send[${channel}][${data}]`);
             // whitelist channels
-            let validChannels = ["loadSolution","loadSolutionFromFile","saveState", "saveSolution", "saveAsRequest", "saveRequest"];
+            let validChannels = ["loadSolution","loadSolutionFromFile","saveState", "saveSolution", "saveAsRequest", "saveRequest", "saveSolution"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }

@@ -114,7 +114,8 @@ app.whenReady().then(() => {
 
     ipcMain.on("saveRequest", (event,request) => {
         saveRequest(request);
-    });})
+    });
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
@@ -269,10 +270,6 @@ function loadSolutionFromFile(filename, name, path) {
         fs.readFile(filename, (err, data) => {
             console.log(`loadSolutionFromFile response (${err},${data}`);
             var solutionConfig = JSON.parse(data);
-            if (solutionConfig.recentSolutions == undefined) {
-                solutionConfig.recentSolutions = [];
-            }
-
             console.log(solutionConfig);
             win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
         });
@@ -283,7 +280,7 @@ function loadSolutionFromFile(filename, name, path) {
 }
 
 function saveSolution(request) {
-    fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
+    fs.writeFileSync(request.filename, JSON.stringify(request.config, null, 4)); // Even making it async would not add more than a few lines
 }
 
 function saveAsRequest(request){

@@ -59,8 +59,13 @@ export interface CurrentState {
   recentSolutions: RecentFile[];
 }
 
+export interface Environment {
+  name: string;
+}
+
 export interface SolutionConfig {
   solutionGuid: string
+  environments: Environment[];
 }
 
 export interface Solution {
@@ -215,8 +220,22 @@ export class ActionRepositoryService {
     this.getIpcRenderer().send("loadSolutionFromFile", file);
   }
 
+  public async saveSolution(solution: Solution) {
+    if (this.getIpcRenderer() == undefined)
+      return;
+
+    await this.getIpcRenderer().send('saveSolution', solution);
+  }
+
   private mockSolution(): Solution {
-    return { config: { solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab' }, filename: '<filename>', path: '<path>', name: 'solution name' };
+    return { 
+      config: { 
+        solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab', 
+        environments: [{name: 'prod'}, {name:'test'}, {name:'dev'}] 
+      }, 
+      filename: '<filename>', 
+      path: '<path>', 
+      name: 'solution name' };
   }
 
   private mockCurrentState(): CurrentState {

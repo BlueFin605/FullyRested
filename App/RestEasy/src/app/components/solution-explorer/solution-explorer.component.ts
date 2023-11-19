@@ -44,6 +44,9 @@ export class SolutionExplorerComponent implements OnInit {
   @Output()
   openFile = new EventEmitter<string>();
 
+  @Output()
+  enableMenuOptions = new EventEmitter<string[]>();
+
   items: TreeviewItem[] = [];
 
   selected: string = '';
@@ -55,8 +58,6 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   buildTreeview(traverse: TraversedDrectory, name: string): TreeviewItem {
-
-
     var children = [this.systemSettings(), this.convertDirToTreeviewItem(traverse)];
 
     return new TreeviewItem({
@@ -65,34 +66,13 @@ export class SolutionExplorerComponent implements OnInit {
       children: children,
       collapsed: true
     });
-
-    // var children = traverse.subdirs.map(s => this.convertDirToTreeviewItem(s, name));
-
-    // children = children.concat(traverse.files.map(f => new TreeviewItem({
-    //   text: f.name,
-    //   value: { type: 'file', key: f.fullPath }
-    // })));
-
-
-    // if (traverse.dir.root == true) {
-    //   var systemChildren = [
-    //   ];
-
-    //   return new TreeviewItem({
-    //     text: name,
-    //     value: { type: 'dir', key: traverse.dir.fullPath },
-    //     children: children,
-    //     collapsed: true
-    //   });
-  
-    // }
-
   }
 
   systemSettings(): TreeviewItem {
     var systemchildren = [
-      new TreeviewItem({ text: 'Variables', value: { type: 'system', key: 'system.settings.variables' }, collapsed: false }),
-      new TreeviewItem({ text: 'Authentication', value: { type: 'system', key: 'system.settings.authentication' }, collapsed: false }),
+      new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: 'system.settings.variables' }, collapsed: false }),
+      new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: 'system.settings.authentication' }, collapsed: false }),
+      new TreeviewItem({ text: 'Environments', value: { type: 'dir', subtype: 'environments', key: 'system.settings.environments', actions: ['createEnvironment'] }, children: this.buildEnvironmentsAsChildren(), collapsed: false }),
     ];
 
     return new TreeviewItem({
@@ -102,6 +82,20 @@ export class SolutionExplorerComponent implements OnInit {
       collapsed: false
     });
 
+  }
+
+  buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {
+    return this._solution?.config.environments.map(e => {
+      return new TreeviewItem({
+        text: e.name,
+        value: { type: 'dir', key: `system.settings.environments.${e.name}` },
+        children: [      
+          new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.name}.variables` }, collapsed: false }),
+          new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.name}.authentication` }, collapsed: false }),
+        ],
+        collapsed: false
+      });
+    });
   }
 
   convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
@@ -125,14 +119,14 @@ export class SolutionExplorerComponent implements OnInit {
 
     var hasFiles = false;
     //if there are any files then we should expand the folder
-    if (items.some(i => i.value.type == 'file' || i.value.type == 'system')) {
+    if (items.some(i => i.value.type == 'file' || i.value.type == 'system' || i.value.type == 'environment')) {
       hasFiles = true;
     }
 
     //if any of the children have files expand the node
     var childrenHaveFles = false;
     items.forEach(i => {
-      i.collapsed = !this.expandTree(i.children) || i.value.type == 'system';
+      i.collapsed = !this.expandTree(i.children) || i.value.type == 'system' || i.value.type == 'environment';
       childrenHaveFles = childrenHaveFles || !i.collapsed;
     });
 
@@ -140,14 +134,15 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   onSelectedChange($event: any) {
+    console.log('onSelectedChange');
     console.log($event);
-
   }
 
   onClick($event: TreeviewItem) {
     console.log('onClick');
     console.log($event.value.key);
     this.selected = $event.value.key;
+    this.enableMenuOptions.emit($event.value.actions);
   }
 
   onDblClick($event: TreeviewItem) {

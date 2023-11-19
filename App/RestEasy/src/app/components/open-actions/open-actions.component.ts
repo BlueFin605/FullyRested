@@ -10,6 +10,7 @@ import { MatTabGroup } from '@angular/material/tabs';
 export class OpenActionsComponent implements OnInit {
   state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
+  enabledMenuOptions: string[] = [];
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -112,6 +113,13 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolution();
   }
 
+  saveSolution() {
+    if (this.solution == undefined)
+      return;
+
+    this.repo.saveSolution(this.solution);
+  }
+
   closeSolution() {
     console.log('closeSolution');
     this.solution = undefined;
@@ -125,6 +133,10 @@ export class OpenActionsComponent implements OnInit {
       .filter(num => !isNaN(num)));
 
     this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+
+    setTimeout(() => {
+      this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
+    });
   }
 
   saveAsRequest() {
@@ -161,7 +173,28 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadRequest($event).then(a => {
       var newAction: LocalRestAction = { action: a, dirty: false, fullFilename: $event };
       this.currentSession().actions.push(newAction);
-      this.tabs.selectedIndex = (this.tabs._tabs.length ?? 0) - 1;
+      setTimeout(() => {
+        this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
+      });
     });
+  }
+
+  enableMenuOptions(menuOptions: string[]) {
+    console.log(menuOptions);
+    this.enabledMenuOptions = menuOptions ?? [];
+  }
+
+  createEnvironment() {
+    if (this.solution == undefined)
+      return;
+    
+    console.log('createEnvironment');
+    this.solution?.config.environments.push({name: 'unnamed'});
+    console.log(this.solution);
+    this.repo.saveSolution(this.solution);
+  }
+
+  actionDisabled(menuOption: string): boolean {
+    return !this.enabledMenuOptions.some(e => e == menuOption);
   }
 }

@@ -22,6 +22,9 @@ https://github.com/leovo2708/ngx-treeview/blob/master/src/app/product/product.co
     <i *ngIf='item.value.type=="system"' class="mr-1 filePrefix" (click)="onCollapseExpand()" aria-hidden="true" [ngSwitch]="item.collapsed">
       SYS
     </i>
+    <i *ngIf='item.value.type=="environment"' class="mr-1 filePrefix" (click)="onCollapseExpand()" aria-hidden="true" [ngSwitch]="item.collapsed">
+      ENV
+    </i>
     {{item.text}}
   </div>
 </ng-template>
