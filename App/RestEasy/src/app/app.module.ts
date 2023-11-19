@@ -39,6 +39,8 @@ import { DisplayResponseBodyXmlComponent } from './components/rest-action/respon
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 import { SolutionExplorerComponent } from './components/solution-explorer/solution-explorer.component';
 import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
+import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
+import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
 
 @NgModule({
   declarations: [
@@ -58,7 +60,9 @@ import { EditRequestAuthenticationComponent } from './components/rest-action/req
     DisplayResponseBodyXmlComponent,
     OpenActionsComponent,
     SolutionExplorerComponent,
-    EditRequestAuthenticationComponent
+    EditRequestAuthenticationComponent,
+    SettingsManageVariablesComponent,
+    SettingsManageAuthenticationComponent
   ],
   imports: [
     BrowserModule,

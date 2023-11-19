@@ -98,5 +98,10 @@
   </mat-tab-group>
 </div>
 
-<div class="opendocuments" [hidden]="!variablesVisible()">Variables!!!</div>
-<div class="opendocuments" [hidden]="!authenticationVisible()">Authentication!!!</div>
+<div class="opendocuments" [hidden]="!variablesVisible()">
+  <app-settings-manage-variables></app-settings-manage-variables>
+</div>
+
+<div class="opendocuments" [hidden]="!authenticationVisible()">
+  <app-settings-manage-authentication></app-settings-manage-authentication>
+</div>
