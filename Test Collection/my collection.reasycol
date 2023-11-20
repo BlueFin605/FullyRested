@@ -1,11 +1,56 @@
 {
     "solutionGuid": "92f54a1-be78-4605-968d-13e456a94aab",
+    "solutionEnvironment": {
+        "name": "system.settings",
+        "variables": [
+            {
+                "variable": "host",
+                "value": "www.google.com",
+                "active": true,
+                "id": 1
+            },
+            {
+                "variable": "userid",
+                "value": "12345",
+                "active": true,
+                "id": 2
+            }
+        ]
+    },
     "environments": [
         {
-            "name": "prod"
+            "name": "prod",
+            "variables": [
+                {
+                    "variable": "env",
+                    "value": "prod",
+                    "active": true,
+                    "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.co.uk",
+                    "active": true,
+                    "id": 2
+                }
+            ]
         },
         {
-            "name": "dev"
+            "name": "dev",
+            "variables": [
+                {
+                    "variable": "env",
+                    "value": "dev",
+                    "active": true,
+                    "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.co.nz",
+                    "active": true,
+                    "id": 2
+                }
+            ]
         }
     ]
 }

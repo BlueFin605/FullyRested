@@ -46,7 +46,7 @@
       <mat-menu #file="matMenu">
         <button mat-menu-item (click)="openSolution()">Open Solution</button>
         <button mat-menu-item [matMenuTriggerFor]="recentSolutions">Open Recent</button>
-        <button mat-menu-item (clock)="saveSolution()">Save Solution</button>
+        <button mat-menu-item (click)="saveSolution()">Save Solution</button>
         <button mat-menu-item (click)="closeSolution()">Close Solution</button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="newRequest()">New Request</button>
@@ -99,7 +99,7 @@
 </div>
 
 <div class="opendocuments" [hidden]="!variablesVisible()">
-  <app-settings-manage-variables></app-settings-manage-variables>
+  <app-settings-manage-variables [(environment)]="selectedEnvironment"></app-settings-manage-variables>
 </div>
 
 <div class="opendocuments" [hidden]="!authenticationVisible()">

@@ -14,8 +14,16 @@ export interface HeaderTable {
   active: boolean;
   id: number;
 };
+
 export interface ParamTable {
   key: string;
+  value: string;
+  active: boolean;
+  id: number;
+};
+
+export interface VariableTable {
+  variable: string;
   value: string;
   active: boolean;
   id: number;
@@ -61,10 +69,12 @@ export interface CurrentState {
 
 export interface Environment {
   name: string;
+  variables: VariableTable[];
 }
 
 export interface SolutionConfig {
   solutionGuid: string
+  solutionEnvironment: Environment;
   environments: Environment[];
 }
 
@@ -109,6 +119,9 @@ export function CreateEmptyAction(): RestAction {
   return JSON.parse(EmptyActionJSON);
 }
 
+export function CreateEmptyEnvironment(): Environment {
+  return { name: '', variables: [] };
+}
 
 @Injectable({
   providedIn: 'root'
@@ -228,14 +241,34 @@ export class ActionRepositoryService {
   }
 
   private mockSolution(): Solution {
-    return { 
-      config: { 
-        solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab', 
-        environments: [{name: 'prod'}, {name:'test'}, {name:'dev'}] 
-      }, 
-      filename: '<filename>', 
-      path: '<path>', 
-      name: 'solution name' };
+    return {
+      config: {
+        solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab',
+        solutionEnvironment: {
+          name: '',
+          variables: [{ variable: 'env', value: 'unknown', active: true, id: 1 }]
+        },
+        environments: [
+          {
+            name: 'prod',
+            variables: [
+              { variable: 'env', value: 'prod', active: true, id: 1 }
+            ]
+          },
+          {
+            name: 'test',
+            variables: []
+          },
+          {
+            name: 'dev',
+            variables: []
+          }
+        ]
+      },
+      filename: '<filename>',
+      path: '<path>',
+      name: 'solution name'
+    };
   }
 
   private mockCurrentState(): CurrentState {

@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem } from '../solution-explorer/solution-explorer.component';
 
@@ -14,6 +14,7 @@ export class OpenActionsComponent implements OnInit {
   enabledMenuOptions: string[] = [];
   selectedType: string = "";
   selectedSubType: string = "";
+  selectedEnvironment: Environment = CreateEmptyEnvironment();
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -119,7 +120,7 @@ export class OpenActionsComponent implements OnInit {
   saveSolution() {
     if (this.solution == undefined)
       return;
-
+    console.log('saveSolution');
     this.repo.saveSolution(this.solution);
   }
 
@@ -184,9 +185,21 @@ export class OpenActionsComponent implements OnInit {
 
   onSelectionChange(selected: SelectedTreeItem) {
     console.log(selected);
+    console.log(this.solution?.config?.environments);
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
     this.selectedSubType = selected?.subtype;
+    if (selected.type == 'system' && selected.subtype == 'variables') {
+      if (selected.key == 'system.settings.variables') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.name}.variables`) ) ?? CreateEmptyEnvironment();
+      }
+    } else {
+      this.selectedEnvironment = CreateEmptyEnvironment();
+    }
+
+    console.log(this.selectedEnvironment);
   }
 
   createEnvironment() {
@@ -194,7 +207,7 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution?.config.environments.push({ name: 'unnamed' });
+    this.solution?.config.environments.push({ name: 'unnamed', variables: [ { variable: '', value: '', active: true, id: 1}] });
     console.log(this.solution);
     this.repo.saveSolution(this.solution);
   }

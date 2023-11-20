@@ -4,6 +4,7 @@ import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
 
 export interface SelectedTreeItem {
+  key: string;
   enabledMenuOptions: string[];
   type: string;
   subtype: string;
@@ -147,7 +148,7 @@ export class SolutionExplorerComponent implements OnInit {
   onClick($event: TreeviewItem) {
     console.log(`onClick:[${$event.value.key}]`);
     this.selected = $event.value.key;
-    this.onSelectionChange.emit({type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
+    this.onSelectionChange.emit({key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
   }
 
   onDblClick($event: TreeviewItem) {
