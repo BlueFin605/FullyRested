@@ -41,6 +41,7 @@ import { SolutionExplorerComponent } from './components/solution-explorer/soluti
 import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
 import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
 import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
+import { SettingsManageEnvironmentComponent } from './components/settings/settings-manage-environment/settings-manage-environment.component';
 
 @NgModule({
   declarations: [
@@ -62,7 +63,8 @@ import { SettingsManageAuthenticationComponent } from './components/settings/set
     SolutionExplorerComponent,
     EditRequestAuthenticationComponent,
     SettingsManageVariablesComponent,
-    SettingsManageAuthenticationComponent
+    SettingsManageAuthenticationComponent,
+    SettingsManageEnvironmentComponent
   ],
   imports: [
     BrowserModule,

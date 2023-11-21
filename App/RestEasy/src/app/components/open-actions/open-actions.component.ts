@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angul
 import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem } from '../solution-explorer/solution-explorer.component';
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
   selector: 'app-open-actions',
@@ -19,7 +20,7 @@ export class OpenActionsComponent implements OnInit {
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
-  constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
+  constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef, private systemSupport: SystemSupportService) {
     this.repo.solutions.subscribe(s => {
       console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
       console.log(this.state);
@@ -193,11 +194,11 @@ export class OpenActionsComponent implements OnInit {
       if (selected.key == 'system.settings.variables') {
         this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
       } else {
-        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.name}.variables`) ) ?? CreateEmptyEnvironment();
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`) ) ?? CreateEmptyEnvironment();
       }
     } else
     if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
-      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.name) ) ?? CreateEmptyEnvironment();
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
     } else {
       this.selectedEnvironment = CreateEmptyEnvironment();
     }
@@ -210,9 +211,9 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution.config.environments.push({ name: 'unnamed', variables: [ { variable: '', value: '', active: true, id: 1}] });
+    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}] });
     console.log(this.solution);
-    this.repo.saveSolution(this.solution);
+    this.repo.storeSolution(this.solution);
   }
 
   deleteEnvironment() {
@@ -224,7 +225,7 @@ export class OpenActionsComponent implements OnInit {
     console.log(this.selectedEnvironment);
     this.solution.config.environments = this.solution.config.environments.filter(f => f.name != this.selectedEnvironment.name);
     console.log(this.solution);
-    this.repo.saveSolution(this.solution);
+    this.repo.storeSolution(this.solution);
   }
 
   actionDisabled(menuOption: string): boolean {
@@ -233,6 +234,9 @@ export class OpenActionsComponent implements OnInit {
 
   actionsVisible(): boolean {
     // console.log(`actionVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+       return false;
+
     if (this.selectedType != 'system')
       return true;
 
@@ -253,5 +257,19 @@ export class OpenActionsComponent implements OnInit {
       return true;
 
     return false;
+  }
+
+  environmentVisible(): boolean {
+    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+       return true;
+
+    return false;
+  }
+
+  environmentChange(env: Environment) {
+    if (this.solution == undefined)
+      return;
+
+      this.repo.storeSolution(this.solution);
   }
 }

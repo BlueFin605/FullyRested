@@ -106,3 +106,7 @@
 <div class="opendocuments" [hidden]="!authenticationVisible()">
   <app-settings-manage-authentication></app-settings-manage-authentication>
 </div>
+
+<div class="opendocuments" [hidden]="!environmentVisible()">
+  <app-settings-manage-environment [(environment)]="selectedEnvironment" (environmentChange)="environmentChange($event)"></app-settings-manage-environment>
+</div>

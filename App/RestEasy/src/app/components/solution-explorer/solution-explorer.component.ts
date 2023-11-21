@@ -4,6 +4,7 @@ import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
 
 export interface SelectedTreeItem {
+  // id: string;
   key: string;
   enabledMenuOptions: string[];
   type: string;
@@ -95,10 +96,10 @@ export class SolutionExplorerComponent implements OnInit {
     return this._solution?.config.environments.map(e => {
       return new TreeviewItem({
         text: e.name,
-        value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.name}`, actions: ['deleteEnvironment'] },
+        value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.id}`, actions: ['deleteEnvironment'] },
         children: [      
-          new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.name}.variables` }, collapsed: false }),
-          new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.name}.authentication` }, collapsed: false }),
+          new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.id}.variables` }, collapsed: false }),
+          new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.id}.authentication` }, collapsed: false }),
         ],
         collapsed: false
       });
@@ -138,11 +139,6 @@ export class SolutionExplorerComponent implements OnInit {
     });
 
     return hasFiles || childrenHaveFles;
-  }
-
-  onSelectedChange($event: any) {
-    console.log('onSelectedChange');
-    console.log($event);
   }
 
   onClick($event: TreeviewItem) {

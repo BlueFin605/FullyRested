@@ -69,6 +69,7 @@ export interface CurrentState {
 
 export interface Environment {
   name: string;
+  id: string;
   variables: VariableTable[];
 }
 
@@ -120,7 +121,7 @@ export function CreateEmptyAction(): RestAction {
 }
 
 export function CreateEmptyEnvironment(): Environment {
-  return { name: '', variables: [] };
+  return { name: '', id: '', variables: [] };
 }
 
 @Injectable({
@@ -243,27 +244,35 @@ export class ActionRepositoryService {
     await this.getIpcRenderer().send('saveSolution', solution);
   }
 
+  public async storeSolution(solution: Solution) {
+    setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+  }
+
   private mockSolution(): Solution {
     return {
       config: {
         solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab',
         solutionEnvironment: {
           name: '',
+          id: 'aaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
           variables: [{ variable: 'env', value: 'unknown', active: true, id: 1 }]
         },
         environments: [
           {
             name: 'prod',
+            id: '3df64a2-af78-6321-958e-92e496a94fa3',
             variables: [
               { variable: 'env', value: 'prod', active: true, id: 1 }
             ]
           },
           {
             name: 'test',
+            id: '3df64a2-bf78-6321-958e-92e496a94fb4',
             variables: []
           },
           {
             name: 'dev',
+            id: '3df64a2-cf78-6321-958e-92e496a94fc5',
             variables: []
           }
         ]
