@@ -235,7 +235,10 @@ export class ActionRepositoryService {
 
   public async saveSolution(solution: Solution) {
     if (this.getIpcRenderer() == undefined)
+    {
+      setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
       return;
+    }
 
     await this.getIpcRenderer().send('saveSolution', solution);
   }

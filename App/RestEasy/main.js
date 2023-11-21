@@ -282,6 +282,7 @@ function loadSolutionFromFile(filename, name, path) {
 function saveSolution(request) {
     console.log(`saveSolution[${JSON.stringify(request)}]`)
     fs.writeFileSync(request.filename, JSON.stringify(request.config, null, 4)); // Even making it async would not add more than a few lines
+    win.webContents.send("loadSolutionResponse", request);
 }
 
 function saveAsRequest(request){

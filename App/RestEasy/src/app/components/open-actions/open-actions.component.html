@@ -63,6 +63,7 @@
       <button mat-button [matMenuTriggerFor]="solutionMenu">Solution</button>
       <mat-menu #solutionMenu="matMenu">
         <button mat-menu-item (click)="createEnvironment()" [disabled]="actionDisabled('createEnvironment')">Create Environment</button>
+        <button mat-menu-item (click)="deleteEnvironment()" [disabled]="actionDisabled('deleteEnvironment')">Delete Environment</button>
       </mat-menu>
 
 

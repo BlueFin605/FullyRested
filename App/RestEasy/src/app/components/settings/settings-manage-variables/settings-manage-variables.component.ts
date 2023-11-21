@@ -46,18 +46,6 @@ export class SettingsManageVariablesComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  // convertValuesAsArray(headers: { [header: string]: string }): headerTable[]
-  // {
-  //   return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
-  // }
-
-  // convertArraysAsValues(headers: headerTable[]): { [header: string]: string } 
-  // {
-  //   var converted: { [header: string]: string } = {};
-  //   headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
-  //   return converted;
-  // }
-
   add() {
     var max: number = Math.max(...this.environment.variables.map(m => m.id));
     this.environment.variables = [...this.environment.variables, { variable: '', value: '', active: true, id: max + 1 }];

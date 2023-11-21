@@ -195,6 +195,9 @@ export class OpenActionsComponent implements OnInit {
       } else {
         this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.name}.variables`) ) ?? CreateEmptyEnvironment();
       }
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.name) ) ?? CreateEmptyEnvironment();
     } else {
       this.selectedEnvironment = CreateEmptyEnvironment();
     }
@@ -207,7 +210,19 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution?.config.environments.push({ name: 'unnamed', variables: [ { variable: '', value: '', active: true, id: 1}] });
+    this.solution.config.environments.push({ name: 'unnamed', variables: [ { variable: '', value: '', active: true, id: 1}] });
+    console.log(this.solution);
+    this.repo.saveSolution(this.solution);
+  }
+
+  deleteEnvironment() {
+    console.log('deleteEnvironment');
+    if (this.solution == undefined)
+      return;
+
+    console.log(this.solution.config);
+    console.log(this.selectedEnvironment);
+    this.solution.config.environments = this.solution.config.environments.filter(f => f.name != this.selectedEnvironment.name);
     console.log(this.solution);
     this.repo.saveSolution(this.solution);
   }

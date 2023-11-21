@@ -95,7 +95,7 @@ export class SolutionExplorerComponent implements OnInit {
     return this._solution?.config.environments.map(e => {
       return new TreeviewItem({
         text: e.name,
-        value: { type: 'dir', key: `system.settings.environments.${e.name}` },
+        value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.name}`, actions: ['deleteEnvironment'] },
         children: [      
           new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.name}.variables` }, collapsed: false }),
           new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.name}.authentication` }, collapsed: false }),
