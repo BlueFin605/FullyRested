@@ -19,24 +19,8 @@
     },
     "environments": [
         {
-            "name": "prod",
-            "variables": [
-                {
-                    "variable": "env",
-                    "value": "prod",
-                    "active": true,
-                    "id": 1
-                },
-                {
-                    "variable": "host",
-                    "value": "www.google.co.uk",
-                    "active": true,
-                    "id": 2
-                }
-            ]
-        },
-        {
-            "name": "dev",
+            "name": "Development",
+            "id": "154eaed5-336c-4995-beb1-7146bac6c69f",
             "variables": [
                 {
                     "variable": "env",
@@ -53,35 +37,38 @@
             ]
         },
         {
-            "name": "unnamed",
+            "name": "Production",
+            "id": "1f442bb3-a1db-4c48-8c88-df8456fb3623",
             "variables": [
                 {
-                    "variable": "",
-                    "value": "",
+                    "variable": "env",
+                    "value": "prod",
                     "active": true,
                     "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.com",
+                    "active": true,
+                    "id": 2
                 }
             ]
         },
         {
-            "name": "unnamed",
+            "name": "Test",
+            "id": "475941ef-006f-48a7-b823-ba440d6b5fac",
             "variables": [
                 {
-                    "variable": "",
-                    "value": "",
+                    "variable": "env",
+                    "value": "test",
                     "active": true,
                     "id": 1
-                }
-            ]
-        },
-        {
-            "name": "unnamed",
-            "variables": [
+                },
                 {
-                    "variable": "",
-                    "value": "",
+                    "variable": "host",
+                    "value": "www.google.co.uk",
                     "active": true,
-                    "id": 1
+                    "id": 2
                 }
             ]
         }

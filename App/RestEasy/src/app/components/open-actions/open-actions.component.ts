@@ -270,6 +270,11 @@ export class OpenActionsComponent implements OnInit {
     if (this.solution == undefined)
       return;
 
-      this.repo.storeSolution(this.solution);
+    var solenv = this.solution.config.environments.findIndex(e => e.id == env.id);
+    this.solution.config.environments[solenv] = env;
+    console.log(this.solution);
+    console.log(env);
+    console.log(this.selectedEnvironment);
+    this.repo.storeSolution(this.solution);
   }
 }
