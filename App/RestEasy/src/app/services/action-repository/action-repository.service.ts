@@ -77,6 +77,7 @@ export interface SolutionConfig {
   solutionGuid: string
   solutionEnvironment: Environment;
   environments: Environment[];
+  selectedEnvironmentId: string;
 }
 
 export interface Solution {
@@ -278,7 +279,8 @@ export class ActionRepositoryService {
             id: '3df64a2-cf78-6321-958e-92e496a94fc5',
             variables: []
           }
-        ]
+        ],
+        selectedEnvironmentId: '3df64a2-af78-6321-958e-92e496a94fa3'
       },
       filename: '<filename>',
       path: '<path>',
