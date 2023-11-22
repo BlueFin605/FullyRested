@@ -22,5 +22,9 @@ export class CustomUrlSerializer implements UrlSerializer {
             .replace(/%3D/gi, '=')
             .replace(/%3F/gi, '?')
             .replace(/%2F/gi, '/')
+            .replace(/%5B/gi, '[')
+            .replace(/%5D/gi, ']')
+            .replace(/%7B/gi, '{')
+            .replace(/%7D/gi, '}')
     }
 }

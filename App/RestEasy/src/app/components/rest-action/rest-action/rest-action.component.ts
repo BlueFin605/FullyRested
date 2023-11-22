@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-rest-action',
@@ -45,6 +45,9 @@ export class RestActionComponent implements OnInit {
     });
   }
 
+  @Input()
+  solution: Solution | undefined;
+
   response: RestActionResult = EmptyActionResult;
 
   constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
@@ -54,8 +57,8 @@ export class RestActionComponent implements OnInit {
   }
 
   async executeAction(action: ExecuteRestAction) {
-    console.log(`executeAction[${action}]`)
-    this.response = await this.era.executeTest(action);
+    console.log(`executeAction[${action}][${this.solution}]`)
+    this.response = await this.era.executeTest(action, this.solution);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
