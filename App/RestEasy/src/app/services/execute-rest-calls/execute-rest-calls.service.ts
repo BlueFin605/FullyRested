@@ -78,7 +78,10 @@ export class ExecuteRestCallsService {
     if (solution == undefined)
        return "";
 
-    return solution.config.solutionEnvironment.variables.find(v => v.variable == value)?.value ?? "";
+    var solVar = solution.config.solutionEnvironment.variables.find(v => v.variable == value)?.value;
+    var envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.variables.find(v => v.variable == value)?.value;
+
+    return envVar ?? solVar ?? "";
   }
 
   BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {

@@ -3,8 +3,21 @@
     "name": "google search",
     "verb": "get",
     "protocol": "https",
-    "url": "www.google.com/search",
-    "headers": [],
+    "url": "{{host}}/search",
+    "headers": [
+        {
+            "key": "user-id",
+            "value": "{{userid}}",
+            "active": true,
+            "id": null
+        },
+        {
+            "key": "environment",
+            "value": "{{env}}",
+            "active": true,
+            "id": 1
+        }
+    ],
     "parameters": [
         {
             "key": "q",

@@ -1,6 +1,6 @@
 {
     "solutionGuid": "92f54a1-be78-4605-968d-13e456a94aab",
-    "selectedEnvironmentId": "475941ef-006f-48a7-b823-ba440d6b5fac",
+    "selectedEnvironmentId": "1f442bb3-a1db-4c48-8c88-df8456fb3623",
     "solutionEnvironment": {
         "name": "system.settings",
         "variables": [
@@ -49,7 +49,7 @@
                 },
                 {
                     "variable": "host",
-                    "value": "www.google.com",
+                    "value": "www.google.com.au",
                     "active": true,
                     "id": 2
                 }
