@@ -7,10 +7,22 @@
   </mat-toolbar-row>
 
   <mat-toolbar-row>
-    <button class="remove_button" mat-icon-button (click)="saveRequest()">
-      <mat-icon>save</mat-icon>
-    </button>
-    <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
+    <div>
+      <button class="remove_button" mat-icon-button (click)="saveRequest()">
+        <mat-icon>save</mat-icon>
+      </button>
+      <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
+    </div>
+    <div class="envselector" *ngIf="solution">
+      Select Environment:
+      <mat-form-field>
+        <mat-select [(value)]="solution.config!.selectedEnvironmentId">
+          <mat-option *ngFor="let env of solution?.config?.environments" [value]="env.id">
+            {{env.name}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
   </mat-toolbar-row>
 
   <mat-toolbar-row>
