@@ -18,7 +18,7 @@ const COLUMNS_SCHEMA = [
     label: "Secret"
   },
   {
-    key: "value",
+    key: "$value",
     type: "text",
     label: "Value"
   },
@@ -51,7 +51,7 @@ export class SettingsManageSecretsComponent implements OnInit {
     if (vars.length > 0)
        max = Math.max(...vars);
     console.log(`max:[${max}]`);
-    this.environment.secrets = [...this.environment.secrets, { secret: '', active: true, id: max + 1 }];
+    this.environment.secrets = [...this.environment.secrets, { secret: '', $value: '', active: true, id: max + 1 }];
     this.environmentChange.emit(this.environment);
   }
 
