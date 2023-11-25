@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 const COLUMNS_SCHEMA = [
   {
@@ -39,28 +40,23 @@ export class SettingsManageSecretsComponent implements OnInit {
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor() {
+  constructor(private systemSupport: SystemSupportService) {
   }
 
   ngOnInit(): void {
   }
 
   add() {
-    var max = 0;
-    var vars: number[] = this.environment.secrets.map(m => m.id);
-    if (vars.length > 0)
-       max = Math.max(...vars);
-    console.log(`max:[${max}]`);
-    this.environment.secrets = [...this.environment.secrets, { secret: '', $value: '', active: true, id: max + 1 }];
+    this.environment.secrets = [...this.environment.secrets, { secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }];
     this.environmentChange.emit(this.environment);
   }
 
-  delete(id: number) {
+  delete(id: string) {
     this.environment.secrets = this.environment.secrets.filter(f => f.id != id);
     this.environmentChange.emit(this.environment);
   }
 
-  activeClicked(id: number) {
+  activeClicked(id: string) {
     var entry = this.environment.secrets.find(f => f.id == id);
     if (entry == undefined)
       return;
