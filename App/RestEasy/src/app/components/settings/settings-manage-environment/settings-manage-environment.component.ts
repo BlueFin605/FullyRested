@@ -9,7 +9,7 @@ import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-rep
 export class SettingsManageEnvironmentComponent implements OnInit {
 
   @Input()
-  environment: Environment = { name: 'noname', id: '', variables: [] }//CreateEmptyEnvironment();
+  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [] }//CreateEmptyEnvironment();
 
   @Output()
   environmentChange = new EventEmitter<Environment>();

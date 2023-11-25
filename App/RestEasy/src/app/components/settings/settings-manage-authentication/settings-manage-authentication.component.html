@@ -1,1 +1,20 @@
-<p>settings-manage-authentication works!</p>
+<mat-form-field appearance="fill">
+    <mat-label>Authorisation Method</mat-label>
+    <mat-select [(value)]="selected">
+        <mat-option value="inherit">Inherit</mat-option>
+        <mat-option value="none">None</mat-option>
+        <mat-option value="awssig">AWS Signature</mat-option>
+    </mat-select>
+</mat-form-field>
+
+<div *ngIf="selected=='awssig'">
+    awssig
+</div>
+
+<div *ngIf="selected=='none'">
+    none
+</div>
+
+<div *ngIf="selected=='inherit'">
+    inherit
+</div>

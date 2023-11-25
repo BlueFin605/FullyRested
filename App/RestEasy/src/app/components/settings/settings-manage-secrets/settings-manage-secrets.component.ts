@@ -13,9 +13,9 @@ const COLUMNS_SCHEMA = [
     label: ""
   },
   {
-    key: "variable",
+    key: "secret",
     type: "text",
-    label: "Variable"
+    label: "Secret"
   },
   {
     key: "value",
@@ -23,13 +23,12 @@ const COLUMNS_SCHEMA = [
     label: "Value"
   },
 ]
-
 @Component({
-  selector: 'app-settings-manage-variables',
-  templateUrl: './settings-manage-variables.component.html',
-  styleUrls: ['./settings-manage-variables.component.css']
+  selector: 'app-settings-manage-secrets',
+  templateUrl: './settings-manage-secrets.component.html',
+  styleUrls: ['./settings-manage-secrets.component.css']
 })
-export class SettingsManageVariablesComponent implements OnInit {
+export class SettingsManageSecretsComponent implements OnInit {
 
   @Input()
   environment: Environment = CreateEmptyEnvironment();
@@ -48,21 +47,21 @@ export class SettingsManageVariablesComponent implements OnInit {
 
   add() {
     var max = 0;
-    var vars: number[] = this.environment.variables.map(m => m.id);
+    var vars: number[] = this.environment.secrets.map(m => m.id);
     if (vars.length > 0)
        max = Math.max(...vars);
     console.log(`max:[${max}]`);
-    this.environment.variables = [...this.environment.variables, { variable: '', value: '', active: true, id: max + 1 }];
+    this.environment.secrets = [...this.environment.secrets, { secret: '', active: true, id: max + 1 }];
     this.environmentChange.emit(this.environment);
   }
 
   delete(id: number) {
-    this.environment.variables = this.environment.variables.filter(f => f.id != id);
+    this.environment.secrets = this.environment.secrets.filter(f => f.id != id);
     this.environmentChange.emit(this.environment);
   }
 
   activeClicked(id: number) {
-    var entry = this.environment.variables.find(f => f.id == id);
+    var entry = this.environment.secrets.find(f => f.id == id);
     if (entry == undefined)
       return;
 
@@ -71,6 +70,8 @@ export class SettingsManageVariablesComponent implements OnInit {
   }
 
   modelChangeFn(value: any) {
+    // console.log(value);
+    // console.log(this.environment);
     this.environmentChange.emit(this.environment);
   }
 }

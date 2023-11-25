@@ -197,7 +197,17 @@ export class OpenActionsComponent implements OnInit {
         this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`) ) ?? CreateEmptyEnvironment();
       }
     } else
+    if (selected.type == 'system' && selected.subtype == 'secrets') {
+      if (selected.key == 'system.settings.secrets') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrest`) ) ?? CreateEmptyEnvironment();
+      }
+    } else
     if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
       this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
     } else {
       this.selectedEnvironment = CreateEmptyEnvironment();
@@ -211,7 +221,7 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}] });
+    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}], secrets: [ { secret: '', active: true, id: 1}] });
     console.log(this.solution);
     this.repo.storeSolution(this.solution);
   }
@@ -261,6 +271,13 @@ export class OpenActionsComponent implements OnInit {
 
   environmentVisible(): boolean {
     if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+       return true;
+
+    return false;
+  }
+
+  secretsVisible(): boolean {
+    if (this.selectedType == 'system' && this.selectedSubType == 'secrets')
        return true;
 
     return false;

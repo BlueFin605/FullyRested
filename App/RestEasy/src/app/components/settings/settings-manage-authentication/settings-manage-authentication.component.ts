@@ -6,7 +6,8 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./settings-manage-authentication.component.css']
 })
 export class SettingsManageAuthenticationComponent implements OnInit {
-
+  selected: string = 'awssig';
+  
   constructor() { }
 
   ngOnInit(): void {

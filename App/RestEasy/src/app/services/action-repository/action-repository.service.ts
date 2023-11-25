@@ -29,6 +29,12 @@ export interface VariableTable {
   id: number;
 };
 
+export interface SecretTable {
+  secret: string;
+  active: boolean;
+  id: number;
+}
+
 export interface AuthenticationDetails {
 
 }
@@ -71,6 +77,7 @@ export interface Environment {
   name: string;
   id: string;
   variables: VariableTable[];
+  secrets: SecretTable[];
 }
 
 export interface SolutionConfig {
@@ -122,7 +129,7 @@ export function CreateEmptyAction(): RestAction {
 }
 
 export function CreateEmptyEnvironment(): Environment {
-  return { name: '', id: '', variables: [] };
+  return { name: '', id: '', variables: [], secrets: [] };
 }
 
 @Injectable({
@@ -258,7 +265,10 @@ export class ActionRepositoryService {
           id: 'aaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
           variables: [
             { variable: 'env', value: 'unknown', active: true, id: 1 },
-            { variable: 'host', value: 'www.google.com', active: true, id: 1 }
+            { variable: 'host', value: 'www.google.com', active: true, id: 2 }
+          ],
+          secrets: [
+            { secret: 'accesskey', active: true, id: 1 },
           ]
         },
         environments: [
@@ -267,17 +277,22 @@ export class ActionRepositoryService {
             id: '3df64a2-af78-6321-958e-92e496a94fa3',
             variables: [
               { variable: 'env', value: 'prod', active: true, id: 1 }
+            ],
+            secrets: [
+              { secret: 'accesskey', active: true, id: 1 },
             ]
           },
           {
             name: 'test',
             id: '3df64a2-bf78-6321-958e-92e496a94fb4',
-            variables: []
+            variables: [],
+            secrets: []
           },
           {
             name: 'dev',
             id: '3df64a2-cf78-6321-958e-92e496a94fc5',
-            variables: []
+            variables: [],
+            secrets: []
           }
         ],
         selectedEnvironmentId: '3df64a2-af78-6321-958e-92e496a94fa3'

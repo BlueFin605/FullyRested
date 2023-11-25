@@ -92,3 +92,7 @@
 <div class="opendocuments" [hidden]="!environmentVisible()">
   <app-settings-manage-environment [(environment)]="selectedEnvironment" (environmentChange)="environmentChange($event)"></app-settings-manage-environment>
 </div>
+
+<div class="opendocuments" [hidden]="!secretsVisible()">
+  <app-settings-manage-secrets [(environment)]="selectedEnvironment"></app-settings-manage-secrets>
+</div>

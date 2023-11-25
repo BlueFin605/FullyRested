@@ -80,6 +80,7 @@ export class SolutionExplorerComponent implements OnInit {
     var systemchildren = [
       new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: 'system.settings.variables' }, collapsed: false }),
       new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: 'system.settings.authentication' }, collapsed: false }),
+      new TreeviewItem({ text: 'Secrets', value: { type: 'system', subtype: 'secrets', key: 'system.settings.secrets' }, collapsed: false }),
       new TreeviewItem({ text: 'Environments', value: { type: 'dir', subtype: 'environments', key: 'system.settings.environments', actions: ['createEnvironment'] }, children: this.buildEnvironmentsAsChildren(), collapsed: false }),
     ];
 
@@ -99,6 +100,7 @@ export class SolutionExplorerComponent implements OnInit {
         value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.id}`, actions: ['deleteEnvironment'] },
         children: [      
           new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.id}.variables` }, collapsed: false }),
+          new TreeviewItem({ text: 'Secrets', value: { type: 'system', subtype: 'secrets', key: `system.settings.environments.${e.id}.secrets` }, collapsed: false }),
           new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.id}.authentication` }, collapsed: false }),
         ],
         collapsed: false

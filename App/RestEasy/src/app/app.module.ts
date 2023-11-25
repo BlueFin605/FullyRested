@@ -42,6 +42,7 @@ import { EditRequestAuthenticationComponent } from './components/rest-action/req
 import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
 import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
 import { SettingsManageEnvironmentComponent } from './components/settings/settings-manage-environment/settings-manage-environment.component';
+import { SettingsManageSecretsComponent } from './components/settings/settings-manage-secrets/settings-manage-secrets.component';
 
 @NgModule({
   declarations: [
@@ -64,7 +65,8 @@ import { SettingsManageEnvironmentComponent } from './components/settings/settin
     EditRequestAuthenticationComponent,
     SettingsManageVariablesComponent,
     SettingsManageAuthenticationComponent,
-    SettingsManageEnvironmentComponent
+    SettingsManageEnvironmentComponent,
+    SettingsManageSecretsComponent
   ],
   imports: [
     BrowserModule,
