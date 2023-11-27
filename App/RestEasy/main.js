@@ -80,7 +80,7 @@ app.whenReady().then(() => {
     ipcMain.handle("readState", (event, request) => {
         return readState();
     });
-    
+
     ipcMain.handle("loadRequest", (event, request) => {
         return loadRequest(request);
     });
@@ -108,11 +108,11 @@ app.whenReady().then(() => {
         saveSolution(request);
     });
 
-    ipcMain.on("saveAsRequest", (event,request) => {
+    ipcMain.on("saveAsRequest", (event, request) => {
         saveAsRequest(request);
     });
 
-    ipcMain.on("saveRequest", (event,request) => {
+    ipcMain.on("saveRequest", (event, request) => {
         saveRequest(request);
     });
 })
@@ -256,7 +256,7 @@ function loadSolution() {
                 var filename = file.filePaths[0];
                 var pathname = path.dirname(filename);
                 var name = path.basename(filename);
-                loadSolutionFromFile(filename,name,pathname);
+                loadSolutionFromFile(filename, name, pathname);
             }
         } catch (err) {
             console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
@@ -281,11 +281,25 @@ function loadSolutionFromFile(filename, name, path) {
 
 function saveSolution(request) {
     console.log(`saveSolution[${JSON.stringify(request)}]`)
-    fs.writeFileSync(request.filename, JSON.stringify(request.config, null, 4)); // Even making it async would not add more than a few lines
+    var sanitised = sanitiseObject(request.config);
+    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4)); // Even making it async would not add more than a few lines
     win.webContents.send("loadSolutionResponse", request);
 }
 
-function saveAsRequest(request){
+function sanitiseObject(solutionConfig)
+{
+    return JSON.parse(JSON.stringify(solutionConfig, (k, v) => {
+        // console.log(`k:${typeof(k)}:[${k}]`);
+        // console.log(k);
+        if (k.startsWith('$') == false)
+            return v;
+
+        console.log(`write secret[${k}] value[${v}]`)
+        return undefined;
+    }));
+}
+
+function saveAsRequest(request) {
     // app.getPath("desktop")       // User's Desktop folder
     // app.getPath("documents")     // User's "My Documents" folder
     // app.getPath("downloads")     // User's Downloads folder
@@ -304,13 +318,13 @@ function saveAsRequest(request){
         console.log(request.name);
         var basename = path.basename(userChosenPath);
         console.log(basename);
-        request.name = basename.substring(0,basename.length - 9);
+        request.name = basename.substring(0, basename.length - 9);
         console.log(request.name);
     }
     win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }
 
-function saveRequest (request) {
+function saveRequest(request) {
     console.log(request);
 
     fs.writeFileSync(request.fullFilename, JSON.stringify(request.action, null, 4));

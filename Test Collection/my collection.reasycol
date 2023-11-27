@@ -16,7 +16,8 @@
                 "active": true,
                 "id": 2
             }
-        ]
+        ],
+        "secrets": []
     },
     "environments": [
         {
@@ -35,7 +36,8 @@
                     "active": true,
                     "id": 2
                 }
-            ]
+            ],
+            "secrets": []
         },
         {
             "name": "Production",
@@ -53,7 +55,8 @@
                     "active": true,
                     "id": 2
                 }
-            ]
+            ],
+            "secrets": []
         },
         {
             "name": "Test",
@@ -71,7 +74,8 @@
                     "active": true,
                     "id": 2
                 }
-            ]
+            ],
+            "secrets": []
         }
     ]
 }
