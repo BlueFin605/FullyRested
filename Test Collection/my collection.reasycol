@@ -17,7 +17,13 @@
                 "id": 2
             }
         ],
-        "secrets": []
+        "secrets": [
+            {
+                "$secret": "secretkey",
+                "active": true,
+                "id": "11f6d3ac-2972-48e3-a50c-0fbf948ed2cd"
+            }
+        ]
     },
     "environments": [
         {

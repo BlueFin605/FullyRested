@@ -4,6 +4,7 @@ const path = require('node:path')
 const fs = require('fs');
 const url = require('url');
 const axios = require('axios');
+const keytar = require('keytar')
 // var path = require('path');
 // const prom = require('node:fs/promises');
 
@@ -248,34 +249,41 @@ function walkSync(dir, filter, tree) {
     }
 }
 
-function loadSolution() {
-    dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] }).then(file => {
-        try {
-            console.log(file);
-            if (file.canceled == false) {
-                var filename = file.filePaths[0];
-                var pathname = path.dirname(filename);
-                var name = path.basename(filename);
-                loadSolutionFromFile(filename, name, pathname);
-            }
-        } catch (err) {
-            console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
+async function loadSolution() {
+    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] });
+
+    try {
+        console.log(file);
+        if (file.canceled == false) {
+            var filename = file.filePaths[0];
+            var pathname = path.dirname(filename);
+            var name = path.basename(filename);
+            await loadSolutionFromFile(filename, name, pathname);
         }
-    });
+    } catch (err) {
+        console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
+    }
 }
 
-function loadSolutionFromFile(filename, name, path) {
+async function loadSolutionFromFile(filename, name, path) {
     try {
-        console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
-        fs.readFile(filename, (err, data) => {
-            console.log(`loadSolutionFromFile response (${err},${data}`);
-            var solutionConfig = JSON.parse(data);
-            console.log(solutionConfig);
-            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
+        var data = await new Promise((accept, reject) => {
+            console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
+            fs.readFile(filename, (err, data) => {
+                console.log(`loadSolutionFromFile response (${err},${data}`);
+                if (err)
+                    reject(err);
+
+                accept(data);
+            });
         });
+
+        var solutionConfig = await addSecrets(data);
+        console.log(solutionConfig);
+        win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
     }
     catch (err) {
-        console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
+        console.log(`Solution File load error!:[${err}]`);
     }
 }
 
@@ -286,17 +294,75 @@ function saveSolution(request) {
     win.webContents.send("loadSolutionResponse", request);
 }
 
-function sanitiseObject(solutionConfig)
-{
-    return JSON.parse(JSON.stringify(solutionConfig, (k, v) => {
-        // console.log(`k:${typeof(k)}:[${k}]`);
-        // console.log(k);
-        if (k.startsWith('$') == false)
-            return v;
+async function addSecrets(data) {
+    var obj = JSON.parse(data);
 
-        console.log(`write secret[${k}] value[${v}]`)
-        return undefined;
-    }));
+    await addPasswords(obj, buildKeytarService(obj));
+
+    return obj;
+}
+
+function sanitiseObject(solutionConfig) {
+    var serviceName = buildKeytarService(solutionConfig);
+
+    //make a copy
+    var copy = JSON.parse(JSON.stringify(solutionConfig));
+    stripPasswords(copy, serviceName);
+    return copy;
+}
+
+function stripPasswords(obj, serviceName) {
+    Object.keys(obj).forEach(key => {
+        // console.log(`key: [${key}], value: [${obj[key]}]`)
+
+        if (obj[key] === null) {
+            return;
+        }
+
+        if (typeof obj[key] === 'object') {
+            // console.log(`$secret: ${$secret}, $value: ${$value}`);
+            var $secret = obj[key]['$secret'];
+            var $value = obj[key]['$value'];
+
+            if ($secret != undefined && $value != undefined) {
+                console.log(`sanitise $secret[${$secret}] $value[${$value}] into [${serviceName}]`);
+                keytar.setPassword(serviceName, $secret, $value);
+                obj[key]['$value'] = undefined;
+            }
+
+            stripPasswords(obj[key], serviceName);
+        }
+    })
+}
+
+async function addPasswords(obj, serviceName) {
+    for await (const key of Object.keys(obj)) {
+        // Object.keys(obj).forEach(key => {
+        // console.log(`key: [${key}], value: [${obj[key]}]`)
+
+        if (obj[key] === null) {
+            return;
+        }
+
+        if (typeof obj[key] === 'object') {
+            // console.log(`$secret: ${$secret}, $value: ${$value}`);
+            var $secret = obj[key]['$secret'];
+
+            if ($secret != undefined) {
+                var $value = await keytar.getPassword(serviceName, $secret);
+                console.log(`retrieve $secret[${$secret}] from [${serviceName}]`);
+                console.log($value);
+                obj[key]['$value'] = $value;
+                console.log(obj[key]);
+            }
+
+            await addPasswords(obj[key], serviceName);
+        }
+    }
+}
+
+function buildKeytarService(solutionConfig) {
+    return `resteasy-solution-${solutionConfig.solutionGuid}`;
 }
 
 function saveAsRequest(request) {
@@ -304,13 +370,13 @@ function saveAsRequest(request) {
     // app.getPath("documents")     // User's "My Documents" folder
     // app.getPath("downloads")     // User's Downloads folder
 
-//    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
+    //    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
 
-// defaultPath: toLocalPath, 
+    // defaultPath: toLocalPath, 
     console.log(request);
     var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Projects', extensions: ['reasyreq'] }] });
     console.log(userChosenPath);
-    if(userChosenPath == undefined){
+    if (userChosenPath == undefined) {
         return;
     }
     fs.writeFileSync(userChosenPath, JSON.stringify(request, null, 4));

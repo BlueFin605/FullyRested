@@ -14,7 +14,7 @@ const COLUMNS_SCHEMA = [
     label: ""
   },
   {
-    key: "secret",
+    key: "$secret",
     type: "text",
     label: "Secret"
   },
@@ -47,7 +47,7 @@ export class SettingsManageSecretsComponent implements OnInit {
   }
 
   add() {
-    this.environment.secrets = [...this.environment.secrets, { secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }];
+    this.environment.secrets = [...this.environment.secrets, { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }];
     this.environmentChange.emit(this.environment);
   }
 

@@ -30,7 +30,7 @@ export interface VariableTable {
 };
 
 export interface SecretTable {
-  secret: string;
+  $secret: string;
   $value: string;
   active: boolean;
   id: string;
@@ -269,7 +269,7 @@ export class ActionRepositoryService {
             { variable: 'host', value: 'www.google.com', active: true, id: 2 }
           ],
           secrets: [
-            { secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
+            { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
           ]
         },
         environments: [
@@ -280,7 +280,7 @@ export class ActionRepositoryService {
               { variable: 'env', value: 'prod', active: true, id: 1 }
             ],
             secrets: [
-              { secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: 'sdfkjn' },
+              { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: 'sdfkjn' },
             ]
           },
           {

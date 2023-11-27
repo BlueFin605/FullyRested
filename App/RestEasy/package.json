@@ -26,6 +26,7 @@
     "@treeview/ngx-treeview": "^14.0.0",
     "axios": "^1.5.1",
     "jsoneditor": "^9.10.3",
+    "keytar": "^7.9.0",
     "ngx-json-viewer": "^3.2.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",

@@ -221,7 +221,7 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}], secrets: [ { secret: '', $value: '', active: true, id: 'yh*ikjdf'}] });
+    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}], secrets: [ { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID()}] });
     console.log(this.solution);
     this.repo.storeSolution(this.solution);
   }
