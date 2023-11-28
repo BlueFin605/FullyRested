@@ -25,12 +25,12 @@
             }
         ],
         "auth": {
-            "authentication": "none",
+            "authentication": "awssig",
             "awsSig": {
-                "accessKey": "",
-                "secretKey": "",
+                "accessKey": "akey",
+                "secretKey": "skey",
                 "awsRegion": "eu-central-1",
-                "serviceName": ""
+                "serviceName": "sname"
             }
         }
     },

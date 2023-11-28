@@ -21,5 +21,4 @@ export class SettingsManageAuthenticationAWSSigComponent implements OnInit {
   onChange($event: any) {
     this.awssigChange.emit(this.awssig);
   }
-
 }

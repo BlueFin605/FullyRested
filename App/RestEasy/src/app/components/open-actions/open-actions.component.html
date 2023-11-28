@@ -86,7 +86,7 @@
 </div>
 
 <div class="opendocuments" [hidden]="!authenticationVisible()">
-  <app-settings-manage-authentication [(auth)]="selectedEnvironment.auth" (authChange)="authChange($event)"></app-settings-manage-authentication>
+  <app-settings-manage-authentication [(auth)]="selectedEnvironment.auth"></app-settings-manage-authentication>
 </div>
 
 <div class="opendocuments" [hidden]="!environmentVisible()">

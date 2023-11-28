@@ -162,7 +162,9 @@ export class EditRequestComponent implements OnInit {
   }
 
   onAuthChange(auth: AuthenticationDetails) {
-
+    console.log(auth);
+    console.log(this.action);
+    this.actionChange.emit(this.action);
   }
 
   onHeadersChange(event: any) {
