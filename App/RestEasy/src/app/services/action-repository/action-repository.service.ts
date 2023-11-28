@@ -37,9 +37,16 @@ export interface SecretTable {
 }
 
 export interface AuthenticationDetails {
-
+  authentication: string;
+  awsSig: AuthenticationDetailsAWSSig;
 }
 
+export interface AuthenticationDetailsAWSSig {
+  accessKey: string;
+  secretKey: string;
+  awsRegion: string;
+  serviceName: string;
+}
 export interface RestAction {
   id: string;
   name: string;
@@ -79,6 +86,7 @@ export interface Environment {
   id: string;
   variables: VariableTable[];
   secrets: SecretTable[];
+  auth: AuthenticationDetails;
 }
 
 export interface SolutionConfig {
@@ -130,9 +138,22 @@ export function CreateEmptyAction(): RestAction {
 }
 
 export function CreateEmptyEnvironment(): Environment {
-  return { name: '', id: '', variables: [], secrets: [] };
+  return { 
+    name: '', 
+    id: '', 
+    variables: [], 
+    secrets: [],
+    auth: CreateEmptyAuthenticationDetails() 
+  };
 }
 
+export function CreateEmptyAuthenticationDetails(): AuthenticationDetails {
+  return { authentication: 'none', awsSig: CreateEmptyAuthenticationDetailsAwsSig()};
+}
+
+export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
+  return { accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
+}
 @Injectable({
   providedIn: 'root'
 })
@@ -270,7 +291,8 @@ export class ActionRepositoryService {
           ],
           secrets: [
             { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
-          ]
+          ],
+          auth: CreateEmptyAuthenticationDetails()
         },
         environments: [
           {
@@ -281,19 +303,22 @@ export class ActionRepositoryService {
             ],
             secrets: [
               { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: 'sdfkjn' },
-            ]
+            ],
+            auth: CreateEmptyAuthenticationDetails()
           },
           {
             name: 'test',
             id: '3df64a2-bf78-6321-958e-92e496a94fb4',
             variables: [],
-            secrets: []
+            secrets: [],
+            auth: CreateEmptyAuthenticationDetails()
           },
           {
             name: 'dev',
             id: '3df64a2-cf78-6321-958e-92e496a94fc5',
             variables: [],
-            secrets: []
+            secrets: [],
+            auth: CreateEmptyAuthenticationDetails()
           }
         ],
         selectedEnvironmentId: '3df64a2-af78-6321-958e-92e496a94fa3'
@@ -345,7 +370,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 parameters: [],
-                authentication: {},
+                authentication: CreateEmptyAuthenticationDetails(),
               },
               dirty: true,
               fullFilename: ""
@@ -417,7 +442,7 @@ export class ActionRepositoryService {
                   },
 
                 ],
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -470,7 +495,7 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -484,7 +509,7 @@ export class ActionRepositoryService {
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
                 headers: [],
                 parameters: [],
-                authentication: {},
+                authentication: CreateEmptyAuthenticationDetails(),
                 body: "{}"
               },
               dirty: false,
@@ -561,7 +586,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -613,7 +638,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -671,7 +696,7 @@ export class ActionRepositoryService {
                     id: 2
                   }
                 ],
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/xml/XML Result.reasyreq"
@@ -724,7 +749,7 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: ""
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -739,7 +764,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: "{}",
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -833,7 +858,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""
@@ -848,7 +873,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: "{}",
-                authentication: {}
+                authentication: CreateEmptyAuthenticationDetails()
               },
               dirty: true,
               fullFilename: ""

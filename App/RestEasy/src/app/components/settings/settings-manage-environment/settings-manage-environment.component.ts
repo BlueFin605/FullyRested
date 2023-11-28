@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
+import { CreateEmptyAuthenticationDetails, CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-settings-manage-environment',
@@ -9,7 +9,7 @@ import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-rep
 export class SettingsManageEnvironmentComponent implements OnInit {
 
   @Input()
-  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [] }//CreateEmptyEnvironment();
+  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails() }//CreateEmptyEnvironment();
 
   @Output()
   environmentChange = new EventEmitter<Environment>();

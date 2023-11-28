@@ -12,7 +12,7 @@
             },
             {
                 "variable": "userid",
-                "value": "12345",
+                "value": "123456",
                 "active": true,
                 "id": 2
             }
@@ -23,7 +23,16 @@
                 "active": true,
                 "id": "11f6d3ac-2972-48e3-a50c-0fbf948ed2cd"
             }
-        ]
+        ],
+        "auth": {
+            "authentication": "none",
+            "awsSig": {
+                "accessKey": "",
+                "secretKey": "",
+                "awsRegion": "eu-central-1",
+                "serviceName": ""
+            }
+        }
     },
     "environments": [
         {
@@ -43,7 +52,16 @@
                     "id": 2
                 }
             ],
-            "secrets": []
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
         },
         {
             "name": "Production",
@@ -62,7 +80,16 @@
                     "id": 2
                 }
             ],
-            "secrets": []
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
         },
         {
             "name": "Test",
@@ -81,7 +108,16 @@
                     "id": 2
                 }
             ],
-            "secrets": []
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
         }
     ]
 }

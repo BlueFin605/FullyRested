@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem } from '../solution-explorer/solution-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
@@ -221,7 +221,14 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    this.solution.config.environments.push({ name: 'unnamed', id: this.systemSupport.generateGUID(), variables: [ { variable: '', value: '', active: true, id: 1}], secrets: [ { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID()}] });
+    var env: Environment = { 
+                name: 'unnamed', 
+                id: this.systemSupport.generateGUID(), 
+                variables: [ { variable: '', value: '', active: true, id: 1}], 
+                secrets: [ { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID()}],
+                auth: CreateEmptyAuthenticationDetails()
+              };
+    this.solution.config.environments.push(env);
     console.log(this.solution);
     this.repo.storeSolution(this.solution);
   }
@@ -294,4 +301,11 @@ export class OpenActionsComponent implements OnInit {
     console.log(this.selectedEnvironment);
     this.repo.storeSolution(this.solution);
   }
+
+  authChange($event: AuthenticationDetails) {
+    if (this.solution == undefined)
+      return;
+
+    this.repo.storeSolution(this.solution);
+  }  
 }

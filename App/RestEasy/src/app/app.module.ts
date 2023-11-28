@@ -43,6 +43,9 @@ import { SettingsManageVariablesComponent } from './components/settings/settings
 import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
 import { SettingsManageEnvironmentComponent } from './components/settings/settings-manage-environment/settings-manage-environment.component';
 import { SettingsManageSecretsComponent } from './components/settings/settings-manage-secrets/settings-manage-secrets.component';
+import { SettingsManageAuthenticationAWSSigComponent } from './components/settings/settings-manage-authentication-awssig/settings-manage-authentication-awssig.component';
+import { SettingsManageAuthenticationNoneComponent } from './components/settings/settings-manage-authentication-none/settings-manage-authentication-none.component';
+import { SettingsManageAuthenticationInheritComponent } from './components/settings/settings-manage-authentication-inherit/settings-manage-authentication-inherit.component';
 
 @NgModule({
   declarations: [
@@ -66,7 +69,10 @@ import { SettingsManageSecretsComponent } from './components/settings/settings-m
     SettingsManageVariablesComponent,
     SettingsManageAuthenticationComponent,
     SettingsManageEnvironmentComponent,
-    SettingsManageSecretsComponent
+    SettingsManageSecretsComponent,
+    SettingsManageAuthenticationAWSSigComponent,
+    SettingsManageAuthenticationNoneComponent,
+    SettingsManageAuthenticationInheritComponent
   ],
   imports: [
     BrowserModule,

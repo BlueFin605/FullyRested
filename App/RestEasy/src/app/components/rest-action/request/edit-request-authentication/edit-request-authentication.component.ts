@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
 
 @Component({
   selector: 'app-edit-request-authentication',
@@ -8,7 +8,7 @@ import { AuthenticationDetails } from 'src/app/services/action-repository/action
 })
 export class EditRequestAuthenticationComponent implements OnInit {
   @Input()
-  auth: AuthenticationDetails = {};
+  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails();
 
   @Output()
   authChange = new EventEmitter<AuthenticationDetails>();

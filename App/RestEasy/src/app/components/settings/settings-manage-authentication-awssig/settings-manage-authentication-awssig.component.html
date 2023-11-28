@@ -1,0 +1,26 @@
+<div class="awssigcontainer">
+    <div class="awssigfield">
+        <mat-form-field class="awssig-field">
+            <mat-label>AccessKey</mat-label>
+            <input matInput placeholder="Input" [ngModel]="awssig.accessKey" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+    <div class="awssigfield">
+        <mat-form-field class="awssig-field">
+            <mat-label>SecretKey</mat-label>
+            <input matInput placeholder="Input" [ngModel]="awssig.secretKey" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+    <div class="awssigfield">
+        <mat-form-field class="awssig-field">
+            <mat-label>AWS Region</mat-label>
+            <input matInput placeholder="Input" [ngModel]="awssig.awsRegion" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+    <div class="awssigfield">
+        <mat-form-field class="awssig-field">
+            <mat-label>Service Name</mat-label>
+            <input matInput placeholder="Input" [ngModel]="awssig.serviceName" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+</div>
