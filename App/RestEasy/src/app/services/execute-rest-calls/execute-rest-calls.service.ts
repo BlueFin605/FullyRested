@@ -28,7 +28,7 @@ export const EmptyActionResult: RestActionResult = { status: "", statusText: und
 
 // const re = \[(.*?)\];
 
-const regexp = /\{\{(.*?)\}\}/g;
+const regexp = /\{\{(\$?[a-zA-Z]*?)\}\}/g;
 
 @Injectable({
   providedIn: 'root'
@@ -75,11 +75,20 @@ export class ExecuteRestCallsService {
   findVariable(value: string, solution: Solution | undefined): string {
     console.log(`findVariable(${value})`)
     console.log(solution?.config.solutionEnvironment.variables)
+    console.log(solution?.config.solutionEnvironment.secrets)
     if (solution == undefined)
        return "";
 
-    var solVar = solution.config.solutionEnvironment.variables.find(v => v.variable == value)?.value;
-    var envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.variables.find(v => v.variable == value)?.value;
+    var solVar: string | undefined;
+    var envVar: string | undefined;
+    if (value.startsWith('$')) {
+      value = value.substring(1);
+      solVar = solution.config.solutionEnvironment.secrets.find(v => v.$secret == value)?.$value;
+      envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.secrets.find(v => v.$secret == value)?.$value;
+    } else {
+      solVar = solution.config.solutionEnvironment.variables.find(v => v.variable == value)?.value;
+      envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.variables.find(v => v.variable == value)?.value;
+    }
 
     return envVar ?? solVar ?? "";
   }
