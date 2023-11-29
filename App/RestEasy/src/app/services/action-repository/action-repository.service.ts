@@ -47,6 +47,12 @@ export interface AuthenticationDetailsAWSSig {
   awsRegion: string;
   serviceName: string;
 }
+
+export interface RestActionBody {
+  contentType: string;
+  body: any;
+}
+
 export interface RestAction {
   id: string;
   name: string;
@@ -56,7 +62,7 @@ export interface RestAction {
   headers: HeaderTable[];
   parameters: ParamTable[];
   authentication: AuthenticationDetails;
-  body: string;
+  body: RestActionBody;
 }
 export interface LocalRestAction {
   action: RestAction;
@@ -127,14 +133,24 @@ export interface SavedAsCompleted {
   name: string;
 }
 
-const EmptyActionJSON: string = JSON.stringify({ id: '', name: '', verb: 'get', protocol: 'https', url: '', headers: [], parameters: [], body: '{}' });
+const EmptyActionJSON: string = JSON.stringify(CreateEmptyAction());
 const EmptyLocalActionJSON: string = JSON.stringify({ action: CreateEmptyAction(), dirty: false });
 
 export function CreateEmptyLocalAction(): LocalRestAction {
   return JSON.parse(EmptyLocalActionJSON);
 }
 export function CreateEmptyAction(): RestAction {
-  return JSON.parse(EmptyActionJSON);
+  return { 
+    id: '', 
+    name: '', 
+    verb: 'get', 
+    protocol: 'https', 
+    url: '', 
+    headers: [], 
+    parameters: [], 
+    body: {contentType: 'none', body: undefined},
+    authentication: CreateEmptyAuthenticationDetails('inherit')
+  };
 }
 
 export function CreateEmptyEnvironment(): Environment {
@@ -339,7 +355,7 @@ export class ActionRepositoryService {
               action: {
                 id: "3af54a2-ee78-1236-958d-83e496a94ba3",
                 name: "Image (trade-me)",
-                body: "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
+                body: {contentType: 'application/json', body: '{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}'},
                 verb: "get",
                 protocol: "https",
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
@@ -379,7 +395,7 @@ export class ActionRepositoryService {
               action: {
                 id: "3af54a2-ee12-1236-95aa-83e496a94ba4",
                 name: "XML Result",
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 verb: "get",
                 protocol: "https",
                 url: "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
@@ -451,7 +467,7 @@ export class ActionRepositoryService {
               action: {
                 id: "ddd54a4-ee95-4321-95aa-83e496a94ba4",
                 name: "JSON Result",
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 verb: "get",
                 protocol: "https",
                 url: "jsonplaceholder.typicode.com/todos/1",
@@ -510,7 +526,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
-                body: "{}"
+                body: {contentType: 'none', body: undefined}
               },
               dirty: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/trademe/logo.reasyreq"
@@ -585,7 +601,7 @@ export class ActionRepositoryService {
                     id: 10
                   }
                 ],
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -637,7 +653,7 @@ export class ActionRepositoryService {
                     id: 6
                   }
                 ],
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -652,7 +668,7 @@ export class ActionRepositoryService {
               action: {
                 id: "92f54a1-be78-4606-958d-13e456a94aac",
                 name: "XML Result",
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 verb: "get",
                 protocol: "https",
                 url: "cdn.animenewsnetwork.com/encyclopedia/api.xml",
@@ -705,7 +721,7 @@ export class ActionRepositoryService {
               action: {
                 id: "32f54a1-be78-4606-958d-23e496a94aaf",
                 name: "JSON Result(sfasfasfsadddd)",
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 verb: "get",
                 protocol: "https",
                 url: "jsonplaceholder.typicode.com/todos/1",
@@ -763,7 +779,7 @@ export class ActionRepositoryService {
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
                 headers: [],
                 parameters: [],
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -857,7 +873,7 @@ export class ActionRepositoryService {
                     id: 10
                   }
                 ],
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 authentication: CreateEmptyAuthenticationDetails('iherit')
               },
               dirty: true,
@@ -872,7 +888,7 @@ export class ActionRepositoryService {
                 url: "stackoverflow.com/questions/32979630/how-can-i-display-a-save-as-dialog-in-an-electron-app",
                 headers: [],
                 parameters: [],
-                body: "{}",
+                body: {contentType: 'none', body: undefined},
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,

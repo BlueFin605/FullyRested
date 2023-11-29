@@ -57,6 +57,7 @@ export class RestActionComponent implements OnInit {
   }
 
   async executeAction(action: ExecuteRestAction) {
+    this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);

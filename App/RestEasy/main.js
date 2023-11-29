@@ -4,7 +4,8 @@ const path = require('node:path')
 const fs = require('fs');
 const url = require('url');
 const axios = require('axios');
-const keytar = require('keytar')
+const keytar = require('keytar');
+const { request } = require('node:http');
 // var path = require('path');
 // const prom = require('node:fs/promises');
 
@@ -90,20 +91,42 @@ async function executeAction(event, request) {
     console.log(`request:[${JSON.stringify(request)})`);
 
     var url = `${request.protocol}://${request.url}`;
-    console.log(url);
+
     try {
-        var response = await axios({
+        switch (request.authentication?.authentication) {
+            case 'awssig':
+                url = await addAwsSigToRequest(url, request)
+                break;
+        }
+
+        request.headers['content-type'] = request.body.contentType;
+
+        console.log('=========== request ===========`')
+        console.log(url);
+        console.log(request);
+        console.log('--------------------------------')
+
+        var axiosRequest = {
             method: request.verb,
             url: url,
-            data: request.data,
+            data: buildData(request.body),
             headers: request.headers,
             transformResponse: (r) => r,
             responseType: 'arraybuffer'
-        })
-
+        }
+        
+        console.log(axiosRequest);
+        
+        console.log('--------------------------------')
+        
+        var response = await axios(axiosRequest);
+        
+        console.log('=========== response ===========`')
         console.log(response.statusText);
-        console.log(`response data type:[${typeof (response.data)}][${response.data}]`);
-
+        console.log(`response data type:[${typeof (response.data)}]`);
+        console.log(response.data);
+        console.log(response.data.headers);
+        
         // console.log(`[${JSON.stringify(response.request)}]`)
         return {
             status: response.status,
@@ -123,11 +146,48 @@ async function executeAction(event, request) {
                 headers: error.response.headers
             };
         }
-
+        
         return { status: "", statusText: error.code };
     }
 }
 
+function buildData(body)
+{
+    switch (body.contentType)
+    {
+        case 'application/x-www-form-urlencoded':
+        case 'none':
+        {
+            console.log('no body');
+            return undefined;
+        }
+    }
+    
+    console.log(body.body);
+    return body.body;
+}
+
+async function addAwsSigToRequest(url, rawrequest) {
+    console.log('addAwsSigToRequest');
+    const urlParts = new URL(url);
+    
+    const request = {
+        hostname: urlParts.hostname,
+        path: urlParts.pathname,
+        method: 'GET',
+        protocol: urlParts.protocol,
+        query: query,
+        headers: rawrequest.headers
+    };
+
+    request.headers['host'] = urlParts.host;
+
+    var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
+
+    rawrequest.headers = signedrequest.headers;
+    return rawrequest.href;
+
+}
 function saveState(request) {
     console.log(app.getPath("userData"));
     //  console.log(userPath);

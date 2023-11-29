@@ -31,5 +31,14 @@
             "id": 4
         }
     ],
-    "parameters": []
+    "parameters": [],
+    "authentication": {
+        "authentication": "none",
+        "awsSig": {
+            "accessKey": "",
+            "secretKey": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        }
+    }
 }

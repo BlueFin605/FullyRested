@@ -5,6 +5,15 @@
     "protocol": "https",
     "url": "stackoverflow.com/questions/16945719/facebook-group-feed-php-sdk",
     "headers": [],
-    "parameters": [],
+    "parameters": [],    "authentication": {
+        "authentication": "none",
+        "awsSig": {
+            "accessKey": "",
+            "secretKey": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        }
+    },
+
     "body": "{}"
 }

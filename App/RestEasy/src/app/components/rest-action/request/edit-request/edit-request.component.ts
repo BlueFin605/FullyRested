@@ -207,12 +207,13 @@ export class EditRequestComponent implements OnInit {
 
   // convertParsedUrlParamsToArray
   async test() {
+    console.log(this.action.body);
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
-      body: this.action.body ?? {},
+      body: this.action.body,
       authentication: this.action.authentication
     };
 
