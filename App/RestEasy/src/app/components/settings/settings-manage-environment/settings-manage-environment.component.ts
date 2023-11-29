@@ -9,7 +9,7 @@ import { CreateEmptyAuthenticationDetails, CreateEmptyEnvironment, Environment }
 export class SettingsManageEnvironmentComponent implements OnInit {
 
   @Input()
-  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails() }//CreateEmptyEnvironment();
+  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails('inherit') }//CreateEmptyEnvironment();
 
   @Output()
   environmentChange = new EventEmitter<Environment>();

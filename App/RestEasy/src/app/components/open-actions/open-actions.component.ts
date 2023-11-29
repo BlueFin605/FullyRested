@@ -236,7 +236,7 @@ export class OpenActionsComponent implements OnInit {
                 id: this.systemSupport.generateGUID(), 
                 variables: [ { variable: '', value: '', active: true, id: 1}], 
                 secrets: [ { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID()}],
-                auth: CreateEmptyAuthenticationDetails()
+                auth: CreateEmptyAuthenticationDetails('inherit')
               };
     this.solution.config.environments.push(env);
     console.log(this.solution);

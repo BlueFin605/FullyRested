@@ -143,12 +143,12 @@ export function CreateEmptyEnvironment(): Environment {
     id: '', 
     variables: [], 
     secrets: [],
-    auth: CreateEmptyAuthenticationDetails() 
+    auth: CreateEmptyAuthenticationDetails('inherit') 
   };
 }
 
-export function CreateEmptyAuthenticationDetails(): AuthenticationDetails {
-  return { authentication: 'none', awsSig: CreateEmptyAuthenticationDetailsAwsSig()};
+export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDetails {
+  return { authentication: type, awsSig: CreateEmptyAuthenticationDetailsAwsSig()};
 }
 
 export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
@@ -292,7 +292,7 @@ export class ActionRepositoryService {
           secrets: [
             { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
           ],
-          auth: CreateEmptyAuthenticationDetails()
+          auth: { authentication: 'awssig', awsSig: { accessKey: 'akey', secretKey: 'skey', awsRegion: 'eu-central-1', serviceName: 'sName' }}
         },
         environments: [
           {
@@ -304,21 +304,21 @@ export class ActionRepositoryService {
             secrets: [
               { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: 'sdfkjn' },
             ],
-            auth: CreateEmptyAuthenticationDetails()
+            auth: CreateEmptyAuthenticationDetails('inherit')
           },
           {
             name: 'test',
             id: '3df64a2-bf78-6321-958e-92e496a94fb4',
             variables: [],
             secrets: [],
-            auth: CreateEmptyAuthenticationDetails()
+            auth: CreateEmptyAuthenticationDetails('inherit')
           },
           {
             name: 'dev',
             id: '3df64a2-cf78-6321-958e-92e496a94fc5',
             variables: [],
             secrets: [],
-            auth: CreateEmptyAuthenticationDetails()
+            auth: CreateEmptyAuthenticationDetails('inherit')
           }
         ],
         selectedEnvironmentId: '3df64a2-af78-6321-958e-92e496a94fa3'
@@ -370,7 +370,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 parameters: [],
-                authentication: CreateEmptyAuthenticationDetails(),
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
               },
               dirty: true,
               fullFilename: ""
@@ -442,7 +442,7 @@ export class ActionRepositoryService {
                   },
 
                 ],
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -495,7 +495,7 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -509,7 +509,7 @@ export class ActionRepositoryService {
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
                 headers: [],
                 parameters: [],
-                authentication: CreateEmptyAuthenticationDetails(),
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
                 body: "{}"
               },
               dirty: false,
@@ -586,7 +586,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -638,7 +638,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -696,7 +696,7 @@ export class ActionRepositoryService {
                     id: 2
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/xml/XML Result.reasyreq"
@@ -749,7 +749,7 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -764,7 +764,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: "{}",
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""
@@ -858,7 +858,7 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: "{}",
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('iherit')
               },
               dirty: true,
               fullFilename: ""
@@ -873,7 +873,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: "{}",
-                authentication: CreateEmptyAuthenticationDetails()
+                authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
               fullFilename: ""

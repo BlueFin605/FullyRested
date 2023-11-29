@@ -212,7 +212,8 @@ export class EditRequestComponent implements OnInit {
       protocol: this.action.protocol,
       url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
-      body: this.action.body ?? {}
+      body: this.action.body ?? {},
+      authentication: this.action.authentication
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)

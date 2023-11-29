@@ -8,7 +8,7 @@ import { AuthenticationDetails, CreateEmptyAuthenticationDetails } from 'src/app
 })
 export class EditRequestAuthenticationComponent implements OnInit {
   @Input()
-  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails();
+  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails('inherit');
 
   @Output()
   authChange = new EventEmitter<AuthenticationDetails>();

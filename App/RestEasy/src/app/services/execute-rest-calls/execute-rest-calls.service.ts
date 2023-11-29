@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
-import { Solution } from '../action-repository/action-repository.service';
+import { Solution, AuthenticationDetails, Environment } from '../action-repository/action-repository.service';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -8,6 +8,7 @@ export interface ExecuteRestAction {
   url: string;
   headers: { [header: string]: string };
   body: any;
+  authentication: AuthenticationDetails | undefined;
 };
 
 export interface RestActionResult {
@@ -42,6 +43,7 @@ export class ExecuteRestCallsService {
   }
 
   async executeTest(action: ExecuteRestAction, solution: Solution | undefined): Promise<RestActionResult> {
+    this.AddAuthentication(action, solution);
     var actionText = JSON.stringify(action);
     actionText = this.replaceVariables(actionText, solution);
     action = JSON.parse(actionText);
@@ -54,6 +56,20 @@ export class ExecuteRestCallsService {
     var response = await this.getIpcRenderer().invoke('testRest', action);
     console.log(response);
     return response;
+  }
+
+  AddAuthentication(action: ExecuteRestAction, solution: Solution | undefined) {
+    var auth: AuthenticationDetails | undefined;
+    auth = solution?.config.solutionEnvironment.auth;
+
+    var env:Environment | undefined = solution?.config.environments.find( e => e.id == solution.config.selectedEnvironmentId);
+    if (auth == undefined || (env != undefined && env.auth.authentication != 'inherit'))
+       auth = env?.auth;
+
+    if (action.authentication == undefined || action.authentication.authentication == 'inherit') {
+      action.authentication = auth;
+    }
+    console.log(action.authentication);
   }
 
   replaceVariables(text: string, solution: Solution | undefined): string {

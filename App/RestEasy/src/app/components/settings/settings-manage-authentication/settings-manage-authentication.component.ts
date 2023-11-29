@@ -9,7 +9,7 @@ import { CreateEmptyAuthenticationDetails } from 'src/app/services/action-reposi
 })
 export class SettingsManageAuthenticationComponent implements OnInit {
   @Input()
-  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails();
+  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails('inherit');
 
   @Output()
   authChange = new EventEmitter<AuthenticationDetails>();
