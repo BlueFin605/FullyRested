@@ -29,50 +29,9 @@ const createWindow = () => {
 app.whenReady().then(() => {
     createWindow()
 
-    // traverseDirectory();
-    // console.log(prom);
-    // const versions = process.versions;
-    // console.log(versions);
-
-    // prom.readdir(app.getPath("userData"), { recursive: true })
-    //     .then(files => console.log(files))
-    //     .catch(err => {
-    //         console.log(err)
-    //     });
-
-    // const isDirectory = path => statSync(path).isDirectory();
-    // const getDirectories = path =>
-    //     fs.readdirSync(path).map(name => join(path, name)).filter(isDirectory);
-
-    // const isFile = path => statSync(path).isFile();
-    // const getFiles = path =>
-    //     fs.readdirSync(path).map(name => join(path, name)).filter(isFile);
-
-    // const getFilesRecursively = (path) => {
-    //     let dirs = getDirectories(path);
-    //     let files = dirs
-    //         .map(dir => getFilesRecursively(dir)) // go through each directory
-    //         .reduce((a, b) => a.concat(b), []);    // map returns a 2d array (array of file arrays) so flatten
-    //     return files.concat(getFiles(path));
-    // };
-
-    // getFilesRecursively(app.getPath("userData"))
-    //     .then(files => console.log(files))
-    //     .catch(err => {
-    //         console.log(err)
-    //     });
-
-
-
-    // tree = {};
-    // for (const filePath of walkSync(app.getPath("userData"), tree)) {
-    //     console.log(filePath);
-    // }
-
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
-
 
     ipcMain.handle("testRest", (event, request) => {
         return executeAction(event, request);
@@ -129,12 +88,6 @@ ipcMain.on("navigateDirectory", (event, path) => {
 
 async function executeAction(event, request) {
     console.log(`request:[${JSON.stringify(request)})`);
-    let axios_request = {
-        // headers: { 'Authorization': `Basic ${auth(pat)}` },
-        // validateStatus: function (status) {
-        //     return status == 429 || status == 404 || (status >= 200 && status < 300);
-        // }
-    }
 
     var url = `${request.protocol}://${request.url}`;
     console.log(url);
@@ -147,7 +100,7 @@ async function executeAction(event, request) {
             transformResponse: (r) => r,
             responseType: 'arraybuffer'
         })
-        // var response = await axios.get(url, axios_request);
+
         console.log(response.statusText);
         console.log(`response data type:[${typeof (response.data)}][${response.data}]`);
 
