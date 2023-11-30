@@ -6,8 +6,10 @@ const url = require('url');
 const axios = require('axios');
 const keytar = require('keytar');
 const { request } = require('node:http');
-// var path = require('path');
-// const prom = require('node:fs/promises');
+const { SignatureV4 } = require('@aws-sdk/signature-v4');
+const { Sha256 }= require('@aws-crypto/sha256-js');
+// import sigv4 from '@aws-sdk/signature-v4';
+// const { SignatureV4 } = sigv4;
 
 let win;
 
@@ -169,24 +171,68 @@ function buildData(body)
 
 async function addAwsSigToRequest(url, rawrequest) {
     console.log('addAwsSigToRequest');
+    console.log(url);
+    console.log(rawrequest);
+
     const urlParts = new URL(url);
     
+    // console.log(urlParts.hostname);
+    // console.log(urlParts.pathname);
+    // console.log(urlParts.protocol);
+    // console.log(urlParts.searchParams);
+    // console.log(rawrequest.headers);
+
+    const awsQueryParams = {};
+    urlParts.searchParams.forEach((value, key) => {
+        awsQueryParams[key] = value;
+    });
+    
+    // console.log(awsQueryParams);
+    
+    rawrequest.headers['host'] = urlParts.host;
+
     const request = {
         hostname: urlParts.hostname,
         path: urlParts.pathname,
         method: 'GET',
         protocol: urlParts.protocol,
-        query: query,
+        query: awsQueryParams,
         headers: rawrequest.headers
     };
 
-    request.headers['host'] = urlParts.host;
+    // console.log(request);
+    console.log(request);
+
+    const sigv4 = new SignatureV4({
+        service: rawrequest.authentication.awsSig.serviceName,
+        region: rawrequest.authentication.awsSig.awsRegion,
+        credentials: {
+          accessKeyId: rawrequest.authentication.awsSig.accessKey,
+          secretAccessKey: rawrequest.authentication.awsSig.secretKey
+        },
+        sha256: Sha256,
+      });
+
+    // console.log(sigv4);
 
     var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
 
-    rawrequest.headers = signedrequest.headers;
-    return rawrequest.href;
+    console.log(signedrequest);
 
+    rawrequest.headers = signedrequest.headers;
+
+    const searchParams = new URLSearchParams();
+    for (const key in signedrequest.query) {
+        if (signedrequest.query.hasOwnProperty(key)) {
+            searchParams.append(key, signedrequest.query[key]);
+        }
+    }
+
+    urlParts.search = searchParams.toString();
+    const finalUrl = urlParts.toString();
+    console.log(finalUrl);
+    return finalUrl;
+    // return `${rawrequest.protocol}://${rawrequest.url}`;
 }
 function saveState(request) {
     console.log(app.getPath("userData"));
