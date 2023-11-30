@@ -42,6 +42,7 @@ export interface AuthenticationDetails {
 }
 
 export interface AuthenticationDetailsAWSSig {
+  signUrl: boolean;
   accessKey: string;
   secretKey: string;
   awsRegion: string;
@@ -168,7 +169,7 @@ export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDe
 }
 
 export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
-  return { accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
+  return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
 }
 @Injectable({
   providedIn: 'root'
@@ -308,7 +309,7 @@ export class ActionRepositoryService {
           secrets: [
             { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
           ],
-          auth: { authentication: 'awssig', awsSig: { accessKey: 'akey', secretKey: 'skey', awsRegion: 'eu-central-1', serviceName: 'sName' }}
+          auth: { authentication: 'awssig', awsSig: { signUrl: false, accessKey: 'akey', secretKey: 'skey', awsRegion: 'eu-central-1', serviceName: 'sName' }}
         },
         environments: [
           {

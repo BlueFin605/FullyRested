@@ -1,4 +1,6 @@
 <div class="awssigcontainer">
+    <mat-checkbox [(ngModel)]="awssig.signUrl"(ngModelChange)="onChange($event)">Sign Url</mat-checkbox>
+
     <div class="awssigfield">
         <mat-form-field class="awssig-field">
             <mat-label>AccessKey</mat-label>

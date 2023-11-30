@@ -199,25 +199,30 @@ async function addAwsSigToRequest(url, rawrequest) {
         service: rawrequest.authentication.awsSig.serviceName,
         region: rawrequest.authentication.awsSig.awsRegion,
         credentials: {
-          accessKeyId: rawrequest.authentication.awsSig.accessKey,
-          secretAccessKey: rawrequest.authentication.awsSig.secretKey
+            accessKeyId: rawrequest.authentication.awsSig.accessKey,
+            secretAccessKey: rawrequest.authentication.awsSig.secretKey
         },
         sha256: Sha256,
-      });
-
-    var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
-
-    console.log(signedrequest);
-
-    rawrequest.headers = signedrequest.headers;
-
-    const searchParams = new URLSearchParams();
-    for (const key in signedrequest.query) {
-        if (signedrequest.query.hasOwnProperty(key)) {
-            searchParams.append(key, signedrequest.query[key]);
-        }
+    });
+    
+    if (rawrequest.authentication.awsSig.signUrl == false) {
+        var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
+        console.log(signedrequest);
+        rawrequest.headers = signedrequest.headers;
+        return url
     }
 
+    var signedrl = await sigv4.presign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
+    console.log(signedrl);
+    rawrequest.headers = signedrl.headers;
+
+    const searchParams = new URLSearchParams();
+    for (const key in signedrl.query) {
+        if (signedrl.query.hasOwnProperty(key)) {
+            searchParams.append(key, signedrl.query[key]);
+        }
+    }
+    
     urlParts.search = searchParams.toString();
     const finalUrl = urlParts.toString();
     console.log(finalUrl);
