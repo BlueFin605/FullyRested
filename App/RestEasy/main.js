@@ -171,8 +171,8 @@ function buildData(body)
 
 async function addAwsSigToRequest(url, rawrequest) {
     console.log('addAwsSigToRequest');
-    console.log(url);
-    console.log(rawrequest);
+    // console.log(url);
+    // console.log(rawrequest);
 
     const urlParts = new URL(url);
     
@@ -193,7 +193,6 @@ async function addAwsSigToRequest(url, rawrequest) {
     };
 
     // console.log(request);
-    console.log(request);
 
     const sigv4 = new SignatureV4({
         service: rawrequest.authentication.awsSig.serviceName,
@@ -226,6 +225,7 @@ async function addAwsSigToRequest(url, rawrequest) {
     urlParts.search = searchParams.toString();
     const finalUrl = urlParts.toString();
     console.log(finalUrl);
+    console.log(rawrequest);
     return finalUrl;
 }
 
