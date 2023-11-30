@@ -176,18 +176,10 @@ async function addAwsSigToRequest(url, rawrequest) {
 
     const urlParts = new URL(url);
     
-    // console.log(urlParts.hostname);
-    // console.log(urlParts.pathname);
-    // console.log(urlParts.protocol);
-    // console.log(urlParts.searchParams);
-    // console.log(rawrequest.headers);
-
     const awsQueryParams = {};
     urlParts.searchParams.forEach((value, key) => {
         awsQueryParams[key] = value;
     });
-    
-    // console.log(awsQueryParams);
     
     rawrequest.headers['host'] = urlParts.host;
 
@@ -213,8 +205,6 @@ async function addAwsSigToRequest(url, rawrequest) {
         sha256: Sha256,
       });
 
-    // console.log(sigv4);
-
     var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
 
     console.log(signedrequest);
@@ -232,8 +222,8 @@ async function addAwsSigToRequest(url, rawrequest) {
     const finalUrl = urlParts.toString();
     console.log(finalUrl);
     return finalUrl;
-    // return `${rawrequest.protocol}://${rawrequest.url}`;
 }
+
 function saveState(request) {
     console.log(app.getPath("userData"));
     //  console.log(userPath);
