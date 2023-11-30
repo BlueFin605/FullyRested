@@ -1,6 +1,8 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
+import { SelectedTreeItem } from '../solution-explorer/solution-explorer.component';
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
   selector: 'app-open-actions',
@@ -10,11 +12,15 @@ import { MatTabGroup } from '@angular/material/tabs';
 export class OpenActionsComponent implements OnInit {
   state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
+  enabledMenuOptions: string[] = [];
+  selectedType: string = "";
+  selectedSubType: string = "";
+  selectedEnvironment: Environment = CreateEmptyEnvironment();
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
 
-  constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef) {
+  constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef, private systemSupport: SystemSupportService) {
     this.repo.solutions.subscribe(s => {
       console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
       console.log(this.state);
@@ -112,6 +118,13 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolution();
   }
 
+  saveSolution() {
+    if (this.solution == undefined)
+      return;
+    console.log('saveSolution');
+    this.repo.saveSolution(this.solution);
+  }
+
   closeSolution() {
     console.log('closeSolution');
     this.solution = undefined;
@@ -125,6 +138,10 @@ export class OpenActionsComponent implements OnInit {
       .filter(num => !isNaN(num)));
 
     this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+
+    setTimeout(() => {
+      this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
+    });
   }
 
   saveAsRequest() {
@@ -155,13 +172,143 @@ export class OpenActionsComponent implements OnInit {
     var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == $event);
     if (existingTab != -1) {
       this.tabs.selectedIndex = existingTab;
-       return;
+      return;
     }
 
     this.repo.loadRequest($event).then(a => {
-      var newAction: LocalRestAction = {action: a, dirty: false, fullFilename: $event}; 
+      var newAction: LocalRestAction = { action: a, dirty: false, fullFilename: $event };
       this.currentSession().actions.push(newAction);
-      this.tabs.selectedIndex = (this.tabs._tabs.length ?? 0) - 1;
+      setTimeout(() => {
+        this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
+      });
     });
+  }
+
+  onSelectionChange(selected: SelectedTreeItem) {
+    console.log(selected);
+    console.log(this.solution?.config?.environments);
+    this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
+    this.selectedType = selected?.type;
+    this.selectedSubType = selected?.subtype;
+    if (selected.type == 'system' && selected.subtype == 'variables') {
+      if (selected.key == 'system.settings.variables') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`) ) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'system' && selected.subtype == 'secrets') {
+      if (selected.key == 'system.settings.secrets') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`) ) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'system' && selected.subtype == 'authentication') {
+      if (selected.key == 'system.settings.authentication') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`) ) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id) ) ?? CreateEmptyEnvironment();
+    } else {
+      this.selectedEnvironment = CreateEmptyEnvironment();
+    }
+
+    console.log(this.selectedEnvironment);
+  }
+
+  createEnvironment() {
+    if (this.solution == undefined)
+      return;
+
+    console.log('createEnvironment');
+    var env: Environment = { 
+                name: 'unnamed', 
+                id: this.systemSupport.generateGUID(), 
+                variables: [ { variable: '', value: '', active: true, id: 1}], 
+                secrets: [ { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID()}],
+                auth: CreateEmptyAuthenticationDetails('inherit')
+              };
+    this.solution.config.environments.push(env);
+    console.log(this.solution);
+    this.repo.storeSolution(this.solution);
+  }
+
+  deleteEnvironment() {
+    console.log('deleteEnvironment');
+    if (this.solution == undefined)
+      return;
+
+    console.log(this.solution.config);
+    console.log(this.selectedEnvironment);
+    this.solution.config.environments = this.solution.config.environments.filter(f => f.name != this.selectedEnvironment.name);
+    console.log(this.solution);
+    this.repo.storeSolution(this.solution);
+  }
+
+  actionDisabled(menuOption: string): boolean {
+    return !this.enabledMenuOptions.some(e => e == menuOption);
+  }
+
+  actionsVisible(): boolean {
+    // console.log(`actionVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+       return false;
+
+    if (this.selectedType != 'system')
+      return true;
+
+    return false;
+  }
+
+  variablesVisible(): boolean {
+    // console.log(`variablesVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'system' && this.selectedSubType == "variables")
+      return true;
+
+    return false;
+  }
+
+  authenticationVisible(): boolean {
+    // console.log(`authenticationVisible[${this.selectedType}][${this.selectedSubType}]`);
+    if (this.selectedType == 'system' && this.selectedSubType == "authentication")
+      return true;
+
+    return false;
+  }
+
+  environmentVisible(): boolean {
+    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+       return true;
+
+    return false;
+  }
+
+  secretsVisible(): boolean {
+    if (this.selectedType == 'system' && this.selectedSubType == 'secrets')
+       return true;
+
+    return false;
+  }
+
+  environmentChange(env: Environment) {
+    if (this.solution == undefined)
+      return;
+
+    var solenv = this.solution.config.environments.findIndex(e => e.id == env.id);
+    this.solution.config.environments[solenv] = env;
+    console.log(this.solution);
+    console.log(env);
+    console.log(this.selectedEnvironment);
+    this.repo.storeSolution(this.solution);
   }
 }

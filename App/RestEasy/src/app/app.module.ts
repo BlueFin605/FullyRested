@@ -38,6 +38,14 @@ import { DisplayResponseBodyHtmlComponent } from './components/rest-action/respo
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 import { SolutionExplorerComponent } from './components/solution-explorer/solution-explorer.component';
+import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
+import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
+import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
+import { SettingsManageEnvironmentComponent } from './components/settings/settings-manage-environment/settings-manage-environment.component';
+import { SettingsManageSecretsComponent } from './components/settings/settings-manage-secrets/settings-manage-secrets.component';
+import { SettingsManageAuthenticationAWSSigComponent } from './components/settings/settings-manage-authentication-awssig/settings-manage-authentication-awssig.component';
+import { SettingsManageAuthenticationNoneComponent } from './components/settings/settings-manage-authentication-none/settings-manage-authentication-none.component';
+import { SettingsManageAuthenticationInheritComponent } from './components/settings/settings-manage-authentication-inherit/settings-manage-authentication-inherit.component';
 
 @NgModule({
   declarations: [
@@ -56,7 +64,15 @@ import { SolutionExplorerComponent } from './components/solution-explorer/soluti
     DisplayResponseBodyHtmlComponent,
     DisplayResponseBodyXmlComponent,
     OpenActionsComponent,
-    SolutionExplorerComponent
+    SolutionExplorerComponent,
+    EditRequestAuthenticationComponent,
+    SettingsManageVariablesComponent,
+    SettingsManageAuthenticationComponent,
+    SettingsManageEnvironmentComponent,
+    SettingsManageSecretsComponent,
+    SettingsManageAuthenticationAWSSigComponent,
+    SettingsManageAuthenticationNoneComponent,
+    SettingsManageAuthenticationInheritComponent
   ],
   imports: [
     BrowserModule,

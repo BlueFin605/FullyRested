@@ -6,5 +6,14 @@
     "url": "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
     "headers": [],
     "parameters": [],
-    "body": "{}"
+    "body": "{}",
+    "authentication": {
+        "authentication": "none",
+        "awsSig": {
+            "accessKey": "",
+            "secretKey": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        }
+    }
 }

@@ -1,0 +1,16 @@
+<form class="example-form">
+    <div>
+        <mat-form-field appearance="fill">
+            <mat-label>Authorisation Method</mat-label>
+            <mat-select [(value)]="auth.authentication">
+                <mat-option value="inherit">Inherit</mat-option>
+                <mat-option value="none">None</mat-option>
+                <mat-option value="awssig">AWS Signature</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <app-settings-manage-authentication-awssig  *ngIf="auth.authentication=='awssig'" [(awssig)]="auth.awsSig" (awssigChange)="onChange($event)"></app-settings-manage-authentication-awssig>
+        <app-settings-manage-authentication-none *ngIf="auth.authentication=='none'"></app-settings-manage-authentication-none>
+        <app-settings-manage-authentication-inherit *ngIf="auth.authentication=='inherit'"></app-settings-manage-authentication-inherit>
+    </div>
+</form>

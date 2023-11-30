@@ -1,3 +1,123 @@
-{ 
-    "solutionGuid": "92f54a1-be78-4605-968d-13e456a94aab"
+{
+    "solutionGuid": "92f54a1-be78-4605-968d-13e456a94aab",
+    "selectedEnvironmentId": "1f442bb3-a1db-4c48-8c88-df8456fb3623",
+    "solutionEnvironment": {
+        "name": "system.settings",
+        "variables": [
+            {
+                "variable": "host",
+                "value": "www.google.com",
+                "active": true,
+                "id": 1
+            },
+            {
+                "variable": "userid",
+                "value": "123456",
+                "active": true,
+                "id": 2
+            }
+        ],
+        "secrets": [
+            {
+                "$secret": "secretkey",
+                "active": true,
+                "id": "11f6d3ac-2972-48e3-a50c-0fbf948ed2cd"
+            }
+        ],
+        "auth": {
+            "authentication": "awssig",
+            "awsSig": {
+                "accessKey": "akey",
+                "secretKey": "skey",
+                "awsRegion": "eu-central-1",
+                "serviceName": "sname"
+            }
+        }
+    },
+    "environments": [
+        {
+            "name": "Development",
+            "id": "154eaed5-336c-4995-beb1-7146bac6c69f",
+            "variables": [
+                {
+                    "variable": "env",
+                    "value": "dev",
+                    "active": true,
+                    "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.co.nz",
+                    "active": true,
+                    "id": 2
+                }
+            ],
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
+        },
+        {
+            "name": "Production",
+            "id": "1f442bb3-a1db-4c48-8c88-df8456fb3623",
+            "variables": [
+                {
+                    "variable": "env",
+                    "value": "prod",
+                    "active": true,
+                    "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.com.au",
+                    "active": true,
+                    "id": 2
+                }
+            ],
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
+        },
+        {
+            "name": "Test",
+            "id": "475941ef-006f-48a7-b823-ba440d6b5fac",
+            "variables": [
+                {
+                    "variable": "env",
+                    "value": "test",
+                    "active": true,
+                    "id": 1
+                },
+                {
+                    "variable": "host",
+                    "value": "www.google.co.uk",
+                    "active": true,
+                    "id": 2
+                }
+            ],
+            "secrets": [],
+            "auth": {
+                "authentication": "none",
+                "awsSig": {
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                }
+            }
+        }
+    ]
 }

@@ -1,22 +1,3 @@
-<!-- <mat-toolbar color="primary">
-  <mat-toolbar-row>
-    <span>Custom Toolbar</span>
-  </mat-toolbar-row>
-
-  <mat-toolbar-row>
-    <span>Second Line</span>
-    <span class="example-spacer"></span>
-    <mat-icon class="example-icon" aria-hidden="false" aria-label="Example user verified icon">verified_user</mat-icon>
-  </mat-toolbar-row>
-
-  <mat-toolbar-row>
-    <span>Third Line</span>
-    <span class="example-spacer"></span>
-    <mat-icon class="example-icon" aria-hidden="false" aria-label="Example heart icon">favorite</mat-icon>
-    <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">delete</mat-icon>
-  </mat-toolbar-row>
-</mat-toolbar> -->
-
 <mat-toolbar color="primary">
   <mat-toolbar-row>
     <button mat-icon-button class="example-icon" aria-label="Example icon-button with menu icon">
@@ -26,27 +7,31 @@
   </mat-toolbar-row>
 
   <mat-toolbar-row>
-    <button class="remove_button" mat-icon-button (click)="saveRequest()">
-      <mat-icon>save</mat-icon>
-    </button>
-    <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
+    <div>
+      <button class="remove_button" mat-icon-button (click)="saveRequest()">
+        <mat-icon>save</mat-icon>
+      </button>
+      <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
+    </div>
+    <div class="envselector" *ngIf="solution">
+      Select Environment:
+      <mat-form-field>
+        <mat-select [(value)]="solution.config!.selectedEnvironmentId">
+          <mat-option *ngFor="let env of solution?.config?.environments" [value]="env.id">
+            {{env.name}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
   </mat-toolbar-row>
 
   <mat-toolbar-row>
-    <!-- <span class="example-spacer"></span> -->
-    <!-- <button mat-icon-button class="example-icon favorite-icon" aria-label="Example icon-button with heart icon">
-    <mat-icon>favorite</mat-icon>
-  </button>
-  <button mat-icon-button class="example-icon" aria-label="Example icon-button with share icon">
-    <mat-icon>share</mat-icon>
-  </button> -->
-
     <div class="menubar">
-      <button mat-button [matMenuTriggerFor]="menu">File</button>
-      <mat-menu #menu="matMenu">
+      <button mat-button [matMenuTriggerFor]="file">File</button>
+      <mat-menu #file="matMenu">
         <button mat-menu-item (click)="openSolution()">Open Solution</button>
         <button mat-menu-item [matMenuTriggerFor]="recentSolutions">Open Recent</button>
-        <button mat-menu-item>Save Solution</button>
+        <button mat-menu-item (click)="saveSolution()">Save Solution</button>
         <button mat-menu-item (click)="closeSolution()">Close Solution</button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="newRequest()">New Request</button>
@@ -59,15 +44,21 @@
           {{ item.name }}
         </button>
       </mat-menu>
+
+      <button mat-button [matMenuTriggerFor]="solutionMenu">Solution</button>
+      <mat-menu #solutionMenu="matMenu">
+        <button mat-menu-item (click)="createEnvironment()" [disabled]="actionDisabled('createEnvironment')">Create Environment</button>
+        <button mat-menu-item (click)="deleteEnvironment()" [disabled]="actionDisabled('deleteEnvironment')">Delete Environment</button>
+      </mat-menu>
     </div>
   </mat-toolbar-row>
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)"></app-solution-explorer>
+  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)"></app-solution-explorer>
 </div>
 
-<div class="opendocuments">
+<div class="opendocuments" [hidden]="!actionsVisible()">
   <mat-tab-group animationDuration="0ms" #tabs>
     <mat-tab *ngFor="let action of currentSession().actions" labelClass='dirty'>
       <ng-template mat-tab-label>
@@ -77,8 +68,7 @@
           <mat-icon class="remove_icon">cancel</mat-icon>
         </button>
       </ng-template>
-      <app-rest-action [(action)]=action.action [fullFilename]="action.fullFilename"
-        (actionChange)="onActionChange(action)" (dirtyChange)="onDirtyChange(action,$event)"></app-rest-action>
+      <app-rest-action [solution]="solution" [(action)]=action.action [fullFilename]="action.fullFilename" (actionChange)="onActionChange(action)" (dirtyChange)="onDirtyChange(action,$event)"></app-rest-action>
     </mat-tab>
 
     <mat-tab class="add_tab" disabled>
@@ -89,4 +79,20 @@
       </ng-template>
     </mat-tab>
   </mat-tab-group>
+</div>
+
+<div class="opendocuments" [hidden]="!variablesVisible()">
+  <app-settings-manage-variables [(environment)]="selectedEnvironment"></app-settings-manage-variables>
+</div>
+
+<div class="opendocuments" [hidden]="!authenticationVisible()">
+  <app-settings-manage-authentication [(auth)]="selectedEnvironment.auth"></app-settings-manage-authentication>
+</div>
+
+<div class="opendocuments" [hidden]="!environmentVisible()">
+  <app-settings-manage-environment [(environment)]="selectedEnvironment" (environmentChange)="environmentChange($event)"></app-settings-manage-environment>
+</div>
+
+<div class="opendocuments" [hidden]="!secretsVisible()">
+  <app-settings-manage-secrets [(environment)]="selectedEnvironment"></app-settings-manage-secrets>
 </div>

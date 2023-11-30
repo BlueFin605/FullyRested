@@ -4,8 +4,12 @@ const path = require('node:path')
 const fs = require('fs');
 const url = require('url');
 const axios = require('axios');
-// var path = require('path');
-// const prom = require('node:fs/promises');
+const keytar = require('keytar');
+const { request } = require('node:http');
+const { SignatureV4 } = require('@aws-sdk/signature-v4');
+const { Sha256 }= require('@aws-crypto/sha256-js');
+// import sigv4 from '@aws-sdk/signature-v4';
+// const { SignatureV4 } = sigv4;
 
 let win;
 
@@ -28,50 +32,9 @@ const createWindow = () => {
 app.whenReady().then(() => {
     createWindow()
 
-    // traverseDirectory();
-    // console.log(prom);
-    // const versions = process.versions;
-    // console.log(versions);
-
-    // prom.readdir(app.getPath("userData"), { recursive: true })
-    //     .then(files => console.log(files))
-    //     .catch(err => {
-    //         console.log(err)
-    //     });
-
-    // const isDirectory = path => statSync(path).isDirectory();
-    // const getDirectories = path =>
-    //     fs.readdirSync(path).map(name => join(path, name)).filter(isDirectory);
-
-    // const isFile = path => statSync(path).isFile();
-    // const getFiles = path =>
-    //     fs.readdirSync(path).map(name => join(path, name)).filter(isFile);
-
-    // const getFilesRecursively = (path) => {
-    //     let dirs = getDirectories(path);
-    //     let files = dirs
-    //         .map(dir => getFilesRecursively(dir)) // go through each directory
-    //         .reduce((a, b) => a.concat(b), []);    // map returns a 2d array (array of file arrays) so flatten
-    //     return files.concat(getFiles(path));
-    // };
-
-    // getFilesRecursively(app.getPath("userData"))
-    //     .then(files => console.log(files))
-    //     .catch(err => {
-    //         console.log(err)
-    //     });
-
-
-
-    // tree = {};
-    // for (const filePath of walkSync(app.getPath("userData"), tree)) {
-    //     console.log(filePath);
-    // }
-
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
-
 
     ipcMain.handle("testRest", (event, request) => {
         return executeAction(event, request);
@@ -80,7 +43,7 @@ app.whenReady().then(() => {
     ipcMain.handle("readState", (event, request) => {
         return readState();
     });
-    
+
     ipcMain.handle("loadRequest", (event, request) => {
         return loadRequest(request);
     });
@@ -108,13 +71,14 @@ app.whenReady().then(() => {
         saveSolution(request);
     });
 
-    ipcMain.on("saveAsRequest", (event,request) => {
+    ipcMain.on("saveAsRequest", (event, request) => {
         saveAsRequest(request);
     });
 
-    ipcMain.on("saveRequest", (event,request) => {
+    ipcMain.on("saveRequest", (event, request) => {
         saveRequest(request);
-    });})
+    });
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
@@ -127,28 +91,44 @@ ipcMain.on("navigateDirectory", (event, path) => {
 
 async function executeAction(event, request) {
     console.log(`request:[${JSON.stringify(request)})`);
-    let axios_request = {
-        // headers: { 'Authorization': `Basic ${auth(pat)}` },
-        // validateStatus: function (status) {
-        //     return status == 429 || status == 404 || (status >= 200 && status < 300);
-        // }
-    }
 
     var url = `${request.protocol}://${request.url}`;
-    console.log(url);
+
     try {
-        var response = await axios({
+        switch (request.authentication?.authentication) {
+            case 'awssig':
+                url = await addAwsSigToRequest(url, request)
+                break;
+        }
+
+        request.headers['content-type'] = request.body.contentType;
+
+        console.log('=========== request ===========`')
+        console.log(url);
+        console.log(request);
+        console.log('--------------------------------')
+
+        var axiosRequest = {
             method: request.verb,
             url: url,
-            data: request.data,
+            data: buildData(request.body),
             headers: request.headers,
             transformResponse: (r) => r,
             responseType: 'arraybuffer'
-        })
-        // var response = await axios.get(url, axios_request);
+        }
+        
+        console.log(axiosRequest);
+        
+        console.log('--------------------------------')
+        
+        var response = await axios(axiosRequest);
+        
+        console.log('=========== response ===========`')
         console.log(response.statusText);
-        console.log(`response data type:[${typeof (response.data)}][${response.data}]`);
-
+        console.log(`response data type:[${typeof (response.data)}]`);
+        console.log(response.data);
+        console.log(response.data.headers);
+        
         // console.log(`[${JSON.stringify(response.request)}]`)
         return {
             status: response.status,
@@ -168,9 +148,85 @@ async function executeAction(event, request) {
                 headers: error.response.headers
             };
         }
-
+        
         return { status: "", statusText: error.code };
     }
+}
+
+function buildData(body)
+{
+    switch (body.contentType)
+    {
+        case 'application/x-www-form-urlencoded':
+        case 'none':
+        {
+            console.log('no body');
+            return undefined;
+        }
+    }
+    
+    console.log(body.body);
+    return body.body;
+}
+
+async function addAwsSigToRequest(url, rawrequest) {
+    console.log('addAwsSigToRequest');
+    // console.log(url);
+    // console.log(rawrequest);
+
+    const urlParts = new URL(url);
+    
+    const awsQueryParams = {};
+    urlParts.searchParams.forEach((value, key) => {
+        awsQueryParams[key] = value;
+    });
+    
+    rawrequest.headers['host'] = urlParts.host;
+
+    const request = {
+        hostname: urlParts.hostname,
+        path: urlParts.pathname,
+        method: 'GET',
+        protocol: urlParts.protocol,
+        query: awsQueryParams,
+        headers: rawrequest.headers
+    };
+
+    // console.log(request);
+
+    const sigv4 = new SignatureV4({
+        service: rawrequest.authentication.awsSig.serviceName,
+        region: rawrequest.authentication.awsSig.awsRegion,
+        credentials: {
+            accessKeyId: rawrequest.authentication.awsSig.accessKey,
+            secretAccessKey: rawrequest.authentication.awsSig.secretKey
+        },
+        sha256: Sha256,
+    });
+    
+    if (rawrequest.authentication.awsSig.signUrl == false) {
+        var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
+        console.log(signedrequest);
+        rawrequest.headers = signedrequest.headers;
+        return url
+    }
+
+    var signedrl = await sigv4.presign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
+    console.log(signedrl);
+    rawrequest.headers = signedrl.headers;
+
+    const searchParams = new URLSearchParams();
+    for (const key in signedrl.query) {
+        if (signedrl.query.hasOwnProperty(key)) {
+            searchParams.append(key, signedrl.query[key]);
+        }
+    }
+    
+    urlParts.search = searchParams.toString();
+    const finalUrl = urlParts.toString();
+    console.log(finalUrl);
+    console.log(rawrequest);
+    return finalUrl;
 }
 
 function saveState(request) {
@@ -222,7 +278,7 @@ function traverseDirectory(request) {
     console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
     // var path = app.getPath("userData");
     //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
-    var tree = { dir: { name: 'root', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
+    var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
     walkSync(request.pathname, request.filter, tree);
     // var json = JSON.stringify(tree);
     // console.log(json);
@@ -247,57 +303,134 @@ function walkSync(dir, filter, tree) {
     }
 }
 
-function loadSolution() {
-    dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] }).then(file => {
-        try {
-            console.log(file);
-            if (file.canceled == false) {
-                var filename = file.filePaths[0];
-                var pathname = path.dirname(filename);
-                var name = path.basename(filename);
-                loadSolutionFromFile(filename,name,pathname);
-            }
-        } catch (err) {
-            console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
+async function loadSolution() {
+    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] });
+
+    try {
+        console.log(file);
+        if (file.canceled == false) {
+            var filename = file.filePaths[0];
+            var pathname = path.dirname(filename);
+            var name = path.basename(filename);
+            await loadSolutionFromFile(filename, name, pathname);
         }
-    });
+    } catch (err) {
+        console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
+    }
 }
 
-function loadSolutionFromFile(filename, name, path) {
+async function loadSolutionFromFile(filename, name, path) {
     try {
-        console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
-        fs.readFile(filename, (err, data) => {
-            console.log(`loadSolutionFromFile response (${err},${data}`);
-            var solutionConfig = JSON.parse(data);
-            if (solutionConfig.recentSolutions == undefined) {
-                solutionConfig.recentSolutions = [];
-            }
+        var data = await new Promise((accept, reject) => {
+            console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
+            fs.readFile(filename, (err, data) => {
+                console.log(`loadSolutionFromFile response (${err},${data}`);
+                if (err)
+                    reject(err);
 
-            console.log(solutionConfig);
-            win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
+                accept(data);
+            });
         });
+
+        var solutionConfig = await addSecrets(data);
+        console.log(solutionConfig);
+        win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
     }
     catch (err) {
-        console.log(`Solution File not found!:[${JSON.stringify(file)}] - [${err}]`);
+        console.log(`Solution File load error!:[${err}]`);
     }
 }
 
 function saveSolution(request) {
-    fs.writeFileSync(request.solFile, JSON.stringify(request.solution)); // Even making it async would not add more than a few lines
+    console.log(`saveSolution[${JSON.stringify(request)}]`)
+    var sanitised = sanitiseObject(request.config);
+    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4)); // Even making it async would not add more than a few lines
+    win.webContents.send("loadSolutionResponse", request);
 }
 
-function saveAsRequest(request){
+async function addSecrets(data) {
+    var obj = JSON.parse(data);
+
+    await addPasswords(obj, buildKeytarService(obj));
+
+    return obj;
+}
+
+function sanitiseObject(solutionConfig) {
+    var serviceName = buildKeytarService(solutionConfig);
+
+    //make a copy
+    var copy = JSON.parse(JSON.stringify(solutionConfig));
+    stripPasswords(copy, serviceName);
+    return copy;
+}
+
+function stripPasswords(obj, serviceName) {
+    Object.keys(obj).forEach(key => {
+        // console.log(`key: [${key}], value: [${obj[key]}]`)
+
+        if (obj[key] === null) {
+            return;
+        }
+
+        if (typeof obj[key] === 'object') {
+            // console.log(`$secret: ${$secret}, $value: ${$value}`);
+            var $secret = obj[key]['$secret'];
+            var $value = obj[key]['$value'];
+
+            if ($secret != undefined && $value != undefined) {
+                console.log(`sanitise $secret[${$secret}] $value[${$value}] into [${serviceName}]`);
+                keytar.setPassword(serviceName, $secret, $value);
+                obj[key]['$value'] = undefined;
+            }
+
+            stripPasswords(obj[key], serviceName);
+        }
+    })
+}
+
+async function addPasswords(obj, serviceName) {
+    for await (const key of Object.keys(obj)) {
+        // Object.keys(obj).forEach(key => {
+        // console.log(`key: [${key}], value: [${obj[key]}]`)
+
+        if (obj[key] === null) {
+            return;
+        }
+
+        if (typeof obj[key] === 'object') {
+            // console.log(`$secret: ${$secret}, $value: ${$value}`);
+            var $secret = obj[key]['$secret'];
+
+            if ($secret != undefined) {
+                var $value = await keytar.getPassword(serviceName, $secret);
+                console.log(`retrieve $secret[${$secret}] from [${serviceName}]`);
+                console.log($value);
+                obj[key]['$value'] = $value;
+                console.log(obj[key]);
+            }
+
+            await addPasswords(obj[key], serviceName);
+        }
+    }
+}
+
+function buildKeytarService(solutionConfig) {
+    return `resteasy-solution-${solutionConfig.solutionGuid}`;
+}
+
+function saveAsRequest(request) {
     // app.getPath("desktop")       // User's Desktop folder
     // app.getPath("documents")     // User's "My Documents" folder
     // app.getPath("downloads")     // User's Downloads folder
 
-//    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
+    //    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
 
-// defaultPath: toLocalPath, 
+    // defaultPath: toLocalPath, 
     console.log(request);
     var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Projects', extensions: ['reasyreq'] }] });
     console.log(userChosenPath);
-    if(userChosenPath == undefined){
+    if (userChosenPath == undefined) {
         return;
     }
     fs.writeFileSync(userChosenPath, JSON.stringify(request, null, 4));
@@ -305,13 +438,13 @@ function saveAsRequest(request){
         console.log(request.name);
         var basename = path.basename(userChosenPath);
         console.log(basename);
-        request.name = basename.substring(0,basename.length - 9);
+        request.name = basename.substring(0, basename.length - 9);
         console.log(request.name);
     }
     win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }
 
-function saveRequest (request) {
+function saveRequest(request) {
     console.log(request);
 
     fs.writeFileSync(request.fullFilename, JSON.stringify(request.action, null, 4));

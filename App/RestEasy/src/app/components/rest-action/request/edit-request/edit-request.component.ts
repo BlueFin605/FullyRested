@@ -8,6 +8,7 @@ import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
+import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
 
 @Component({
   selector: 'app-edit-request',
@@ -160,6 +161,12 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
+  onAuthChange(auth: AuthenticationDetails) {
+    console.log(auth);
+    console.log(this.action);
+    this.actionChange.emit(this.action);
+  }
+
   onHeadersChange(event: any) {
     // console.log(event);    
     this.actionChange.emit(this.action);
@@ -200,12 +207,14 @@ export class EditRequestComponent implements OnInit {
 
   // convertParsedUrlParamsToArray
   async test() {
+    console.log(this.action.body);
     var action: ExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
-      body: this.action.body ?? {}
+      body: this.action.body,
+      authentication: this.action.authentication
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)

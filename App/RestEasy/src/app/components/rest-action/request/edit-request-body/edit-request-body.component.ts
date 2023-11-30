@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { RestActionBody } from 'src/app/services/action-repository/action-repository.service';
 
 @Component({
   selector: 'app-edit-request-body',
@@ -8,24 +9,33 @@ import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 })
 export class EditRequestBodyComponent implements OnInit {
   // private initialData: string;
-  private visibleData: string = '';
+  visibleData: RestActionBody = {contentType: 'none', body: new ArrayBuffer(0)};
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
   @ViewChild('editor') bodyChild: JsonEditorComponent | undefined;
 
-  @Input() set body(body: string) {
+  @Input() set body(body: RestActionBody) {
     // this.initialData = body;
-    if (this.visibleData != body) {
-      this.visibleData = body;
-      this.jsonObj = JSON.parse(body);
-      console.log('set body');
-      console.log(JSON.stringify(this.visibleData));
+    if (this.visibleData == body)
+        return;
+
+    this.visibleData = body;
+
+    switch(body?.contentType)
+    {
+      case 'application/json':
+        {
+          const str = body?.body ?? '{}';
+          console.log(`set body[${str}]`);
+          this.jsonObj = JSON.parse(str);
+          console.log(this.jsonObj);
+        }
     }
   }
 
   @Output()
-  bodyChange = new EventEmitter<string>();
+  bodyChange = new EventEmitter<RestActionBody>();
 
   constructor() {
     this.editorOptions = new JsonEditorOptions()
@@ -38,28 +48,32 @@ export class EditRequestBodyComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  // get body(): any {
-  //   // console.log(`valid json:${this.bodyChild?.isValidJson()}`);
-  //   return this.initialData;
-  // }
+  onContentTypeChange(event: any) {
+    console.log(event);
+    this.visibleData.contentType = event.value;
+    console.log(this.visibleData);
 
-  // get json(): any {
-  //   return JSON.parse(this.bodyChild?.getText() ?? '');
-  // }
+    switch(this.visibleData.contentType)
+    {
+      case 'application/json':
+        {
+          if (this.visibleData.body == undefined)
+            this.visibleData.body = '{}';
+            this.jsonObj = {};
+          // const str = body?.body ?? '{}';
+          // console.log(`set body[${str}]`);
+          // this.jsonObj = JSON.parse(str);
+          // console.log(this.jsonObj);
+        }
+    }
 
-  // get jsonText(): any {
-  //   return this.bodyChild?.getText();
-  // }
 
-  // get isValidJSON(): boolean {
-  //   console.log(`[i]valid json:${this.bodyChild?.isValidJson()}`);
-  //   console.log(JSON.stringify(this.bodyChild?.getText()));
-  //   return this.bodyChild?.isValidJson() ?? false;
-  // }
-
+    // this.selectedview = event.value;
+  }
 
   updateData(d: Event) {
     console.log('updateData');
+    console.log(this.jsonObj);
     console.log(JSON.stringify(d));
     console.log(`[u]valid json:${this.bodyChild?.isValidJson()}`);
 
@@ -67,10 +81,8 @@ export class EditRequestBodyComponent implements OnInit {
     if (d.isTrusted == true)
       return;
 
-    this.visibleData = this.bodyChild?.getText() ?? '';
-
+    this.visibleData.body = this.bodyChild?.getText() ?? '{}';
     console.log(JSON.stringify(this.visibleData));
-
-    this.bodyChange.emit(this.bodyChild?.getText());
+    this.bodyChange.emit(this.visibleData);
   }
 }

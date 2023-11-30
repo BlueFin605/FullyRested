@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
+import { Solution, AuthenticationDetails, Environment } from '../action-repository/action-repository.service';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -7,6 +8,7 @@ export interface ExecuteRestAction {
   url: string;
   headers: { [header: string]: string };
   body: any;
+  authentication: AuthenticationDetails | undefined;
 };
 
 export interface RestActionResult {
@@ -25,6 +27,10 @@ export interface RestActionResultBody {
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
 export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined };
 
+// const re = \[(.*?)\];
+
+const regexp = /\{\{(\$?[a-zA-Z]*?)\}\}/g;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -36,7 +42,14 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(action: ExecuteRestAction): Promise<RestActionResult> {
+  async executeTest(action: ExecuteRestAction, solution: Solution | undefined): Promise<RestActionResult> {
+    this.AddAuthentication(action, solution);
+    var actionText = JSON.stringify(action);
+    actionText = this.replaceVariables(actionText, solution);
+    action = JSON.parse(actionText);
+    console.log(actionText);
+    console.log(action);
+
     if (this.getIpcRenderer() == undefined)
       return this.BuildMockData(action);
 
@@ -45,6 +58,56 @@ export class ExecuteRestCallsService {
     return response;
   }
 
+  AddAuthentication(action: ExecuteRestAction, solution: Solution | undefined) {
+    var auth: AuthenticationDetails | undefined;
+    auth = solution?.config.solutionEnvironment.auth;
+
+    var env:Environment | undefined = solution?.config.environments.find( e => e.id == solution.config.selectedEnvironmentId);
+    if (auth == undefined || (env != undefined && env.auth.authentication != 'inherit'))
+       auth = env?.auth;
+
+    if (action.authentication == undefined || action.authentication.authentication == 'inherit') {
+      action.authentication = auth;
+    }
+    console.log(action.authentication);
+  }
+
+  replaceVariables(text: string, solution: Solution | undefined): string {
+    console.log(`replaceVariables[${text}]`);
+    var matches = [...text.matchAll(regexp)];
+    console.log(matches);
+    matches.forEach(m => {
+      text = this.substituteValue(text, m[0],m[1], solution);
+    });
+
+    return text;
+  }
+
+  substituteValue(text: string, search: string, valueKey: string, solution: Solution | undefined):  string {
+    var replaced = text.replace(search,this.findVariable(valueKey, solution));
+    return replaced;
+  }
+
+  findVariable(value: string, solution: Solution | undefined): string {
+    console.log(`findVariable(${value})`)
+    console.log(solution?.config.solutionEnvironment.variables)
+    console.log(solution?.config.solutionEnvironment.secrets)
+    if (solution == undefined)
+       return "";
+
+    var solVar: string | undefined;
+    var envVar: string | undefined;
+    if (value.startsWith('$')) {
+      value = value.substring(1);
+      solVar = solution.config.solutionEnvironment.secrets.find(v => v.$secret == value)?.$value;
+      envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.secrets.find(v => v.$secret == value)?.$value;
+    } else {
+      solVar = solution.config.solutionEnvironment.variables.find(v => v.variable == value)?.value;
+      envVar = solution.config.environments.find( e => e.id == solution.config.selectedEnvironmentId)?.variables.find(v => v.variable == value)?.value;
+    }
+
+    return envVar ?? solVar ?? "";
+  }
 
   BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
     var enc = new TextEncoder();

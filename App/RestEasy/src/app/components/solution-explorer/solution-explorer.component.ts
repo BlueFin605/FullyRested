@@ -3,6 +3,14 @@ import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
 
+export interface SelectedTreeItem {
+  // id: string;
+  key: string;
+  enabledMenuOptions: string[];
+  type: string;
+  subtype: string;
+}
+
 @Injectable()
 export class ProductTreeviewConfig extends TreeviewConfig {
   override hasAllCheckBox = true;
@@ -35,7 +43,7 @@ export class SolutionExplorerComponent implements OnInit {
     console.log(solution);
     this._solution = solution;
     this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
-      this.items = [this.convertDirToTreeviewItem(t)];
+      this.items = [this.buildTreeview(t, solution.name)];
       this.expandTree(this.items);
       console.log(this.items);
     });
@@ -43,6 +51,9 @@ export class SolutionExplorerComponent implements OnInit {
 
   @Output()
   openFile = new EventEmitter<string>();
+
+  @Output()
+  onSelectionChange = new EventEmitter<SelectedTreeItem>();
 
   items: TreeviewItem[] = [];
 
@@ -52,6 +63,49 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   ngOnInit(): void {
+  }
+
+  buildTreeview(traverse: TraversedDrectory, name: string): TreeviewItem {
+    var children = [this.systemSettings(), this.convertDirToTreeviewItem(traverse)];
+
+    return new TreeviewItem({
+      text: name,
+      value: { type: 'dir', key: '__root_dir__' },
+      children: children,
+      collapsed: true
+    });
+  }
+
+  systemSettings(): TreeviewItem {
+    var systemchildren = [
+      new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: 'system.settings.variables' }, collapsed: false }),
+      new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: 'system.settings.authentication' }, collapsed: false }),
+      new TreeviewItem({ text: 'Secrets', value: { type: 'system', subtype: 'secrets', key: 'system.settings.secrets' }, collapsed: false }),
+      new TreeviewItem({ text: 'Environments', value: { type: 'dir', subtype: 'environments', key: 'system.settings.environments', actions: ['createEnvironment'] }, children: this.buildEnvironmentsAsChildren(), collapsed: false }),
+    ];
+
+    return new TreeviewItem({
+      text: 'Solution Settings',
+      value: { type: 'dir', key: 'system.settings' },
+      children: systemchildren,
+      collapsed: false
+    });
+
+  }
+
+  buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {
+    return this._solution?.config.environments.map(e => {
+      return new TreeviewItem({
+        text: e.name,
+        value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.id}`, actions: ['deleteEnvironment'] },
+        children: [      
+          new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.id}.variables` }, collapsed: false }),
+          new TreeviewItem({ text: 'Secrets', value: { type: 'system', subtype: 'secrets', key: `system.settings.environments.${e.id}.secrets` }, collapsed: false }),
+          new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.id}.authentication` }, collapsed: false }),
+        ],
+        collapsed: false
+      });
+    });
   }
 
   convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
@@ -71,42 +125,37 @@ export class SolutionExplorerComponent implements OnInit {
 
   expandTree(items: TreeviewItem[]): boolean {
     if (items == undefined)
-       return false;
+      return false;
 
     var hasFiles = false;
     //if there are any files then we should expand the folder
-    if (items.some(i => i.value.type == 'file')) {
+    if (items.some(i => i.value.type == 'file' || i.value.type == 'system' || i.value.type == 'environment')) {
       hasFiles = true;
     }
 
     //if any of the children have files expand the node
     var childrenHaveFles = false;
     items.forEach(i => {
-      i.collapsed = !this.expandTree(i.children);
+      i.collapsed = !this.expandTree(i.children) || i.value.type == 'system' || i.value.type == 'environment';
       childrenHaveFles = childrenHaveFles || !i.collapsed;
     });
 
     return hasFiles || childrenHaveFles;
   }
 
-  onSelectedChange($event: any) {
-    console.log($event);
-
-  }
-
   onClick($event: TreeviewItem) {
-    console.log('onClick');
-    console.log($event.value.key);
+    console.log(`onClick:[${$event.value.key}]`);
     this.selected = $event.value.key;
+    this.onSelectionChange.emit({key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
   }
 
   onDblClick($event: TreeviewItem) {
-    console.log('onDblClick');
-    
+    console.log(`onDblClick:[${$event.value.key}]`);
+
     if ($event.value.type != 'file')
-    return;
-  
-  console.log($event.value.key);
+      return;
+
+    console.log($event.value.key);
     this.openFile.emit($event.value.key);
   }
 
