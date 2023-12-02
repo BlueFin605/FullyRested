@@ -71,6 +71,10 @@ app.whenReady().then(() => {
         saveSolution(request);
     });
 
+    ipcMain.on("saveSolutionAs", (event, request) => {
+        saveSolutionAs(request);
+    });
+
     ipcMain.on("saveAsRequest", (event, request) => {
         saveAsRequest(request);
     });
@@ -276,9 +280,13 @@ function buildStateFilename() {
 
 function traverseDirectory(request) {
     console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
+    
     // var path = app.getPath("userData");
     //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
     var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
+    if (request.pathname == '')
+        return tree;
+
     walkSync(request.pathname, request.filter, tree);
     // var json = JSON.stringify(tree);
     // console.log(json);
@@ -342,10 +350,25 @@ async function loadSolutionFromFile(filename, name, path) {
 }
 
 function saveSolution(request) {
-    console.log(`saveSolution[${JSON.stringify(request)}]`)
+    console.log(`saveSolution`);
+    console.log(request);
     var sanitised = sanitiseObject(request.config);
     fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4)); // Even making it async would not add more than a few lines
     win.webContents.send("loadSolutionResponse", request);
+}
+
+function saveSolutionAs(request) {
+    console.log(request);
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Solution', extensions: ['reasycol'] }] });
+    console.log(userChosenPath);
+    if (userChosenPath == undefined) {
+        return;
+    }
+
+    request.filename = userChosenPath
+    request.path = path.dirname(request.filename);
+    request.name = path.basename(request.filename);
+    saveSolution(request);
 }
 
 async function addSecrets(data) {
@@ -378,7 +401,7 @@ function stripPasswords(obj, serviceName) {
             var $secret = obj[key]['$secret'];
             var $value = obj[key]['$value'];
 
-            if ($secret != undefined && $value != undefined) {
+            if ($secret && $value) {
                 console.log(`sanitise $secret[${$secret}] $value[${$value}] into [${serviceName}]`);
                 keytar.setPassword(serviceName, $secret, $value);
                 obj[key]['$value'] = undefined;
@@ -402,7 +425,7 @@ async function addPasswords(obj, serviceName) {
             // console.log(`$secret: ${$secret}, $value: ${$value}`);
             var $secret = obj[key]['$secret'];
 
-            if ($secret != undefined) {
+            if ($secret) {
                 var $value = await keytar.getPassword(serviceName, $secret);
                 console.log(`retrieve $secret[${$secret}] from [${serviceName}]`);
                 console.log($value);

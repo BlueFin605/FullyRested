@@ -26,7 +26,7 @@ export class OpenActionsComponent implements OnInit {
       console.log(this.state);
       this.solution = s;
       // this.appRef.tick();
-      if (s != undefined) {
+      if (s != undefined && s.filename.length > 0) {
         this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0, 4);
         this.state.recentSolutions.unshift({ fullFileName: s.filename, name: s.name, path: s.path });  //push to front
         this.state.currentSolution = s.filename;
@@ -118,11 +118,23 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolution();
   }
 
+  newSolution() {
+    console.log('newSolution');
+    this.repo.newSolution();
+  }
+
   saveSolution() {
     if (this.solution == undefined)
       return;
     console.log('saveSolution');
     this.repo.saveSolution(this.solution);
+  }
+
+  saveSolutionAs() {
+    if (this.solution == undefined)
+      return;
+    console.log('saveSolution');
+    this.repo.saveSolutionAs(this.solution);
   }
 
   closeSolution() {
@@ -131,7 +143,7 @@ export class OpenActionsComponent implements OnInit {
   }
 
   newRequest() {
-    console.log('closeSolution');
+    console.log('newRequest');
     var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
       .map(s => s.action.name.substring(12))
       .map(m => m.length == 0 ? 1 : parseInt(m))

@@ -90,7 +90,6 @@ export class SolutionExplorerComponent implements OnInit {
       children: systemchildren,
       collapsed: false
     });
-
   }
 
   buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {

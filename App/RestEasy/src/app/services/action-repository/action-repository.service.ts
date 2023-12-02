@@ -141,36 +141,55 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   return JSON.parse(EmptyLocalActionJSON);
 }
 export function CreateEmptyAction(): RestAction {
-  return { 
-    id: '', 
-    name: '', 
-    verb: 'get', 
-    protocol: 'https', 
-    url: '', 
-    headers: [], 
-    parameters: [], 
-    body: {contentType: 'none', body: undefined},
+  return {
+    id: '',
+    name: '',
+    verb: 'get',
+    protocol: 'https',
+    url: '',
+    headers: [],
+    parameters: [],
+    body: { contentType: 'none', body: undefined },
     authentication: CreateEmptyAuthenticationDetails('inherit')
   };
 }
 
 export function CreateEmptyEnvironment(): Environment {
-  return { 
-    name: '', 
-    id: '', 
-    variables: [], 
+  return {
+    name: '',
+    id: '',
+    variables: [],
     secrets: [],
-    auth: CreateEmptyAuthenticationDetails('inherit') 
+    auth: CreateEmptyAuthenticationDetails('inherit')
   };
 }
 
 export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDetails {
-  return { authentication: type, awsSig: CreateEmptyAuthenticationDetailsAwsSig()};
+  return { authentication: type, awsSig: CreateEmptyAuthenticationDetailsAwsSig() };
 }
 
 export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
   return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
 }
+
+export function CreateEmptySolution(): Solution {
+  return {
+    config: CreateEmptySolutionConfig(),
+    filename: '',
+    name: '',
+    path: ''
+  };
+}
+
+export function CreateEmptySolutionConfig(): SolutionConfig {
+  return {
+    solutionGuid: new SystemSupportService().generateGUID(),
+    solutionEnvironment: CreateEmptyEnvironment(),
+    environments: [],
+    selectedEnvironmentId: ''
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -199,13 +218,16 @@ export class ActionRepositoryService {
 
   public createNewAction(max: number): LocalRestAction {
     console.log(max);
-    var action = JSON.parse(EmptyLocalActionJSON);
+    var action:LocalRestAction = JSON.parse(EmptyLocalActionJSON);
     action.action.id = this.systemSupport.generateGUID();
     if (isFinite(max) == false)
       action.action.name = "new request";
     else
       action.action.name = "new request " + max;
 
+    action.action.headers.push({  key: 'user-agent', value: 'resteasy', active: true, id: 1});
+    action.action.headers.push({  key: 'accept', value: '*', active: true, id: 2});
+    action.action.headers.push({  key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: 3});
     return action;
   }
 
@@ -271,6 +293,12 @@ export class ActionRepositoryService {
     this.getIpcRenderer().send("loadSolution");
   }
 
+  public async newSolution() {
+    var solution:Solution = CreateEmptySolution();
+    solution.config.solutionEnvironment.auth.authentication = 'none';
+    this.solutions.next(solution);
+  }
+
   public async loadSolutionFromFile(file: RecentFile) {
     if (this.getIpcRenderer() == undefined) {
       console.log('send Mock');
@@ -288,6 +316,16 @@ export class ActionRepositoryService {
     }
 
     await this.getIpcRenderer().send('saveSolution', solution);
+  }
+
+
+  public async saveSolutionAs(solution: Solution) {
+    if (this.getIpcRenderer() == undefined) {
+      setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+      return;
+    }
+
+    await this.getIpcRenderer().send('saveSolutionAs', solution);
   }
 
   public async storeSolution(solution: Solution) {
