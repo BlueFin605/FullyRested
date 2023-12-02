@@ -6,10 +6,14 @@
                 <mat-option value="inherit">Inherit</mat-option>
                 <mat-option value="none">None</mat-option>
                 <mat-option value="awssig">AWS Signature</mat-option>
+                <mat-option value="basicauth">Basic Auth</mat-option>
+                <mat-option value="bearertoken">Bearer Token</mat-option>
             </mat-select>
         </mat-form-field>
 
         <app-settings-manage-authentication-awssig  *ngIf="auth.authentication=='awssig'" [(awssig)]="auth.awsSig" (awssigChange)="onChange($event)"></app-settings-manage-authentication-awssig>
+        <app-settings-manage-authentication-basic-auth  *ngIf="auth.authentication=='basicauth'" [(basicauth)]="auth.basicAuth" (basicAuthChange)="onChange($event)"></app-settings-manage-authentication-basic-auth>
+        <app-settings-manage-authentication-bearer-token  *ngIf="auth.authentication=='bearertoken'" [(bearertoken)]="auth.bearerToken" (bearertokenChange)="onChange($event)"></app-settings-manage-authentication-bearer-token>
         <app-settings-manage-authentication-none *ngIf="auth.authentication=='none'"></app-settings-manage-authentication-none>
         <app-settings-manage-authentication-inherit *ngIf="auth.authentication=='inherit'"></app-settings-manage-authentication-inherit>
     </div>

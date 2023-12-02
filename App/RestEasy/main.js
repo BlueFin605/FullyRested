@@ -98,10 +98,18 @@ async function executeAction(event, request) {
 
     var url = `${request.protocol}://${request.url}`;
 
+    var additionalHeaders = [];
+
     try {
         switch (request.authentication?.authentication) {
             case 'awssig':
                 url = await addAwsSigToRequest(url, request)
+                break;
+            case 'basicauth':
+                await addBasicAuthToRequest(request)
+                break;
+            case 'bearertoken':
+                await addBearerTokenToRequest(request)
                 break;
         }
 
@@ -233,6 +241,22 @@ async function addAwsSigToRequest(url, rawrequest) {
     return finalUrl;
 }
 
+async function addBearerTokenToRequest(rawrequest) {
+    console.log('addBearerTokenToRequest');
+    rawrequest.headers['Authorization'] = `Bearer ${rawrequest.authentication.bearerToken.token}`;
+}
+
+async function addBasicAuthToRequest(rawrequest) {
+    console.log('addBasicAuthToRequest');
+    var base64 = bytesToBase64(new TextEncoder().encode(`${rawrequest.authentication.basicAuth.userName}:${rawrequest.authentication.basicAuth.password}`)); // "YSDEgCDwkICAIOaWhyDwn6aE"
+    rawrequest.headers['Authorization'] = `Basic ${base64}`;
+}
+
+function bytesToBase64(bytes) {
+    const binString = String.fromCodePoint(...bytes);
+    return btoa(binString);
+}
+  
 function saveState(request) {
     console.log(app.getPath("userData"));
     //  console.log(userPath);
