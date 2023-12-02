@@ -42,11 +42,7 @@ export class SolutionExplorerComponent implements OnInit {
     console.log('set solution');
     console.log(solution);
     this._solution = solution;
-    this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
-      this.items = [this.buildTreeview(t, solution.name)];
-      this.expandTree(this.items);
-      console.log(this.items);
-    });
+    this.rebuildTree(solution);
   }
 
   @Output()
@@ -65,7 +61,15 @@ export class SolutionExplorerComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  buildTreeview(traverse: TraversedDrectory, name: string): TreeviewItem {
+  rebuildTree(solution: Solution) {
+    this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
+      this.items = [this.buildTreeview(t, solution.name)];
+      this.expandTree(this.items);
+      console.log(this.items);
+    });
+  }
+
+  private buildTreeview(traverse: TraversedDrectory, name: string): TreeviewItem {
     var children = [this.systemSettings(), this.convertDirToTreeviewItem(traverse)];
 
     return new TreeviewItem({
@@ -76,7 +80,7 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
-  systemSettings(): TreeviewItem {
+  private systemSettings(): TreeviewItem {
     var systemchildren = [
       new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: 'system.settings.variables' }, collapsed: false }),
       new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: 'system.settings.authentication' }, collapsed: false }),
@@ -92,7 +96,7 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
-  buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {
+  private buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {
     return this._solution?.config.environments.map(e => {
       return new TreeviewItem({
         text: e.name,
@@ -107,7 +111,7 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
-  convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
+  private convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
     var children = traverse.subdirs.map(s => this.convertDirToTreeviewItem(s));
     children = children.concat(traverse.files.map(f => new TreeviewItem({
       text: f.name,
@@ -122,7 +126,7 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
-  expandTree(items: TreeviewItem[]): boolean {
+  private expandTree(items: TreeviewItem[]): boolean {
     if (items == undefined)
       return false;
 
@@ -158,7 +162,7 @@ export class SolutionExplorerComponent implements OnInit {
     this.openFile.emit($event.value.key);
   }
 
-  onFilterChange($event: any) {
+  private onFilterChange($event: any) {
 
   }
 }

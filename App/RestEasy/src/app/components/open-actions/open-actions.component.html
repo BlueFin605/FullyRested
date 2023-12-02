@@ -57,7 +57,7 @@
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)"></app-solution-explorer>
+  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)" #explorer></app-solution-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
