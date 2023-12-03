@@ -39,6 +39,8 @@ export interface SecretTable {
 export interface AuthenticationDetails {
   authentication: string;
   awsSig: AuthenticationDetailsAWSSig;
+  basicAuth: AuthenticationDetailsBasicAuth;
+  bearerToken: AuthenticationDetailsBearerToken;
 }
 
 export interface AuthenticationDetailsAWSSig {
@@ -47,6 +49,15 @@ export interface AuthenticationDetailsAWSSig {
   secretKey: string;
   awsRegion: string;
   serviceName: string;
+}
+
+export interface AuthenticationDetailsBasicAuth {
+  userName: string;
+  password: string;
+}
+
+export interface AuthenticationDetailsBearerToken {
+  token: string;
 }
 
 export interface RestActionBody {
@@ -141,36 +152,68 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   return JSON.parse(EmptyLocalActionJSON);
 }
 export function CreateEmptyAction(): RestAction {
-  return { 
-    id: '', 
-    name: '', 
-    verb: 'get', 
-    protocol: 'https', 
-    url: '', 
-    headers: [], 
-    parameters: [], 
-    body: {contentType: 'none', body: undefined},
+  return {
+    id: '',
+    name: '',
+    verb: 'get',
+    protocol: 'https',
+    url: '',
+    headers: [],
+    parameters: [],
+    body: { contentType: 'none', body: undefined },
     authentication: CreateEmptyAuthenticationDetails('inherit')
   };
 }
 
 export function CreateEmptyEnvironment(): Environment {
-  return { 
-    name: '', 
-    id: '', 
-    variables: [], 
+  return {
+    name: '',
+    id: '',
+    variables: [],
     secrets: [],
-    auth: CreateEmptyAuthenticationDetails('inherit') 
+    auth: CreateEmptyAuthenticationDetails('inherit')
   };
 }
 
 export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDetails {
-  return { authentication: type, awsSig: CreateEmptyAuthenticationDetailsAwsSig()};
+  return {
+    authentication: type,
+    awsSig: CreateEmptyAuthenticationDetailsAwsSig(),
+    basicAuth: CreateEmptyAuthenticationDetailsBasicAuth(),
+    bearerToken: CreateEmptyAuthenticationDetailsBearerToken()
+  };
 }
 
 export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
   return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
 }
+
+export function CreateEmptyAuthenticationDetailsBasicAuth(): AuthenticationDetailsBasicAuth {
+  return { userName: '', password: '' };
+}
+
+export function CreateEmptyAuthenticationDetailsBearerToken(): AuthenticationDetailsBearerToken {
+  return { token: '' };
+}
+
+export function CreateEmptySolution(): Solution {
+  return {
+    config: CreateEmptySolutionConfig(),
+    filename: '',
+    name: '',
+    path: ''
+  };
+}
+
+export function CreateEmptySolutionConfig(): SolutionConfig {
+  return {
+    solutionGuid: new SystemSupportService().generateGUID(),
+    solutionEnvironment: CreateEmptyEnvironment(),
+    environments: [],
+    selectedEnvironmentId: ''
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -185,6 +228,7 @@ export class ActionRepositoryService {
       return;
 
     this.getIpcRenderer().receive('loadSolutionResponse', (solution: Solution) => {
+      this.patchSolution(solution);
       this.solutions.next(solution);
     });
 
@@ -193,19 +237,43 @@ export class ActionRepositoryService {
     });
   }
 
+  private patchSolution(solution: Solution) {
+    this.patchEnvironment(solution.config.solutionEnvironment);
+    solution.config.environments.forEach(e => this.patchEnvironment(e))
+  }
+
+  patchState(state: CurrentState) {
+    state.sessions.forEach(s => s.actions.forEach(a => this.patchAuthentication(a.action.authentication)));
+  }
+
+  patchEnvironment(env: Environment): void {
+    this.patchAuthentication(env.auth);
+  }
+  
+  patchAuthentication(auth: AuthenticationDetails) {
+    if (auth.basicAuth == undefined)
+       auth.basicAuth = CreateEmptyAuthenticationDetailsBasicAuth();
+  
+    if (auth.bearerToken == undefined)
+       auth.bearerToken = CreateEmptyAuthenticationDetailsBearerToken();
+  }
+
   private getIpcRenderer() {
     return (<any>window).ipc;
   }
 
   public createNewAction(max: number): LocalRestAction {
     console.log(max);
-    var action = JSON.parse(EmptyLocalActionJSON);
+    var action: LocalRestAction = JSON.parse(EmptyLocalActionJSON);
     action.action.id = this.systemSupport.generateGUID();
     if (isFinite(max) == false)
       action.action.name = "new request";
     else
       action.action.name = "new request " + max;
 
+    action.action.headers.push({ key: 'user-agent', value: 'resteasy', active: true, id: 1 });
+    action.action.headers.push({ key: 'accept', value: '*', active: true, id: 2 });
+    action.action.headers.push({ key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: 3 });
     return action;
   }
 
@@ -221,6 +289,8 @@ export class ActionRepositoryService {
       return this.mockCurrentState();
 
     var state: CurrentState = await this.getIpcRenderer().invoke('readState', '');
+
+    this.patchState(state);
     //  if (state.actions.length == 0)
     //     state.actions.push(CreateEmptyLocalAction());
 
@@ -258,7 +328,9 @@ export class ActionRepositoryService {
       return this.mockRequest();
     }
 
-    return await this.getIpcRenderer().invoke('loadRequest', fullFilename);
+    var request: RestAction = await this.getIpcRenderer().invoke('loadRequest', fullFilename);
+    this.patchAuthentication(request.authentication);
+    return request;
   }
 
   public async loadSolution() {
@@ -269,6 +341,12 @@ export class ActionRepositoryService {
     }
 
     this.getIpcRenderer().send("loadSolution");
+  }
+
+  public async newSolution() {
+    var solution: Solution = CreateEmptySolution();
+    solution.config.solutionEnvironment.auth.authentication = 'none';
+    this.solutions.next(solution);
   }
 
   public async loadSolutionFromFile(file: RecentFile) {
@@ -282,13 +360,22 @@ export class ActionRepositoryService {
   }
 
   public async saveSolution(solution: Solution) {
-    if (this.getIpcRenderer() == undefined)
-    {
+    if (this.getIpcRenderer() == undefined) {
       setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
       return;
     }
 
     await this.getIpcRenderer().send('saveSolution', solution);
+  }
+
+
+  public async saveSolutionAs(solution: Solution) {
+    if (this.getIpcRenderer() == undefined) {
+      setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+      return;
+    }
+
+    await this.getIpcRenderer().send('saveSolutionAs', solution);
   }
 
   public async storeSolution(solution: Solution) {
@@ -309,7 +396,12 @@ export class ActionRepositoryService {
           secrets: [
             { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
           ],
-          auth: { authentication: 'awssig', awsSig: { signUrl: false, accessKey: 'akey', secretKey: 'skey', awsRegion: 'eu-central-1', serviceName: 'sName' }}
+          auth: {
+            authentication: 'awssig',
+            awsSig: { signUrl: false, accessKey: 'akey', secretKey: 'skey', awsRegion: 'eu-central-1', serviceName: 'sName' },
+            basicAuth: { userName: '', password: '' },
+            bearerToken: { token: '' }
+          }
         },
         environments: [
           {
@@ -356,7 +448,7 @@ export class ActionRepositoryService {
               action: {
                 id: "3af54a2-ee78-1236-958d-83e496a94ba3",
                 name: "Image (trade-me)",
-                body: {contentType: 'application/json', body: '{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}'},
+                body: { contentType: 'application/json', body: '{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}' },
                 verb: "get",
                 protocol: "https",
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
@@ -396,7 +488,7 @@ export class ActionRepositoryService {
               action: {
                 id: "3af54a2-ee12-1236-95aa-83e496a94ba4",
                 name: "XML Result",
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 verb: "get",
                 protocol: "https",
                 url: "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
@@ -468,7 +560,7 @@ export class ActionRepositoryService {
               action: {
                 id: "ddd54a4-ee95-4321-95aa-83e496a94ba4",
                 name: "JSON Result",
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 verb: "get",
                 protocol: "https",
                 url: "jsonplaceholder.typicode.com/todos/1",
@@ -527,7 +619,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
-                body: {contentType: 'none', body: undefined}
+                body: { contentType: 'none', body: undefined }
               },
               dirty: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/trademe/logo.reasyreq"
@@ -602,7 +694,7 @@ export class ActionRepositoryService {
                     id: 10
                   }
                 ],
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -654,7 +746,7 @@ export class ActionRepositoryService {
                     id: 6
                   }
                 ],
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -669,7 +761,7 @@ export class ActionRepositoryService {
               action: {
                 id: "92f54a1-be78-4606-958d-13e456a94aac",
                 name: "XML Result",
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 verb: "get",
                 protocol: "https",
                 url: "cdn.animenewsnetwork.com/encyclopedia/api.xml",
@@ -722,7 +814,7 @@ export class ActionRepositoryService {
               action: {
                 id: "32f54a1-be78-4606-958d-23e496a94aaf",
                 name: "JSON Result(sfasfasfsadddd)",
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 verb: "get",
                 protocol: "https",
                 url: "jsonplaceholder.typicode.com/todos/1",
@@ -780,7 +872,7 @@ export class ActionRepositoryService {
                 url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
                 headers: [],
                 parameters: [],
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
@@ -874,7 +966,7 @@ export class ActionRepositoryService {
                     id: 10
                   }
                 ],
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 authentication: CreateEmptyAuthenticationDetails('iherit')
               },
               dirty: true,
@@ -889,7 +981,7 @@ export class ActionRepositoryService {
                 url: "stackoverflow.com/questions/32979630/how-can-i-display-a-save-as-dialog-in-an-electron-app",
                 headers: [],
                 parameters: [],
-                body: {contentType: 'none', body: undefined},
+                body: { contentType: 'none', body: undefined },
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,

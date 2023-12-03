@@ -1,0 +1,14 @@
+<div class="basicauthcontainer">
+    <div class="basicauthfield">
+        <mat-form-field class="basicauth-field">
+            <mat-label>User Name</mat-label>
+            <input matInput placeholder="Input" [(ngModel)]="basicauth.userName" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+    <div class="basicauthfield">
+        <mat-form-field class="basicauth-field">
+            <mat-label>Password</mat-label>
+            <input matInput placeholder="Input" [(ngModel)]="basicauth.password" (ngModelChange)="onChange($event)">
+        </mat-form-field>
+    </div>
+</div>

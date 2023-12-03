@@ -29,9 +29,11 @@
     <div class="menubar">
       <button mat-button [matMenuTriggerFor]="file">File</button>
       <mat-menu #file="matMenu">
+        <button mat-menu-item (click)="newSolution()">New Solution</button>
         <button mat-menu-item (click)="openSolution()">Open Solution</button>
         <button mat-menu-item [matMenuTriggerFor]="recentSolutions">Open Recent</button>
         <button mat-menu-item (click)="saveSolution()">Save Solution</button>
+        <button mat-menu-item (click)="saveSolutionAs()">Save Solution As</button>
         <button mat-menu-item (click)="closeSolution()">Close Solution</button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="newRequest()">New Request</button>
@@ -55,7 +57,7 @@
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)"></app-solution-explorer>
+  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)" #explorer></app-solution-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
