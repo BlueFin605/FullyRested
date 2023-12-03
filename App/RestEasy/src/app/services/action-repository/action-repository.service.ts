@@ -80,6 +80,7 @@ export interface LocalRestAction {
   action: RestAction;
   fullFilename: string;
   dirty: boolean;
+  active: boolean;
 }
 
 export interface LocalRestSession {
@@ -482,6 +483,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -554,6 +556,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -607,6 +610,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -622,6 +626,7 @@ export class ActionRepositoryService {
                 body: { contentType: 'none', body: undefined }
               },
               dirty: false,
+              active: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/trademe/logo.reasyreq"
             },
             {
@@ -698,6 +703,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -750,6 +756,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             }
           ]
@@ -808,6 +815,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: false,
+              active: false,
               fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/xml/XML Result.reasyreq"
             },
             {
@@ -861,6 +869,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -876,6 +885,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -970,6 +980,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('iherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             },
             {
@@ -985,6 +996,7 @@ export class ActionRepositoryService {
                 authentication: CreateEmptyAuthenticationDetails('inherit')
               },
               dirty: true,
+              active: false,
               fullFilename: ""
             }
           ]

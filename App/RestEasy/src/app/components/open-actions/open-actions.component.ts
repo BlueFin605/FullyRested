@@ -195,7 +195,7 @@ export class OpenActionsComponent implements OnInit {
     }
 
     this.repo.loadRequest($event).then(a => {
-      var newAction: LocalRestAction = { action: a, dirty: false, fullFilename: $event };
+      var newAction: LocalRestAction = { action: a, dirty: false, active: false, fullFilename: $event };
       this.currentSession().actions.push(newAction);
       setTimeout(() => {
         this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
