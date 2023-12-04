@@ -186,24 +186,45 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolutionFromFile(file);
   }
 
-  loadAction($event: string) {
-    console.log(`loadAction:[${$event}]`);
-    var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == $event);
+  loadAction(selected: SelectedTreeItem) {
+    console.log(`loadAction:[${selected.key}] activeTab[${selected.activeTab}]`);
+
+    this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
+    this.selectedType = selected?.type;
+    this.selectedSubType = selected?.subtype;
+
+    var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == selected.key);
     if (existingTab != -1) {
+      console.log(`updating existing tab[${existingTab}] with activeTab[${selected.activeTab}] this.currentSession().actions[existingTab].activeTab}] [${this.currentSession().actions[existingTab].activeTab}]`);
+      this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
+      console.log(this.currentSession().actions[existingTab]);
       this.tabs.selectedIndex = existingTab;
       return;
     }
 
-    this.repo.loadRequest($event).then(a => {
-      var newAction: LocalRestAction = { action: a, dirty: false, active: false, fullFilename: $event };
-      this.currentSession().actions.push(newAction);
-      setTimeout(() => {
-        this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
-      });
+    this.repo.loadRequest(selected.key).then(a => {
+      var activeTab = this.currentSession().actions.findIndex(a => a.activeTab);
+      console.log(`selected.activeTab[${selected.activeTab}] activeTab[${activeTab}] selected.key[${selected.key}]`)
+      if (selected.activeTab && activeTab != -1) {
+        console.log(`overwriting existing active tab`);
+        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, active: false, fullFilename: selected.key };
+        this.currentSession().actions[activeTab] = newAction;
+        setTimeout(() => {
+          this.tabs.selectedIndex = activeTab;
+        });
+      } else {
+        console.log(`opening to new tab`);
+        this.currentSession().actions.forEach(a => a.activeTab = false);
+        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, active: false, fullFilename: selected.key };
+        this.currentSession().actions.push(newAction);
+        setTimeout(() => {
+          this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
+        });
+      }
     });
   }
 
-  onSelectionChange(selected: SelectedTreeItem) {
+  openSystem(selected: SelectedTreeItem) {
     console.log(selected);
     console.log(this.solution?.config?.environments);
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
