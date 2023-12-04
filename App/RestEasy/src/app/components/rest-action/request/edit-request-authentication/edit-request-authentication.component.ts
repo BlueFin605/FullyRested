@@ -17,4 +17,8 @@ export class EditRequestAuthenticationComponent implements OnInit {
 
   ngOnInit(): void {
   }
+
+  onChange(event: AuthenticationDetails) {
+    this.authChange.emit(this.auth);
+  }
 }

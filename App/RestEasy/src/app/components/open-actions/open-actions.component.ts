@@ -107,6 +107,7 @@ export class OpenActionsComponent implements OnInit {
   removeAction(event: any) {
     var index = this.currentSession().actions.findIndex(i => i.action.id == event);
     this.currentSession().actions.splice(index, 1);
+    this.repo.saveCurrentState(this.state);
   }
 
   onActionChange(event: LocalRestAction) {
@@ -157,6 +158,7 @@ export class OpenActionsComponent implements OnInit {
       .filter(num => !isNaN(num)));
 
     this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+    this.repo.saveCurrentState(this.state);
 
     setTimeout(() => {
       this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
@@ -186,8 +188,8 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolutionFromFile(file);
   }
 
-  loadAction(selected: SelectedTreeItem) {
-    console.log(`loadAction:[${selected.key}] activeTab[${selected.activeTab}]`);
+  openAction(selected: SelectedTreeItem) {
+    console.log(`openAction:[${selected.key}] activeTab[${selected.activeTab}]`);
 
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
@@ -199,13 +201,19 @@ export class OpenActionsComponent implements OnInit {
       this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
       console.log(this.currentSession().actions[existingTab]);
       this.tabs.selectedIndex = existingTab;
+      this.repo.saveCurrentState(this.state);
       return;
     }
 
     this.repo.loadRequest(selected.key).then(a => {
       var activeTab = this.currentSession().actions.findIndex(a => a.activeTab);
       console.log(`selected.activeTab[${selected.activeTab}] activeTab[${activeTab}] selected.key[${selected.key}]`)
-      if (selected.activeTab && activeTab != -1) {
+
+      if (activeTab != -1) {
+        this.currentSession().actions[activeTab].activeTab = false;
+      }
+
+      if (selected.activeTab && activeTab != -1 && this.currentSession().actions[activeTab].dirty == false) {
         console.log(`overwriting existing active tab`);
         var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions[activeTab] = newAction;
@@ -221,7 +229,9 @@ export class OpenActionsComponent implements OnInit {
           this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
         });
       }
+      this.repo.saveCurrentState(this.state);
     });
+
   }
 
   openSystem(selected: SelectedTreeItem) {
