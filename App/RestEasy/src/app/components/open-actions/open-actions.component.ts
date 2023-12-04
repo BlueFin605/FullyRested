@@ -247,31 +247,31 @@ export class OpenActionsComponent implements OnInit {
         this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`)) ?? CreateEmptyEnvironment();
       }
     } else
-      if (selected.type == 'system' && selected.subtype == 'secrets') {
-        if (selected.key == 'system.settings.secrets') {
-          this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-        } else {
-          this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
-        }
-      } else
-        if (selected.type == 'system' && selected.subtype == 'authentication') {
-          if (selected.key == 'system.settings.authentication') {
-            this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-          } else {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
-          }
-        } else
-          if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-          } else
-            if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
-              this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-            } else
-              if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
-                this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-              } else {
-                this.selectedEnvironment = CreateEmptyEnvironment();
-              }
+    if (selected.type == 'system' && selected.subtype == 'secrets') {
+      if (selected.key == 'system.settings.secrets') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'system' && selected.subtype == 'authentication') {
+      if (selected.key == 'system.settings.authentication') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else {
+      this.selectedEnvironment = CreateEmptyEnvironment();
+    }
 
     console.log(this.selectedEnvironment);
   }
