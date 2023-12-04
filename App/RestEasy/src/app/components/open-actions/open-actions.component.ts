@@ -207,7 +207,7 @@ export class OpenActionsComponent implements OnInit {
       console.log(`selected.activeTab[${selected.activeTab}] activeTab[${activeTab}] selected.key[${selected.key}]`)
       if (selected.activeTab && activeTab != -1) {
         console.log(`overwriting existing active tab`);
-        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, active: false, fullFilename: selected.key };
+        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions[activeTab] = newAction;
         setTimeout(() => {
           this.tabs.selectedIndex = activeTab;
@@ -215,7 +215,7 @@ export class OpenActionsComponent implements OnInit {
       } else {
         console.log(`opening to new tab`);
         this.currentSession().actions.forEach(a => a.activeTab = false);
-        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, active: false, fullFilename: selected.key };
+        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions.push(newAction);
         setTimeout(() => {
           this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
