@@ -9,6 +9,7 @@ export interface SelectedTreeItem {
   enabledMenuOptions: string[];
   type: string;
   subtype: string;
+  activeTab: boolean;
 }
 
 @Injectable()
@@ -46,10 +47,10 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   @Output()
-  openFile = new EventEmitter<string>();
+  openFile = new EventEmitter<SelectedTreeItem>();
 
   @Output()
-  onSelectionChange = new EventEmitter<SelectedTreeItem>();
+  openSystem = new EventEmitter<SelectedTreeItem>();
 
   items: TreeviewItem[] = [];
 
@@ -147,19 +148,25 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   onClick($event: TreeviewItem) {
-    console.log(`onClick:[${$event.value.key}]`);
+    console.log(`onClick:[${$event.value.key}][${$event.value.type}]`);
     this.selected = $event.value.key;
-    this.onSelectionChange.emit({key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
+
+    if ($event.value.type == 'file') {
+        this.openFile.emit({activeTab: true, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
+        return;
+    }
+
+    this.openSystem.emit({activeTab: true, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
   }
 
   onDblClick($event: TreeviewItem) {
-    console.log(`onDblClick:[${$event.value.key}]`);
+    console.log(`onDblClick:[${$event.value.key}][${$event.value.type}]`);
 
     if ($event.value.type != 'file')
       return;
 
     console.log($event.value.key);
-    this.openFile.emit($event.value.key);
+    this.openFile.emit({activeTab: false, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
   }
 
   private onFilterChange($event: any) {

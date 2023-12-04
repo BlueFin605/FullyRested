@@ -57,7 +57,9 @@
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" (openFile)="loadAction($event)" (onSelectionChange)="onSelectionChange($event)" #explorer></app-solution-explorer>
+  <app-solution-explorer [solution]="solution" 
+                         (openFile)="loadAction($event)" 
+                         (openSystem)="openSystem($event)" #explorer></app-solution-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
@@ -70,7 +72,12 @@
           <mat-icon class="remove_icon">cancel</mat-icon>
         </button>
       </ng-template>
-      <app-rest-action [solution]="solution" [(action)]=action.action [fullFilename]="action.fullFilename" (actionChange)="onActionChange(action)" (dirtyChange)="onDirtyChange(action,$event)"></app-rest-action>
+      <app-rest-action [solution]="solution" 
+                       [(action)]=action.action 
+                       [fullFilename]="action.fullFilename" 
+                       (actionChange)="onActionChange(action)" 
+                       (dirtyChange)="onDirtyChange(action,$event)">
+      </app-rest-action>
     </mat-tab>
 
     <mat-tab class="add_tab" disabled>
