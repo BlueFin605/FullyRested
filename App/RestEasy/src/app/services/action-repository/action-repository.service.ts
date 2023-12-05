@@ -65,6 +65,11 @@ export interface RestActionBody {
   body: any;
 }
 
+export interface RestActionRun {
+  id: string;
+  name: string;
+  environment: Environment;
+}
 export interface RestAction {
   id: string;
   name: string;
@@ -75,7 +80,9 @@ export interface RestAction {
   parameters: ParamTable[];
   authentication: AuthenticationDetails;
   body: RestActionBody;
+  runs: RestActionRun[];
 }
+
 export interface LocalRestAction {
   action: RestAction;
   fullFilename: string;
@@ -163,7 +170,8 @@ export function CreateEmptyAction(): RestAction {
     headers: [],
     parameters: [],
     body: { contentType: 'none', body: undefined },
-    authentication: CreateEmptyAuthenticationDetails('inherit')
+    authentication: CreateEmptyAuthenticationDetails('inherit'),
+    runs: []
   };
 }
 
@@ -260,6 +268,13 @@ export class ActionRepositoryService {
       auth.bearerToken = CreateEmptyAuthenticationDetailsBearerToken();
   }
 
+  patchRequest(request: RestAction)
+  {
+    this.patchAuthentication(request.authentication);
+    if (request.runs == undefined)
+       request.runs = [];
+  }
+
   private getIpcRenderer() {
     return (<any>window).ipc;
   }
@@ -331,7 +346,7 @@ export class ActionRepositoryService {
     }
 
     var request: RestAction = await this.getIpcRenderer().invoke('loadRequest', fullFilename);
-    this.patchAuthentication(request.authentication);
+    this.patchRequest(request);
     return request;
   }
 
@@ -482,6 +497,7 @@ export class ActionRepositoryService {
                 ],
                 parameters: [],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -554,7 +570,8 @@ export class ActionRepositoryService {
                   },
 
                 ],
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -608,7 +625,8 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -624,6 +642,7 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: [],
                 body: { contentType: 'none', body: undefined }
               },
               dirty: false,
@@ -701,7 +720,8 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -754,7 +774,8 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -813,7 +834,8 @@ export class ActionRepositoryService {
                     id: 2
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: false,
               activeTab: false,
@@ -867,7 +889,8 @@ export class ActionRepositoryService {
                     id: 1
                   }
                 ],
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -883,7 +906,8 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: { contentType: 'none', body: undefined },
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -978,7 +1002,8 @@ export class ActionRepositoryService {
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
-                authentication: CreateEmptyAuthenticationDetails('iherit')
+                authentication: CreateEmptyAuthenticationDetails('iherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -994,7 +1019,8 @@ export class ActionRepositoryService {
                 headers: [],
                 parameters: [],
                 body: { contentType: 'none', body: undefined },
-                authentication: CreateEmptyAuthenticationDetails('inherit')
+                authentication: CreateEmptyAuthenticationDetails('inherit'),
+                runs: []
               },
               dirty: true,
               activeTab: false,
@@ -1074,7 +1100,12 @@ export class ActionRepositoryService {
         }
       ],
       parameters: [],
-      authentication: CreateEmptyAuthenticationDetails('inherited')
+      authentication: CreateEmptyAuthenticationDetails('inherited'),
+      runs: [ 
+        {id: `${name}-1`, name: 'test1', environment: CreateEmptyEnvironment()},
+        {id: `${name}-2`, name: 'test2', environment: CreateEmptyEnvironment()},
+        {id: `${name}-3`, name: 'test3', environment: CreateEmptyEnvironment()}
+      ]
     };
   }
 }

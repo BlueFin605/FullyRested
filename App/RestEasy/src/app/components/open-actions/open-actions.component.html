@@ -58,6 +58,7 @@
 
 <div class="explorer">
   <app-solution-explorer [solution]="solution" 
+                         [state]="state"
                          (openFile)="openAction($event)" 
                          (openSystem)="openSystem($event)" #explorer></app-solution-explorer>
 </div>
@@ -104,4 +105,8 @@
 
 <div class="opendocuments" [hidden]="!secretsVisible()">
   <app-settings-manage-secrets [(environment)]="selectedEnvironment"></app-settings-manage-secrets>
+</div>
+
+<div class="opendocuments" [hidden]="!runVisible()">
+  <app-rest-action-run></app-rest-action-run>
 </div>

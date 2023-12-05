@@ -16,6 +16,7 @@ export class OpenActionsComponent implements OnInit {
   selectedType: string = "";
   selectedSubType: string = "";
   selectedEnvironment: Environment = CreateEmptyEnvironment();
+  runkey: string | undefined;
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -50,9 +51,9 @@ export class OpenActionsComponent implements OnInit {
         action.action.name = a.name;
       }
 
-      setTimeout(() => {
+      setTimeout(async () => {
         if (this.solution) {
-          this.collectionExplorer?.rebuildTree(this.solution);
+          await this.collectionExplorer?.rebuildTree(this.solution, this.state);
         }
       });
 
@@ -194,6 +195,7 @@ export class OpenActionsComponent implements OnInit {
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
     this.selectedSubType = selected?.subtype;
+    this.runkey = selected?.runkey;
 
     var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == selected.key);
     if (existingTab != -1) {
@@ -240,6 +242,7 @@ export class OpenActionsComponent implements OnInit {
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
     this.selectedSubType = selected?.subtype;
+    
     if (selected.type == 'system' && selected.subtype == 'variables') {
       if (selected.key == 'system.settings.variables') {
         this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
@@ -314,10 +317,13 @@ export class OpenActionsComponent implements OnInit {
     if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
       return false;
 
-    if (this.selectedType != 'system')
-      return true;
+    if (this.selectedType == 'system')
+      return false;
 
-    return false;
+      if (this.selectedType == 'run')
+      return false;
+
+    return true;
   }
 
   variablesVisible(): boolean {
@@ -350,6 +356,13 @@ export class OpenActionsComponent implements OnInit {
     return false;
   }
 
+  runVisible(): boolean {
+    if (this.selectedType == 'run')
+      return true;
+
+    return false;
+  }
+  
   environmentChange(env: Environment) {
     if (this.solution == undefined)
       return;

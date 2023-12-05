@@ -48,6 +48,7 @@ import { SettingsManageAuthenticationNoneComponent } from './components/settings
 import { SettingsManageAuthenticationInheritComponent } from './components/settings/settings-manage-authentication-inherit/settings-manage-authentication-inherit.component';
 import { SettingsManageAuthenticationBasicAuthComponent } from './components/settings/settings-manage-authentication-basic-auth/settings-manage-authentication-basic-auth.component';
 import { SettingsManageAuthenticationBearerTokenComponent } from './components/settings/settings-manage-authentication-bearer-token/settings-manage-authentication-bearer-token.component';
+import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
 
 @NgModule({
   declarations: [
@@ -76,7 +77,8 @@ import { SettingsManageAuthenticationBearerTokenComponent } from './components/s
     SettingsManageAuthenticationNoneComponent,
     SettingsManageAuthenticationInheritComponent,
     SettingsManageAuthenticationBasicAuthComponent,
-    SettingsManageAuthenticationBearerTokenComponent
+    SettingsManageAuthenticationBearerTokenComponent,
+    RestActionRunComponent
   ],
   imports: [
     BrowserModule,
