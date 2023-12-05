@@ -1066,7 +1066,7 @@ export class ActionRepositoryService {
 
   private mockRequest(name: string): RestAction {
     return {
-      id: new SystemSupportService().generateGUID(),
+      id: name,
       name: name,
       body: { 
         contentType: 'application/json', 
