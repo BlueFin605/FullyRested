@@ -10,25 +10,25 @@
             "key": "accept",
             "value": "*/*",
             "active": true,
-            "id": 1
+            "id": "1"
         },
         {
             "key": "content-type",
             "value": "application/x-www-form-urlencoded",
             "active": true,
-            "id": 2
+            "id": "2"
         },
         {
             "key": "user-agent",
             "value": "RestEasy1.1",
             "active": true,
-            "id": 3
+            "id": "3"
         },
         {
             "key": "accept-encoding",
             "value": "gzip, deflate, br",
             "active": true,
-            "id": 4
+            "id": "4"
         }
     ],
     "parameters": [
@@ -36,13 +36,13 @@
             "key": "title",
             "value": "4658",
             "active": true,
-            "id": 1
+            "id": "5"
         },
         {
             "key": "userid",
             "value": "123",
             "active": true,
-            "id": 2
+            "id": "6"
         }
     ],
     "authentication": {

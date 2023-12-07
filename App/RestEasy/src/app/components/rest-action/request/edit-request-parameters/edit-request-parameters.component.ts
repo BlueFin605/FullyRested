@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ParamTable } from 'src/app/services/action-repository/action-repository.service'
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 const COLUMNS_SCHEMA = [
   {
@@ -42,7 +43,7 @@ export class EditRequestParametersComponent implements OnInit {
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor() {
+  constructor(private systemSupport: SystemSupportService) {
   }
 
   ngOnInit(): void {
@@ -53,17 +54,16 @@ export class EditRequestParametersComponent implements OnInit {
   }
 
   add() {
-    var max: number = Math.max(...this.params.map(m => m.id));
-    this.params = [...this.params, { key: '', value: '', active: true, id: max + 1 }];
+    this.params = [...this.params, { key: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
     this.paramsChange.emit(this.params);
   }
 
-  delete(id: number) {
+  delete(id: string) {
     this.params = this.params.filter(f => f.id != id);
     this.paramsChange.emit(this.params);
   }
 
-  activeClicked(id: number) {
+  activeClicked(id: string) {
     var entry = this.params.find(f => f.id === id);
     if (entry == undefined)
       return;

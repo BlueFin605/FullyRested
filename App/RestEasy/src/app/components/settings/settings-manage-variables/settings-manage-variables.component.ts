@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
+import { CreateEmptyEnvironment, Environment, VariableTable } from 'src/app/services/action-repository/action-repository.service'
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 const COLUMNS_SCHEMA = [
   {
@@ -32,15 +33,15 @@ const COLUMNS_SCHEMA = [
 export class SettingsManageVariablesComponent implements OnInit {
 
   @Input()
-  environment: Environment = CreateEmptyEnvironment();
+  variables: VariableTable[] = [];
 
   @Output()
-  environmentChange = new EventEmitter<Environment>();
+  variablesChange = new EventEmitter<VariableTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor() {
+  constructor(private systemSupport: SystemSupportService) {
   }
 
   ngOnInit(): void {
@@ -48,29 +49,25 @@ export class SettingsManageVariablesComponent implements OnInit {
 
   add() {
     var max = 0;
-    var vars: number[] = this.environment.variables.map(m => m.id);
-    if (vars.length > 0)
-       max = Math.max(...vars);
-    console.log(`max:[${max}]`);
-    this.environment.variables = [...this.environment.variables, { variable: '', value: '', active: true, id: max + 1 }];
-    this.environmentChange.emit(this.environment);
+    this.variables = [...this.variables, { variable: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
+    this.variablesChange.emit(this.variables);
   }
 
-  delete(id: number) {
-    this.environment.variables = this.environment.variables.filter(f => f.id != id);
-    this.environmentChange.emit(this.environment);
+  delete(id: string) {
+    this.variables = this.variables.filter(f => f.id != id);
+    this.variablesChange.emit(this.variables);
   }
 
-  activeClicked(id: number) {
-    var entry = this.environment.variables.find(f => f.id == id);
+  activeClicked(id: string) {
+    var entry = this.variables.find(f => f.id == id);
     if (entry == undefined)
       return;
 
     entry.active = !entry.active;
-    this.environmentChange.emit(this.environment);
+    this.variablesChange.emit(this.variables);
   }
 
   modelChangeFn(value: any) {
-    this.environmentChange.emit(this.environment);
+    this.variablesChange.emit(this.variables);
   }
 }

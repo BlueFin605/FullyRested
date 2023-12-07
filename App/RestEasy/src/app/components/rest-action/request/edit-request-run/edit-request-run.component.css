@@ -1,0 +1,29 @@
+.run-header {
+    /* margin: 60px; */
+    margin-left: 60px;
+    margin-right: 60px;
+    display: flex;
+    margin-bottom: 5px;
+}
+
+.verb-basics {
+    margin-right: 10px;
+}
+
+
+.run-verb {
+    width: 70px;
+    /* float: left; */
+}
+
+.run-protocol {
+    width: 65px;
+}
+
+.run-url {
+    flex-grow: 1;    
+}
+
+.run-send {
+    width: 10px;
+}

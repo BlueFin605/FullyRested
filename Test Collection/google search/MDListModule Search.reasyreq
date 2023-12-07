@@ -10,37 +10,37 @@
             "key": "q",
             "value": "MdListModule",
             "active": true,
-            "id": 1
+            "id": "1"
         },
         {
             "key": "rlz",
             "value": "1C5CHFA_enNZ1009NZ1009",
             "active": true,
-            "id": 2
+            "id": "2"
         },
         {
             "key": "oq",
             "value": "MdListModule",
             "active": true,
-            "id": 3
+            "id": "3"
         },
         {
             "key": "gs_lcrp",
             "value": "EgZjaHJvbWUyBggAEEUYOTIJCAEQABgNGIAEMgkIAhAAGA0YgAQyCQgDEAAYDRiABDIJCAQQABgNGIAEMggIBRAAGA0YHtIBBzQxOWowajeoAgCwAgA",
             "active": true,
-            "id": 4
+            "id": "4"
         },
         {
             "key": "sourceid",
             "value": "chrome",
             "active": true,
-            "id": 5
+            "id": "5"
         },
         {
             "key": "ie",
             "value": "UTF-8",
             "active": true,
-            "id": 6
+            "id": "6"
         }
     ],
     "authentication": {
@@ -50,7 +50,15 @@
             "secretKey": "",
             "awsRegion": "eu-central-1",
             "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
         }
     },
-    "body": "{}"
+    "body": "{}",
+    "runs": []
 }

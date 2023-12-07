@@ -12,21 +12,21 @@ export interface HeaderTable {
   key: string;
   value: string;
   active: boolean;
-  id: number;
+  id: string;
 };
 
 export interface ParamTable {
   key: string;
   value: string;
   active: boolean;
-  id: number;
+  id: string;
 };
 
 export interface VariableTable {
   variable: string;
   value: string;
   active: boolean;
-  id: number;
+  id: string;
 };
 
 export interface SecretTable {
@@ -68,8 +68,13 @@ export interface RestActionBody {
 export interface RestActionRun {
   id: string;
   name: string;
-  environment: Environment;
+  variables: VariableTable[];
+  secrets: SecretTable[];
+  authentication: AuthenticationDetails;
+  headers: HeaderTable[];
+  parameters: ParamTable[];
 }
+
 export interface RestAction {
   id: string;
   name: string;
@@ -154,12 +159,10 @@ export interface SavedAsCompleted {
   name: string;
 }
 
-const EmptyActionJSON: string = JSON.stringify(CreateEmptyAction());
-const EmptyLocalActionJSON: string = JSON.stringify({ action: CreateEmptyAction(), dirty: false });
-
 export function CreateEmptyLocalAction(): LocalRestAction {
-  return JSON.parse(EmptyLocalActionJSON);
+  return { action: CreateEmptyAction(), dirty: false, fullFilename: '', activeTab: false };
 }
+
 export function CreateEmptyAction(): RestAction {
   return {
     id: '',
@@ -224,6 +227,10 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
   }
 }
 
+export function CreateEmptyRestActionRun(): RestActionRun {
+  return {id: '', name: '', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')};
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -281,16 +288,16 @@ export class ActionRepositoryService {
 
   public createNewAction(max: number): LocalRestAction {
     console.log(max);
-    var action: LocalRestAction = JSON.parse(EmptyLocalActionJSON);
+    var action: LocalRestAction = CreateEmptyLocalAction();
     action.action.id = this.systemSupport.generateGUID();
     if (isFinite(max) == false)
       action.action.name = "new request";
     else
       action.action.name = "new request " + max;
 
-    action.action.headers.push({ key: 'user-agent', value: 'resteasy', active: true, id: 1 });
-    action.action.headers.push({ key: 'accept', value: '*', active: true, id: 2 });
-    action.action.headers.push({ key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: 3 });
+    action.action.headers.push({ key: 'user-agent', value: 'resteasy', active: true, id: 'aaa' });
+    action.action.headers.push({ key: 'accept', value: '*', active: true, id: new SystemSupportService().generateGUID() });
+    action.action.headers.push({ key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: new SystemSupportService().generateGUID() });
     return action;
   }
 
@@ -407,11 +414,11 @@ export class ActionRepositoryService {
           name: '',
           id: 'aaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
           variables: [
-            { variable: 'env', value: 'unknown', active: true, id: 1 },
-            { variable: 'host', value: 'www.google.com', active: true, id: 2 }
+            { variable: 'env', value: 'unknown', active: true, id: new SystemSupportService().generateGUID() },
+            { variable: 'host', value: 'www.google.com', active: true, id: new SystemSupportService().generateGUID() }
           ],
           secrets: [
-            { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: 'uuydsknfj' },
+            { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: new SystemSupportService().generateGUID() },
           ],
           auth: {
             authentication: 'awssig',
@@ -423,25 +430,25 @@ export class ActionRepositoryService {
         environments: [
           {
             name: 'prod',
-            id: '3df64a2-af78-6321-958e-92e496a94fa3',
+            id: new SystemSupportService().generateGUID(),
             variables: [
-              { variable: 'env', value: 'prod', active: true, id: 1 }
+              { variable: 'env', value: 'prod', active: true, id: new SystemSupportService().generateGUID() }
             ],
             secrets: [
-              { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: 'sdfkjn' },
+              { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: new SystemSupportService().generateGUID() },
             ],
             auth: CreateEmptyAuthenticationDetails('inherit')
           },
           {
             name: 'test',
-            id: '3df64a2-bf78-6321-958e-92e496a94fb4',
+            id: new SystemSupportService().generateGUID(),
             variables: [],
             secrets: [],
             auth: CreateEmptyAuthenticationDetails('inherit')
           },
           {
             name: 'dev',
-            id: '3df64a2-cf78-6321-958e-92e496a94fc5',
+            id: new SystemSupportService().generateGUID(),
             variables: [],
             secrets: [],
             auth: CreateEmptyAuthenticationDetails('inherit')
@@ -474,25 +481,25 @@ export class ActionRepositoryService {
                     key: "accept",
                     value: "*/*",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "content-type",
                     value: "application/x-www-form-urlencoded",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "user-agent",
                     value: "RestEasy1.0",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "accept-encoding",
                     value: "gzip, deflate, br",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 parameters: [],
@@ -516,37 +523,37 @@ export class ActionRepositoryService {
                     key: "accept",
                     value: "*/*",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "content-type",
                     value: "application/x-www-form-urlencoded",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "user-agent",
                     value: "RestEasy1.1",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "accept-encoding",
                     value: "gzip, deflate, br",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "my-header1",
                     value: "{{header1}}",
                     active: true,
-                    id: 5
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "my-header2",
                     value: "{{header2}}",
                     active: true,
-                    id: 6
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 parameters: [
@@ -554,19 +561,19 @@ export class ActionRepositoryService {
                     key: "userid",
                     value: "1",
                     active: false,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "param1",
                     value: "{{value1}}",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "param2",
                     value: "{{value2}}",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
 
                 ],
@@ -590,25 +597,25 @@ export class ActionRepositoryService {
                     key: "accept",
                     value: "*/*",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "content-type",
                     value: "application/x-www-form-urlencoded",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "user-agent",
                     value: "RestEasy1.2",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "accept-encoding",
                     value: "gzip, deflate, br",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 parameters: [
@@ -616,13 +623,13 @@ export class ActionRepositoryService {
                     key: "userid",
                     value: "1",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sort",
                     value: "firstname",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
@@ -662,61 +669,61 @@ export class ActionRepositoryService {
                     key: "q",
                     value: "angular material select first tab .selectedIndex",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sca_esv",
                     value: "578070544",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "rlz",
                     value: "1C5CHFA_enNZ1009NZ1009",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sxsrf",
                     value: "AM9HkKllLm75pun144GmcZse4QxpFrlWNg:1698741847525",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "ei",
                     value: "V75AZa3bH_7n2roP186e8Aw",
                     active: true,
-                    id: 5
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "ved",
                     value: "0ahUKEwjt4ovD8p-CAxX-s1YBHVenB84Q4dUDCBE",
                     active: true,
-                    id: 6
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "uact",
                     value: "5",
                     active: true,
-                    id: 7
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "oq",
                     value: "angular material select first tab .selectedIndex",
                     active: true,
-                    id: 8
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "gs_lp",
                     value: "Egxnd3Mtd2l6LXNlcnAiMGFuZ3VsYXIgbWF0ZXJpYWwgc2VsZWN0IGZpcnN0IHRhYiAuc2VsZWN0ZWRJbmRleDIHECEYoAEYCkilD1C5BVjhCHABeAGQAQCYAb8CoAHSBKoBBTItMS4xuAEDyAEA-AEB-AECwgIKEAAYRxjWBBiwA8ICBRAhGKABwgIIECEYFhgeGB3iAwQYACBBiAYBkAYI",
                     active: true,
-                    id: 9
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sclient",
                     value: "gws-wiz-serp",
                     active: true,
-                    id: 10
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
@@ -740,37 +747,37 @@ export class ActionRepositoryService {
                     key: "q",
                     value: "MdListModule",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "rlz",
                     value: "1C5CHFA_enNZ1009NZ1009",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "oq",
                     value: "MdListModule",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "gs_lcrp",
                     value: "EgZjaHJvbWUyBggAEEUYOTIJCAEQABgNGIAEMgkIAhAAGA0YgAQyCQgDEAAYDRiABDIJCAQQABgNGIAEMggIBRAAGA0YHtIBBzQxOWowajeoAgCwAgA",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sourceid",
                     value: "chrome",
                     active: true,
-                    id: 5
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "ie",
                     value: "UTF-8",
                     active: true,
-                    id: 6
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
@@ -799,25 +806,25 @@ export class ActionRepositoryService {
                     key: "accept",
                     value: "*/*",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "content-type",
                     value: "application/x-www-form-urlencoded",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "user-agent",
                     value: "RestEasy1.1",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "accept-encoding",
                     value: "gzip, deflate, br",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 parameters: [
@@ -825,13 +832,13 @@ export class ActionRepositoryService {
                     key: "userid",
                     value: "1",
                     active: false,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "title",
                     value: "4658",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
@@ -854,25 +861,25 @@ export class ActionRepositoryService {
                     key: "accept",
                     value: "*/*",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "content-type",
                     value: "application/x-www-form-urlencoded",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "user-agent",
                     value: "RestEasy1.2",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "accept-encoding",
                     value: "gzip, deflate, br",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 parameters: [
@@ -880,13 +887,13 @@ export class ActionRepositoryService {
                     key: "userid",
                     value: "1",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sort",
                     value: "firstname",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 authentication: CreateEmptyAuthenticationDetails('inherit'),
@@ -925,80 +932,80 @@ export class ActionRepositoryService {
                     key: "my-header1",
                     value: "{{header1}}",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "my-header2",
                     value: "{{header2}}",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "Environment",
                     value: "{{env}}",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   }],
                 parameters: [
                   {
                     key: "q",
                     value: "angular material select first tab .selectedIndex",
                     active: true,
-                    id: 1
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sca_esv",
                     value: "578070544",
                     active: true,
-                    id: 2
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "rlz",
                     value: "1C5CHFA_enNZ1009NZ1009",
                     active: true,
-                    id: 3
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sxsrf",
                     value: "AM9HkKllLm75pun144GmcZse4QxpFrlWNg:1698741847525",
                     active: true,
-                    id: 4
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "ei",
                     value: "V75AZa3bH_7n2roP186e8Aw",
                     active: true,
-                    id: 5
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "ved",
                     value: "0ahUKEwjt4ovD8p-CAxX-s1YBHVenB84Q4dUDCBE",
                     active: true,
-                    id: 6
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "uact",
                     value: "5",
                     active: true,
-                    id: 7
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "oq",
                     value: "angular material select first tab .selectedIndex",
                     active: true,
-                    id: 8
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "gs_lp",
                     value: "Egxnd3Mtd2l6LXNlcnAiMGFuZ3VsYXIgbWF0ZXJpYWwgc2VsZWN0IGZpcnN0IHRhYiAuc2VsZWN0ZWRJbmRleDIHECEYoAEYCkilD1C5BVjhCHABeAGQAQCYAb8CoAHSBKoBBTItMS4xuAEDyAEA-AEB-AECwgIKEAAYRxjWBBiwA8ICBRAhGKABwgIIECEYFhgeGB3iAwQYACBBiAYBkAYI",
                     active: true,
-                    id: 9
+                    id: new SystemSupportService().generateGUID()
                   },
                   {
                     key: "sclient",
                     value: "gws-wiz-serp",
                     active: true,
-                    id: 10
+                    id: new SystemSupportService().generateGUID()
                   }
                 ],
                 body: { contentType: 'none', body: undefined },
@@ -1080,31 +1087,33 @@ export class ActionRepositoryService {
           key: "accept",
           value: "*/*",
           active: true,
-          id: 1
+          id: new SystemSupportService().generateGUID()
         },
         {
           key: "content-type",
           value: "application/x-www-form-urlencoded",
           active: true,
-          id: 2
+          id: new SystemSupportService().generateGUID()
         },
         {
           key: "user-agent",
           value: "RestEasy1.0",
-          active: true, "id": 3
+          active: true, 
+          "id": new SystemSupportService().generateGUID()
         },
         {
           key: "accept-encoding", 
           value: "gzip, deflate, br", 
-          active: true, "id": 4
+          active: true, 
+          "id": new SystemSupportService().generateGUID()
         }
       ],
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherited'),
       runs: [ 
-        {id: `${name}-1`, name: 'test1', environment: CreateEmptyEnvironment()},
-        {id: `${name}-2`, name: 'test2', environment: CreateEmptyEnvironment()},
-        {id: `${name}-3`, name: 'test3', environment: CreateEmptyEnvironment()}
+        {id: new SystemSupportService().generateGUID(), name: 'test1', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
+        {id: new SystemSupportService().generateGUID(), name: 'test2', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
+        {id: new SystemSupportService().generateGUID(), name: 'test3', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')}
       ]
     };
   }

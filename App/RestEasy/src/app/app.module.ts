@@ -49,6 +49,7 @@ import { SettingsManageAuthenticationInheritComponent } from './components/setti
 import { SettingsManageAuthenticationBasicAuthComponent } from './components/settings/settings-manage-authentication-basic-auth/settings-manage-authentication-basic-auth.component';
 import { SettingsManageAuthenticationBearerTokenComponent } from './components/settings/settings-manage-authentication-bearer-token/settings-manage-authentication-bearer-token.component';
 import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
+import { EditRequestRunComponent } from './components/rest-action/request/edit-request-run/edit-request-run.component';
 
 @NgModule({
   declarations: [
@@ -78,7 +79,8 @@ import { RestActionRunComponent } from './components/rest-action/rest-action-run
     SettingsManageAuthenticationInheritComponent,
     SettingsManageAuthenticationBasicAuthComponent,
     SettingsManageAuthenticationBearerTokenComponent,
-    RestActionRunComponent
+    RestActionRunComponent,
+    EditRequestRunComponent
   ],
   imports: [
     BrowserModule,

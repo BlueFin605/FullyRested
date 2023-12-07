@@ -287,7 +287,7 @@ export class OpenActionsComponent implements OnInit {
     var env: Environment = {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
-      variables: [{ variable: '', value: '', active: true, id: 1 }],
+      variables: [{ variable: '', value: '', active: true, id: 'a' }],
       secrets: [{ $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }],
       auth: CreateEmptyAuthenticationDetails('inherit')
     };
@@ -320,9 +320,6 @@ export class OpenActionsComponent implements OnInit {
     if (this.selectedType == 'system')
       return false;
 
-      if (this.selectedType == 'run')
-      return false;
-
     return true;
   }
 
@@ -351,13 +348,6 @@ export class OpenActionsComponent implements OnInit {
 
   secretsVisible(): boolean {
     if (this.selectedType == 'system' && this.selectedSubType == 'secrets')
-      return true;
-
-    return false;
-  }
-
-  runVisible(): boolean {
-    if (this.selectedType == 'run')
       return true;
 
     return false;

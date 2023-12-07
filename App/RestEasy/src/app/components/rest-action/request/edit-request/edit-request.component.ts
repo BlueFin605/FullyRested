@@ -9,6 +9,7 @@ import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-r
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
 import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
   selector: 'app-edit-request',
@@ -38,7 +39,7 @@ export class EditRequestComponent implements OnInit {
 
   displayUrl: string = '';
 
-  constructor() { }
+  constructor(private systemSupport: SystemSupportService) { }
 
   ngOnInit(): void {
   }
@@ -116,8 +117,7 @@ export class EditRequestComponent implements OnInit {
   }
 
   private convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
-    var id = 1;
-    return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: id++ } });
+    return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: this.systemSupport.generateGUID() } });
   }
 
   private removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
@@ -142,9 +142,7 @@ export class EditRequestComponent implements OnInit {
       return parameters;
     }
 
-    var max: number = parameters.length == 0 ? 0 : Math.max(...parameters.map(m => m.id));
-    console.log(`max:[${max}]`);
-    return [...parameters, { key: added.key, value: added.value, active: true, id: max + 1 }];
+    return [...parameters, { key: added.key, value: added.value, active: true, id: this.systemSupport.generateGUID() }];
   }
 
   onParamChange(params: any) {
@@ -167,7 +165,7 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  onHeadersChange(event: any) {
+  onHeadersChange(event: HeaderTable[]) {
     // console.log(event);    
     this.actionChange.emit(this.action);
   }

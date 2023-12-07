@@ -1,4 +1,7 @@
-<div class="rest-action">
+<div class="section-border" *ngIf="runId">
+    <app-rest-action-run [(action)]="_action" [runId]="runId" (actionChange)="onActionChange($event)"></app-rest-action-run>
+</div>
+<div class="rest-action" *ngIf="!runId">
     <div class="section-border">
         <app-edit-request [(action)]="_action" (actionChange)="onActionChange($event)" (execute)="executeAction($event)"></app-edit-request>
     </div>
