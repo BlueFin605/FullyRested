@@ -1087,33 +1087,33 @@ export class ActionRepositoryService {
           key: "accept",
           value: "*/*",
           active: true,
-          id: new SystemSupportService().generateGUID()
+          id: 'aaaaa'
         },
         {
           key: "content-type",
           value: "application/x-www-form-urlencoded",
           active: true,
-          id: new SystemSupportService().generateGUID()
+          id: 'bbbbb'
         },
         {
           key: "user-agent",
           value: "RestEasy1.0",
           active: true, 
-          "id": new SystemSupportService().generateGUID()
+          "id": 'ccccc'
         },
         {
           key: "accept-encoding", 
           value: "gzip, deflate, br", 
           active: true, 
-          "id": new SystemSupportService().generateGUID()
+          "id": 'ddddd'
         }
       ],
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherited'),
       runs: [ 
-        {id: new SystemSupportService().generateGUID(), name: 'test1', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
-        {id: new SystemSupportService().generateGUID(), name: 'test2', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
-        {id: new SystemSupportService().generateGUID(), name: 'test3', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')}
+        {id: `eeeee-${name}`, name: 'test1', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
+        {id: `fffff-${name}`, name: 'test2', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')},
+        {id: `ggggg-${name}`, name: 'test3', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none')}
       ]
     };
   }

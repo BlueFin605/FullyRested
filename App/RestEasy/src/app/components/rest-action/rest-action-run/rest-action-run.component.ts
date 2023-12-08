@@ -19,6 +19,7 @@ export class RestActionRunComponent implements OnInit {
 
   @Input()
   set runId(id: string) {
+    console.log(`runId(${id})`)
     this._runId = id;
     this.run = this.activeRun(id);
   }
@@ -49,9 +50,13 @@ export class RestActionRunComponent implements OnInit {
   activeRun(id: string): RestActionRun
   {
     var active = this.action.runs.find(r => r.id == id);
-    if (active != undefined)
+    if (active != undefined) {
+       console.log(active);
        return active;
+    }
 
+    console.log(`acrtive run not found[${id}]`);
+    console.log(this.action);
     return CreateEmptyRestActionRun();
   }
 }
