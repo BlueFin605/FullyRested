@@ -27,6 +27,9 @@ export class RestActionRunComponent implements OnInit {
   @Input()
   solution: Solution | undefined;
 
+  @Output()
+  nameChange = new EventEmitter<string>();
+
   response: RestActionResult = EmptyActionResult;
 
   constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
@@ -38,6 +41,11 @@ export class RestActionRunComponent implements OnInit {
   onRunChange(event: RestActionRun) {
     console.log(event);
     this.actionChange.emit(this.action);
+  }
+
+  onNameChange(name: string) {
+    console.log(`onNameChange(${name})`);
+    this.nameChange.emit(name);
   }
 
   async executeAction(action: ExecuteRestAction) {

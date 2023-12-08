@@ -150,7 +150,14 @@ export class SolutionExplorerComponent implements OnInit {
     return children;
   }
 
-  LoadAction(f: File, state: CurrentState): Promise<RestAction> {
+  async LoadAction(f: File, state: CurrentState): Promise<RestAction> {
+    var recent = state.sessions.find(s => s.solutionGuid == this._solution?.config.solutionGuid);
+    if (recent != undefined) {
+       var action = recent.actions.find(a => a.fullFilename == f.fullPath);
+       if (action != undefined)
+          return action.action;
+    }
+
     return this.repo.loadRequest(f.fullPath);
   }
 

@@ -122,6 +122,15 @@ export class OpenActionsComponent implements OnInit {
     event.dirty = dirty;
   }
 
+  onNameChange(event: LocalRestAction, name: string) {
+    console.log(`onNameChange(${name})`);
+    setTimeout(async () => {
+      if (this.solution) {
+        await this.collectionExplorer?.rebuildTree(this.solution, this.state);
+      }
+    });
+  }
+
   openSolution() {
     console.log('openSolution');
     this.repo.loadSolution();

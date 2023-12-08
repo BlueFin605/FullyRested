@@ -27,6 +27,9 @@ export class EditRequestRunComponent implements OnInit {
   runChange = new EventEmitter<RestActionRun>();
 
   @Output()
+  nameChange = new EventEmitter<string>();
+
+  @Output()
   execute = new EventEmitter<ExecuteRestAction>();
 
   @Input()
@@ -76,10 +79,11 @@ export class EditRequestRunComponent implements OnInit {
     this.runChange.emit(this._run);
   }
 
-  onNameChange(value: any) {
+  onNameChange(value: string) {
     this._run.name = value;
     console.log(this.action);
     this.runChange.emit(this._run);
+    this.nameChange.emit(value);
   }
 
   combineAllParamaters(run: ParamTable[], action: ParamTable[]) {

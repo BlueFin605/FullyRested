@@ -25,6 +25,9 @@ export class RestActionComponent implements OnInit {
   actionChange = new EventEmitter<RestAction>();
 
   @Output()
+  nameChange = new EventEmitter<string>();
+
+  @Output()
   dirtyChange = new EventEmitter<boolean>();
 
   @Input()
@@ -87,4 +90,7 @@ export class RestActionComponent implements OnInit {
     this.actionChange.emit(this._action);
   }
 
+  onNameChange(name: string) {
+    this.nameChange.emit(name);
+  }
 }

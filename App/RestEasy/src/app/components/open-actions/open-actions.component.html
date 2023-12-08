@@ -78,7 +78,8 @@
                        [fullFilename]="action.fullFilename" 
                        [runId]="runkey"
                        (actionChange)="onActionChange(action)" 
-                       (dirtyChange)="onDirtyChange(action,$event)">
+                       (dirtyChange)="onDirtyChange(action,$event)"
+                       (nameChange)="onNameChange(action, $event)">
       </app-rest-action>
     </mat-tab>
 
