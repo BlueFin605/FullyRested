@@ -51,11 +51,7 @@ export class OpenActionsComponent implements OnInit {
         action.action.name = a.name;
       }
 
-      setTimeout(async () => {
-        if (this.solution) {
-          await this.collectionExplorer?.rebuildTree(this.solution, this.state);
-        }
-      });
+      this.rebuildTree();
 
       // this.appRef.tick();
       this.repo.saveCurrentState(this.state);
@@ -76,6 +72,14 @@ export class OpenActionsComponent implements OnInit {
     setTimeout(() => {
       this.tabs.selectedIndex = 0;
       this.tabs.realignInkBar(); // re-align the bottom border of the tab
+    });
+  }
+
+  private rebuildTree() {
+    setTimeout(async () => {
+      if (this.solution) {
+        await this.collectionExplorer?.rebuildTree(this.solution, this.state);
+      }
     });
   }
 
@@ -109,6 +113,7 @@ export class OpenActionsComponent implements OnInit {
     var index = this.currentSession().actions.findIndex(i => i.action.id == event);
     this.currentSession().actions.splice(index, 1);
     this.repo.saveCurrentState(this.state);
+    this.rebuildTree();
   }
 
   onActionChange(event: LocalRestAction) {
@@ -124,11 +129,7 @@ export class OpenActionsComponent implements OnInit {
 
   onNameChange(event: LocalRestAction, name: string) {
     console.log(`onNameChange(${name})`);
-    setTimeout(async () => {
-      if (this.solution) {
-        await this.collectionExplorer?.rebuildTree(this.solution, this.state);
-      }
-    });
+    this.rebuildTree();
   }
 
   openSolution() {
