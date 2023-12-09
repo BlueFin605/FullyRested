@@ -1,5 +1,5 @@
 <div class="section-border" *ngIf="runId">
-    <app-rest-action-run [(action)]="_action" [runId]="runId" (actionChange)="onActionChange($event)" (nameChange)="onNameChange($event)"></app-rest-action-run>
+    <app-rest-action-run [(action)]="_action" [solution]="solution" [runId]="runId" (actionChange)="onActionChange($event)" (nameChange)="onNameChange($event)"></app-rest-action-run>
 </div>
 <div class="rest-action" *ngIf="!runId">
     <div class="section-border">

@@ -100,7 +100,47 @@ export class EditRequestRunComponent implements OnInit {
     return converted;
   }
 
-  test() {
+  combineAllHeaders(run: HeaderTable[], action: HeaderTable[]) {
+    console.log(run);
+    console.log(action);
+    return action.concat(run);
+  }
 
+  convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
+    var reverse = headers.reverse();
+    headers = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
+    var converted: { [headers: string]: string } = {};
+    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
+    return converted;
+  }
+
+  findAuthentication(): AuthenticationDetails
+  {
+    if (!this._run.authentication || this._run.authentication.authentication == 'inherit')
+       return this.action.authentication;
+
+    return this._run.authentication;
+  }
+
+  async test() {
+    console.log(this.action.body);
+
+    var combined = this.combineAllHeaders(this._run.headers, this.action.headers);
+    var headers = this.convertHeaderArraysAsValues(combined ?? []);
+
+    var action: ExecuteRestAction = {
+      verb: this.action.verb,
+      protocol: this.action.protocol,
+      url: this.displayUrl,
+      headers: headers,
+      body: this.action.body,
+      authentication: this.findAuthentication(),
+      secrets: this._run.secrets,
+      variables: this._run.variables
+    };
+
+    console.log(`emit[${action.url}]`);
+    console.log(action);
+    this.execute.emit(action);
   }
 }

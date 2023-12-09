@@ -457,7 +457,7 @@ export class ActionRepositoryService {
         }
       ],
       parameters: [],
-      authentication: CreateEmptyAuthenticationDetails('inherited'),
+      authentication: CreateEmptyAuthenticationDetails('inherit'),
       runs: [
         { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },
         { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },

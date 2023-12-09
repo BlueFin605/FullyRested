@@ -203,7 +203,6 @@ export class EditRequestComponent implements OnInit {
     return converted;
   }
 
-  // convertParsedUrlParamsToArray
   async test() {
     console.log(this.action.body);
     var action: ExecuteRestAction = {
@@ -212,7 +211,9 @@ export class EditRequestComponent implements OnInit {
       url: this.displayUrl,
       headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
       body: this.action.body,
-      authentication: this.action.authentication
+      authentication: this.action.authentication,
+      secrets: undefined,
+      variables: undefined
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)
