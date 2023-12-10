@@ -454,14 +454,20 @@ export class ActionRepositoryService {
           value: "gzip, deflate, br",
           active: true,
           "id": 'ddddd'
+        },
+        {
+          key: "environment",
+          value: "{{env}}",
+          active: true,
+          "id": 'eeeee'
         }
       ],
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherit'),
       runs: [
-        { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },
-        { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },
-        { id: `${name}-mockrun3`, name: 'test3', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') }
+        { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runone', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },
+        { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runtwo', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') },
+        { id: `${name}-mockrun3`, name: 'test3', parameters: [], headers: [], variables: [{ variable: 'env', value: 'unkrunthreenown', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none') }
       ]
     };
   }
