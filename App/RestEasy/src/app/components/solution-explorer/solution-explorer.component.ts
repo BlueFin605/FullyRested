@@ -1,11 +1,12 @@
 import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { TraversedDrectory, Solution, ActionRepositoryService, REConstants } from 'src/app/services/action-repository/action-repository.service';
+import { TraversedDrectory, Solution, ActionRepositoryService, REConstants, CurrentState, File, RestAction } from 'src/app/services/action-repository/action-repository.service';
 
 export interface SelectedTreeItem {
   // id: string;
   key: string;
+  runkey: string;
   enabledMenuOptions: string[];
   type: string;
   subtype: string;
@@ -33,6 +34,9 @@ export class SolutionExplorerComponent implements OnInit {
   _solution: Solution | undefined;
 
   @Input()
+  state: CurrentState | undefined;
+
+  @Input()
   set solution(solution: Solution | undefined) {
     if (solution == undefined) {
       this._solution = solution;
@@ -43,7 +47,8 @@ export class SolutionExplorerComponent implements OnInit {
     console.log('set solution');
     console.log(solution);
     this._solution = solution;
-    this.rebuildTree(solution);
+    if (this.state != undefined)
+      this.rebuildTree(solution, this.state);
   }
 
   @Output()
@@ -62,16 +67,16 @@ export class SolutionExplorerComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  rebuildTree(solution: Solution) {
-    this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]).then(t => {
-      this.items = [this.buildTreeview(t, solution.name)];
-      this.expandTree(this.items);
-      console.log(this.items);
-    });
+  async rebuildTree(solution: Solution, state: CurrentState): Promise<boolean> {
+    var dir = await this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]);
+    this.items = [await this.buildTreeview(dir, solution.name, state)];
+    this.expandTree(this.items);
+    console.log(this.items);
+    return true;
   }
 
-  private buildTreeview(traverse: TraversedDrectory, name: string): TreeviewItem {
-    var children = [this.systemSettings(), this.convertDirToTreeviewItem(traverse)];
+  private async buildTreeview(traverse: TraversedDrectory, name: string, state: CurrentState): Promise<TreeviewItem> {
+    var children = [this.systemSettings(), await this.convertDirToTreeviewItem(traverse, state)];
 
     return new TreeviewItem({
       text: name,
@@ -102,7 +107,7 @@ export class SolutionExplorerComponent implements OnInit {
       return new TreeviewItem({
         text: e.name,
         value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.id}`, actions: ['deleteEnvironment'] },
-        children: [      
+        children: [
           new TreeviewItem({ text: 'Variables', value: { type: 'system', subtype: 'variables', key: `system.settings.environments.${e.id}.variables` }, collapsed: false }),
           new TreeviewItem({ text: 'Secrets', value: { type: 'system', subtype: 'secrets', key: `system.settings.environments.${e.id}.secrets` }, collapsed: false }),
           new TreeviewItem({ text: 'Authentication', value: { type: 'system', subtype: 'authentication', key: `system.settings.environments.${e.id}.authentication` }, collapsed: false }),
@@ -112,19 +117,48 @@ export class SolutionExplorerComponent implements OnInit {
     });
   }
 
-  private convertDirToTreeviewItem(traverse: TraversedDrectory): TreeviewItem {
-    var children = traverse.subdirs.map(s => this.convertDirToTreeviewItem(s));
-    children = children.concat(traverse.files.map(f => new TreeviewItem({
-      text: f.name,
-      value: { type: 'file', key: f.fullPath }
-    })));
+  private async convertDirToTreeviewItem(traverse: TraversedDrectory, state: CurrentState): Promise<TreeviewItem> {
+    var children = await Promise.all(traverse.subdirs.map(async s => this.convertDirToTreeviewItem(s, state)));
+
+    var runChildren = await Promise.all(traverse.files.map(async f => {
+      return new TreeviewItem({
+        text: f.name,
+        value: { type: 'file', key: f.fullPath },
+        children: await this.BuildRunChildren(f, state)
+      })
+    }));
+
+    children = children.concat(runChildren);
 
     return new TreeviewItem({
       text: traverse.dir.name,
       value: { type: 'dir', key: traverse.dir.fullPath },
-      children: children,
+      children: await children,
       collapsed: true
     });
+  }
+
+  private async BuildRunChildren(f: File, state: CurrentState): Promise<TreeviewItem[]> {
+    var action: RestAction = await this.LoadAction(f, state);
+
+    var children: TreeviewItem[] = action.runs.map(r => new TreeviewItem({
+      text: r.name,
+      value: { type: 'run', subtype: 'definition', key: r.id, actionFile: f.fullPath },
+      children: []
+    }));
+
+    return children;
+  }
+
+  async LoadAction(f: File, state: CurrentState): Promise<RestAction> {
+    var recent = state.sessions.find(s => s.solutionGuid == this._solution?.config.solutionGuid);
+    if (recent != undefined) {
+       var action = recent.actions.find(a => a.fullFilename == f.fullPath);
+       if (action != undefined)
+          return action.action;
+    }
+
+    return this.repo.loadRequest(f.fullPath);
   }
 
   private expandTree(items: TreeviewItem[]): boolean {
@@ -133,14 +167,14 @@ export class SolutionExplorerComponent implements OnInit {
 
     var hasFiles = false;
     //if there are any files then we should expand the folder
-    if (items.some(i => i.value.type == 'file' || i.value.type == 'system' || i.value.type == 'environment')) {
+    if (items.some(i => i.value.type == 'file' || i.value.type == 'system' || i.value.type == 'environment' || i.value.type == 'run')) {
       hasFiles = true;
     }
 
     //if any of the children have files expand the node
     var childrenHaveFles = false;
     items.forEach(i => {
-      i.collapsed = !this.expandTree(i.children) || i.value.type == 'system' || i.value.type == 'environment';
+      i.collapsed = !this.expandTree(i.children) || i.value.type == 'system' || i.value.type == 'environment'; // || i.value.type == 'file';
       childrenHaveFles = childrenHaveFles || !i.collapsed;
     });
 
@@ -151,25 +185,45 @@ export class SolutionExplorerComponent implements OnInit {
     console.log(`onClick:[${$event.value.key}][${$event.value.type}]`);
     this.selected = $event.value.key;
 
-    if ($event.value.type == 'file') {
-        this.openFile.emit({activeTab: true, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
-        return;
-    }
-
-    this.openSystem.emit({activeTab: true, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
-  }
-
-  onDblClick($event: TreeviewItem) {
-    console.log(`onDblClick:[${$event.value.key}][${$event.value.type}]`);
-
-    if ($event.value.type != 'file')
+    if (this.openActionFile(true, $event) == true)
       return;
 
-    console.log($event.value.key);
-    this.openFile.emit({activeTab: false, key: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions});
+    if (this.openRun(true, $event) == true)
+      return;
+    
+    this.openSystem.emit({ activeTab: true, key: $event.value.key, runkey: '', type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions });
+  }
+  
+  onDblClick($event: TreeviewItem) {
+    console.log(`onDblClick:[${$event.value.key}][${$event.value.type}]`);
+    
+    if (this.openActionFile(false, $event) == true)
+      return;
+
+    if (this.openRun(false, $event) == true)
+      return;
   }
 
+  openRun(activeTab: boolean, $event: TreeviewItem) {
+    if ($event.value.type == 'run') {
+      this.openFile.emit({ activeTab: activeTab, key: $event.value.actionFile, runkey: $event.value.key, type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions });
+      return true;
+    }
+
+    return false;
+  }
+
+  private openActionFile(activeTab: boolean, $event: TreeviewItem): boolean {
+    if ($event.value.type == 'file') {
+      this.openFile.emit({ activeTab: activeTab, key: $event.value.key, runkey: '', type: $event.value.type, subtype: $event.value.subtype, enabledMenuOptions: $event.value.actions });
+      return true;
+    }
+
+    return false;
+  }
   private onFilterChange($event: any) {
 
   }
 }
+
+

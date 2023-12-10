@@ -16,6 +16,7 @@ export class OpenActionsComponent implements OnInit {
   selectedType: string = "";
   selectedSubType: string = "";
   selectedEnvironment: Environment = CreateEmptyEnvironment();
+  runkey: string | undefined;
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -50,11 +51,7 @@ export class OpenActionsComponent implements OnInit {
         action.action.name = a.name;
       }
 
-      setTimeout(() => {
-        if (this.solution) {
-          this.collectionExplorer?.rebuildTree(this.solution);
-        }
-      });
+      this.rebuildTree();
 
       // this.appRef.tick();
       this.repo.saveCurrentState(this.state);
@@ -75,6 +72,14 @@ export class OpenActionsComponent implements OnInit {
     setTimeout(() => {
       this.tabs.selectedIndex = 0;
       this.tabs.realignInkBar(); // re-align the bottom border of the tab
+    });
+  }
+
+  private rebuildTree() {
+    setTimeout(async () => {
+      if (this.solution) {
+        await this.collectionExplorer?.rebuildTree(this.solution, this.state);
+      }
     });
   }
 
@@ -107,6 +112,8 @@ export class OpenActionsComponent implements OnInit {
   removeAction(event: any) {
     var index = this.currentSession().actions.findIndex(i => i.action.id == event);
     this.currentSession().actions.splice(index, 1);
+    this.repo.saveCurrentState(this.state);
+    this.rebuildTree();
   }
 
   onActionChange(event: LocalRestAction) {
@@ -118,6 +125,11 @@ export class OpenActionsComponent implements OnInit {
   onDirtyChange(event: LocalRestAction, dirty: boolean) {
     console.log(`onDirtyChange(${dirty})`);
     event.dirty = dirty;
+  }
+
+  onNameChange(event: LocalRestAction, name: string) {
+    console.log(`onNameChange(${name})`);
+    this.rebuildTree();
   }
 
   openSolution() {
@@ -157,6 +169,7 @@ export class OpenActionsComponent implements OnInit {
       .filter(num => !isNaN(num)));
 
     this.currentSession().actions.push(this.repo.createNewAction(count + 1));
+    this.repo.saveCurrentState(this.state);
 
     setTimeout(() => {
       this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
@@ -186,12 +199,13 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadSolutionFromFile(file);
   }
 
-  loadAction(selected: SelectedTreeItem) {
-    console.log(`loadAction:[${selected.key}] activeTab[${selected.activeTab}]`);
+  openAction(selected: SelectedTreeItem) {
+    console.log(`openAction:[${selected.key}] activeTab[${selected.activeTab}]`);
 
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
     this.selectedSubType = selected?.subtype;
+    this.runkey = selected?.runkey;
 
     var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == selected.key);
     if (existingTab != -1) {
@@ -199,13 +213,19 @@ export class OpenActionsComponent implements OnInit {
       this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
       console.log(this.currentSession().actions[existingTab]);
       this.tabs.selectedIndex = existingTab;
+      this.repo.saveCurrentState(this.state);
       return;
     }
 
     this.repo.loadRequest(selected.key).then(a => {
       var activeTab = this.currentSession().actions.findIndex(a => a.activeTab);
       console.log(`selected.activeTab[${selected.activeTab}] activeTab[${activeTab}] selected.key[${selected.key}]`)
-      if (selected.activeTab && activeTab != -1) {
+
+      if (activeTab != -1) {
+        this.currentSession().actions[activeTab].activeTab = false;
+      }
+
+      if (selected.activeTab && activeTab != -1 && this.currentSession().actions[activeTab].dirty == false) {
         console.log(`overwriting existing active tab`);
         var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions[activeTab] = newAction;
@@ -221,7 +241,9 @@ export class OpenActionsComponent implements OnInit {
           this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
         });
       }
+      this.repo.saveCurrentState(this.state);
     });
+
   }
 
   openSystem(selected: SelectedTreeItem) {
@@ -230,6 +252,7 @@ export class OpenActionsComponent implements OnInit {
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedType = selected?.type;
     this.selectedSubType = selected?.subtype;
+    
     if (selected.type == 'system' && selected.subtype == 'variables') {
       if (selected.key == 'system.settings.variables') {
         this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
@@ -237,31 +260,31 @@ export class OpenActionsComponent implements OnInit {
         this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`)) ?? CreateEmptyEnvironment();
       }
     } else
-      if (selected.type == 'system' && selected.subtype == 'secrets') {
-        if (selected.key == 'system.settings.secrets') {
-          this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-        } else {
-          this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
-        }
-      } else
-        if (selected.type == 'system' && selected.subtype == 'authentication') {
-          if (selected.key == 'system.settings.authentication') {
-            this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-          } else {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
-          }
-        } else
-          if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-          } else
-            if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
-              this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-            } else
-              if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
-                this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-              } else {
-                this.selectedEnvironment = CreateEmptyEnvironment();
-              }
+    if (selected.type == 'system' && selected.subtype == 'secrets') {
+      if (selected.key == 'system.settings.secrets') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'system' && selected.subtype == 'authentication') {
+      if (selected.key == 'system.settings.authentication') {
+        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+      } else {
+        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
+      }
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else
+    if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
+      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+    } else {
+      this.selectedEnvironment = CreateEmptyEnvironment();
+    }
 
     console.log(this.selectedEnvironment);
   }
@@ -274,7 +297,7 @@ export class OpenActionsComponent implements OnInit {
     var env: Environment = {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
-      variables: [{ variable: '', value: '', active: true, id: 1 }],
+      variables: [{ variable: '', value: '', active: true, id: 'a' }],
       secrets: [{ $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }],
       auth: CreateEmptyAuthenticationDetails('inherit')
     };
@@ -304,10 +327,10 @@ export class OpenActionsComponent implements OnInit {
     if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
       return false;
 
-    if (this.selectedType != 'system')
-      return true;
+    if (this.selectedType == 'system')
+      return false;
 
-    return false;
+    return true;
   }
 
   variablesVisible(): boolean {
@@ -339,7 +362,7 @@ export class OpenActionsComponent implements OnInit {
 
     return false;
   }
-
+  
   environmentChange(env: Environment) {
     if (this.solution == undefined)
       return;

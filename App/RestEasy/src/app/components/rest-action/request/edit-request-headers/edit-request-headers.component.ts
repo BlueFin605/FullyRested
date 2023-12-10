@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { HeaderTable } from 'src/app/services/action-repository/action-repository.service'
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 const COLUMNS_SCHEMA = [
   {
@@ -36,12 +37,12 @@ export class EditRequestHeadersComponent implements OnInit {
   headers: HeaderTable[] = [];
 
   @Output()
-  headersChange = new EventEmitter<any>();
+  headersChange = new EventEmitter<HeaderTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor() {
+  constructor(private systemSupport: SystemSupportService) {
   }
 
   ngOnInit(): void {
@@ -60,17 +61,17 @@ export class EditRequestHeadersComponent implements OnInit {
   // }
 
   add() {
-    var max: number = Math.max(...this.headers.map(m => m.id));
-    this.headers = [...this.headers, { key: '', value: '', active: true, id: max + 1 }];
+    this.headers = [...this.headers, { key: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
+    console.log(this.headers);
     this.headersChange.emit(this.headers);
   }
 
-  delete(id: number) {
+  delete(id: string) {
     this.headers = this.headers.filter(f => f.id != id);
     this.headersChange.emit(this.headers);
   }
 
-  activeClicked(id: number) {
+  activeClicked(id: string) {
     var entry = this.headers.find(f => f.id == id);
     if (entry == undefined)
       return;

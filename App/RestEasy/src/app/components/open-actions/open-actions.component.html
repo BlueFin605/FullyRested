@@ -58,7 +58,8 @@
 
 <div class="explorer">
   <app-solution-explorer [solution]="solution" 
-                         (openFile)="loadAction($event)" 
+                         [state]="state"
+                         (openFile)="openAction($event)" 
                          (openSystem)="openSystem($event)" #explorer></app-solution-explorer>
 </div>
 
@@ -75,8 +76,10 @@
       <app-rest-action [solution]="solution" 
                        [(action)]=action.action 
                        [fullFilename]="action.fullFilename" 
+                       [runId]="runkey"
                        (actionChange)="onActionChange(action)" 
-                       (dirtyChange)="onDirtyChange(action,$event)">
+                       (dirtyChange)="onDirtyChange(action,$event)"
+                       (nameChange)="onNameChange(action, $event)">
       </app-rest-action>
     </mat-tab>
 
@@ -91,7 +94,7 @@
 </div>
 
 <div class="opendocuments" [hidden]="!variablesVisible()">
-  <app-settings-manage-variables [(environment)]="selectedEnvironment"></app-settings-manage-variables>
+  <app-settings-manage-variables [(variables)]="selectedEnvironment.variables"></app-settings-manage-variables>
 </div>
 
 <div class="opendocuments" [hidden]="!authenticationVisible()">
@@ -103,5 +106,5 @@
 </div>
 
 <div class="opendocuments" [hidden]="!secretsVisible()">
-  <app-settings-manage-secrets [(environment)]="selectedEnvironment"></app-settings-manage-secrets>
+  <app-settings-manage-secrets [(secrets)]="selectedEnvironment.secrets"></app-settings-manage-secrets>
 </div>

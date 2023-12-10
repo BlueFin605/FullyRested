@@ -2,7 +2,7 @@
     <div>
         <mat-form-field appearance="fill">
             <mat-label>Authorisation Method</mat-label>
-            <mat-select [(value)]="auth.authentication">
+            <mat-select [(value)]="auth.authentication" (selectionChange)="onChange($event)">
                 <mat-option value="inherit">Inherit</mat-option>
                 <mat-option value="none">None</mat-option>
                 <mat-option value="awssig">AWS Signature</mat-option>

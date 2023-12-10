@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun } from 'src/app/services/action-repository/action-repository.service'
 
 @Component({
   selector: 'app-rest-action',
@@ -23,6 +23,9 @@ export class RestActionComponent implements OnInit {
 
   @Output()
   actionChange = new EventEmitter<RestAction>();
+
+  @Output()
+  nameChange = new EventEmitter<string>();
 
   @Output()
   dirtyChange = new EventEmitter<boolean>();
@@ -48,6 +51,9 @@ export class RestActionComponent implements OnInit {
   @Input()
   solution: Solution | undefined;
 
+  @Input()
+  runId: string | undefined;
+
   response: RestActionResult = EmptyActionResult;
 
   constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
@@ -63,8 +69,9 @@ export class RestActionComponent implements OnInit {
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
-  onActionChange(event: any) {
+  onActionChange(event: RestAction) {
     console.log(event)
+    console.log(this._action)
 
     var currentstate = JSON.stringify(this._action);
 
@@ -83,4 +90,7 @@ export class RestActionComponent implements OnInit {
     this.actionChange.emit(this._action);
   }
 
+  onNameChange(name: string) {
+    this.nameChange.emit(name);
+  }
 }

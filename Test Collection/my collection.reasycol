@@ -43,13 +43,13 @@
                     "variable": "env",
                     "value": "dev",
                     "active": true,
-                    "id": 1
+                    "id": "1"
                 },
                 {
                     "variable": "host",
                     "value": "www.google.co.nz",
                     "active": true,
-                    "id": 2
+                    "id": "2"
                 }
             ],
             "secrets": [],
@@ -71,13 +71,13 @@
                     "variable": "env",
                     "value": "prod",
                     "active": true,
-                    "id": 1
+                    "id": "11"
                 },
                 {
                     "variable": "host",
                     "value": "www.google.com.au",
                     "active": true,
-                    "id": 2
+                    "id": "22"
                 }
             ],
             "secrets": [],
@@ -99,13 +99,13 @@
                     "variable": "env",
                     "value": "test",
                     "active": true,
-                    "id": 1
+                    "id": "111"
                 },
                 {
                     "variable": "host",
                     "value": "www.google.co.uk",
                     "active": true,
-                    "id": 2
+                    "id": "222"
                 }
             ],
             "secrets": [],

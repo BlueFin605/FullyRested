@@ -1,0 +1,39 @@
+{{run | json}}
+<div class="run-name">
+    <mat-form-field class="url-form-field">
+        <mat-label>Name</mat-label>
+        <input matInput placeholder="Input" [ngModel]="_run.name" (ngModelChange)="onNameChange($event)">
+    </mat-form-field>
+</div>
+
+<div class="run-header">
+    <div class="verb-basics run-verb">
+        <p *ngIf="action.verb=='get'">GET</p>
+        <p *ngIf="action.verb=='post'">POST</p>
+        <p *ngIf="action.verb=='patch'">PATCH</p>
+        <p *ngIf="action.verb=='delete'">DELETE</p>
+    </div>
+
+    <div class="verb-basics run-protocol">
+        <p *ngIf="action.protocol=='http'">HTTP</p>
+        <p *ngIf="action.protocol=='https'">HTTPS</p>
+    </div>
+
+    <div class="verb-basics run-url">
+        <p>{{displayUrl}}</p>
+    </div>
+
+    <div class="verb-basics action-send">
+        <button mat-raised-button color="primary" (click)='test()'>Send</button>
+    </div>
+</div>
+<div>
+    <mat-tab-group animationDuration="0ms">
+        <!-- <mat-tab label="Body"><app-edit-request-body [(body)]="action.body"  (bodyChange)="onBodyChange($event)"></app-edit-request-body></mat-tab> -->
+        <mat-tab label="Headers"><app-edit-request-headers [(headers)]="_run.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></mat-tab>
+        <mat-tab label="Parameters"><app-edit-request-parameters [(params)]="_run.parameters" (paramsChange)="onParamChange($event)"></app-edit-request-parameters></mat-tab>
+        <mat-tab label="Authentication"><app-edit-request-authentication [(auth)]="_run.authentication" (authChange)="onAuthChange($event)"></app-edit-request-authentication></mat-tab>
+        <mat-tab label="Variables"><app-settings-manage-variables [(variables)]="_run.variables" (variablesChange)="onVariablesChange($event)"></app-settings-manage-variables></mat-tab>
+        <mat-tab label="Secrets"><app-settings-manage-secrets [(secrets)]="_run.secrets" (secretsChange)="onSecretsChange($event)"></app-settings-manage-secrets></mat-tab>
+    </mat-tab-group>
+</div>

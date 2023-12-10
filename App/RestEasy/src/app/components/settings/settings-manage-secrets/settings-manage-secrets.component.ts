@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
+import { CreateEmptyEnvironment, Environment, SecretTable } from 'src/app/services/action-repository/action-repository.service'
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 const COLUMNS_SCHEMA = [
@@ -32,10 +32,10 @@ const COLUMNS_SCHEMA = [
 export class SettingsManageSecretsComponent implements OnInit {
 
   @Input()
-  environment: Environment = CreateEmptyEnvironment();
+  secrets: SecretTable[] = [];
 
   @Output()
-  environmentChange = new EventEmitter<Environment>();
+  secretsChange = new EventEmitter<SecretTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
@@ -47,27 +47,27 @@ export class SettingsManageSecretsComponent implements OnInit {
   }
 
   add() {
-    this.environment.secrets = [...this.environment.secrets, { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }];
-    this.environmentChange.emit(this.environment);
+    this.secrets = [...this.secrets, { $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }];
+    this.secretsChange.emit(this.secrets);
   }
 
   delete(id: string) {
-    this.environment.secrets = this.environment.secrets.filter(f => f.id != id);
-    this.environmentChange.emit(this.environment);
+    this.secrets = this.secrets.filter(f => f.id != id);
+    this.secretsChange.emit(this.secrets);
   }
 
   activeClicked(id: string) {
-    var entry = this.environment.secrets.find(f => f.id == id);
+    var entry = this.secrets.find(f => f.id == id);
     if (entry == undefined)
       return;
 
     entry.active = !entry.active;
-    this.environmentChange.emit(this.environment);
+    this.secretsChange.emit(this.secrets);
   }
 
   modelChangeFn(value: any) {
     // console.log(value);
     // console.log(this.environment);
-    this.environmentChange.emit(this.environment);
+    this.secretsChange.emit(this.secrets);
   }
 }

@@ -25,6 +25,9 @@ https://github.com/leovo2708/ngx-treeview/blob/master/src/app/product/product.co
     <i *ngIf='item.value.type=="environment"' class="mr-1 filePrefix" (click)="onCollapseExpand()" aria-hidden="true" [ngSwitch]="item.collapsed">
       ENV
     </i>
+    <i *ngIf='item.value.type=="run"' class="mr-1 filePrefix" (click)="onCollapseExpand()" aria-hidden="true" [ngSwitch]="item.collapsed">
+      RUN
+    </i>
     {{item.text}}
   </div>
 </ng-template>
