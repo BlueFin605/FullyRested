@@ -304,10 +304,10 @@ export class ActionRepositoryService {
   patchRequest(request: RestAction) {
     this.patchAuthentication(request.authentication);
     if (request.runs == undefined)
-       request.runs = [];
+      request.runs = [];
 
     if (request.validation == undefined)
-       request.validation = CreateEmptyRestActionValidation()
+      request.validation = CreateEmptyRestActionValidation()
   }
 
   private getIpcRenderer() {
@@ -491,7 +491,12 @@ export class ActionRepositoryService {
       ],
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherit'),
-      validation: CreateEmptyRestActionValidation(),
+      validation: {
+        type: ValidationType.JsonSchema,
+        jsonSchema: {
+          schema: `{"$schema":"http://json-schema.org/draft-04/schema#","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`
+        }
+      },
       runs: [
         { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runone', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() },
         { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runtwo', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() },
@@ -595,7 +600,7 @@ const mockCurrentState: CurrentState = {
               }
             ],
             parameters: [],
-            authentication: CreateEmptyAuthenticationDetails('inherit'), 
+            authentication: CreateEmptyAuthenticationDetails('inherit'),
             validation: CreateEmptyRestActionValidation(),
             runs: []
           },
