@@ -8,7 +8,7 @@ import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
-import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
+import { AuthenticationDetails, RestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
@@ -160,6 +160,12 @@ export class EditRequestComponent implements OnInit {
   }
 
   onAuthChange(auth: AuthenticationDetails) {
+    console.log(auth);
+    console.log(this.action);
+    this.actionChange.emit(this.action);
+  }
+
+  onValidationChange(auth: RestActionValidation) {
     console.log(auth);
     console.log(this.action);
     this.actionChange.emit(this.action);

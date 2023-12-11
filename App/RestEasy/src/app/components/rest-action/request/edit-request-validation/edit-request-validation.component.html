@@ -1,0 +1,8 @@
+<div class="displayoptions">
+    <mat-radio-group aria-label="Validation Type">
+      <mat-radio-button value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.None">None</mat-radio-button>
+      <mat-radio-button value={{validationType.JsonSchema}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.JsonSchema">Json Schema</mat-radio-button>
+    </mat-radio-group>
+</div>
+
+<json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor *ngIf="visibleData.type == validationType.JsonSchema"></json-editor>

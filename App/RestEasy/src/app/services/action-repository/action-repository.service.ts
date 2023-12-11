@@ -65,7 +65,7 @@ export interface RestActionBody {
   body: any;
 }
 
-enum ValidationType {
+export enum ValidationType {
   None = "None",
   JsonSchema = "JsonSchema"
 }
@@ -304,7 +304,10 @@ export class ActionRepositoryService {
   patchRequest(request: RestAction) {
     this.patchAuthentication(request.authentication);
     if (request.runs == undefined)
-      request.runs = [];
+       request.runs = [];
+
+    if (request.validation == undefined)
+       request.validation = CreateEmptyRestActionValidation()
   }
 
   private getIpcRenderer() {

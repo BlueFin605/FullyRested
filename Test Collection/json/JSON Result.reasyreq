@@ -52,6 +52,20 @@
             "secretKey": "",
             "awsRegion": "eu-central-1",
             "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "JsonSchema",
+        "jsonSchema": {
+            "schema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"userId\": {\n      \"type\": \"integer\"\n    },\n    \"id\": {\n      \"type\": \"integer\"\n    },\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"completed\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"userId\",\n    \"id\",\n    \"title\",\n    \"completed\"\n  ]\n}"
         }
     }
 }

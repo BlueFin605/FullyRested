@@ -14,6 +14,17 @@
             "secretKey": "",
             "awsRegion": "eu-central-1",
             "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
         }
+    },
+    "runs": [],
+    "validation": {
+        "type": "None"
     }
 }
