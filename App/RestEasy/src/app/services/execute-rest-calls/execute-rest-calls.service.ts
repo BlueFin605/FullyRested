@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
-import { Solution, AuthenticationDetails, Environment, SecretTable, VariableTable } from '../action-repository/action-repository.service';
+import { Solution, AuthenticationDetails, Environment, SecretTable, VariableTable, RestActionValidation } from '../action-repository/action-repository.service';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -11,6 +11,7 @@ export interface ExecuteRestAction {
   authentication: AuthenticationDetails | undefined;
   secrets: SecretTable[] | undefined;
   variables: VariableTable[] | undefined;
+  validation: RestActionValidation | undefined;
 };
 
 export interface RestActionResult {

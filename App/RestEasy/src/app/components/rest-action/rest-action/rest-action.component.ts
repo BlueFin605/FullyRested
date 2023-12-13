@@ -38,12 +38,12 @@ export class RestActionComponent implements OnInit {
       return;
 
     this._fullFilename = fullFlename;
-    this.repository.loadRequest(fullFlename).then(a => { 
+    this.repository.loadRequest(fullFlename).then(a => {
       console.log(a);
       this._originalSource = JSON.stringify(a)
       var currentstate = JSON.stringify(this._action);
       console.log(`[A]currentstate:[${currentstate}]`);
-      console.log(`[A]_originalSource:[${this._originalSource}]`);  
+      console.log(`[A]_originalSource:[${this._originalSource}]`);
       this.dirtyChange.emit(currentstate != this._originalSource);
     });
   }
@@ -66,7 +66,13 @@ export class RestActionComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
+    await this.validateResponse(action, this.response);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
+  }
+
+  async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<boolean> {
+    console.log('validating response json schema')
+    return true;
   }
 
   onActionChange(event: RestAction) {
@@ -80,10 +86,10 @@ export class RestActionComponent implements OnInit {
       return;
 
     this._laststate = currentstate;
-    
+
     console.log(`currentstate:[${currentstate}]`);
     console.log(`_originalSource:[${this._originalSource}]`);
-    
+
     this.dirtyChange.emit(currentstate != this._originalSource);
 
     //TODO need to store oigin state in @Input nd then do a deep compare and only emit change when they re different

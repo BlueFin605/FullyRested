@@ -219,7 +219,8 @@ export class EditRequestComponent implements OnInit {
       body: this.action.body,
       authentication: this.action.authentication,
       secrets: undefined,
-      variables: undefined
+      variables: undefined,
+      validation: this.action.validation
     };
 
     console.log(`emit[${JSON.stringify(action)}]`)
