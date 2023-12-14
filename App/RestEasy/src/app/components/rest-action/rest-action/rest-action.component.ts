@@ -1,6 +1,9 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
+import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
+
+import { addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 
 @Component({
   selector: 'app-rest-action',
@@ -56,7 +59,7 @@ export class RestActionComponent implements OnInit {
 
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
+  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService, private contentTypeHelper: ContentTypeHelperService) {
   }
 
   ngOnInit(): void {
@@ -66,13 +69,60 @@ export class RestActionComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
-    await this.validateResponse(action, this.response);
+    var isValid = await this.validateResponse(action, this.response);
+    console.log(isValid);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
   async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<boolean> {
     console.log('validating response json schema')
-    return true;
+    console.log(action.validation?.jsonSchema?.schema);
+    if (response.body == undefined) {
+      if (action.validation == undefined || action.validation.type == ValidationType.None) {
+        console.log('no response body and no validation rules');
+        return true;
+      }
+
+      console.log('No response body but has validation');
+      return false;
+    }
+
+    // return this.validateJsonString({name: "Alice", age: 25}, action.validation?.jsonSchema?.schema ?? "{}");
+    // let schema = {
+    //   type: "object",
+    //   $schema: "https://json-schema.org/draft/2020-12/schema",
+    //   properties: {
+    //     name: {
+    //       type: "string"
+    //     },
+    //     age: {
+    //       type: "integer"
+    //     }
+    //   }
+    // };
+
+    // var objSchema = {
+    //     $schema: "https://json-schema.org/draft/2020-12/schema",
+    //     type: "string"
+    //   };
+    // var objValidate = "string";
+
+    var objValidate = JSON.parse(this.contentTypeHelper.convertArrayBufferToString(response.body.contentType, response.body.body));
+    var objSchema = JSON.parse(action.validation?.jsonSchema?.schema ?? "{}");
+    return await this.validateJsonString(objValidate, objSchema);
+  }
+
+  async validateJsonString(jsonObject: any, schemaObject: object): Promise<boolean> {
+    addSchema((schemaObject as any), "http://example.com/schemas/string");
+    const output = await validate("http://example.com/schemas/string", jsonObject, "VERBOSE");
+    console.log(output);
+    if (output.valid) {
+      console.log("Instance is valid :-)");
+    } else {
+      console.log("Instance is invalid :-(");
+    }
+    // Return the validation result
+    return output.valid;
   }
 
   onActionChange(event: RestAction) {

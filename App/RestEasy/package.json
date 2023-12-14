@@ -26,6 +26,7 @@
     "@angular/router": "^14.0.0",
     "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/signature-v4": "^3.374.0",
+    "@hyperjump/json-schema": "^1.6.7",
     "@maaxgr/ang-jsoneditor": "^14.0.0",
     "@treeview/ngx-treeview": "^14.0.0",
     "axios": "^1.5.1",
@@ -39,7 +40,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^14.0.6",
-    "@angular/cli": "~14.0.6",
+    "@angular/cli": "^14.2.13",
     "@angular/compiler-cli": "^14.0.0",
     "@electron-forge/cli": "^7.2.0",
     "@electron-forge/maker-deb": "^7.2.0",

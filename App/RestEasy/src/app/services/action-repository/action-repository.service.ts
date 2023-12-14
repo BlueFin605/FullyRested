@@ -494,7 +494,7 @@ export class ActionRepositoryService {
       validation: {
         type: ValidationType.JsonSchema,
         jsonSchema: {
-          schema: `{"$schema":"http://json-schema.org/draft-04/schema#","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`
+          schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`
         }
       },
       runs: [
