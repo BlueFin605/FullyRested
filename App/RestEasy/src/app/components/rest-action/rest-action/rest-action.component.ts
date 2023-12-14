@@ -3,7 +3,7 @@ import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRe
 import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 
-import { addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
+import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 
 @Component({
   selector: 'app-rest-action',
@@ -69,22 +69,23 @@ export class RestActionComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
-    var isValid = await this.validateResponse(action, this.response);
-    console.log(isValid);
+    this.response.validated = await this.validateResponse(action, this.response);
+    console.log(this.response.validated);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
-  async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<boolean> {
+  async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<string[]> {
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
-    if (response.body == undefined) {
-      if (action.validation == undefined || action.validation.type == ValidationType.None) {
-        console.log('no response body and no validation rules');
-        return true;
-      }
 
+    if (action.validation == undefined || action.validation.type == ValidationType.None) {
+      console.log('no validation configured');
+      return [];
+    }
+
+    if (response.body == undefined) {
       console.log('No response body but has validation');
-      return false;
+      return ['No response body but has validation'];
     }
 
     // return this.validateJsonString({name: "Alice", age: 25}, action.validation?.jsonSchema?.schema ?? "{}");
@@ -112,17 +113,26 @@ export class RestActionComponent implements OnInit {
     return await this.validateJsonString(objValidate, objSchema);
   }
 
-  async validateJsonString(jsonObject: any, schemaObject: object): Promise<boolean> {
+  async validateJsonString(jsonObject: any, schemaObject: object): Promise<string[]> {
     addSchema((schemaObject as any), "http://example.com/schemas/string");
-    const output = await validate("http://example.com/schemas/string", jsonObject, "VERBOSE");
+    const output = await validate("http://example.com/schemas/string", jsonObject, "DETAILED");
     console.log(output);
     if (output.valid) {
       console.log("Instance is valid :-)");
     } else {
       console.log("Instance is invalid :-(");
     }
-    // Return the validation result
-    return output.valid;
+
+    var errors = output?.errors?.map((m: any) => this.getAbsoluteKeywordLocationArray(m)) ?? [];
+    // var test = this.getAbsoluteKeywordLocationArray(output.errors).flat(Infinity);
+    return errors.flat(Infinity).flatMap(e => `${e.instanceLocation} has failed schema constraint ${e?.absoluteKeywordLocation}`) ?? [];
+  }
+
+  getAbsoluteKeywordLocationArray(json: OutputUnit): any[] {
+    if (json == undefined)
+      return [];
+
+    return [{ instanceLocation: json.instanceLocation, absoluteKeywordLocation: json.absoluteKeywordLocation }, json?.errors?.map(m => this.getAbsoluteKeywordLocationArray(m)) ?? []];
   }
 
   onActionChange(event: RestAction) {

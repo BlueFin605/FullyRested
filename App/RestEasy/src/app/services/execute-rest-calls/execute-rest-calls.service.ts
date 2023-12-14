@@ -20,6 +20,7 @@ export interface RestActionResult {
   headers: { [header: string]: string };
   headersSent: { [header: string]: string };
   body: RestActionResultBody | undefined;
+  validated: string[] | undefined;
 }
 
 export interface RestActionResultBody {
@@ -28,7 +29,7 @@ export interface RestActionResultBody {
 }
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
-export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined };
+export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined, validated: undefined };
 
 // const re = \[(.*?)\];
 
@@ -206,7 +207,7 @@ export class ExecuteRestCallsService {
             }
           }
         }))
-      }
+      },
 
       // body: {
       //   contentType: 'application/json; charset=utf-8', body: enc.encode(`<!doctype html><html itemscope="" itemtype="http://schema.org/WebPage" lang="en-NZ"><head><meta content="text/html; charset=UTF-8" http-equiv="Content-Type"><meta content="/images/branding/googleg/1x/googleg_standard_color_128dp.png" itemprop="image"><title>Google</title><script nonce="Vvv-KBatFgbX-rAoX6oDUw">(function(){var _g={kEI:'XAY8Zfq_NYbh-AbKrpewAg',kEXPI:'0,1365467,207,4804,2316,383,246,5,1129120,1827,1195887,680,380096,16115,28684,22430,1362,12318,4747,12834,4998,17075,35735,5581,2891,3926,8434,63304,13491,230,1014,1,16916,2652,4,59617,27017,6657,7596,1,42154,2,16737,3533,19491,5679,1021,31121,4568,6256,23420,1253,33064,2,2,1,10957,15675,8155,23350,874,19633,9,1920,9779,42459,20199,20136,14,82,14707,5499,8377,8239,10721,281,2025,3097,782,2248,11151,4665,1804,7734,19360,8175,960,7869,2984,1634,13494,950,3691,5227,3338,7768,146,9395,234,12117,5203198,5926,1015,2,712,5994253,2806525,141,795,29513,25,3,41,22,23,21,2,3,22,44,23940848,397,182,2773241,1270287,14298,2374,42665,1222,3,1558,5,542,3,1170,4,337,179,746,25150776,8163,4636,8409,2878,1595,3554,5494,1020,157,1966,11129,3279,3042,875,2,3,6580,3117,1520,2479,1879,2048,1490,9965,2736,755,3030,825,1131,946,461,6805,2,435,4540,393,1504,2744,2,3,1688,2052,27,6,5,15,311,2116,503,2866,4,872,972,134,760,1006,2043,7,1,8,409,351,4082,758,77,187,416,349,2236,3,47,598,14,201,269,47,259,444,896,3,1192,1002,702,447,1122,319,612,305,119,38,664,320,237,94,673,171,713,17,342,78,78,975,175,250,255,330,62,163,1,124,219,634,153,47,1940,390,658,168,467,4,519,641,114,1899,1216,2,1327,3,4,267,231,1182,641,313,131,152,2854,749,410,296,1694,2392,122,641',kBL:'lmiY',kOPI:89978449};(function(){var a;(null==(a=window.google)?0:a.stvsc)?google.kEI=_g.kEI:window.google=_g;}).call(this);})();(function(){google.sn='webhp';google.kHL='en-NZ';})();(function(){
@@ -226,9 +227,9 @@ export class ExecuteRestCallsService {
       //   (function(){google.jl={blt:'none',chnk:0,dw:false,dwu:true,emtn:0,end:0,ico:false,ikb:0,ine:false,injs:'none',injt:0,injth:0,injv2:false,lls:'default',pdt:0,rep:0,snet:true,strt:0,ubm:false,uwp:true};})();(function(){var pmc='{\x22d\x22:{},\x22sb_he\x22:{\x22agen\x22:true,\x22cgen\x22:true,\x22client\x22:\x22heirloom-hp\x22,\x22dh\x22:true,\x22ds\x22:\x22\x22,\x22fl\x22:true,\x22host\x22:\x22google.com\x22,\x22jsonp\x22:true,\x22msgs\x22:{\x22cibl\x22:\x22Clear Search\x22,\x22dym\x22:\x22Did you mean:\x22,\x22lcky\x22:\x22I\\u0026#39;m Feeling Lucky\x22,\x22lml\x22:\x22Learn more\x22,\x22psrc\x22:\x22This search was removed from your \\u003Ca href\x3d\\\x22/history\\\x22\\u003EWeb History\\u003C/a\\u003E\x22,\x22psrl\x22:\x22Remove\x22,\x22sbit\x22:\x22Search by image\x22,\x22srch\x22:\x22Google Search\x22},\x22ovr\x22:{},\x22pq\x22:\x22\x22,\x22rfs\x22:[],\x22sbas\x22:\x220 3px 8px 0 rgba(0,0,0,0.2),0 0 0 1px rgba(0,0,0,0.08)\x22,\x22stok\x22:\x22YkoP_iy5VPvQ9IORY_QW5axrYj0\x22}}';google.pmc=JSON.parse(pmc);})();(function(){var b=function(a){var c=0;return function(){return c<a.length?{done:!1,value:a[c++]}:{done:!0}}};
       //   var e=this||self;var g,h;a:{for(var k=["CLOSURE_FLAGS"],l=e,n=0;n<k.length;n++)if(l=l[k[n]],null==l){h=null;break a}h=l}var p=h&&h[610401301];g=null!=p?p:!1;var q,r=e.navigator;q=r?r.userAgentData||null:null;function t(a){return g?q?q.brands.some(function(c){return(c=c.brand)&&-1!=c.indexOf(a)}):!1:!1}function u(a){var c;a:{if(c=e.navigator)if(c=c.userAgent)break a;c=""}return-1!=c.indexOf(a)};function v(){return g?!!q&&0<q.brands.length:!1}function w(){return u("Safari")&&!(x()||(v()?0:u("Coast"))||(v()?0:u("Opera"))||(v()?0:u("Edge"))||(v()?t("Microsoft Edge"):u("Edg/"))||(v()?t("Opera"):u("OPR"))||u("Firefox")||u("FxiOS")||u("Silk")||u("Android"))}function x(){return v()?t("Chromium"):(u("Chrome")||u("CriOS"))&&!(v()?0:u("Edge"))||u("Silk")}function y(){return u("Android")&&!(x()||u("Firefox")||u("FxiOS")||(v()?0:u("Opera"))||u("Silk"))};var z=v()?!1:u("Trident")||u("MSIE");y();x();w();Object.freeze({});var A=!z&&!w(),D=function(a){if(/-[a-z]/.test("ved"))return null;if(A&&a.dataset){if(y()&&!("ved"in a.dataset))return null;a=a.dataset.ved;return void 0===a?null:a}return a.getAttribute("data-"+"ved".replace(/([A-Z])/g,"-$1").toLowerCase())};var E=[],F=null;function G(a){a=a.target;var c=performance.now(),f=[],H=f.concat,d=E;if(!(d instanceof Array)){var m="undefined"!=typeof Symbol&&Symbol.iterator&&d[Symbol.iterator];if(m)d=m.call(d);else if("number"==typeof d.length)d={next:b(d)};else throw Error("a\`"+String(d));for(var B=[];!(m=d.next()).done;)B.push(m.value);d=B}E=H.call(f,d,[c]);if(a&&a instanceof HTMLElement)if(a===F){if(c=4<=E.length)c=5>(E[E.length-1]-E[E.length-4])/1E3;if(c){c=google.getEI(a);a.hasAttribute("data-ved")?f=a?D(a)||"":"":f=(f=
       //   a.closest("[data-ved]"))?D(f)||"":"";f=f||"";if(a.hasAttribute("jsname"))a=a.getAttribute("jsname");else{var C;a=null==(C=a.closest("[jsname]"))?void 0:C.getAttribute("jsname")}google.log("rcm","&ei="+c+"&ved="+f+"&jsname="+(a||""))}}else F=a,E=[c]}window.document.addEventListener("DOMContentLoaded",function(){document.body.addEventListener("click",G)});}).call(this);</script></body></html>`)
-      // }
+      // },
 
-
+      validated: []
     };
 
     return new Promise((resolve, reject) => { resolve(mockjson); });
