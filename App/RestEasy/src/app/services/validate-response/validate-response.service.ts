@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ValidationType } from '../action-repository/action-repository.service';
+import { ValidationTypePayload } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 
@@ -21,7 +21,7 @@ export class ValidateResponseService {
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
 
-    if (action.validation == undefined || action.validation.type == ValidationType.None) {
+    if (action.validation == undefined || action.validation.payload == ValidationTypePayload.None) {
       console.log('no validation configured');
       return { information: [], errors: [], valid: true };
     }

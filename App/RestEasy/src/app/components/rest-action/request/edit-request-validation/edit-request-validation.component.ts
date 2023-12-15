@@ -1,7 +1,8 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationType, RestActionValidation, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
+import { ValidationTypePayload, RestActionValidation, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
 @Component({
   selector: 'app-edit-request-validation',
@@ -9,8 +10,8 @@ import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
   styleUrls: ['./edit-request-validation.component.css']
 })
 export class EditRequestValidationComponent implements OnInit {
-  public get validationType(): typeof ValidationType {
-    return ValidationType;
+  public get validationTypePayload(): typeof ValidationTypePayload {
+    return ValidationTypePayload;
   }
   // private initialData: string;
   visibleData: RestActionValidation = CreateEmptyRestActionValidation();
@@ -26,8 +27,8 @@ export class EditRequestValidationComponent implements OnInit {
 
     this.visibleData = validation;
 
-    switch (validation?.type) {
-      case ValidationType.JsonSchema:
+    switch (validation?.payload) {
+      case ValidationTypePayload.JsonSchema:
         {
           const str = validation?.jsonSchema?.schema ?? '{}';
           console.log(`set schema[${str}]`);
@@ -40,7 +41,7 @@ export class EditRequestValidationComponent implements OnInit {
   @Output()
   validationChange = new EventEmitter<RestActionValidation>();
 
-  constructor() {
+  constructor(public validateResponse: ValidateResponseService) {
     this.editorOptions = new JsonEditorOptions()
     this.editorOptions.enableTransform = true;
     this.editorOptions.mode = 'code';
@@ -53,11 +54,11 @@ export class EditRequestValidationComponent implements OnInit {
 
   onTypeChange(event: any) {
     console.log(event);
-    this.visibleData.type = event.value;
+    this.visibleData.payload = event.value;
     console.log(this.visibleData);
 
-    switch (this.visibleData.type) {
-      case ValidationType.JsonSchema:
+    switch (this.visibleData.payload) {
+      case ValidationTypePayload.JsonSchema:
         {
           if (this.visibleData?.jsonSchema?.schema == undefined)
             this.visibleData.jsonSchema = { schema: '{}' };

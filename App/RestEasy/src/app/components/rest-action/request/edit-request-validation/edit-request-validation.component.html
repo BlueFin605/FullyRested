@@ -1,8 +1,17 @@
 <div class="displayoptions">
     <mat-radio-group aria-label="Validation Type">
-      <mat-radio-button value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.None">None</mat-radio-button>
-      <mat-radio-button value={{validationType.JsonSchema}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.JsonSchema">Json Schema</mat-radio-button>
+      <mat-radio-button value={{validationTypePayload.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.payload == validationTypePayload.None">None</mat-radio-button>
+      <mat-radio-button value={{validationTypePayload.JsonSchema}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.payload == validationTypePayload.JsonSchema">Json Schema</mat-radio-button>
     </mat-radio-group>
 </div>
 
-<json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor *ngIf="visibleData.type == validationType.JsonSchema"></json-editor>
+<div class="httpresult">
+  <mat-form-field>
+    <mat-label>Http Response Code</mat-label>
+    <mat-select [(value)]="visibleData.httpCode">
+      <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{code.code}} - {{code.desc}}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</div>
+
+<json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor *ngIf="visibleData.payload == validationTypePayload.JsonSchema"></json-editor>

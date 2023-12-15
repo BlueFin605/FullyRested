@@ -65,7 +65,7 @@ export interface RestActionBody {
   body: any;
 }
 
-export enum ValidationType {
+export enum ValidationTypePayload {
   None = "None",
   JsonSchema = "JsonSchema"
 }
@@ -75,7 +75,8 @@ export interface RestActionValidationJsonSchema {
 }
 
 export interface RestActionValidation {
-  type: ValidationType;
+  httpCode: number,
+  payload: ValidationTypePayload;
   jsonSchema: RestActionValidationJsonSchema | undefined;
 }
 
@@ -191,7 +192,7 @@ export function CreateEmptyAction(): RestAction {
     body: { contentType: 'none', body: undefined },
     authentication: CreateEmptyAuthenticationDetails('inherit'),
     runs: [],
-    validation: { type: ValidationType.None, jsonSchema: undefined }
+    validation: CreateEmptyRestActionValidation()
   };
 }
 
@@ -246,7 +247,8 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
 
 export function CreateEmptyRestActionValidation(): RestActionValidation {
   return {
-    type: ValidationType.None,
+    payload: ValidationTypePayload.None,
+    httpCode: 200,
     jsonSchema: undefined
   }
 };
@@ -492,7 +494,8 @@ export class ActionRepositoryService {
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherit'),
       validation: {
-        type: ValidationType.JsonSchema,
+        payload: ValidationTypePayload.JsonSchema,
+        httpCode: 200,
         jsonSchema: {
           schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`
         }
