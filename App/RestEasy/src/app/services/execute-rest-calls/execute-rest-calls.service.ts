@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
 import { Solution, AuthenticationDetails, Environment, SecretTable, VariableTable, RestActionValidation } from '../action-repository/action-repository.service';
+import { ResponseValidation } from '../validate-response/validate-response.service';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -20,7 +21,7 @@ export interface RestActionResult {
   headers: { [header: string]: string };
   headersSent: { [header: string]: string };
   body: RestActionResultBody | undefined;
-  validated: string[] | undefined;
+  validated: ResponseValidation | undefined;
 }
 
 export interface RestActionResultBody {
@@ -229,7 +230,7 @@ export class ExecuteRestCallsService {
       //   a.closest("[data-ved]"))?D(f)||"":"";f=f||"";if(a.hasAttribute("jsname"))a=a.getAttribute("jsname");else{var C;a=null==(C=a.closest("[jsname]"))?void 0:C.getAttribute("jsname")}google.log("rcm","&ei="+c+"&ved="+f+"&jsname="+(a||""))}}else F=a,E=[c]}window.document.addEventListener("DOMContentLoaded",function(){document.body.addEventListener("click",G)});}).call(this);</script></body></html>`)
       // },
 
-      validated: []
+      validated: {information: [], errors: [], valid: true}
     };
 
     return new Promise((resolve, reject) => { resolve(mockjson); });
