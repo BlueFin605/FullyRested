@@ -30,7 +30,7 @@ export class ValidateResponseService {
       return { information: [], errors: [`Http response code does not match '${response.status}'`], valid: false };
     }
 
-    if (action.validation.type.includes(ValidationType.Payload)) {
+    if (action.validation.type.includes(ValidationType.Body)) {
       return this.validatePayload(action, response);
     }
 

@@ -2,8 +2,8 @@
   <mat-radio-group aria-label="Validation Type">
     <mat-radio-button value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.None">None</mat-radio-button>
     <mat-radio-button value={{validationType.Headers}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.Headers">Headers</mat-radio-button>
-    <mat-radio-button value={{validationType.Payload}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.Payload">Payload</mat-radio-button>
-    <mat-radio-button value={{validationType.HeadersPayload}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.HeadersPayload">Headers & Payload</mat-radio-button>
+    <mat-radio-button value={{validationType.Body}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.Body">Body</mat-radio-button>
+    <mat-radio-button value={{validationType.HeadersBody}} name="view" (change)="onTypeChange($event)" [checked] = "visibleData.type == validationType.HeadersBody">Headers & Body</mat-radio-button>
   </mat-radio-group>
 </div>
 
@@ -20,7 +20,7 @@
   <p>Header validation will go here</p>
 </div>
 
-<div *ngIf="payload">
+<div *ngIf="body">
   <div class="displayoptions">
     <mat-radio-group aria-label="Payload Validation Type">
       <mat-radio-button value={{validationTypePayload.None}} name="view" (change)="onPayloadTypeChange($event)" [checked] = "visibleData.payload == validationTypePayload.None">None</mat-radio-button>

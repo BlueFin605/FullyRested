@@ -96,8 +96,8 @@ export class EditRequestValidationComponent implements OnInit {
     return this.visibleData.type.includes(ValidationType.Headers);
   }
 
-  public get payload(): boolean {
-    return this.visibleData.type.includes(ValidationType.Payload);
+  public get body(): boolean {
+    return this.visibleData.type.includes(ValidationType.Body);
   }
 
   public get responsecode(): boolean {

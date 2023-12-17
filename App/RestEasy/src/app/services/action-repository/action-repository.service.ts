@@ -68,8 +68,8 @@ export interface RestActionBody {
 export enum ValidationType {
   None = "None",
   Headers = "Headers",
-  Payload = "Payload",
-  HeadersPayload = "HeadersPayload"
+  Body = "Body",
+  HeadersBody = "HeadersBody"
 }
 
 export enum ValidationTypePayload {
@@ -503,7 +503,7 @@ export class ActionRepositoryService {
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherit'),
       validation: {
-        type: ValidationType.HeadersPayload,
+        type: ValidationType.HeadersBody,
         payload: ValidationTypePayload.JsonSchema,
         httpCode: 200,
         jsonSchema: {
