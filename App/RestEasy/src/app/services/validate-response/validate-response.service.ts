@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ValidationType, ValidationTypePayload } from '../action-repository/action-repository.service';
+import { ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 
@@ -38,7 +38,7 @@ export class ValidateResponseService {
   }
 
   public async validatePayload(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation> {
-    if (action.validation?.payload == ValidationTypePayload.None) {
+    if (action.validation?.body == ValidationTypeBody.None) {
       if (response.body != undefined) {
         return { information: [], errors: [`Response had payload when none was expected`], valid: false };
       }

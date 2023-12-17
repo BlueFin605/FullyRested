@@ -72,7 +72,7 @@ export enum ValidationType {
   HeadersBody = "HeadersBody"
 }
 
-export enum ValidationTypePayload {
+export enum ValidationTypeBody {
   None = "None",
   JsonSchema = "JsonSchema"
 }
@@ -84,7 +84,7 @@ export interface RestActionValidationJsonSchema {
 export interface RestActionValidation {
   type: ValidationType,
   httpCode: number,
-  payload: ValidationTypePayload;
+  body: ValidationTypeBody;
   jsonSchema: RestActionValidationJsonSchema | undefined;
 }
 
@@ -256,7 +256,7 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
 export function CreateEmptyRestActionValidation(): RestActionValidation {
   return {
     type: ValidationType.None,
-    payload: ValidationTypePayload.None,
+    body: ValidationTypeBody.None,
     httpCode: 200,
     jsonSchema: undefined
   }
@@ -504,7 +504,7 @@ export class ActionRepositoryService {
       authentication: CreateEmptyAuthenticationDetails('inherit'),
       validation: {
         type: ValidationType.HeadersBody,
-        payload: ValidationTypePayload.JsonSchema,
+        body: ValidationTypeBody.JsonSchema,
         httpCode: 200,
         jsonSchema: {
           schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`

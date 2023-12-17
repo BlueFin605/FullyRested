@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationTypePayload, RestActionValidation, CreateEmptyRestActionValidation, ValidationType } from 'src/app/services/action-repository/action-repository.service';
+import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
@@ -13,8 +13,8 @@ export class EditRequestValidationComponent implements OnInit {
   public get validationType(): typeof ValidationType {
     return ValidationType;
   }
-  public get validationTypePayload(): typeof ValidationTypePayload {
-    return ValidationTypePayload;
+  public get validationTypePayload(): typeof ValidationTypeBody {
+    return ValidationTypeBody;
   }
   // private initialData: string;
   visibleData: RestActionValidation = CreateEmptyRestActionValidation();
@@ -30,8 +30,8 @@ export class EditRequestValidationComponent implements OnInit {
 
     this.visibleData = validation;
 
-    switch (validation?.payload) {
-      case ValidationTypePayload.JsonSchema:
+    switch (validation?.body) {
+      case ValidationTypeBody.JsonSchema:
         {
           const str = validation?.jsonSchema?.schema ?? '{}';
           console.log(`set schema[${str}]`);
@@ -57,15 +57,17 @@ export class EditRequestValidationComponent implements OnInit {
 
   onPayloadTypeChange(event: any) {
     console.log(event);
-    this.visibleData.payload = event.value;
+    this.visibleData.body = event.value;
     console.log(this.visibleData);
 
-    switch (this.visibleData.payload) {
-      case ValidationTypePayload.JsonSchema:
+    switch (this.visibleData.body) {
+      case ValidationTypeBody.JsonSchema:
         {
-          if (this.visibleData?.jsonSchema?.schema == undefined)
+          if (this.visibleData?.jsonSchema?.schema == undefined) {
             this.visibleData.jsonSchema = { schema: '{}' };
-          this.jsonObj = {};
+          }
+
+          this.jsonObj = JSON.parse(this.visibleData?.jsonSchema.schema ?? {});
         }
     }
 
