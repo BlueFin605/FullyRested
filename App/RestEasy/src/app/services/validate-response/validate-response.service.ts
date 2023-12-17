@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ValidationTypePayload } from '../action-repository/action-repository.service';
+import { ValidationType, ValidationTypePayload } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 
@@ -17,12 +17,32 @@ export class ValidateResponseService {
 
   constructor(private contentTypeHelper: ContentTypeHelperService) { }
 
-  public async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation> {
+  public async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation | undefined> {
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
 
-    if (action.validation == undefined || action.validation.payload == ValidationTypePayload.None) {
+    if (action.validation == undefined || action.validation.type == ValidationType.None) {
       console.log('no validation configured');
+      return undefined;
+    }
+
+    if (action.validation.httpCode != response.status) {
+      return { information: [], errors: [`Http response code does not match '${response.status}'`], valid: false };
+    }
+
+    if (action.validation.type.includes(ValidationType.Payload)) {
+      return this.validatePayload(action, response);
+    }
+
+    return { information: [], errors: [], valid: true };
+  }
+
+  public async validatePayload(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation> {
+    if (action.validation?.payload == ValidationTypePayload.None) {
+      if (response.body != undefined) {
+        return { information: [], errors: [`Response had payload when none was expected`], valid: false };
+      }
+
       return { information: [], errors: [], valid: true };
     }
 
@@ -30,7 +50,6 @@ export class ValidateResponseService {
       console.log('No response body but has validation');
       return { information: [], errors: ['No response body but has validation'], valid: false };
     }
-
     // return this.validateJsonString({name: "Alice", age: 25}, action.validation?.jsonSchema?.schema ?? "{}");
     // let schema = {
     //   type: "object",

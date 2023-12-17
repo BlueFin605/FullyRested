@@ -65,6 +65,13 @@ export interface RestActionBody {
   body: any;
 }
 
+export enum ValidationType {
+  None = "None",
+  Headers = "Headers",
+  Payload = "Payload",
+  HeadersPayload = "HeadersPayload"
+}
+
 export enum ValidationTypePayload {
   None = "None",
   JsonSchema = "JsonSchema"
@@ -75,6 +82,7 @@ export interface RestActionValidationJsonSchema {
 }
 
 export interface RestActionValidation {
+  type: ValidationType,
   httpCode: number,
   payload: ValidationTypePayload;
   jsonSchema: RestActionValidationJsonSchema | undefined;
@@ -247,6 +255,7 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
 
 export function CreateEmptyRestActionValidation(): RestActionValidation {
   return {
+    type: ValidationType.None,
     payload: ValidationTypePayload.None,
     httpCode: 200,
     jsonSchema: undefined
@@ -494,6 +503,7 @@ export class ActionRepositoryService {
       parameters: [],
       authentication: CreateEmptyAuthenticationDetails('inherit'),
       validation: {
+        type: ValidationType.HeadersPayload,
         payload: ValidationTypePayload.JsonSchema,
         httpCode: 200,
         jsonSchema: {

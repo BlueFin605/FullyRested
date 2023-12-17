@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationTypePayload, RestActionValidation, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
+import { ValidationTypePayload, RestActionValidation, CreateEmptyRestActionValidation, ValidationType } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
@@ -10,6 +10,9 @@ import { ValidateResponseService } from 'src/app/services/validate-response/vali
   styleUrls: ['./edit-request-validation.component.css']
 })
 export class EditRequestValidationComponent implements OnInit {
+  public get validationType(): typeof ValidationType {
+    return ValidationType;
+  }
   public get validationTypePayload(): typeof ValidationTypePayload {
     return ValidationTypePayload;
   }
@@ -52,7 +55,7 @@ export class EditRequestValidationComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  onTypeChange(event: any) {
+  onPayloadTypeChange(event: any) {
     console.log(event);
     this.visibleData.payload = event.value;
     console.log(this.visibleData);
@@ -69,6 +72,11 @@ export class EditRequestValidationComponent implements OnInit {
     this.validationChange.emit(this.visibleData);
   }
 
+  onTypeChange(event: any) {
+    console.log(event);
+    this.visibleData.type = event.value;
+  }
+
   updateData(d: Event) {
     console.log('updateData');
     console.log(this.jsonObj);
@@ -82,5 +90,17 @@ export class EditRequestValidationComponent implements OnInit {
     this.visibleData.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';
     console.log(JSON.stringify(this.visibleData));
     this.validationChange.emit(this.visibleData);
+  }
+
+  public get headers(): boolean {
+    return this.visibleData.type.includes(ValidationType.Headers);
+  }
+
+  public get payload(): boolean {
+    return this.visibleData.type.includes(ValidationType.Payload);
+  }
+
+  public get responsecode(): boolean {
+    return this.visibleData.type != ValidationType.None;
   }
 }
