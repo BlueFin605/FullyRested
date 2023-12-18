@@ -39,4 +39,14 @@ export class DisplayResponseComponent implements OnInit {
 
     return "Error"
   }
+
+  getErrorString(): string {
+    var alertString:string = '';
+
+    this.response.validated?.errors.forEach(element => {
+      alertString += element + "\n";
+    });
+
+    return alertString;
+    }
 }

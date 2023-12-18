@@ -28,3 +28,7 @@ div[level="Empty"] {
 .statustext {
     margin-left: 10px;
 }
+
+.valerrors {
+    white-space: pre;
+}

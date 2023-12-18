@@ -5,6 +5,9 @@
         <div class="statustext" attr.data-value="{{response.status}}">-</div>
         <div class="statustext">{{response.statusText}}</div>
     </div>
+    <div class="valerrors" attr.level={{getlevel()}}>
+        <p>{{getErrorString()}}</p>
+    </div>
     <div>
         <mat-tab-group animationDuration="0ms">
             <mat-tab label="Body"> <app-display-response-body [body]="response.body"></app-display-response-body></mat-tab>

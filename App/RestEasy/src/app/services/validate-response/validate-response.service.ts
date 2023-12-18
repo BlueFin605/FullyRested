@@ -27,7 +27,7 @@ export class ValidateResponseService {
     }
 
     if (action.validation.httpCode != response.status) {
-      return { information: [], errors: [`Http response code does not match '${response.status}'`], valid: false };
+      return { information: [], errors: [`Http response code does not match '${action.validation.httpCode}'`], valid: false };
     }
 
     if (action.validation.type.includes(ValidationType.Body)) {
