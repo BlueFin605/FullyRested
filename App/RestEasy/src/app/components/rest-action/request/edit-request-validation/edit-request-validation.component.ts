@@ -17,7 +17,7 @@ export class EditRequestValidationComponent implements OnInit {
     return ValidationTypeBody;
   }
   // private initialData: string;
-  visibleData: RestActionValidation = CreateEmptyRestActionValidation();
+  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation();
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
@@ -25,10 +25,10 @@ export class EditRequestValidationComponent implements OnInit {
 
   @Input() set validation(validation: RestActionValidation) {
     // this.initialData = schema;
-    if (this.visibleData == validation)
+    if (this.visibleSchema == validation)
       return;
 
-    this.visibleData = validation;
+    this.visibleSchema = validation;
 
     switch (validation?.body) {
       case ValidationTypeBody.JsonSchema:
@@ -57,26 +57,26 @@ export class EditRequestValidationComponent implements OnInit {
 
   onPayloadTypeChange(event: any) {
     console.log(event);
-    this.visibleData.body = event.value;
-    console.log(this.visibleData);
+    this.visibleSchema.body = event.value;
+    console.log(this.visibleSchema);
 
-    switch (this.visibleData.body) {
+    switch (this.visibleSchema.body) {
       case ValidationTypeBody.JsonSchema:
         {
-          if (this.visibleData?.jsonSchema?.schema == undefined) {
-            this.visibleData.jsonSchema = { schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{},"required":[]}` };
+          if (this.visibleSchema?.jsonSchema?.schema == undefined) {
+            this.visibleSchema.jsonSchema = { schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{},"required":[]}` };
           }
 
-          this.jsonObj = JSON.parse(this.visibleData?.jsonSchema.schema ?? {});
+          this.jsonObj = JSON.parse(this.visibleSchema?.jsonSchema.schema ?? {});
         }
     }
 
-    this.validationChange.emit(this.visibleData);
+    this.validationChange.emit(this.visibleSchema);
   }
 
   onTypeChange(event: any) {
     console.log(event);
-    this.visibleData.type = event.value;
+    this.visibleSchema.type = event.value;
   }
 
   updateData(d: Event) {
@@ -86,23 +86,23 @@ export class EditRequestValidationComponent implements OnInit {
     console.log(`[u]valid json:${this.schemaChild?.isValidJson()}`);
 
     //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the schema to be set to this, you are kind of stuffed if this is what you want your payload to be 
-    if (d.isTrusted == true || this.visibleData.jsonSchema == undefined)
+    if (d.isTrusted == true || this.visibleSchema.jsonSchema == undefined)
       return;
 
-    this.visibleData.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';
-    console.log(JSON.stringify(this.visibleData));
-    this.validationChange.emit(this.visibleData);
+    this.visibleSchema.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';
+    console.log(JSON.stringify(this.visibleSchema));
+    this.validationChange.emit(this.visibleSchema);
   }
 
   public get headers(): boolean {
-    return this.visibleData.type.includes(ValidationType.Headers);
+    return this.visibleSchema.type.includes(ValidationType.Headers);
   }
 
   public get body(): boolean {
-    return this.visibleData.type.includes(ValidationType.Body);
+    return this.visibleSchema.type.includes(ValidationType.Body);
   }
 
   public get responsecode(): boolean {
-    return this.visibleData.type != ValidationType.None;
+    return this.visibleSchema.type != ValidationType.None;
   }
 }
