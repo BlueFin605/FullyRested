@@ -1,0 +1,57 @@
+{
+    "id": "d7062d35-5122-4ca3-8a8d-56bfd266361b",
+    "name": "JSON Schema",
+    "verb": "get",
+    "protocol": "http",
+    "url": "json-schema.org/draft-04/schema",
+    "headers": [
+        {
+            "key": "user-agent",
+            "value": "resteasy",
+            "active": true,
+            "id": "aaa"
+        },
+        {
+            "key": "accept",
+            "value": "*",
+            "active": true,
+            "id": "07979624-fba2-4b9e-9893-e85c96b8f387"
+        },
+        {
+            "key": "accept-encoding",
+            "value": "gzip, deflate, br",
+            "active": true,
+            "id": "699b3d37-0c91-4c99-8634-75d27a16497b"
+        }
+    ],
+    "parameters": [],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "Body",
+        "jsonSchema": {
+            "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {},\n  \"required\": []\n}"
+        },
+        "body": "JsonSchema",
+        "httpCode": 200
+    }
+}

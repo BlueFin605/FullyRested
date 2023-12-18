@@ -1,0 +1,35 @@
+<div class="displayoptions">
+  <mat-radio-group aria-label="Validation Type">
+    <mat-radio-button class="rb" value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.None">None</mat-radio-button>
+    <mat-radio-button class="rb" value={{validationType.ResponseCode}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.ResponseCode">Response Code</mat-radio-button>
+    <mat-radio-button class="rb" value={{validationType.Headers}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Headers">Headers</mat-radio-button>
+    <mat-radio-button class="rb" value={{validationType.Body}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Body">Body</mat-radio-button>
+    <mat-radio-button class="rb" value={{validationType.HeadersBody}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.HeadersBody">Headers & Body</mat-radio-button>
+  </mat-radio-group>
+</div>
+
+<div class="httpresult" *ngIf="responsecode">
+  <mat-form-field>
+    <mat-label>Http Response Code</mat-label>
+    <mat-select [(value)]="visibleSchema.httpCode">
+      <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{code.code}} - {{code.desc}}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</div>
+
+<div *ngIf="headers">
+  <p>Header validation will go here</p>
+</div>
+
+<div *ngIf="body">
+  <div class="displayoptions">
+    <mat-radio-group aria-label="Payload Validation Type">
+      <mat-radio-button value={{validationTypePayload.None}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.None">None</mat-radio-button>
+      <mat-radio-button value={{validationTypePayload.JsonSchema}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.JsonSchema">Json Schema</mat-radio-button>
+    </mat-radio-group>  
+  </div>    
+
+  <div *ngIf="visibleSchema.body == validationTypePayload.JsonSchema">
+    <json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor></json-editor>
+  </div>
+</div>

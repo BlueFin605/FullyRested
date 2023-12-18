@@ -136,7 +136,8 @@ export class EditRequestRunComponent implements OnInit {
       body: this.action.body,
       authentication: this.findAuthentication(),
       secrets: this._run.secrets,
-      variables: this._run.variables
+      variables: this._run.variables,
+      validation: this._run.validation
     };
 
     console.log(`emit[${action.url}]`);

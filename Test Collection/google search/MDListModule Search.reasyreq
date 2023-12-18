@@ -60,5 +60,8 @@
         }
     },
     "body": "{}",
-    "runs": []
+    "runs": [],
+    "validation": {
+        "type": "None"
+    }
 }

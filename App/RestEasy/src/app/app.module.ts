@@ -50,6 +50,7 @@ import { SettingsManageAuthenticationBasicAuthComponent } from './components/set
 import { SettingsManageAuthenticationBearerTokenComponent } from './components/settings/settings-manage-authentication-bearer-token/settings-manage-authentication-bearer-token.component';
 import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
 import { EditRequestRunComponent } from './components/rest-action/request/edit-request-run/edit-request-run.component';
+import { EditRequestValidationComponent } from './components/rest-action/request/edit-request-validation/edit-request-validation.component';
 
 @NgModule({
   declarations: [
@@ -80,7 +81,8 @@ import { EditRequestRunComponent } from './components/rest-action/request/edit-r
     SettingsManageAuthenticationBasicAuthComponent,
     SettingsManageAuthenticationBearerTokenComponent,
     RestActionRunComponent,
-    EditRequestRunComponent
+    EditRequestRunComponent,
+    EditRequestValidationComponent
   ],
   imports: [
     BrowserModule,

@@ -1,6 +1,10 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun, ValidationTypeBody } from 'src/app/services/action-repository/action-repository.service'
+import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
+
+import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
+import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
 @Component({
   selector: 'app-rest-action',
@@ -38,12 +42,12 @@ export class RestActionComponent implements OnInit {
       return;
 
     this._fullFilename = fullFlename;
-    this.repository.loadRequest(fullFlename).then(a => { 
+    this.repository.loadRequest(fullFlename).then(a => {
       console.log(a);
       this._originalSource = JSON.stringify(a)
       var currentstate = JSON.stringify(this._action);
       console.log(`[A]currentstate:[${currentstate}]`);
-      console.log(`[A]_originalSource:[${this._originalSource}]`);  
+      console.log(`[A]_originalSource:[${this._originalSource}]`);
       this.dirtyChange.emit(currentstate != this._originalSource);
     });
   }
@@ -56,7 +60,9 @@ export class RestActionComponent implements OnInit {
 
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
+  constructor(private era: ExecuteRestCallsService, 
+              private repository: ActionRepositoryService, 
+              public validateResponse: ValidateResponseService) {
   }
 
   ngOnInit(): void {
@@ -66,6 +72,8 @@ export class RestActionComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
+    this.response.validated = await this.validateResponse.validateResponse(action, this.response);
+    console.log(this.response.validated);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
@@ -80,10 +88,10 @@ export class RestActionComponent implements OnInit {
       return;
 
     this._laststate = currentstate;
-    
+
     console.log(`currentstate:[${currentstate}]`);
     console.log(`_originalSource:[${this._originalSource}]`);
-    
+
     this.dirtyChange.emit(currentstate != this._originalSource);
 
     //TODO need to store oigin state in @Input nd then do a deep compare and only emit change when they re different

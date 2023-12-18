@@ -16,6 +16,13 @@ export class DisplayResponseComponent implements OnInit {
   }
 
   getlevel() {
+    if (this.response.validated == undefined)
+      return this.getLevelFromStatusCode();
+
+    return this.response.validated.valid ? "Ok" : "Error";
+  }
+
+  getLevelFromStatusCode() {
     if (this.response.status === "" && this.response.statusText === undefined) {
       return "Empty"
     }
@@ -32,4 +39,14 @@ export class DisplayResponseComponent implements OnInit {
 
     return "Error"
   }
+
+  getErrorString(): string {
+    var alertString:string = '';
+
+    this.response.validated?.errors.forEach(element => {
+      alertString += element + "\n";
+    });
+
+    return alertString;
+    }
 }

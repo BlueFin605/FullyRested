@@ -45,5 +45,6 @@
         <mat-tab label="Headers"><app-edit-request-headers [(headers)]="action.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></mat-tab>
         <mat-tab label="Parameters"><app-edit-request-parameters [(params)]="action.parameters" (paramsChange)="onParamChange($event)"></app-edit-request-parameters></mat-tab>
         <mat-tab label="Authentication"><app-edit-request-authentication [(auth)]="action.authentication" (authChange)="onAuthChange($event)"></app-edit-request-authentication></mat-tab>
+        <mat-tab label="Validation"><app-edit-request-validation [(validation)]="action.validation" (validationChange)="onValidationChange($event)"></app-edit-request-validation></mat-tab>
     </mat-tab-group>
 </div>

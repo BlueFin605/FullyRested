@@ -4,11 +4,13 @@
   "main": "main.js",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "electron-forge start",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "electron": "ng build && electron ."
+    "electron": "ng build && electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "private": true,
   "dependencies": {
@@ -24,9 +26,11 @@
     "@angular/router": "^14.0.0",
     "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/signature-v4": "^3.374.0",
+    "@hyperjump/json-schema": "^1.6.7",
     "@maaxgr/ang-jsoneditor": "^14.0.0",
     "@treeview/ngx-treeview": "^14.0.0",
     "axios": "^1.5.1",
+    "electron-squirrel-startup": "^1.0.0",
     "jsoneditor": "^9.10.3",
     "keytar": "^7.9.0",
     "ngx-json-viewer": "^3.2.1",
@@ -36,8 +40,14 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^14.0.6",
-    "@angular/cli": "~14.0.6",
+    "@angular/cli": "^14.2.13",
     "@angular/compiler-cli": "^14.0.0",
+    "@electron-forge/cli": "^7.2.0",
+    "@electron-forge/maker-deb": "^7.2.0",
+    "@electron-forge/maker-rpm": "^7.2.0",
+    "@electron-forge/maker-squirrel": "^7.2.0",
+    "@electron-forge/maker-zip": "^7.2.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
     "@types/jasmine": "~4.0.0",
     "@types/uuid": "^9.0.6",
     "electron": "^27.0.0",
