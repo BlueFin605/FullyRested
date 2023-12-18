@@ -64,7 +64,7 @@ export class EditRequestValidationComponent implements OnInit {
       case ValidationTypeBody.JsonSchema:
         {
           if (this.visibleData?.jsonSchema?.schema == undefined) {
-            this.visibleData.jsonSchema = { schema: '{}' };
+            this.visibleData.jsonSchema = { schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{},"required":[]}` };
           }
 
           this.jsonObj = JSON.parse(this.visibleData?.jsonSchema.schema ?? {});

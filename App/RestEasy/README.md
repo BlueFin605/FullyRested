@@ -27,7 +27,7 @@ Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To u
 see https://www.electronjs.org/docs/latest/tutorial/quick-start#package-and-distribute-your-application for full documentation
 
 run 'npm run make' to build a deployment package
-run 'npm run electron' to run app (not the deployed package)ç
+run 'npm run electron' to run app (not the deployed package)
 
 ## Further help
 

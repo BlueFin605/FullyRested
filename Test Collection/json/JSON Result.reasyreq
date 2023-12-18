@@ -63,9 +63,12 @@
     },
     "runs": [],
     "validation": {
-        "type": "JsonSchema",
+        "type": "Body",
         "jsonSchema": {
-            "schema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"userId\": {\n      \"type\": \"integer\"\n    },\n    \"id\": {\n      \"type\": \"integer\"\n    },\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"completed\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"userId\",\n    \"id\",\n    \"title\",\n    \"completed\"\n  ]\n}"
-        }
+            "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"userId\": {\n      \"type\": \"integer\"\n    },\n    \"id\": {\n      \"type\": \"integer\"\n    },\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"completed\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"userId\",\n    \"id\",\n    \"title\",\n    \"completed\"\n  ]\n}"
+        },
+        "payload": "JsonSchema",
+        "httpCode": 200,
+        "body": "JsonSchema"
     }
 }

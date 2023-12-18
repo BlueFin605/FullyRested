@@ -99,6 +99,11 @@
     "body": "{}",
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "body": "None",
+        "jsonSchema": {
+            "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schemaç\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
+        },
+        "httpCode": 200
     }
 }

@@ -67,6 +67,7 @@ export interface RestActionBody {
 
 export enum ValidationType {
   None = "None",
+  ResponseCode = "ResponseCode",
   Headers = "Headers",
   Body = "Body",
   HeadersBody = "HeadersBody"
