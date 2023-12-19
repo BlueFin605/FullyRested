@@ -35,5 +35,6 @@
         <mat-tab label="Authentication"><app-edit-request-authentication [(auth)]="_run.authentication" (authChange)="onAuthChange($event)"></app-edit-request-authentication></mat-tab>
         <mat-tab label="Variables"><app-settings-manage-variables [(variables)]="_run.variables" (variablesChange)="onVariablesChange($event)"></app-settings-manage-variables></mat-tab>
         <mat-tab label="Secrets"><app-settings-manage-secrets [(secrets)]="_run.secrets" (secretsChange)="onSecretsChange($event)"></app-settings-manage-secrets></mat-tab>
+        <mat-tab label="Validation"><app-edit-request-validation [(validation)]="_run.validation" (validationChange)="onValidationChange($event)"></app-edit-request-validation></mat-tab>
     </mat-tab-group>
 </div>

@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { RestAction, ActionRepositoryService, CreateEmptyAction, CreateEmptyRestActionRun, Solution, RestActionRun } from 'src/app/services/action-repository/action-repository.service'
+import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
 @Component({
   selector: 'app-rest-action-run',
@@ -32,7 +33,9 @@ export class RestActionRunComponent implements OnInit {
 
   response: RestActionResult = EmptyActionResult;
 
-  constructor(private era: ExecuteRestCallsService, private repository: ActionRepositoryService) {
+  constructor(private era: ExecuteRestCallsService, 
+              private repository: ActionRepositoryService,
+              public validateResponse: ValidateResponseService) {
   }
 
   ngOnInit(): void {
@@ -52,6 +55,7 @@ export class RestActionRunComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
+    this.response.validated = await this.validateResponse.validateResponse(action, this.response);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 

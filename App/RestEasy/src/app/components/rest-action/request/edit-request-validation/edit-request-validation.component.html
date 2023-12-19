@@ -12,7 +12,7 @@
   <mat-form-field>
     <mat-label>Http Response Code</mat-label>
     <mat-select [(value)]="visibleSchema.httpCode">
-      <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{code.code}} - {{code.desc}}</mat-option>
+      <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{buildDescription(code)}}</mat-option>
     </mat-select>
   </mat-form-field>
 </div>

@@ -160,8 +160,10 @@ async function executeAction(event, request) {
                 headers: error.response.headers
             };
         }
-        
-        return { status: "", statusText: error.code };
+        if (error.code == 'ENOTFOUND')
+            return { status: -1, statusText: error.code };
+
+        return { status: -99, statusText: error.code };
     }
 }
 

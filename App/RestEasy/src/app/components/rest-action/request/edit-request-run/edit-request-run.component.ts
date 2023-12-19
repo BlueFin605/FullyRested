@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Solution, CreateEmptySolution, SecretTable, VariableTable } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Solution, CreateEmptySolution, SecretTable, VariableTable, RestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -79,6 +79,11 @@ export class EditRequestRunComponent implements OnInit {
     this.runChange.emit(this._run);
   }
 
+  onValidationChange(event: RestActionValidation) {
+    // console.log(event);    
+    this.runChange.emit(this._run);
+  }
+  
   onNameChange(value: string) {
     this._run.name = value;
     console.log(this.action);

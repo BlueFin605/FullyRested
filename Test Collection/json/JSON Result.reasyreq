@@ -4,7 +4,7 @@
     "body": "{}",
     "verb": "get",
     "protocol": "https",
-    "url": "jsonplaceholder.typicode.com/todos/1",
+    "url": "jsonplaceholder.typicode{{suffix}}/todos/1",
     "headers": [
         {
             "key": "accept",
@@ -61,7 +61,45 @@
             "token": ""
         }
     },
-    "runs": [],
+    "runs": [
+        {
+            "id": "b7b11880-0dde-42d3-b007-4e685a8f5fe0",
+            "name": "uk suffix",
+            "parameters": [],
+            "headers": [],
+            "variables": [
+                {
+                    "variable": "suffix",
+                    "value": ".co.uk",
+                    "active": true,
+                    "id": "c910a72e-8b37-4087-b56a-ed96033c2520"
+                }
+            ],
+            "secrets": [],
+            "authentication": {
+                "authentication": "none",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "validation": {
+                "type": "ResponseCode",
+                "body": "None",
+                "httpCode": -1
+            }
+        }
+    ],
     "validation": {
         "type": "Body",
         "jsonSchema": {
