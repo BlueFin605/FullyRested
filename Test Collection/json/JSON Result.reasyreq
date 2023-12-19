@@ -72,7 +72,7 @@
                     "variable": "suffix",
                     "value": ".co.uk",
                     "active": true,
-                    "id": "c910a72e-8b37-4087-b56a-ed96033c2520"
+                    "id": "9bbc9ef5-d644-4235-87f2-f92d2711d154"
                 }
             ],
             "secrets": [],
@@ -96,7 +96,47 @@
             "validation": {
                 "type": "ResponseCode",
                 "body": "None",
-                "httpCode": -1
+                "httpCode": -1,
+                "jsonSchema": {
+                    "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
+                }
+            }
+        },
+        {
+            "id": "f10e75b4-e0f7-41c0-ac88-76a57b227220",
+            "name": "com suffix",
+            "parameters": [],
+            "headers": [],
+            "variables": [
+                {
+                    "variable": "suffix",
+                    "value": ".com",
+                    "active": true,
+                    "id": "63162788-f6dd-4ece-ade5-8b5c0df7a6d2"
+                }
+            ],
+            "secrets": [],
+            "authentication": {
+                "authentication": "none",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "validation": {
+                "type": "ResponseCode",
+                "body": "None",
+                "httpCode": 200
             }
         }
     ],
