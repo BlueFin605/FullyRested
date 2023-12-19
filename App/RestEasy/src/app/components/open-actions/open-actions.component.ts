@@ -1,8 +1,15 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, SolutionExplorerComponent } from '../solution-explorer/solution-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+
+interface SelectedTab {
+  readonly selectedType: string;
+  readonly selectedSubType: string;
+  readonly selectedKey: string;
+  readonly runkey: string | undefined;
+}
 
 @Component({
   selector: 'app-open-actions',
@@ -13,10 +20,13 @@ export class OpenActionsComponent implements OnInit {
   state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
   public solution: Solution | undefined;
   enabledMenuOptions: string[] = [];
-  selectedType: string = "";
-  selectedSubType: string = "";
   selectedEnvironment: Environment = CreateEmptyEnvironment();
-  runkey: string | undefined;
+  selectedTab: SelectedTab = {
+    selectedType: '',
+    selectedSubType: '',
+    selectedKey: '',
+    runkey: undefined
+  }
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
@@ -203,9 +213,7 @@ export class OpenActionsComponent implements OnInit {
     console.log(`openAction:[${selected.key}] activeTab[${selected.activeTab}]`);
 
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
-    this.selectedType = selected?.type;
-    this.selectedSubType = selected?.subtype;
-    this.runkey = selected?.runkey;
+    this.selectedTab = { selectedType: selected?.type, selectedSubType: selected?.subtype, selectedKey: selected?.key, runkey: selected?.runkey };
 
     var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == selected.key);
     if (existingTab != -1) {
@@ -243,16 +251,14 @@ export class OpenActionsComponent implements OnInit {
       }
       this.repo.saveCurrentState(this.state);
     });
-
   }
 
   openSystem(selected: SelectedTreeItem) {
     console.log(selected);
     console.log(this.solution?.config?.environments);
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
-    this.selectedType = selected?.type;
-    this.selectedSubType = selected?.subtype;
-    
+    this.selectedTab = { selectedType: selected?.type, selectedSubType: selected?.subtype, selectedKey: selected?.key, runkey: undefined };
+
     if (selected.type == 'system' && selected.subtype == 'variables') {
       if (selected.key == 'system.settings.variables') {
         this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
@@ -260,31 +266,31 @@ export class OpenActionsComponent implements OnInit {
         this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`)) ?? CreateEmptyEnvironment();
       }
     } else
-    if (selected.type == 'system' && selected.subtype == 'secrets') {
-      if (selected.key == 'system.settings.secrets') {
-        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-      } else {
-        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
-      }
-    } else
-    if (selected.type == 'system' && selected.subtype == 'authentication') {
-      if (selected.key == 'system.settings.authentication') {
-        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
-      } else {
-        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
-      }
-    } else
-    if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
-      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-    } else
-    if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
-      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-    } else
-    if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
-      this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
-    } else {
-      this.selectedEnvironment = CreateEmptyEnvironment();
-    }
+      if (selected.type == 'system' && selected.subtype == 'secrets') {
+        if (selected.key == 'system.settings.secrets') {
+          this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+        } else {
+          this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
+        }
+      } else
+        if (selected.type == 'system' && selected.subtype == 'authentication') {
+          if (selected.key == 'system.settings.authentication') {
+            this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+          } else {
+            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
+          }
+        } else
+          if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
+            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+          } else
+            if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
+              this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+            } else
+              if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
+                this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+              } else {
+                this.selectedEnvironment = CreateEmptyEnvironment();
+              }
 
     console.log(this.selectedEnvironment);
   }
@@ -318,16 +324,52 @@ export class OpenActionsComponent implements OnInit {
     this.repo.storeSolution(this.solution);
   }
 
+  createRun() {
+    console.log(`createRun`);
+
+    var existingTab = this.currentSession().actions.find(a => a.fullFilename == this.selectedTab.selectedKey);
+    if (existingTab == undefined) {
+      console.log('Odd!!! - tab is not Not Found Error, it should be open, cannot add run');
+      return;
+    }
+
+    console.log(`adding run to tab[${existingTab}]`);
+    existingTab.action.runs.push(CreateEmptyRestActionRun());
+    existingTab.dirty = true;
+    // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
+    console.log(existingTab);
+    this.repo.saveCurrentState(this.state);
+    this.rebuildTree();
+  }
+
+  deleteRun() {
+    console.log(this.selectedTab);
+
+    var existingTab = this.currentSession().actions.find(a => a.fullFilename == this.selectedTab.selectedKey);
+    if (existingTab == undefined) {
+      console.log('Odd!!! - tab is not Not Found Error, it should be open, cannot remove run');
+      return;
+    }
+    console.log(`adding run to tab[${existingTab}]`);
+    existingTab.action.runs = existingTab.action.runs.filter(r => r.id != this.selectedTab.runkey);
+    this.selectedTab = { ...this.selectedTab, runkey: undefined };
+    existingTab.dirty = true;
+    // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
+    console.log(existingTab);
+    this.repo.saveCurrentState(this.state);
+    this.rebuildTree();
+  }
+
   actionDisabled(menuOption: string): boolean {
     return !this.enabledMenuOptions.some(e => e == menuOption);
   }
 
   actionsVisible(): boolean {
     // console.log(`actionVisible[${this.selectedType}][${this.selectedSubType}]`);
-    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+    if (this.selectedTab.selectedType == 'dir' && this.selectedTab.selectedSubType == 'system.settings.environments')
       return false;
 
-    if (this.selectedType == 'system')
+    if (this.selectedTab.selectedType == 'system')
       return false;
 
     return true;
@@ -335,7 +377,7 @@ export class OpenActionsComponent implements OnInit {
 
   variablesVisible(): boolean {
     // console.log(`variablesVisible[${this.selectedType}][${this.selectedSubType}]`);
-    if (this.selectedType == 'system' && this.selectedSubType == "variables")
+    if (this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == "variables")
       return true;
 
     return false;
@@ -343,26 +385,26 @@ export class OpenActionsComponent implements OnInit {
 
   authenticationVisible(): boolean {
     // console.log(`authenticationVisible[${this.selectedType}][${this.selectedSubType}]`);
-    if (this.selectedType == 'system' && this.selectedSubType == "authentication")
+    if (this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == "authentication")
       return true;
 
     return false;
   }
 
   environmentVisible(): boolean {
-    if (this.selectedType == 'dir' && this.selectedSubType == 'system.settings.environments')
+    if (this.selectedTab.selectedType == 'dir' && this.selectedTab.selectedSubType == 'system.settings.environments')
       return true;
 
     return false;
   }
 
   secretsVisible(): boolean {
-    if (this.selectedType == 'system' && this.selectedSubType == 'secrets')
+    if (this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'secrets')
       return true;
 
     return false;
   }
-  
+
   environmentChange(env: Environment) {
     if (this.solution == undefined)
       return;

@@ -123,7 +123,7 @@ export class SolutionExplorerComponent implements OnInit {
     var runChildren = await Promise.all(traverse.files.map(async f => {
       return new TreeviewItem({
         text: f.name,
-        value: { type: 'file', key: f.fullPath },
+        value: { type: 'file', key: f.fullPath, actions: ['createRun'] },
         children: await this.BuildRunChildren(f, state)
       })
     }));
@@ -143,7 +143,7 @@ export class SolutionExplorerComponent implements OnInit {
 
     var children: TreeviewItem[] = action.runs.map(r => new TreeviewItem({
       text: r.name,
-      value: { type: 'run', subtype: 'definition', key: r.id, actionFile: f.fullPath },
+      value: { type: 'run', subtype: 'definition', key: r.id, actionFile: f.fullPath, actions: ['deleteRun'] },
       children: []
     }));
 
