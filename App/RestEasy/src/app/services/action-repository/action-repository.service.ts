@@ -264,7 +264,7 @@ export function CreateEmptyRestActionValidation(): RestActionValidation {
 };
 
 export function CreateEmptyRestActionRun(): RestActionRun {
-  return { id: '', name: '', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() };
+  return { id: new SystemSupportService().generateGUID(), name: '', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() };
 }
 
 @Injectable({

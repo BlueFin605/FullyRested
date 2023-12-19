@@ -97,7 +97,45 @@
         }
     },
     "body": "{}",
-    "runs": [],
+    "runs": [
+        {
+            "id": "37831be2-9f3e-47b2-af16-abcc6efe3f58",
+            "name": "nz search",
+            "parameters": [],
+            "headers": [],
+            "variables": [
+                {
+                    "variable": "host",
+                    "value": "google.co.nz",
+                    "active": true,
+                    "id": "ee893c67-1d43-4965-865e-2378d4f3a5cd"
+                }
+            ],
+            "secrets": [],
+            "authentication": {
+                "authentication": "none",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "validation": {
+                "type": "None",
+                "body": "None",
+                "httpCode": 200
+            }
+        }
+    ],
     "validation": {
         "type": "None",
         "body": "None",

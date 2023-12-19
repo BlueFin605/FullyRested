@@ -15,6 +15,12 @@
                 "value": "123456",
                 "active": true,
                 "id": 2
+            },
+            {
+                "variable": "suffix",
+                "value": ".com",
+                "active": true,
+                "id": "4b66a460-7868-407d-bac5-2f7657058f78"
             }
         ],
         "secrets": [
@@ -31,6 +37,13 @@
                 "secretKey": "skey",
                 "awsRegion": "eu-central-1",
                 "serviceName": "sname"
+            },
+            "basicAuth": {
+                "userName": "",
+                "password": ""
+            },
+            "bearerToken": {
+                "token": ""
             }
         }
     },
@@ -60,6 +73,13 @@
                     "secretKey": "",
                     "awsRegion": "eu-central-1",
                     "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
                 }
             }
         },
@@ -88,6 +108,13 @@
                     "secretKey": "",
                     "awsRegion": "eu-central-1",
                     "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
                 }
             }
         },
@@ -116,6 +143,13 @@
                     "secretKey": "",
                     "awsRegion": "eu-central-1",
                     "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
                 }
             }
         }

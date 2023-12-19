@@ -99,11 +99,11 @@ export class ValidateResponseService {
   }
 
   public httpResponses = [
+    { code: 200, desc: 'OK' },
     { code: 100, desc: 'Continue' },
     { code: 101, desc: 'Switching Protocols' },
     { code: 102, desc: 'Processing' },
     { code: 103, desc: 'Early Hints' },
-    { code: 200, desc: 'OK' },
     { code: 201, desc: 'Created' },
     { code: 202, desc: 'Accepted' },
     { code: 203, desc: 'Non-Authoritative Information' },
@@ -157,5 +157,7 @@ export class ValidateResponseService {
     { code: 506, desc: 'Variant Also Negotiates' },
     { code: 507, desc: 'Insufficient Storage' },
     { code: 508, desc: 'Loop Detected' },
-    { code: 511, desc: 'Network Authentication Required' }];
+    { code: 511, desc: 'Network Authentication Required' },
+    { code: -1, desc: 'Invalid hostname [ENOTFOUND]' }
+  ];
 }

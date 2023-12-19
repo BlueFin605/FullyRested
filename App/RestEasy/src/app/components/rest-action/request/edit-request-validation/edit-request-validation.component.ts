@@ -105,4 +105,11 @@ export class EditRequestValidationComponent implements OnInit {
   public get responsecode(): boolean {
     return this.visibleSchema.type != ValidationType.None;
   }
+
+  buildDescription(code: { code: number; desc: string; }) {
+    if (code.code < 1)
+      return code.desc;
+
+    return `${code.code} - ${code.desc}`
+  }
 }

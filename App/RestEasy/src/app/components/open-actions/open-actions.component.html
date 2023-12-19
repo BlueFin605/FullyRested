@@ -51,6 +51,9 @@
       <mat-menu #solutionMenu="matMenu">
         <button mat-menu-item (click)="createEnvironment()" [disabled]="actionDisabled('createEnvironment')">Create Environment</button>
         <button mat-menu-item (click)="deleteEnvironment()" [disabled]="actionDisabled('deleteEnvironment')">Delete Environment</button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="createRun()" [disabled]="actionDisabled('createRun')">Create Run</button>
+        <button mat-menu-item (click)="deleteRun()" [disabled]="actionDisabled('deleteRun')">Delete Run</button>
       </mat-menu>
     </div>
   </mat-toolbar-row>
@@ -76,7 +79,7 @@
       <app-rest-action [solution]="solution" 
                        [(action)]=action.action 
                        [fullFilename]="action.fullFilename" 
-                       [runId]="runkey"
+                       [runId]="selectedTab.runkey"
                        (actionChange)="onActionChange(action)" 
                        (dirtyChange)="onDirtyChange(action,$event)"
                        (nameChange)="onNameChange(action, $event)">
