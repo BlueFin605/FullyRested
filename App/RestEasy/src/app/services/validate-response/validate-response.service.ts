@@ -158,6 +158,13 @@ export class ValidateResponseService {
     { code: 507, desc: 'Insufficient Storage' },
     { code: 508, desc: 'Loop Detected' },
     { code: 511, desc: 'Network Authentication Required' },
-    { code: -1, desc: 'Invalid hostname [ENOTFOUND]' }
-  ];
+    { code: -1, desc: 'Invalid hostname [ENOTFOUND]' },
+    { code: -2, desc: 'Connection closed [ECONNRESET]' },
+    { code: -3, desc: 'Conection timed out [ETIMEDOUT' },
+    { code: -4, desc: 'No service listening [CONNREFUSED' },
+    { code: -5, desc: 'Connection aborted [CONNABORTED' },
+    { code: -6, desc: 'Host unreachable [HOSTUNREACH' },
+    { code: -7, desc: 'DNS Lookup timeout [AI_AGAIN' },
+    { code: -8, desc: 'Error no entity [ENOENT' },
+  ]
 }

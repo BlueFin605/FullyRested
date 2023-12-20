@@ -7,7 +7,7 @@ const axios = require('axios');
 const keytar = require('keytar');
 const { request } = require('node:http');
 const { SignatureV4 } = require('@aws-sdk/signature-v4');
-const { Sha256 }= require('@aws-crypto/sha256-js');
+const { Sha256 } = require('@aws-crypto/sha256-js');
 // import sigv4 from '@aws-sdk/signature-v4';
 // const { SignatureV4 } = sigv4;
 
@@ -128,19 +128,19 @@ async function executeAction(event, request) {
             transformResponse: (r) => r,
             responseType: 'arraybuffer'
         }
-        
+
         console.log(axiosRequest);
-        
+
         console.log('--------------------------------')
-        
+
         var response = await axios(axiosRequest);
-        
+
         console.log('=========== response ===========`')
         console.log(response.statusText);
         console.log(`response data type:[${typeof (response.data)}]`);
         console.log(response.data);
         console.log(response.data.headers);
-        
+
         // console.log(`[${JSON.stringify(response.request)}]`)
         return {
             status: response.status,
@@ -163,22 +163,41 @@ async function executeAction(event, request) {
         if (error.code == 'ENOTFOUND')
             return { status: -1, statusText: error.code };
 
+        if (error.code == 'ECONNRESET')
+            return { status: -2, statusText: error.code };
+
+        if (error.code == 'ETIMEDOUT')
+            return { status: -3, statusText: error.code };
+
+        if (error.code == 'CONNREFUSED')
+            return { status: -4, statusText: error.code };
+
+        if (error.code == 'CONNABORTED')
+            return { status: -5, statusText: error.code };
+
+        if (error.code == 'HOSTUNREACH')
+            return { status: -6, statusText: error.code };
+
+        if (error.code == 'AI_AGAIN')
+            return { status: -7, statusText: error.code };
+
+        if (error.code == 'ENOENT')
+            return { status: -8, statusText: error.code };
+
         return { status: -99, statusText: error.code };
     }
 }
 
-function buildData(body)
-{
-    switch (body.contentType)
-    {
+function buildData(body) {
+    switch (body.contentType) {
         case 'application/x-www-form-urlencoded':
         case 'none':
-        {
-            console.log('no body');
-            return undefined;
-        }
+            {
+                console.log('no body');
+                return undefined;
+            }
     }
-    
+
     console.log(body.body);
     return body.body;
 }
@@ -189,12 +208,12 @@ async function addAwsSigToRequest(url, rawrequest) {
     // console.log(rawrequest);
 
     const urlParts = new URL(url);
-    
+
     const awsQueryParams = {};
     urlParts.searchParams.forEach((value, key) => {
         awsQueryParams[key] = value;
     });
-    
+
     rawrequest.headers['host'] = urlParts.host;
 
     const request = {
@@ -217,7 +236,7 @@ async function addAwsSigToRequest(url, rawrequest) {
         },
         sha256: Sha256,
     });
-    
+
     if (rawrequest.authentication.awsSig.signUrl == false) {
         var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
         console.log(signedrequest);
@@ -235,7 +254,7 @@ async function addAwsSigToRequest(url, rawrequest) {
             searchParams.append(key, signedrl.query[key]);
         }
     }
-    
+
     urlParts.search = searchParams.toString();
     const finalUrl = urlParts.toString();
     console.log(finalUrl);
@@ -258,7 +277,7 @@ function bytesToBase64(bytes) {
     const binString = String.fromCodePoint(...bytes);
     return btoa(binString);
 }
-  
+
 function saveState(request) {
     console.log(app.getPath("userData"));
     //  console.log(userPath);
@@ -306,7 +325,7 @@ function buildStateFilename() {
 
 function traverseDirectory(request) {
     console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
-    
+
     // var path = app.getPath("userData");
     //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
     var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
