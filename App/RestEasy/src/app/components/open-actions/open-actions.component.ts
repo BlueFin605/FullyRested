@@ -430,9 +430,7 @@ export class OpenActionsComponent implements OnInit {
 
     console.log($event);
     var action = this.currentSession().actions[this.tabs.selectedIndex];
-    console.log(`explorerSelected before[${this.explorerSelected}]`);
     this.explorerSelected = action.fullFilename;
-    console.log(`explorerSelected after[${action.fullFilename}]`);
-    console.log(action);
+    console.log(`explorerSelected after[${this.explorerSelected}]`);
   }
 }
