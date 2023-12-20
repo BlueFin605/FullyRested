@@ -10,6 +10,9 @@ import { ValidateResponseService } from 'src/app/services/validate-response/vali
   styleUrls: ['./edit-request-validation.component.css']
 })
 export class EditRequestValidationComponent implements OnInit {
+onResponseCodeChange($event: any) {
+  this.validationChange.emit(this.visibleSchema);
+}
   public get validationType(): typeof ValidationType {
     return ValidationType;
   }
@@ -77,6 +80,7 @@ export class EditRequestValidationComponent implements OnInit {
   onTypeChange(event: any) {
     console.log(event);
     this.visibleSchema.type = event.value;
+    this.validationChange.emit(this.visibleSchema);
   }
 
   updateData(d: Event) {

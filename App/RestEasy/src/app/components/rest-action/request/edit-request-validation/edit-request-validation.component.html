@@ -11,7 +11,7 @@
 <div class="httpresult" *ngIf="responsecode">
   <mat-form-field>
     <mat-label>Http Response Code</mat-label>
-    <mat-select [(value)]="visibleSchema.httpCode">
+    <mat-select [(value)]="visibleSchema.httpCode" (valueChange)="onResponseCodeChange($event)">
       <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{buildDescription(code)}}</mat-option>
     </mat-select>
   </mat-form-field>
