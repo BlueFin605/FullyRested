@@ -59,7 +59,11 @@ export class SolutionExplorerComponent implements OnInit {
 
   items: TreeviewItem[] = [];
 
+  @Input()
   selected: string = '';
+
+  @Output()
+  selectedChange = new EventEmitter<string>();
 
   constructor(private repo: ActionRepositoryService) {
   }
@@ -184,6 +188,7 @@ export class SolutionExplorerComponent implements OnInit {
   onClick($event: TreeviewItem) {
     console.log(`onClick:[${$event.value.key}][${$event.value.type}]`);
     this.selected = $event.value.key;
+    this.selectedChange.emit(this.selected);
 
     if (this.openActionFile(true, $event) == true)
       return;

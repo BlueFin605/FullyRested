@@ -62,13 +62,14 @@
 <div class="explorer">
   <app-solution-explorer [solution]="solution" 
                          [state]="state"
+                         [(selected)]="explorerSelected"
                          (openFile)="openAction($event)" 
                          (openSystem)="openSystem($event)" #explorer></app-solution-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
-  <mat-tab-group animationDuration="0ms" #tabs>
-    <mat-tab *ngFor="let action of currentSession().actions" labelClass='dirty'>
+  <mat-tab-group selectedIndex="0" animationDuration="0ms" #tabs (selectedTabChange)="tabChange($event)">
+    <mat-tab  *ngFor="let action of currentSession().actions" labelClass='dirty'>
       <ng-template mat-tab-label>
         <mat-icon class="dirty" *ngIf="action.dirty == true">circle</mat-icon>
         <label [matTooltip]="action.fullFilename">{{action.action.name}}</label>
