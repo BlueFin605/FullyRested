@@ -67,6 +67,9 @@
         "type": "None",
         "headers": [],
         "body": "None",
-        "httpCode": 200
+        "httpCode": 200,
+        "jsonSchema": {
+            "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
+        }
     }
 }
