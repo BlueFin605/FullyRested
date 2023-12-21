@@ -332,6 +332,18 @@ export class ActionRepositoryService {
       request.validation = CreateEmptyRestActionValidation(undefined)
 
     this.patchValidation(request.validation);
+
+    if (request.runs == undefined)
+      request.runs = [];
+
+    request.runs.forEach(r => this.patchRun(r))
+  }
+
+  patchRun(run: RestActionRun): void {
+    if (run.validation == undefined)
+      run.validation = CreateEmptyRestActionValidation(undefined)
+
+    this.patchValidation(run.validation);
   }
 
   patchValidation(validation: RestActionValidation) {
