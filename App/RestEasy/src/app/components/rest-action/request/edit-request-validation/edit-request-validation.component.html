@@ -19,8 +19,7 @@
 </div>
 
 <div *ngIf="headers">
-  <p>Header validation will go here</p>
-</div>
+  <app-edit-request-headers [(headers)]="visibleSchema.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></div>
 
 <div *ngIf="body">
   <div class="displayoptions">

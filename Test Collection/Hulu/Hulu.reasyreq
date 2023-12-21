@@ -47,6 +47,9 @@
     },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
     }
 }

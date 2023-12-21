@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType } from 'src/app/services/action-repository/action-repository.service';
+import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType, HeaderTable } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
@@ -82,6 +82,12 @@ export class EditRequestValidationComponent implements OnInit {
     this.visibleSchema.type = event.value;
     this.validationChange.emit(this.visibleSchema);
   }
+
+  onHeadersChange(event: HeaderTable[]) {
+    // console.log(event);    
+    this.validationChange.emit(this.visibleSchema);
+  }
+
 
   updateData(d: Event) {
     console.log('updateData');

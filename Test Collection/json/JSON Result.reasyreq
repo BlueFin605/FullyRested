@@ -141,12 +141,20 @@
         }
     ],
     "validation": {
-        "type": "Body",
+        "type": "HeadersBody",
         "jsonSchema": {
             "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"userId\": {\n      \"type\": \"integer\"\n    },\n    \"id\": {\n      \"type\": \"integer\"\n    },\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"completed\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"userId\",\n    \"id\",\n    \"title\",\n    \"completed\"\n  ]\n}"
         },
         "payload": "JsonSchema",
         "httpCode": 200,
-        "body": "JsonSchema"
+        "body": "JsonSchema",
+        "headers": [
+            {
+                "key": "content-type",
+                "value": "application/json; charset=utf-8",
+                "active": true,
+                "id": "edd5a4f4-b2dc-4106-af77-d89d929859c6"
+            }
+        ]
     }
 }

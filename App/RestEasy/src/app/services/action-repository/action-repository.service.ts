@@ -86,6 +86,7 @@ export interface RestActionValidationJsonSchema {
 export interface RestActionValidation {
   type: ValidationType,
   httpCode: number,
+  headers: HeaderTable[];
   body: ValidationTypeBody;
   jsonSchema: RestActionValidationJsonSchema | undefined;
 }
@@ -258,6 +259,7 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
 export function CreateEmptyRestActionValidation(valType: ValidationType | undefined): RestActionValidation {
   return {
     type: valType ?? ValidationType.None,
+    headers: [],
     body: ValidationTypeBody.None,
     httpCode: 200,
     jsonSchema: undefined
@@ -306,7 +308,7 @@ export class ActionRepositoryService {
   }
 
   patchState(state: CurrentState) {
-    state.sessions.forEach(s => s.actions.forEach(a => this.patchAuthentication(a.action.authentication)));
+    state.sessions.forEach(s => s.actions.forEach(a => this.patchRequest(a.action)));
   }
 
   patchEnvironment(env: Environment): void {
@@ -328,6 +330,22 @@ export class ActionRepositoryService {
 
     if (request.validation == undefined)
       request.validation = CreateEmptyRestActionValidation(undefined)
+
+    this.patchValidation(request.validation);
+  }
+
+  patchValidation(validation: RestActionValidation) {
+    if (validation.type == undefined)
+      validation.type = ValidationType.None;
+
+    if (validation.headers == undefined)
+      validation.headers = [];
+
+    if (validation.body == undefined)
+      validation.body = ValidationTypeBody.None;
+
+    if (validation.httpCode == undefined)
+      validation.httpCode = 200;
   }
 
   private getIpcRenderer() {
@@ -514,6 +532,7 @@ export class ActionRepositoryService {
       validation: {
         type: ValidationType.HeadersBody,
         body: ValidationTypeBody.JsonSchema,
+        headers: [],
         httpCode: 200,
         jsonSchema: {
           schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"userId":{"type":"integer"},"id":{"type":"integer"},"title":{"type":"string"},"completed":{"type":"boolean"},"information":{"type":"object","properties":{"summary":{"type":"string"},"details":{"type":"string"},"contributers":{"type":"object","properties":{"author":{"type":"string"},"editor":{"type":"string"},"factchecker":{"type":"string"}},"required":["author","editor","factchecker"]}},"required":["summary","details","contributers"]}},"required":["userId","id","title","completed","information"]}`
