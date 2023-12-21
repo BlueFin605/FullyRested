@@ -37,7 +37,7 @@ import { DisplayResponseBodyImageComponent } from './components/rest-action/resp
 import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
 import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
-import { SolutionExplorerComponent } from './components/solution-explorer/solution-explorer.component';
+import { CollectionExplorerComponent } from './components/collection-explorer/collection-explorer.component';
 import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
 import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
 import { SettingsManageAuthenticationComponent } from './components/settings/settings-manage-authentication/settings-manage-authentication.component';
@@ -69,7 +69,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     DisplayResponseBodyHtmlComponent,
     DisplayResponseBodyXmlComponent,
     OpenActionsComponent,
-    SolutionExplorerComponent,
+    CollectionExplorerComponent,
     EditRequestAuthenticationComponent,
     SettingsManageVariablesComponent,
     SettingsManageAuthenticationComponent,

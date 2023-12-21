@@ -53,26 +53,26 @@ app.whenReady().then(() => {
         return traverseDirectory(request);
     });
 
-    ipcMain.on("loadSolution", (event, request) => {
-        console.log('ipcMain.handle -> loadSolution');
-        return loadSolution();
+    ipcMain.on("loadCollection", (event, request) => {
+        console.log('ipcMain.handle -> loadCollection');
+        return loadCollection();
     });
 
-    ipcMain.on("loadSolutionFromFile", (event, request) => {
-        console.log('ipcMain.handle -> loadSolutionFromFile');
-        return loadSolutionFromFile(request.fullFileName, request.name, request.path);
+    ipcMain.on("loadCollectionFromFile", (event, request) => {
+        console.log('ipcMain.handle -> loadCollectionFromFile');
+        return loadCollectionFromFile(request.fullFileName, request.name, request.path);
     });
 
     ipcMain.on("saveState", (event, request) => {
         saveState(request);
     });
 
-    ipcMain.on("saveSolution", (event, request) => {
-        saveSolution(request);
+    ipcMain.on("saveCollection", (event, request) => {
+        saveCollection(request);
     });
 
-    ipcMain.on("saveSolutionAs", (event, request) => {
-        saveSolutionAs(request);
+    ipcMain.on("saveCollectionAs", (event, request) => {
+        saveCollectionAs(request);
     });
 
     ipcMain.on("saveAsRequest", (event, request) => {
@@ -356,7 +356,7 @@ function walkSync(dir, filter, tree) {
     }
 }
 
-async function loadSolution() {
+async function loadCollection() {
     var file = await dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] });
 
     try {
@@ -365,19 +365,19 @@ async function loadSolution() {
             var filename = file.filePaths[0];
             var pathname = path.dirname(filename);
             var name = path.basename(filename);
-            await loadSolutionFromFile(filename, name, pathname);
+            await loadCollectionFromFile(filename, name, pathname);
         }
     } catch (err) {
         console.log(`Open Dialog Failed!:[${JSON.stringify(file)}] - [${err}]`);
     }
 }
 
-async function loadSolutionFromFile(filename, name, path) {
+async function loadCollectionFromFile(filename, name, path) {
     try {
         var data = await new Promise((accept, reject) => {
-            console.log(`loadSolutionFromFile(${filename}, ${name}, ${path})`);
+            console.log(`loadCollectionFromFile(${filename}, ${name}, ${path})`);
             fs.readFile(filename, (err, data) => {
-                console.log(`loadSolutionFromFile response (${err},${data}`);
+                console.log(`loadCollectionFromFile response (${err},${data}`);
                 if (err)
                     reject(err);
 
@@ -385,26 +385,26 @@ async function loadSolutionFromFile(filename, name, path) {
             });
         });
 
-        var solutionConfig = await addSecrets(data);
-        console.log(solutionConfig);
-        win.webContents.send("loadSolutionResponse", { config: solutionConfig, filename: filename, name: name, path: path });
+        var collectionConfig = await addSecrets(data);
+        console.log(collectionConfig);
+        win.webContents.send("loadCollectionResponse", { config: collectionConfig, filename: filename, name: name, path: path });
     }
     catch (err) {
-        console.log(`Solution File load error!:[${err}]`);
+        console.log(`Collection File load error!:[${err}]`);
     }
 }
 
-function saveSolution(request) {
-    console.log(`saveSolution`);
+function saveCollection(request) {
+    console.log(`saveCollection`);
     console.log(request);
     var sanitised = sanitiseObject(request.config);
     fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4)); // Even making it async would not add more than a few lines
-    win.webContents.send("loadSolutionResponse", request);
+    win.webContents.send("loadCollectionResponse", request);
 }
 
-function saveSolutionAs(request) {
+function saveCollectionAs(request) {
     console.log(request);
-    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Solution', extensions: ['reasycol'] }] });
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Collection', extensions: ['reasycol'] }] });
     console.log(userChosenPath);
     if (userChosenPath == undefined) {
         return;
@@ -413,7 +413,7 @@ function saveSolutionAs(request) {
     request.filename = userChosenPath
     request.path = path.dirname(request.filename);
     request.name = path.basename(request.filename);
-    saveSolution(request);
+    saveCollection(request);
 }
 
 async function addSecrets(data) {
@@ -424,11 +424,11 @@ async function addSecrets(data) {
     return obj;
 }
 
-function sanitiseObject(solutionConfig) {
-    var serviceName = buildKeytarService(solutionConfig);
+function sanitiseObject(collectionConfig) {
+    var serviceName = buildKeytarService(collectionConfig);
 
     //make a copy
-    var copy = JSON.parse(JSON.stringify(solutionConfig));
+    var copy = JSON.parse(JSON.stringify(collectionConfig));
     stripPasswords(copy, serviceName);
     return copy;
 }
@@ -483,8 +483,8 @@ async function addPasswords(obj, serviceName) {
     }
 }
 
-function buildKeytarService(solutionConfig) {
-    return `resteasy-solution-${solutionConfig.solutionGuid}`;
+function buildKeytarService(collectionConfig) {
+    return `resteasy-collection-${collectionConfig.collectionGuid}`;
 }
 
 function saveAsRequest(request) {

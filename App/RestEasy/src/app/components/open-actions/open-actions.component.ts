@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Collection, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
 import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
-import { SelectedTreeItem, SolutionExplorerComponent } from '../solution-explorer/solution-explorer.component';
+import { SelectedTreeItem, CollectionExplorerComponent } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 interface SelectedTab {
@@ -17,8 +17,8 @@ interface SelectedTab {
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { currentSolution: '', sessions: [], recentSolutions: [] };
-  public solution: Solution | undefined;
+  state: CurrentState = { currentCollection: '', sessions: [], recentCollections: [] };
+  public collection: Collection | undefined;
   enabledMenuOptions: string[] = [];
   selectedEnvironment: Environment = CreateEmptyEnvironment();
   selectedTab: SelectedTab = {
@@ -32,18 +32,18 @@ export class OpenActionsComponent implements OnInit {
 
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
-  @ViewChild('explorer') collectionExplorer: SolutionExplorerComponent | undefined;
+  @ViewChild('explorer') collectionExplorer: CollectionExplorerComponent | undefined;
 
   constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef, private systemSupport: SystemSupportService) {
-    this.repo.solutions.subscribe(s => {
-      console.log(`this.repo.solutions.subscribe => [${JSON.stringify(s)}]`);
+    this.repo.collections.subscribe(s => {
+      console.log(`this.repo.collections.subscribe => [${JSON.stringify(s)}]`);
       console.log(this.state);
-      this.solution = s;
+      this.collection = s;
       // this.appRef.tick();
       if (s != undefined && s.filename.length > 0) {
-        this.state.recentSolutions = this.state.recentSolutions.filter(f => f.fullFileName != s.filename).slice(0, 4);
-        this.state.recentSolutions.unshift({ fullFileName: s.filename, name: s.name, path: s.path });  //push to front
-        this.state.currentSolution = s.filename;
+        this.state.recentCollections = this.state.recentCollections.filter(f => f.fullFileName != s.filename).slice(0, 4);
+        this.state.recentCollections.unshift({ fullFileName: s.filename, name: s.name, path: s.path });  //push to front
+        this.state.currentCollection = s.filename;
         this.repo.saveCurrentState(this.state);
       };
 
@@ -52,7 +52,7 @@ export class OpenActionsComponent implements OnInit {
         this.tabs.realignInkBar(); // re-align the bottom border of the tab
       });
   
-      console.log(`this.repo.solutions.subscribe, sent`)
+      console.log(`this.repo.collections.subscribe, sent`)
     });
 
     this.repo.savedAs.subscribe(a => {
@@ -94,27 +94,27 @@ export class OpenActionsComponent implements OnInit {
 
   private rebuildTree() {
     setTimeout(async () => {
-      if (this.solution) {
-        await this.collectionExplorer?.rebuildTree(this.solution, this.state);
+      if (this.collection) {
+        await this.collectionExplorer?.rebuildTree(this.collection, this.state);
       }
     });
   }
 
   public currentSession(): LocalRestSession {
-    // console.log(`currentSession:[${this.solution?.config?.solutionGuid}]`);
+    // console.log(`currentSession:[${this.collection?.config?.collectionGuid}]`);
 
-    if (this.solution?.config?.solutionGuid == undefined)
-      return this.locateSession("nosolution");
+    if (this.collection?.config?.collectionGuid == undefined)
+      return this.locateSession("nocollection");
 
-    return this.locateSession(this.solution.config.solutionGuid);
+    return this.locateSession(this.collection.config.collectionGuid);
   }
 
   private locateSession(sessionGuid: string): LocalRestSession {
-    var session = this.state.sessions.find(f => f.solutionGuid == sessionGuid);
+    var session = this.state.sessions.find(f => f.collectionGuid == sessionGuid);
     if (session != undefined)
       return session;
 
-    var newSession: LocalRestSession = { solutionGuid: sessionGuid, actions: [] };
+    var newSession: LocalRestSession = { collectionGuid: sessionGuid, actions: [] };
     this.state.sessions.push(newSession);
     return newSession;
   }
@@ -149,33 +149,33 @@ export class OpenActionsComponent implements OnInit {
     this.rebuildTree();
   }
 
-  openSolution() {
-    console.log('openSolution');
-    this.repo.loadSolution();
+  openCollection() {
+    console.log('openCollection');
+    this.repo.loadCollection();
   }
 
-  newSolution() {
-    console.log('newSolution');
-    this.repo.newSolution();
+  newCollection() {
+    console.log('newCollection');
+    this.repo.newCollection();
   }
 
-  saveSolution() {
-    if (this.solution == undefined)
+  saveCollection() {
+    if (this.collection == undefined)
       return;
-    console.log('saveSolution');
-    this.repo.saveSolution(this.solution);
+    console.log('saveCollection');
+    this.repo.saveCollection(this.collection);
   }
 
-  saveSolutionAs() {
-    if (this.solution == undefined)
+  saveCollectionAs() {
+    if (this.collection == undefined)
       return;
-    console.log('saveSolution');
-    this.repo.saveSolutionAs(this.solution);
+    console.log('saveCollection');
+    this.repo.saveCollectionAs(this.collection);
   }
 
-  closeSolution() {
-    console.log('closeSolution');
-    this.solution = undefined;
+  closeCollection() {
+    console.log('closeCollection');
+    this.collection = undefined;
   }
 
   newRequest() {
@@ -212,8 +212,8 @@ export class OpenActionsComponent implements OnInit {
   }
 
   openSoution(file: RecentFile) {
-    console.log(`openSolution:[${JSON.stringify(file)}]`);
-    this.repo.loadSolutionFromFile(file);
+    console.log(`openCollection:[${JSON.stringify(file)}]`);
+    this.repo.loadCollectionFromFile(file);
   }
 
   openAction(selected: SelectedTreeItem) {
@@ -262,39 +262,39 @@ export class OpenActionsComponent implements OnInit {
 
   openSystem(selected: SelectedTreeItem) {
     console.log(selected);
-    console.log(this.solution?.config?.environments);
+    console.log(this.collection?.config?.environments);
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedTab = { selectedType: selected?.type, selectedSubType: selected?.subtype, selectedKey: selected?.key, runkey: undefined };
 
     if (selected.type == 'system' && selected.subtype == 'variables') {
       if (selected.key == 'system.settings.variables') {
-        this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+        this.selectedEnvironment = this.collection?.config?.collectionEnvironment ?? CreateEmptyEnvironment();
       } else {
-        this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`)) ?? CreateEmptyEnvironment();
+        this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.variables`)) ?? CreateEmptyEnvironment();
       }
     } else
       if (selected.type == 'system' && selected.subtype == 'secrets') {
         if (selected.key == 'system.settings.secrets') {
-          this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+          this.selectedEnvironment = this.collection?.config?.collectionEnvironment ?? CreateEmptyEnvironment();
         } else {
-          this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
+          this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.secrets`)) ?? CreateEmptyEnvironment();
         }
       } else
         if (selected.type == 'system' && selected.subtype == 'authentication') {
           if (selected.key == 'system.settings.authentication') {
-            this.selectedEnvironment = this.solution?.config?.solutionEnvironment ?? CreateEmptyEnvironment();
+            this.selectedEnvironment = this.collection?.config?.collectionEnvironment ?? CreateEmptyEnvironment();
           } else {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
+            this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(`${e.id}.authentication`)) ?? CreateEmptyEnvironment();
           }
         } else
           if (selected.type == 'dir' && selected.subtype == 'system.settings.environments') {
-            this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+            this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
           } else
             if (selected.type == 'dir' && selected.subtype == 'system.settings.secrets') {
-              this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+              this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
             } else
               if (selected.type == 'dir' && selected.subtype == 'system.settings.authentication') {
-                this.selectedEnvironment = this.solution?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
+                this.selectedEnvironment = this.collection?.config?.environments?.find(e => selected.key.endsWith(e.id)) ?? CreateEmptyEnvironment();
               } else {
                 this.selectedEnvironment = CreateEmptyEnvironment();
               }
@@ -303,7 +303,7 @@ export class OpenActionsComponent implements OnInit {
   }
 
   createEnvironment() {
-    if (this.solution == undefined)
+    if (this.collection == undefined)
       return;
 
     console.log('createEnvironment');
@@ -314,21 +314,21 @@ export class OpenActionsComponent implements OnInit {
       secrets: [{ $secret: '', $value: '', active: true, id: this.systemSupport.generateGUID() }],
       auth: CreateEmptyAuthenticationDetails('inherit')
     };
-    this.solution.config.environments.push(env);
-    console.log(this.solution);
-    this.repo.storeSolution(this.solution);
+    this.collection.config.environments.push(env);
+    console.log(this.collection);
+    this.repo.storeCollection(this.collection);
   }
 
   deleteEnvironment() {
     console.log('deleteEnvironment');
-    if (this.solution == undefined)
+    if (this.collection == undefined)
       return;
 
-    console.log(this.solution.config);
+    console.log(this.collection.config);
     console.log(this.selectedEnvironment);
-    this.solution.config.environments = this.solution.config.environments.filter(f => f.name != this.selectedEnvironment.name);
-    console.log(this.solution);
-    this.repo.storeSolution(this.solution);
+    this.collection.config.environments = this.collection.config.environments.filter(f => f.name != this.selectedEnvironment.name);
+    console.log(this.collection);
+    this.repo.storeCollection(this.collection);
   }
 
   createRun() {
@@ -413,15 +413,15 @@ export class OpenActionsComponent implements OnInit {
   }
 
   environmentChange(env: Environment) {
-    if (this.solution == undefined)
+    if (this.collection == undefined)
       return;
 
-    var solenv = this.solution.config.environments.findIndex(e => e.id == env.id);
-    this.solution.config.environments[solenv] = env;
-    console.log(this.solution);
+    var solenv = this.collection.config.environments.findIndex(e => e.id == env.id);
+    this.collection.config.environments[solenv] = env;
+    console.log(this.collection);
     console.log(env);
     console.log(this.selectedEnvironment);
-    this.repo.storeSolution(this.solution);
+    this.repo.storeCollection(this.collection);
   }
 
   tabChange($event: MatTabChangeEvent) {

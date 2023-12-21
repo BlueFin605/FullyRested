@@ -4,7 +4,7 @@ import { RestActionResult } from '../execute-rest-calls/execute-rest-calls.servi
 import { SystemSupportService } from '../system-support/system-support.service';
 
 export const REConstants = {
-  SolutionExtension: ".reasycol",
+  CollectionExtension: ".reasycol",
   ActionExtension: ".reasyreq"
 };
 
@@ -125,7 +125,7 @@ export interface LocalRestAction {
 }
 
 export interface LocalRestSession {
-  solutionGuid: string;
+  collectionGuid: string;
   actions: LocalRestAction[];
 }
 
@@ -136,9 +136,9 @@ export interface RecentFile {
 }
 
 export interface CurrentState {
-  currentSolution: string;
+  currentCollection: string;
   sessions: LocalRestSession[];
-  recentSolutions: RecentFile[];
+  recentCollections: RecentFile[];
 }
 
 export interface Environment {
@@ -149,15 +149,15 @@ export interface Environment {
   auth: AuthenticationDetails;
 }
 
-export interface SolutionConfig {
-  solutionGuid: string
-  solutionEnvironment: Environment;
+export interface CollectionConfig {
+  collectionGuid: string
+  collectionEnvironment: Environment;
   environments: Environment[];
   selectedEnvironmentId: string;
 }
 
-export interface Solution {
-  config: SolutionConfig;
+export interface Collection {
+  config: CollectionConfig;
   filename: string;
   name: string;
   path: string;
@@ -238,19 +238,19 @@ export function CreateEmptyAuthenticationDetailsBearerToken(): AuthenticationDet
   return { token: '' };
 }
 
-export function CreateEmptySolution(): Solution {
+export function CreateEmptyCollection(): Collection {
   return {
-    config: CreateEmptySolutionConfig(),
+    config: CreateEmptyCollectionConfig(),
     filename: '',
     name: '',
     path: ''
   };
 }
 
-export function CreateEmptySolutionConfig(): SolutionConfig {
+export function CreateEmptyCollectionConfig(): CollectionConfig {
   return {
-    solutionGuid: new SystemSupportService().generateGUID(),
-    solutionEnvironment: CreateEmptyEnvironment(),
+    collectionGuid: new SystemSupportService().generateGUID(),
+    collectionEnvironment: CreateEmptyEnvironment(),
     environments: [],
     selectedEnvironmentId: ''
   }
@@ -282,8 +282,8 @@ export function CreateEmptyRestActionRun(valType: ValidationType | undefined): R
 })
 
 export class ActionRepositoryService {
-  // solutions = new BehaviorSubject<Solution>({config: { solutionGuid: 'abcd' }, filename: '<filename>', path: '<path>'});
-  solutions = new BehaviorSubject<Solution | undefined>(undefined);
+  // collections = new BehaviorSubject<Collection>({config: { collectionGuid: 'abcd' }, filename: '<filename>', path: '<path>'});
+  collections = new BehaviorSubject<Collection | undefined>(undefined);
   savedAs = new BehaviorSubject<SavedAsCompleted | undefined>(undefined);
 
   constructor(private systemSupport: SystemSupportService) {
@@ -292,9 +292,9 @@ export class ActionRepositoryService {
     if (this.getIpcRenderer() == undefined)
       return;
 
-    this.getIpcRenderer().receive('loadSolutionResponse', (solution: Solution) => {
-      this.patchSolution(solution);
-      this.solutions.next(solution);
+    this.getIpcRenderer().receive('loadCollectionResponse', (collection: Collection) => {
+      this.patchCollection(collection);
+      this.collections.next(collection);
     });
 
     this.getIpcRenderer().receive('savedAsCompleted', (savedAs: SavedAsCompleted) => {
@@ -302,9 +302,9 @@ export class ActionRepositoryService {
     });
   }
 
-  private patchSolution(solution: Solution) {
-    this.patchEnvironment(solution.config.solutionEnvironment);
-    solution.config.environments.forEach(e => this.patchEnvironment(e))
+  private patchCollection(collection: Collection) {
+    this.patchEnvironment(collection.config.collectionEnvironment);
+    collection.config.environments.forEach(e => this.patchEnvironment(e))
   }
 
   patchState(state: CurrentState) {
@@ -423,57 +423,57 @@ export class ActionRepositoryService {
     return request;
   }
 
-  public async loadSolution() {
+  public async loadCollection() {
     if (this.getIpcRenderer() == undefined) {
-      console.log('send Mock solution');
-      this.solutions.next(this.mockSolution());
+      console.log('send Mock collection');
+      this.collections.next(this.mockCollection());
       return;
     }
 
-    this.getIpcRenderer().send("loadSolution");
+    this.getIpcRenderer().send("loadCollection");
   }
 
-  public async newSolution() {
-    var solution: Solution = CreateEmptySolution();
-    solution.config.solutionEnvironment.auth.authentication = 'none';
-    this.solutions.next(solution);
+  public async newCollection() {
+    var collection: Collection = CreateEmptyCollection();
+    collection.config.collectionEnvironment.auth.authentication = 'none';
+    this.collections.next(collection);
   }
 
-  public async loadSolutionFromFile(file: RecentFile) {
+  public async loadCollectionFromFile(file: RecentFile) {
     if (this.getIpcRenderer() == undefined) {
       console.log('send Mock');
-      this.solutions.next(this.mockSolution());
+      this.collections.next(this.mockCollection());
       return;
     }
 
-    this.getIpcRenderer().send("loadSolutionFromFile", file);
+    this.getIpcRenderer().send("loadCollectionFromFile", file);
   }
 
-  public async saveSolution(solution: Solution) {
+  public async saveCollection(collection: Collection) {
     if (this.getIpcRenderer() == undefined) {
-      setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+      setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
       return;
     }
 
-    await this.getIpcRenderer().send('saveSolution', solution);
+    await this.getIpcRenderer().send('saveCollection', collection);
   }
 
 
-  public async saveSolutionAs(solution: Solution) {
+  public async saveCollectionAs(collection: Collection) {
     if (this.getIpcRenderer() == undefined) {
-      setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+      setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
       return;
     }
 
-    await this.getIpcRenderer().send('saveSolutionAs', solution);
+    await this.getIpcRenderer().send('saveCollectionAs', collection);
   }
 
-  public async storeSolution(solution: Solution) {
-    setTimeout(() => this.solutions.next(JSON.parse(JSON.stringify(solution))));
+  public async storeCollection(collection: Collection) {
+    setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
   }
 
-  private mockSolution(): Solution {
-    return mockSolution;
+  private mockCollection(): Collection {
+    return mockCollection;
   }
 
   private mockCurrentState(): CurrentState {
@@ -547,10 +547,10 @@ export class ActionRepositoryService {
   }
 }
 
-const mockSolution = {
+const mockCollection = {
   config: {
-    solutionGuid: '92f54a1-be78-4605-968d-13e456a94aab',
-    solutionEnvironment: {
+    collectionGuid: '92f54a1-be78-4605-968d-13e456a94aab',
+    collectionEnvironment: {
       name: '',
       id: 'aaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
       variables: [
@@ -598,13 +598,13 @@ const mockSolution = {
   },
   filename: '<filename>',
   path: '<path>',
-  name: 'solution name'
+  name: 'collection name'
 };
 
 const mockCurrentState: CurrentState = {
   sessions: [
     {
-      solutionGuid: "nosolution",
+      collectionGuid: "nocollection",
       actions: [
         {
           action: {
@@ -935,7 +935,7 @@ const mockCurrentState: CurrentState = {
       ]
     },
     {
-      solutionGuid: "92f54a1-be78-4605-968d-13e456a94aab",
+      collectionGuid: "92f54a1-be78-4605-968d-13e456a94aab",
       actions: [
         {
           action: {
@@ -1185,7 +1185,7 @@ const mockCurrentState: CurrentState = {
       ]
     }
   ],
-  recentSolutions: [
+  recentCollections: [
     {
       fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my collection.reasycol",
       name: "my collection.reasycol",
@@ -1212,7 +1212,7 @@ const mockCurrentState: CurrentState = {
       path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
     }
   ],
-  currentSolution: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my collection.reasycol"
+  currentCollection: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my collection.reasycol"
 };
 
 const mockTraverse: TraversedDrectory = {
@@ -1697,31 +1697,31 @@ const mockTraverse: TraversedDrectory = {
             },
             {
               dir: {
-                name: "solution-explorer",
+                name: "collection-explorer",
                 path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer"
+                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer"
               },
               subdirs: [],
               files: [
                 {
-                  name: "solution-explorer.component.css",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer/solution-explorer.component.css"
+                  name: "collection-explorer.component.css",
+                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.css"
                 },
                 {
-                  name: "solution-explorer.component.html",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer/solution-explorer.component.html"
+                  name: "collection-explorer.component.html",
+                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.html"
                 },
                 {
-                  name: "solution-explorer.component.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer/solution-explorer.component.spec.ts"
+                  name: "collection-explorer.component.spec.ts",
+                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.spec.ts"
                 },
                 {
-                  name: "solution-explorer.component.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/solution-explorer/solution-explorer.component.ts"
+                  name: "collection-explorer.component.ts",
+                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.ts"
                 }
               ]
             }

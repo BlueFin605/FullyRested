@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Solution, CreateEmptySolution, SecretTable, VariableTable, RestActionValidation, ValidationType, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Collection, CreateEmptyCollection, SecretTable, VariableTable, RestActionValidation, ValidationType, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -33,7 +33,7 @@ export class EditRequestRunComponent implements OnInit {
   execute = new EventEmitter<ExecuteRestAction>();
 
   @Input()
-  solution: Solution = CreateEmptySolution();
+  collection: Collection = CreateEmptyCollection();
 
   displayUrl: string = ''
 
