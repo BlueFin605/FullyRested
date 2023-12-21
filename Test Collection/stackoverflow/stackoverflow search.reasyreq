@@ -22,9 +22,14 @@
             "token": ""
         }
     },
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
     }
 }

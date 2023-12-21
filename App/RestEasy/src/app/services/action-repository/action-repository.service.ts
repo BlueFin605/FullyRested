@@ -200,11 +200,15 @@ export function CreateEmptyAction(): RestAction {
     url: '',
     headers: [],
     parameters: [],
-    body: { contentType: 'none', body: undefined },
+    body: CreateEmptyActionBody(),
     authentication: CreateEmptyAuthenticationDetails('inherit'),
     runs: [],
     validation: CreateEmptyRestActionValidation(undefined)
   };
+}
+
+export function CreateEmptyActionBody(): RestActionBody {
+  return { contentType: 'none', body: undefined };
 }
 
 export function CreateEmptyEnvironment(): Environment {
@@ -337,6 +341,9 @@ export class ActionRepositoryService {
       request.runs = [];
 
     request.runs.forEach(r => this.patchRun(r))
+
+    if (request.body == undefined || typeof(request.body) == "string")
+      request.body = CreateEmptyActionBody();
   }
 
   patchRun(run: RestActionRun): void {

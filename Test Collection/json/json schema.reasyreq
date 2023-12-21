@@ -52,6 +52,7 @@
             "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {},\n  \"required\": []\n}"
         },
         "body": "JsonSchema",
-        "httpCode": 200
+        "httpCode": 200,
+        "headers": []
     }
 }

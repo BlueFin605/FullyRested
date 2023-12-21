@@ -1,7 +1,9 @@
 {
     "id": "3af54a2-ee12-1236-95aa-83e496a94ba4",
     "name": "XML Result",
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "verb": "get",
     "protocol": "https",
     "url": "cdn.animenewsnetwork.com/encyclopedia/api.xml",
@@ -63,6 +65,9 @@
     },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
     }
 }
