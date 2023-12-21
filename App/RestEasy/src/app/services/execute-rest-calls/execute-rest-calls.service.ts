@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
 import { Solution, AuthenticationDetails, Environment, SecretTable, VariableTable, RestActionValidation } from '../action-repository/action-repository.service';
 import { ResponseValidation } from '../validate-response/validate-response.service';
+import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 
 export interface ExecuteRestAction {
   verb: string;
@@ -32,16 +33,12 @@ export interface RestActionResultBody {
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
 export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined, validated: undefined };
 
-// const re = \[(.*?)\];
-
-const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
-
 @Injectable({
   providedIn: 'root'
 })
 export class ExecuteRestCallsService {
 
-  constructor() { }
+  constructor(private replacer: VariableSubstitutionService) { }
 
   getIpcRenderer() {
     return (<any>window).ipc;
@@ -50,7 +47,7 @@ export class ExecuteRestCallsService {
   async executeTest(action: ExecuteRestAction, solution: Solution | undefined): Promise<RestActionResult> {
     this.AddAuthentication(action, solution);
     var actionText = JSON.stringify(action);
-    actionText = this.replaceVariables(actionText, solution, action.variables, action.secrets);
+    actionText = this.replacer.replaceVariables(actionText, solution, action.variables, action.secrets);
     action = JSON.parse(actionText);
     console.log(actionText);
     console.log(action);
@@ -75,83 +72,6 @@ export class ExecuteRestCallsService {
       action.authentication = auth;
     }
     console.log(action.authentication);
-  }
-
-  replaceVariables(text: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
-    console.log(`replaceVariables[${text}]`);
-    var matches = [...text.matchAll(regexp)];
-
-    var combinedSecrets = this.combineAllSecrets(
-      overrideSecrets ?? [], 
-      solution?.config.solutionEnvironment.secrets ?? [], 
-      solution?.config?.environments?.find( e => e.id == solution.config.selectedEnvironmentId)?.secrets ?? []
-    );
-    var secrets = this.convertSecretArraysAsValues(combinedSecrets ?? []);
-
-
-    var combinedVariables = this.combineAllVariables(
-      overrideVariables ?? [], 
-      solution?.config.solutionEnvironment.variables ?? [], 
-      solution?.config?.environments?.find( e => e.id == solution.config.selectedEnvironmentId)?.variables ?? []
-    );
-    var variables = this.convertVariableArraysAsValues(combinedVariables ?? []);
-
-    console.log(secrets);
-    console.log(variables);
-
-    console.log(matches);
-    matches.forEach(m => {
-      text = this.substituteValue(text, m[0],m[1], solution, variables, secrets);
-    });
-
-    return text;
-  }
-
-  substituteValue(text: string, search: string, valueKey: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined):  string {
-    var replaced = text.replace(search,this.findVariable(valueKey, solution, overrideVariables, overrideSecrets));
-    return replaced;
-  }
-
-  combineAllSecrets(override: SecretTable[], environment: SecretTable[], solution: SecretTable[]): SecretTable[] {
-    return solution.concat(environment, override);
-  }
-
-  convertSecretArraysAsValues(headers: SecretTable[]): SecretTable[] {
-    var reverse = headers.reverse();
-    headers = reverse.filter((item, index) => reverse.findIndex(i => i.$secret == item.$secret) === index).reverse();
-    var converted: SecretTable[] = [];
-    return headers.filter(f => f.active == true && f.$secret != '' && f.$value != '');
-  }
-
-  combineAllVariables(override: VariableTable[], environment: VariableTable[], solution: VariableTable[]): VariableTable[] {
-    return  environment.concat(solution, override);
-  }
-
-  convertVariableArraysAsValues(headers: VariableTable[]): VariableTable[] {
-    var reverse = headers.reverse();
-    headers = reverse.filter((item, index) => reverse.findIndex(i => i.variable == item.variable) === index).reverse();
-    var converted: { [variable: string]: string } = {};
-    return headers.filter(f => f.active == true && f.variable != '' && f.variable != '');
-  }
-
-  findVariable(value: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
-    console.log(`findVariable(${value})`)
-    console.log(solution?.config.solutionEnvironment.variables)
-    console.log(solution?.config.solutionEnvironment.secrets)
-    if (solution == undefined)
-       return "";
-
-    var overrideVar: string | undefined;
-    var solVar: string | undefined;
-    var envVar: string | undefined;
-    if (value.startsWith('$')) {
-      value = value.substring(1);
-      return secrets?.find(v => v.$secret == value)?.$value ?? "";
-    } else {
-      return overrideVariables?.find(v => v.variable == value)?.value ?? "";
-    }
-
-    return overrideVar ?? envVar ?? solVar ?? "";
   }
 
   BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {

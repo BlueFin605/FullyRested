@@ -55,7 +55,7 @@ export class RestActionRunComponent implements OnInit {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.solution}]`)
     this.response = await this.era.executeTest(action, this.solution);
-    this.response.validated = await this.validateResponse.validateResponse(action, this.response);
+    this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.solution);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 

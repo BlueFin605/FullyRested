@@ -154,6 +154,12 @@
                 "value": "application/json; charset=utf-8",
                 "active": true,
                 "id": "edd5a4f4-b2dc-4106-af77-d89d929859c6"
+            },
+            {
+                "key": "server",
+                "value": "{{server}}",
+                "active": true,
+                "id": "69346d58-d4fd-49ec-86a6-4d59233aed59"
             }
         ]
     }
