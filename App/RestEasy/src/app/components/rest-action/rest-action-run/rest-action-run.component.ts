@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, CreateEmptyRestActionRun, Solution, RestActionRun } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, CreateEmptyRestActionRun, Solution, RestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
 @Component({
@@ -10,7 +10,7 @@ import { ValidateResponseService } from 'src/app/services/validate-response/vali
 })
 export class RestActionRunComponent implements OnInit {
   _runId: String = ''
-  run: RestActionRun = CreateEmptyRestActionRun();
+  run: RestActionRun = CreateEmptyRestActionRun(ValidationType.Inherit);
 
   @Input()
   action: RestAction = CreateEmptyAction();
@@ -69,6 +69,6 @@ export class RestActionRunComponent implements OnInit {
 
     console.log(`acrtive run not found[${id}]`);
     console.log(this.action);
-    return CreateEmptyRestActionRun();
+    return CreateEmptyRestActionRun(ValidationType.Inherit);
   }
 }

@@ -66,6 +66,7 @@ export interface RestActionBody {
 }
 
 export enum ValidationType {
+  Inherit = "Inherit",
   None = "None",
   ResponseCode = "ResponseCode",
   Headers = "Headers",
@@ -201,7 +202,7 @@ export function CreateEmptyAction(): RestAction {
     body: { contentType: 'none', body: undefined },
     authentication: CreateEmptyAuthenticationDetails('inherit'),
     runs: [],
-    validation: CreateEmptyRestActionValidation()
+    validation: CreateEmptyRestActionValidation(undefined)
   };
 }
 
@@ -254,17 +255,24 @@ export function CreateEmptySolutionConfig(): SolutionConfig {
   }
 }
 
-export function CreateEmptyRestActionValidation(): RestActionValidation {
+export function CreateEmptyRestActionValidation(valType: ValidationType | undefined): RestActionValidation {
   return {
-    type: ValidationType.None,
+    type: valType ?? ValidationType.None,
     body: ValidationTypeBody.None,
     httpCode: 200,
     jsonSchema: undefined
   }
 };
 
-export function CreateEmptyRestActionRun(): RestActionRun {
-  return { id: new SystemSupportService().generateGUID(), name: '', parameters: [], headers: [], variables: [], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() };
+export function CreateEmptyRestActionRun(valType: ValidationType | undefined): RestActionRun {
+  return { id: new SystemSupportService().generateGUID(), 
+           name: '', 
+           parameters: [], 
+           headers: [], 
+           variables: [], 
+           secrets: [], 
+           authentication: CreateEmptyAuthenticationDetails('none'), 
+           validation: CreateEmptyRestActionValidation(valType) };
 }
 
 @Injectable({
@@ -319,7 +327,7 @@ export class ActionRepositoryService {
       request.runs = [];
 
     if (request.validation == undefined)
-      request.validation = CreateEmptyRestActionValidation()
+      request.validation = CreateEmptyRestActionValidation(undefined)
   }
 
   private getIpcRenderer() {
@@ -512,9 +520,9 @@ export class ActionRepositoryService {
         }
       },
       runs: [
-        { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runone', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() },
-        { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runtwo', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() },
-        { id: `${name}-mockrun3`, name: 'test3', parameters: [], headers: [], variables: [{ variable: 'env', value: 'unkrunthreenown', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation() }
+        { id: `${name}-mockrun1`, name: 'test1', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runone', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation(ValidationType.Inherit) },
+        { id: `${name}-mockrun2`, name: 'test2', parameters: [], headers: [], variables: [{ variable: 'env', value: 'runtwo', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation(ValidationType.Inherit) },
+        { id: `${name}-mockrun3`, name: 'test3', parameters: [], headers: [], variables: [{ variable: 'env', value: 'unkrunthreenown', active: true, id: new SystemSupportService().generateGUID() }], secrets: [], authentication: CreateEmptyAuthenticationDetails('none'), validation: CreateEmptyRestActionValidation(ValidationType.Inherit) }
       ]
     };
   }
@@ -615,7 +623,7 @@ const mockCurrentState: CurrentState = {
             ],
             parameters: [],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -690,7 +698,7 @@ const mockCurrentState: CurrentState = {
 
             ],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -746,7 +754,7 @@ const mockCurrentState: CurrentState = {
               }
             ],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -763,7 +771,7 @@ const mockCurrentState: CurrentState = {
             headers: [],
             parameters: [],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: [],
             body: { contentType: 'none', body: undefined }
           },
@@ -843,7 +851,7 @@ const mockCurrentState: CurrentState = {
             ],
             body: { contentType: 'none', body: undefined },
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -898,7 +906,7 @@ const mockCurrentState: CurrentState = {
             ],
             body: { contentType: 'none', body: undefined },
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -959,7 +967,7 @@ const mockCurrentState: CurrentState = {
               }
             ],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: false,
@@ -1015,7 +1023,7 @@ const mockCurrentState: CurrentState = {
               }
             ],
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -1033,7 +1041,7 @@ const mockCurrentState: CurrentState = {
             parameters: [],
             body: { contentType: 'none', body: undefined },
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -1130,7 +1138,7 @@ const mockCurrentState: CurrentState = {
             ],
             body: { contentType: 'none', body: undefined },
             authentication: CreateEmptyAuthenticationDetails('iherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,
@@ -1148,7 +1156,7 @@ const mockCurrentState: CurrentState = {
             parameters: [],
             body: { contentType: 'none', body: undefined },
             authentication: CreateEmptyAuthenticationDetails('inherit'),
-            validation: CreateEmptyRestActionValidation(),
+            validation: CreateEmptyRestActionValidation(undefined),
             runs: []
           },
           dirty: true,

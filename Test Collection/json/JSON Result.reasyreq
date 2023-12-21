@@ -134,7 +134,7 @@
                 }
             },
             "validation": {
-                "type": "ResponseCode",
+                "type": "Inherit",
                 "body": "None",
                 "httpCode": 200
             }

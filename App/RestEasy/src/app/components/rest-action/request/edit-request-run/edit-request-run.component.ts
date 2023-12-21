@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Solution, CreateEmptySolution, SecretTable, VariableTable, RestActionValidation } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Solution, CreateEmptySolution, SecretTable, VariableTable, RestActionValidation, ValidationType, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -11,7 +11,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
   styleUrls: ['./edit-request-run.component.css']
 })
 export class EditRequestRunComponent implements OnInit {
-  _run: RestActionRun = CreateEmptyRestActionRun();
+  _run: RestActionRun = CreateEmptyRestActionRun(ValidationType.Inherit);
 
   @Input()
   action: RestAction = CreateEmptyAction();
@@ -142,7 +142,7 @@ export class EditRequestRunComponent implements OnInit {
       authentication: this.findAuthentication(),
       secrets: this._run.secrets,
       variables: this._run.variables,
-      validation: this._run.validation
+      validation: this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined))
     };
 
     console.log(`emit[${action.url}]`);

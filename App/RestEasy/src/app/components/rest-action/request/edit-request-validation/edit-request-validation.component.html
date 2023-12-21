@@ -1,5 +1,6 @@
 <div class="displayoptions">
   <mat-radio-group aria-label="Validation Type">
+    <mat-radio-button class="rb" value={{validationType.Inherit}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Inherit" *ngIf="showInherit == true">Inherit</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.None">None</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.ResponseCode}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.ResponseCode">Response Code</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.Headers}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Headers">Headers</mat-radio-button>

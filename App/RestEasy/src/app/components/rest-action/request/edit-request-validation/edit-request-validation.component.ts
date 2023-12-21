@@ -10,9 +10,6 @@ import { ValidateResponseService } from 'src/app/services/validate-response/vali
   styleUrls: ['./edit-request-validation.component.css']
 })
 export class EditRequestValidationComponent implements OnInit {
-onResponseCodeChange($event: any) {
-  this.validationChange.emit(this.visibleSchema);
-}
   public get validationType(): typeof ValidationType {
     return ValidationType;
   }
@@ -20,11 +17,14 @@ onResponseCodeChange($event: any) {
     return ValidationTypeBody;
   }
   // private initialData: string;
-  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation();
+  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation(undefined);
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
   @ViewChild('editor') schemaChild: JsonEditorComponent | undefined;
+
+  @Input()
+  showInherit: boolean = false;
 
   @Input() set validation(validation: RestActionValidation) {
     // this.initialData = schema;
@@ -107,7 +107,7 @@ onResponseCodeChange($event: any) {
   }
 
   public get responsecode(): boolean {
-    return this.visibleSchema.type != ValidationType.None;
+    return this.visibleSchema.type != ValidationType.None && this.visibleSchema.type != ValidationType.Inherit;
   }
 
   buildDescription(code: { code: number; desc: string; }) {
@@ -115,5 +115,9 @@ onResponseCodeChange($event: any) {
       return code.desc;
 
     return `${code.code} - ${code.desc}`
+  }
+
+  onResponseCodeChange($event: any) {
+    this.validationChange.emit(this.visibleSchema);
   }
 }
