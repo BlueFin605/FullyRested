@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
+import { HeaderTable, ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 
@@ -31,7 +31,13 @@ export class ValidateResponseService {
     }
 
     if (action.validation.type.includes(ValidationType.Body)) {
-      return this.validatePayload(action, response);
+      var bValid = await this.validatePayload(action, response);
+      if (bValid.valid == false)
+         return bValid;
+    }
+
+    if (action.validation.type.includes(ValidationType.Headers)) {
+      return this.validateHeaders(action, response);
     }
 
     return { information: [], errors: [], valid: true };
@@ -74,6 +80,27 @@ export class ValidateResponseService {
     var objSchema = JSON.parse(action.validation?.jsonSchema?.schema ?? "{}");
     var errors = await this.validateJsonString(objValidate, objSchema);
     return { information: [], errors: errors, valid: errors.length == 0 };
+  }
+
+
+  validateHeaders(action: ExecuteRestAction, response: RestActionResult): ResponseValidation | PromiseLike<ResponseValidation | undefined> | undefined {
+    console.log('ValidateHeaders');
+    console.log(action.validation?.headers);
+    console.log(response.headers);
+    // return { information: [], errors: [], valid: true };
+
+    var head = this.getHeadersAsArray(response.headers);
+    console.log(head);
+    var mismatched = action.validation?.headers.filter(a => a.active == true && head.find(f => f.key == a.key && f.value == a.value) == undefined).map(m => `incorrect header key[${m.key}] value[${m.value}]`);
+    console.log(mismatched);
+    return { information:[], errors: mismatched ?? [], valid: mismatched?.length == 0};
+  }
+
+  getHeadersAsArray(headers: { [header: string]: string; }): {key: string; value: string;}[] {
+    if (headers == undefined)
+       return [];
+          
+    return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
   }
 
   async validateJsonString(jsonObject: any, schemaObject: object): Promise<string[]> {
