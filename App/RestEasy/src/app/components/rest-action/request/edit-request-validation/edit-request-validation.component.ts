@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType } from 'src/app/services/action-repository/action-repository.service';
+import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType, HeaderTable } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
@@ -17,11 +17,14 @@ export class EditRequestValidationComponent implements OnInit {
     return ValidationTypeBody;
   }
   // private initialData: string;
-  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation();
+  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation(undefined);
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
   @ViewChild('editor') schemaChild: JsonEditorComponent | undefined;
+
+  @Input()
+  showInherit: boolean = false;
 
   @Input() set validation(validation: RestActionValidation) {
     // this.initialData = schema;
@@ -77,7 +80,14 @@ export class EditRequestValidationComponent implements OnInit {
   onTypeChange(event: any) {
     console.log(event);
     this.visibleSchema.type = event.value;
+    this.validationChange.emit(this.visibleSchema);
   }
+
+  onHeadersChange(event: HeaderTable[]) {
+    // console.log(event);    
+    this.validationChange.emit(this.visibleSchema);
+  }
+
 
   updateData(d: Event) {
     console.log('updateData');
@@ -103,7 +113,7 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
   public get responsecode(): boolean {
-    return this.visibleSchema.type != ValidationType.None;
+    return this.visibleSchema.type != ValidationType.None && this.visibleSchema.type != ValidationType.Inherit;
   }
 
   buildDescription(code: { code: number; desc: string; }) {
@@ -111,5 +121,9 @@ export class EditRequestValidationComponent implements OnInit {
       return code.desc;
 
     return `${code.code} - ${code.desc}`
+  }
+
+  onResponseCodeChange($event: any) {
+    this.validationChange.emit(this.visibleSchema);
   }
 }

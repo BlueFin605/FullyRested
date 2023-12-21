@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from 'src/app/services/action-repository/action-repository.service'
-import { MatTabGroup } from '@angular/material/tabs';
+import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Solution, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
+import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, SolutionExplorerComponent } from '../solution-explorer/solution-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
@@ -28,6 +28,8 @@ export class OpenActionsComponent implements OnInit {
     runkey: undefined
   }
 
+  explorerSelected: string = '';
+
   @ViewChild('tabs') tabs!: MatTabGroup;
   @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
   @ViewChild('explorer') collectionExplorer: SolutionExplorerComponent | undefined;
@@ -45,6 +47,11 @@ export class OpenActionsComponent implements OnInit {
         this.repo.saveCurrentState(this.state);
       };
 
+      setTimeout(() => {
+        this.tabs.selectedIndex = 0;
+        this.tabs.realignInkBar(); // re-align the bottom border of the tab
+      });
+  
       console.log(`this.repo.solutions.subscribe, sent`)
     });
 
@@ -334,7 +341,7 @@ export class OpenActionsComponent implements OnInit {
     }
 
     console.log(`adding run to tab[${existingTab}]`);
-    existingTab.action.runs.push(CreateEmptyRestActionRun());
+    existingTab.action.runs.push(CreateEmptyRestActionRun(ValidationType.Inherit));
     existingTab.dirty = true;
     // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
     console.log(existingTab);
@@ -415,5 +422,15 @@ export class OpenActionsComponent implements OnInit {
     console.log(env);
     console.log(this.selectedEnvironment);
     this.repo.storeSolution(this.solution);
+  }
+
+  tabChange($event: MatTabChangeEvent) {
+    if (this.tabs?.selectedIndex == null)
+      return;
+
+    console.log($event);
+    var action = this.currentSession().actions[this.tabs.selectedIndex];
+    this.explorerSelected = action.fullFilename;
+    console.log(`explorerSelected after[${this.explorerSelected}]`);
   }
 }

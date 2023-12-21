@@ -21,6 +21,12 @@
                 "value": ".com",
                 "active": true,
                 "id": "4b66a460-7868-407d-bac5-2f7657058f78"
+            },
+            {
+                "variable": "server",
+                "value": "cloudflare",
+                "active": true,
+                "id": "c272d0b3-12f6-48f5-9fdf-73c1dca64b64"
             }
         ],
         "secrets": [

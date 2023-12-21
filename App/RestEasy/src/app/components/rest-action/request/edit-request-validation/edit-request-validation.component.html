@@ -1,5 +1,6 @@
 <div class="displayoptions">
   <mat-radio-group aria-label="Validation Type">
+    <mat-radio-button class="rb" value={{validationType.Inherit}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Inherit" *ngIf="showInherit == true">Inherit</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.None">None</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.ResponseCode}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.ResponseCode">Response Code</mat-radio-button>
     <mat-radio-button class="rb" value={{validationType.Headers}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Headers">Headers</mat-radio-button>
@@ -11,15 +12,14 @@
 <div class="httpresult" *ngIf="responsecode">
   <mat-form-field>
     <mat-label>Http Response Code</mat-label>
-    <mat-select [(value)]="visibleSchema.httpCode">
+    <mat-select [(value)]="visibleSchema.httpCode" (valueChange)="onResponseCodeChange($event)">
       <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{buildDescription(code)}}</mat-option>
     </mat-select>
   </mat-form-field>
 </div>
 
 <div *ngIf="headers">
-  <p>Header validation will go here</p>
-</div>
+  <app-edit-request-headers [(headers)]="visibleSchema.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></div>
 
 <div *ngIf="body">
   <div class="displayoptions">

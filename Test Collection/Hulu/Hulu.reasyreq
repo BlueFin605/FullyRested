@@ -1,0 +1,55 @@
+{
+    "id": "ec3558bf-7dc7-4c91-b454-42e03d55bca9",
+    "name": "Hulu",
+    "verb": "get",
+    "protocol": "https",
+    "url": "hulu.com",
+    "headers": [
+        {
+            "key": "user-agent",
+            "value": "resteasy",
+            "active": true,
+            "id": "aaa"
+        },
+        {
+            "key": "accept",
+            "value": "*",
+            "active": true,
+            "id": "98b5d908-bbb2-456e-8dbc-41ec95321498"
+        },
+        {
+            "key": "accept-encoding",
+            "value": "gzip, deflate, br",
+            "active": true,
+            "id": "30b2226d-a991-4369-aa93-562cf46d2068"
+        }
+    ],
+    "parameters": [],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "none",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    }
+}

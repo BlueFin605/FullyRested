@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
+import { HeaderTable, RestActionValidation, Solution, ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
+import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 
 export interface ResponseValidation {
   information: string[];
@@ -15,30 +16,47 @@ export interface ResponseValidation {
 })
 export class ValidateResponseService {
 
-  constructor(private contentTypeHelper: ContentTypeHelperService) { }
+  constructor(private contentTypeHelper: ContentTypeHelperService, private replacer: VariableSubstitutionService) { }
 
-  public async validateResponse(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation | undefined> {
+  public async validateResponse(action: ExecuteRestAction, 
+                                response: RestActionResult,
+                                solution: Solution | undefined): Promise<ResponseValidation | undefined> {
+    
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
-
+    
     if (action.validation == undefined || action.validation.type == ValidationType.None) {
       console.log('no validation configured');
       return undefined;
     }
+    
+    console.log('replace variables in validation');
+    var validationAsText = JSON.stringify(action.validation);
+    validationAsText = this.replacer.replaceVariables(validationAsText, solution, action.variables, action.secrets);
+    var validation = JSON.parse(validationAsText);
+    console.log(validation);
 
-    if (action.validation.httpCode != response.status) {
-      return { information: [], errors: [`Http response code does not match '${action.validation.httpCode}'`], valid: false };
+    if (validation.httpCode != response.status) {
+      return { information: [], errors: [`Http response code does not match '${validation.httpCode}'`], valid: false };
     }
 
-    if (action.validation.type.includes(ValidationType.Body)) {
-      return this.validatePayload(action, response);
+    if (validation.type.includes(ValidationType.Body)) {
+      var bValid = await this.validatePayload(validation, response);
+      if (bValid.valid == false)
+         return bValid;
+    }
+
+    if (validation.type.includes(ValidationType.Headers)) {
+      return this.validateHeaders(validation, response);
     }
 
     return { information: [], errors: [], valid: true };
   }
 
-  public async validatePayload(action: ExecuteRestAction, response: RestActionResult): Promise<ResponseValidation> {
-    if (action.validation?.body == ValidationTypeBody.None) {
+  public async validatePayload(validation: RestActionValidation, response: RestActionResult): Promise<ResponseValidation> {
+    console.log('validatePayload');
+
+    if (validation?.body == ValidationTypeBody.None) {
       if (response.body != undefined) {
         return { information: [], errors: [`Response had payload when none was expected`], valid: false };
       }
@@ -71,9 +89,30 @@ export class ValidateResponseService {
     // var objValidate = "string";
 
     var objValidate = JSON.parse(this.contentTypeHelper.convertArrayBufferToString(response.body.contentType, response.body.body));
-    var objSchema = JSON.parse(action.validation?.jsonSchema?.schema ?? "{}");
+    var objSchema = JSON.parse(validation?.jsonSchema?.schema ?? "{}");
     var errors = await this.validateJsonString(objValidate, objSchema);
     return { information: [], errors: errors, valid: errors.length == 0 };
+  }
+
+
+  validateHeaders(validation: RestActionValidation, response: RestActionResult): ResponseValidation | PromiseLike<ResponseValidation | undefined> | undefined {
+    console.log('ValidateHeaders');
+    console.log(validation?.headers);
+    console.log(response.headers);
+    // return { information: [], errors: [], valid: true };
+
+    var head = this.getHeadersAsArray(response.headers);
+    console.log(head);
+    var mismatched = validation?.headers.filter(a => a.active == true && head.find(f => f.key == a.key && f.value == a.value) == undefined).map(m => `incorrect header key[${m.key}] value[${m.value}]`);
+    console.log(mismatched);
+    return { information:[], errors: mismatched ?? [], valid: mismatched?.length == 0};
+  }
+
+  getHeadersAsArray(headers: { [header: string]: string; }): {key: string; value: string;}[] {
+    if (headers == undefined)
+       return [];
+          
+    return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
   }
 
   async validateJsonString(jsonObject: any, schemaObject: object): Promise<string[]> {
@@ -158,6 +197,13 @@ export class ValidateResponseService {
     { code: 507, desc: 'Insufficient Storage' },
     { code: 508, desc: 'Loop Detected' },
     { code: 511, desc: 'Network Authentication Required' },
-    { code: -1, desc: 'Invalid hostname [ENOTFOUND]' }
-  ];
+    { code: -1, desc: 'Invalid hostname [ENOTFOUND]' },
+    { code: -2, desc: 'Connection closed [ECONNRESET]' },
+    { code: -3, desc: 'Conection timed out [ETIMEDOUT' },
+    { code: -4, desc: 'No service listening [CONNREFUSED' },
+    { code: -5, desc: 'Connection aborted [CONNABORTED' },
+    { code: -6, desc: 'Host unreachable [HOSTUNREACH' },
+    { code: -7, desc: 'DNS Lookup timeout [AI_AGAIN' },
+    { code: -8, desc: 'Error no entity [ENOENT' },
+  ]
 }
