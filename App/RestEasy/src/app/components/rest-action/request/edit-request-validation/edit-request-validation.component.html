@@ -24,8 +24,8 @@
 <div *ngIf="body">
   <div class="displayoptions">
     <mat-radio-group aria-label="Payload Validation Type">
-      <mat-radio-button value={{validationTypePayload.None}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.None">None</mat-radio-button>
-      <mat-radio-button value={{validationTypePayload.JsonSchema}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.JsonSchema">Json Schema</mat-radio-button>
+      <mat-radio-button class="rb" value={{validationTypePayload.None}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.None">None</mat-radio-button>
+      <mat-radio-button class="rb" value={{validationTypePayload.JsonSchema}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.JsonSchema">Json Schema</mat-radio-button>
     </mat-radio-group>  
   </div>    
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { HeaderTable, RestActionValidation, Solution, ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
+import { HeaderTable, RestActionValidation, Collection, ValidationType, ValidationTypeBody } from '../action-repository/action-repository.service';
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
@@ -20,7 +20,7 @@ export class ValidateResponseService {
 
   public async validateResponse(action: ExecuteRestAction, 
                                 response: RestActionResult,
-                                solution: Solution | undefined): Promise<ResponseValidation | undefined> {
+                                collection: Collection | undefined): Promise<ResponseValidation | undefined> {
     
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
@@ -32,7 +32,7 @@ export class ValidateResponseService {
     
     console.log('replace variables in validation');
     var validationAsText = JSON.stringify(action.validation);
-    validationAsText = this.replacer.replaceVariables(validationAsText, solution, action.variables, action.secrets);
+    validationAsText = this.replacer.replaceVariables(validationAsText, collection, action.variables, action.secrets);
     var validation = JSON.parse(validationAsText);
     console.log(validation);
 

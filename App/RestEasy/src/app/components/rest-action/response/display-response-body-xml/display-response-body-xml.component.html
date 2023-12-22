@@ -1,7 +1,7 @@
 <div class="displayoptions">
   <mat-radio-group aria-label="View Options">
-    <mat-radio-button value="raw" name="view" (change)="onViewChange($event)" [checked]="selectedview == 'raw'">Raw Response</mat-radio-button>
-    <mat-radio-button value="formatted" name="view" (change)="onViewChange($event)" [checked]="selectedview == 'formatted'">Formatted XML</mat-radio-button>
+    <mat-radio-button class="rb" value="raw" name="view" (change)="onViewChange($event)" [checked]="selectedview == 'raw'">Raw Response</mat-radio-button>
+    <mat-radio-button class="rb" value="formatted" name="view" (change)="onViewChange($event)" [checked]="selectedview == 'formatted'">Formatted XML</mat-radio-button>
   </mat-radio-group>
 </div>
 

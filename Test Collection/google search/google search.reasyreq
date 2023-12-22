@@ -96,7 +96,9 @@
             "token": ""
         }
     },
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "runs": [
         {
             "id": "37831be2-9f3e-47b2-af16-abcc6efe3f58",
@@ -132,7 +134,8 @@
             "validation": {
                 "type": "None",
                 "body": "None",
-                "httpCode": 200
+                "httpCode": 200,
+                "headers": []
             }
         }
     ],
@@ -142,6 +145,7 @@
         "jsonSchema": {
             "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schemaç\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
         },
-        "httpCode": 200
+        "httpCode": 200,
+        "headers": []
     }
 }

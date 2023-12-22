@@ -1,7 +1,9 @@
 {
     "id": "ddd54a4-ee95-4321-95aa-83e496a94ba4",
     "name": "JSON Result",
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "verb": "get",
     "protocol": "https",
     "url": "jsonplaceholder.typicode{{suffix}}/todos/1",
@@ -99,7 +101,8 @@
                 "httpCode": -1,
                 "jsonSchema": {
                     "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
-                }
+                },
+                "headers": []
             }
         },
         {
@@ -136,7 +139,8 @@
             "validation": {
                 "type": "Inherit",
                 "body": "None",
-                "httpCode": 200
+                "httpCode": 200,
+                "headers": []
             }
         }
     ],

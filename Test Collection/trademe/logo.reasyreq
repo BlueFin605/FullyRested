@@ -6,7 +6,9 @@
     "url": "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
     "headers": [],
     "parameters": [],
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "authentication": {
         "authentication": "none",
         "awsSig": {
@@ -25,6 +27,9 @@
     },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
     }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, CreateEmptyRestActionRun, Solution, RestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, CreateEmptyRestActionRun, Collection, RestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 
 @Component({
@@ -26,7 +26,7 @@ export class RestActionRunComponent implements OnInit {
   }
   
   @Input()
-  solution: Solution | undefined;
+  collection: Collection | undefined;
 
   @Output()
   nameChange = new EventEmitter<string>();
@@ -53,9 +53,9 @@ export class RestActionRunComponent implements OnInit {
 
   async executeAction(action: ExecuteRestAction) {
     this.response = EmptyActionResult;
-    console.log(`executeAction[${action}][${this.solution}]`)
-    this.response = await this.era.executeTest(action, this.solution);
-    this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.solution);
+    console.log(`executeAction[${action}][${this.collection}]`)
+    this.response = await this.era.executeTest(action, this.collection);
+    this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.collection);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 

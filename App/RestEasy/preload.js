@@ -9,14 +9,14 @@ contextBridge.exposeInMainWorld(
         send: (channel, data) => {
             console.log(`send[${channel}][${data}]`);
             // whitelist channels
-            let validChannels = ["loadSolution","loadSolutionFromFile","saveState", "saveSolution", "saveAsRequest", "saveRequest", "saveSolution", "saveSolutionAs"];
+            let validChannels = ["loadCollection","loadCollectionFromFile","saveState", "saveCollection", "saveAsRequest", "saveRequest", "saveCollection", "saveCollectionAs"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }
         },
         receive: (channel, func) => {
             console.log(`receieve[${channel}][${func}]`);
-            let validChannels = ["loadSolutionResponse", "savedAsCompleted"];
+            let validChannels = ["loadCollectionResponse", "savedAsCompleted"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
                 ipcRenderer.on(channel, (event, ...args) => {

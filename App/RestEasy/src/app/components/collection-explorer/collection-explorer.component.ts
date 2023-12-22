@@ -1,7 +1,7 @@
 import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 // import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { TraversedDrectory, Solution, ActionRepositoryService, REConstants, CurrentState, File, RestAction } from 'src/app/services/action-repository/action-repository.service';
+import { TraversedDrectory, Collection, ActionRepositoryService, REConstants, CurrentState, File, RestAction } from 'src/app/services/action-repository/action-repository.service';
 
 export interface SelectedTreeItem {
   // id: string;
@@ -23,32 +23,32 @@ export class ProductTreeviewConfig extends TreeviewConfig {
 }
 
 @Component({
-  selector: 'app-solution-explorer',
-  templateUrl: './solution-explorer.component.html',
-  styleUrls: ['./solution-explorer.component.css'],
+  selector: 'app-collection-explorer',
+  templateUrl: './collection-explorer.component.html',
+  styleUrls: ['./collection-explorer.component.css'],
   providers: [
     { provide: TreeviewConfig, useClass: ProductTreeviewConfig }
   ]
 })
-export class SolutionExplorerComponent implements OnInit {
-  _solution: Solution | undefined;
+export class CollectionExplorerComponent implements OnInit {
+  _collection: Collection | undefined;
 
   @Input()
   state: CurrentState | undefined;
 
   @Input()
-  set solution(solution: Solution | undefined) {
-    if (solution == undefined) {
-      this._solution = solution;
+  set collection(collection: Collection | undefined) {
+    if (collection == undefined) {
+      this._collection = collection;
       this.items = [];
       return;
     }
 
-    console.log('set solution');
-    console.log(solution);
-    this._solution = solution;
+    console.log('set collection');
+    console.log(collection);
+    this._collection = collection;
     if (this.state != undefined)
-      this.rebuildTree(solution, this.state);
+      this.rebuildTree(collection, this.state);
   }
 
   @Output()
@@ -71,9 +71,9 @@ export class SolutionExplorerComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  async rebuildTree(solution: Solution, state: CurrentState): Promise<boolean> {
-    var dir = await this.repo.traverseDirectory(solution.path, [REConstants.ActionExtension]);
-    this.items = [await this.buildTreeview(dir, solution.name, state)];
+  async rebuildTree(collection: Collection, state: CurrentState): Promise<boolean> {
+    var dir = await this.repo.traverseDirectory(collection.path, [REConstants.ActionExtension]);
+    this.items = [await this.buildTreeview(dir, collection.name, state)];
     this.expandTree(this.items);
     console.log(this.items);
     return true;
@@ -99,7 +99,7 @@ export class SolutionExplorerComponent implements OnInit {
     ];
 
     return new TreeviewItem({
-      text: 'Solution Settings',
+      text: 'Collection Settings',
       value: { type: 'dir', key: 'system.settings' },
       children: systemchildren,
       collapsed: false
@@ -107,7 +107,7 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   private buildEnvironmentsAsChildren(): TreeviewItem[] | undefined {
-    return this._solution?.config.environments.map(e => {
+    return this._collection?.config.environments.map(e => {
       return new TreeviewItem({
         text: e.name,
         value: { type: 'dir', subtype: 'system.settings.environments', key: `system.settings.environments.${e.id}`, actions: ['deleteEnvironment'] },
@@ -155,7 +155,7 @@ export class SolutionExplorerComponent implements OnInit {
   }
 
   async LoadAction(f: File, state: CurrentState): Promise<RestAction> {
-    var recent = state.sessions.find(s => s.solutionGuid == this._solution?.config.solutionGuid);
+    var recent = state.sessions.find(s => s.collectionGuid == this._collection?.config.collectionGuid);
     if (recent != undefined) {
        var action = recent.actions.find(a => a.fullFilename == f.fullPath);
        if (action != undefined)

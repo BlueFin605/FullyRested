@@ -14,8 +14,7 @@
     background-color: lightgray;
 }
 
-.mat-radio-button
-{
-    margin-left: 10px;
-    margin-right: 20px;
+.rb {
+    margin-left: 50px;
+    margin-top: 10px;
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, Solution, RestActionRun, ValidationTypeBody } from 'src/app/services/action-repository/action-repository.service'
+import { RestAction, ActionRepositoryService, CreateEmptyAction, Collection, RestActionRun, ValidationTypeBody } from 'src/app/services/action-repository/action-repository.service'
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
@@ -53,7 +53,7 @@ export class RestActionComponent implements OnInit {
   }
 
   @Input()
-  solution: Solution | undefined;
+  collection: Collection | undefined;
 
   @Input()
   runId: string | undefined;
@@ -70,9 +70,9 @@ export class RestActionComponent implements OnInit {
 
   async executeAction(action: ExecuteRestAction) {
     this.response = EmptyActionResult;
-    console.log(`executeAction[${action}][${this.solution}]`)
-    this.response = await this.era.executeTest(action, this.solution);
-    this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.solution);
+    console.log(`executeAction[${action}][${this.collection}]`)
+    this.response = await this.era.executeTest(action, this.collection);
+    this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.collection);
     console.log(this.response.validated);
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }

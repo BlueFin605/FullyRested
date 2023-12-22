@@ -1,8 +1,8 @@
 <div class="displayoptions">
     <mat-radio-group aria-label="Content Type">
-      <mat-radio-button value="none" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'none'">None</mat-radio-button>
-      <mat-radio-button value="application/x-www-form-urlencoded" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/x-www-form-urlencoded'">application/x-www-form-urlencoded</mat-radio-button>
-      <mat-radio-button value="application/json" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/json'">application/json</mat-radio-button>
+      <mat-radio-button class="rb" value="none" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'none'">None</mat-radio-button>
+      <mat-radio-button class="rb" value="application/x-www-form-urlencoded" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/x-www-form-urlencoded'">application/x-www-form-urlencoded</mat-radio-button>
+      <mat-radio-button class="rb" value="application/json" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/json'">application/json</mat-radio-button>
     </mat-radio-group>
 </div>
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Solution, VariableTable, SecretTable } from '../action-repository/action-repository.service';
+import { Collection, VariableTable, SecretTable } from '../action-repository/action-repository.service';
 
 const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
 
@@ -10,22 +10,22 @@ export class VariableSubstitutionService {
 
   constructor() { }
 
-  public replaceVariables(text: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
+  public replaceVariables(text: string, collection: Collection | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
     console.log(`replaceVariables[${text}]`);
     var matches = [...text.matchAll(regexp)];
 
     var combinedSecrets = this.combineAllSecrets(
       overrideSecrets ?? [],
-      solution?.config.solutionEnvironment.secrets ?? [],
-      solution?.config?.environments?.find(e => e.id == solution.config.selectedEnvironmentId)?.secrets ?? []
+      collection?.config.collectionEnvironment.secrets ?? [],
+      collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.secrets ?? []
     );
     var secrets = this.convertSecretArraysAsValues(combinedSecrets ?? []);
 
 
     var combinedVariables = this.combineAllVariables(
       overrideVariables ?? [],
-      solution?.config.solutionEnvironment.variables ?? [],
-      solution?.config?.environments?.find(e => e.id == solution.config.selectedEnvironmentId)?.variables ?? []
+      collection?.config.collectionEnvironment.variables ?? [],
+      collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.variables ?? []
     );
     var variables = this.convertVariableArraysAsValues(combinedVariables ?? []);
 
@@ -34,19 +34,19 @@ export class VariableSubstitutionService {
 
     console.log(matches);
     matches.forEach(m => {
-      text = this.substituteValue(text, m[0], m[1], solution, variables, secrets);
+      text = this.substituteValue(text, m[0], m[1], collection, variables, secrets);
     });
 
     return text;
   }
 
-  private substituteValue(text: string, search: string, valueKey: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
-    var replaced = text.replace(search, this.findVariable(valueKey, solution, overrideVariables, overrideSecrets));
+  private substituteValue(text: string, search: string, valueKey: string, collection: Collection | undefined, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
+    var replaced = text.replace(search, this.findVariable(valueKey, collection, overrideVariables, overrideSecrets));
     return replaced;
   }
 
-  private combineAllSecrets(override: SecretTable[], environment: SecretTable[], solution: SecretTable[]): SecretTable[] {
-    return solution.concat(environment, override);
+  private combineAllSecrets(override: SecretTable[], environment: SecretTable[], collection: SecretTable[]): SecretTable[] {
+    return collection.concat(environment, override);
   }
 
   private convertSecretArraysAsValues(headers: SecretTable[]): SecretTable[] {
@@ -56,8 +56,8 @@ export class VariableSubstitutionService {
     return headers.filter(f => f.active == true && f.$secret != '' && f.$value != '');
   }
 
-  private combineAllVariables(override: VariableTable[], environment: VariableTable[], solution: VariableTable[]): VariableTable[] {
-    return environment.concat(solution, override);
+  private combineAllVariables(override: VariableTable[], environment: VariableTable[], collection: VariableTable[]): VariableTable[] {
+    return environment.concat(collection, override);
   }
 
   private convertVariableArraysAsValues(headers: VariableTable[]): VariableTable[] {
@@ -67,11 +67,11 @@ export class VariableSubstitutionService {
     return headers.filter(f => f.active == true && f.variable != '' && f.variable != '');
   }
 
-  private findVariable(value: string, solution: Solution | undefined, overrideVariables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
+  private findVariable(value: string, collection: Collection | undefined, overrideVariables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
     console.log(`findVariable(${value})`)
-    console.log(solution?.config.solutionEnvironment.variables)
-    console.log(solution?.config.solutionEnvironment.secrets)
-    if (solution == undefined)
+    console.log(collection?.config.collectionEnvironment.variables)
+    console.log(collection?.config.collectionEnvironment.secrets)
+    if (collection == undefined)
       return "";
 
     var overrideVar: string | undefined;

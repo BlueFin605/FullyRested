@@ -59,9 +59,17 @@
             "token": ""
         }
     },
-    "body": "{}",
+    "body": {
+        "contentType": "none"
+    },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200,
+        "jsonSchema": {
+            "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"required\":[]}"
+        }
     }
 }

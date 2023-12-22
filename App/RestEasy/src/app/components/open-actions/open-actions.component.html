@@ -13,11 +13,11 @@
       </button>
       <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
     </div>
-    <div class="envselector" *ngIf="solution">
+    <div class="envselector" *ngIf="collection">
       Select Environment:
       <mat-form-field>
-        <mat-select [(value)]="solution.config!.selectedEnvironmentId">
-          <mat-option *ngFor="let env of solution?.config?.environments" [value]="env.id">
+        <mat-select [(value)]="collection.config!.selectedEnvironmentId">
+          <mat-option *ngFor="let env of collection?.config?.environments" [value]="env.id">
             {{env.name}}
           </mat-option>
         </mat-select>
@@ -29,26 +29,26 @@
     <div class="menubar">
       <button mat-button [matMenuTriggerFor]="file">File</button>
       <mat-menu #file="matMenu">
-        <button mat-menu-item (click)="newSolution()">New Solution</button>
-        <button mat-menu-item (click)="openSolution()">Open Solution</button>
-        <button mat-menu-item [matMenuTriggerFor]="recentSolutions">Open Recent</button>
-        <button mat-menu-item (click)="saveSolution()">Save Solution</button>
-        <button mat-menu-item (click)="saveSolutionAs()">Save Solution As</button>
-        <button mat-menu-item (click)="closeSolution()">Close Solution</button>
+        <button mat-menu-item (click)="newCollection()">New Collection</button>
+        <button mat-menu-item (click)="openCollection()">Open Collection</button>
+        <button mat-menu-item [matMenuTriggerFor]="recentCollections">Open Recent</button>
+        <button mat-menu-item (click)="saveCollection()">Save Collection</button>
+        <button mat-menu-item (click)="saveCollectionAs()">Save Collection As</button>
+        <button mat-menu-item (click)="closeCollection()">Close Collection</button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="newRequest()">New Request</button>
         <button mat-menu-item (click)="saveRequest()">Save</button>
         <button mat-menu-item (click)="saveAsRequest()">Save As</button>
       </mat-menu>
 
-      <mat-menu #recentSolutions>
-        <button mat-menu-item (click)="openSoution(item)" *ngFor="let item of state.recentSolutions">
+      <mat-menu #recentCollections>
+        <button mat-menu-item (click)="openSoution(item)" *ngFor="let item of state.recentCollections">
           {{ item.name }}
         </button>
       </mat-menu>
 
-      <button mat-button [matMenuTriggerFor]="solutionMenu">Solution</button>
-      <mat-menu #solutionMenu="matMenu">
+      <button mat-button [matMenuTriggerFor]="collectionMenu">Collection</button>
+      <mat-menu #collectionMenu="matMenu">
         <button mat-menu-item (click)="createEnvironment()" [disabled]="actionDisabled('createEnvironment')">Create Environment</button>
         <button mat-menu-item (click)="deleteEnvironment()" [disabled]="actionDisabled('deleteEnvironment')">Delete Environment</button>
         <mat-divider></mat-divider>
@@ -60,11 +60,11 @@
 </mat-toolbar>
 
 <div class="explorer">
-  <app-solution-explorer [solution]="solution" 
+  <app-collection-explorer [collection]="collection" 
                          [state]="state"
                          [(selected)]="explorerSelected"
                          (openFile)="openAction($event)" 
-                         (openSystem)="openSystem($event)" #explorer></app-solution-explorer>
+                         (openSystem)="openSystem($event)" #explorer></app-collection-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
@@ -77,7 +77,7 @@
           <mat-icon class="remove_icon">cancel</mat-icon>
         </button>
       </ng-template>
-      <app-rest-action [solution]="solution" 
+      <app-rest-action [collection]="collection" 
                        [(action)]=action.action 
                        [fullFilename]="action.fullFilename" 
                        [runId]="selectedTab.runkey"

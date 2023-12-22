@@ -1,7 +1,9 @@
 {
     "id": "3af54a2-ee78-1236-958d-83e496a94ba3",
     "name": "Image (trade-me)",
-    "body": "{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}",
+    "body": {
+        "contentType": "none"
+    },
     "verb": "get",
     "protocol": "https",
     "url": "trademe.tmcdn.co.nz/photoserver/plus/2083024699.jpg",
@@ -50,6 +52,9 @@
     },
     "runs": [],
     "validation": {
-        "type": "None"
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
     }
 }
