@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { AuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBasicAuth } from 'src/app/services/action-repository/action-repository.service';
+import { CreateEmptyAuthenticationDetailsBasicAuth } from '../../../../../../shared';
+import { AuthenticationDetailsBasicAuth } from '../../../../../../shared';
 
 @Component({
   selector: 'app-settings-manage-authentication-basic-auth',

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { ParamTable } from 'src/app/services/action-repository/action-repository.service'
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { ParamTable } from '../../../../../../../shared';
 
 const COLUMNS_SCHEMA = [
   {

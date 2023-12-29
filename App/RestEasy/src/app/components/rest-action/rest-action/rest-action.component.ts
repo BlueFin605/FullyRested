@@ -1,10 +1,12 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestAction, ActionRepositoryService, CreateEmptyAction, Collection, RestActionRun, ValidationTypeBody } from 'src/app/services/action-repository/action-repository.service'
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
+import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { CreateEmptyAction } from '../../../../../../shared';
+import { RestAction, Collection } from '../../../../../../shared';
 
 @Component({
   selector: 'app-rest-action',

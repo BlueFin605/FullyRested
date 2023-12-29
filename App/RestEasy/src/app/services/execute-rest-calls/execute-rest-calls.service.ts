@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
-import { Collection, AuthenticationDetails, Environment, SecretTable, VariableTable, RestActionValidation } from '../action-repository/action-repository.service';
 import { ResponseValidation } from '../validate-response/validate-response.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
+import { AuthenticationDetails, SecretTable, VariableTable, RestActionValidation, Collection, Environment } from '../../../../../shared';
 
 export interface ExecuteRestAction {
   verb: string;

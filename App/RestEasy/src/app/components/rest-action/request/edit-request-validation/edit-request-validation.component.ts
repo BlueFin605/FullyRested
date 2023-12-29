@@ -1,8 +1,9 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { ValidationTypeBody, RestActionValidation, CreateEmptyRestActionValidation, ValidationType, HeaderTable } from 'src/app/services/action-repository/action-repository.service';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
+import { CreateEmptyRestActionValidation } from '../../../../../../../shared';
+import { ValidationType, ValidationTypeBody, RestActionValidation, HeaderTable } from '../../../../../../../shared';
 
 @Component({
   selector: 'app-edit-request-validation',

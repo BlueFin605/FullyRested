@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetails, CreateEmptyEnvironment, Environment } from 'src/app/services/action-repository/action-repository.service'
+import { CreateEmptyAuthenticationDetails } from '../../../../../../shared';
+import { Environment } from '../../../../../../shared';
 
 @Component({
   selector: 'app-settings-manage-environment',

@@ -4,12 +4,12 @@ import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } fr
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
-import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
-import { AuthenticationDetails, RestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { CreateEmptyAction } from '../../../../../../../shared';
+import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared';
 
 @Component({
   selector: 'app-edit-request',

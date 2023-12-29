@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyEnvironment, Environment, SecretTable } from 'src/app/services/action-repository/action-repository.service'
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { SecretTable } from '../../../../../../shared';
 
 const COLUMNS_SCHEMA = [
   {

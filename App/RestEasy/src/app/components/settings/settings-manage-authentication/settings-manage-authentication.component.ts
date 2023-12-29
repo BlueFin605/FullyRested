@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { AuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
-import { CreateEmptyAuthenticationDetails } from 'src/app/services/action-repository/action-repository.service';
+import { CreateEmptyAuthenticationDetails } from '../../../../../../shared';
+import { AuthenticationDetails } from '../../../../../../shared';
 
 @Component({
   selector: 'app-settings-manage-authentication',

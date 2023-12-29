@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
-import { RestActionBody } from 'src/app/services/action-repository/action-repository.service';
+import { RestActionBody } from '../../../../../../../shared';
 
 @Component({
   selector: 'app-edit-request-body',

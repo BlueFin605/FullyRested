@@ -23,6 +23,9 @@
       "dom"
     ]
   },
+  "references": [
+      { "path": "../shared" }
+  ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

@@ -1,8 +1,10 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, ActionRepositoryService, CurrentState, RecentFile, Collection, Environment, CreateEmptyEnvironment, AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun, ValidationType } from 'src/app/services/action-repository/action-repository.service'
+import { LocalRestSession, LocalRestAction, CurrentState, RecentFile, Collection, Environment, AuthenticationDetails, ValidationType } from '../../../../../shared'
+import { CreateEmptyEnvironment, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from '../../../../../shared'
 import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, CollectionExplorerComponent } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -341,7 +343,7 @@ export class OpenActionsComponent implements OnInit {
     }
 
     console.log(`adding run to tab[${existingTab}]`);
-    existingTab.action.runs.push(CreateEmptyRestActionRun(ValidationType.Inherit));
+    existingTab.action.runs.push(CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit));
     existingTab.dirty = true;
     // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
     console.log(existingTab);

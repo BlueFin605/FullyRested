@@ -1,9 +1,11 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Collection, CreateEmptyCollection, SecretTable, VariableTable, RestActionValidation, ValidationType, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType } from '../../../../../../../shared';
+import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
   selector: 'app-edit-request-run',
@@ -11,7 +13,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
   styleUrls: ['./edit-request-run.component.css']
 })
 export class EditRequestRunComponent implements OnInit {
-  _run: RestActionRun = CreateEmptyRestActionRun(ValidationType.Inherit);
+  _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()
   action: RestAction = CreateEmptyAction();
@@ -33,11 +35,11 @@ export class EditRequestRunComponent implements OnInit {
   execute = new EventEmitter<ExecuteRestAction>();
 
   @Input()
-  collection: Collection = CreateEmptyCollection();
+  collection: Collection = CreateEmptyCollection(this.systemSupport);
 
   displayUrl: string = ''
 
-  constructor() { }
+  constructor(private systemSupport: SystemSupportService) { }
 
   ngOnInit(): void {
   }
