@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { SecretTable } from '../../../../../../shared';
+import { SecretTable } from '../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {

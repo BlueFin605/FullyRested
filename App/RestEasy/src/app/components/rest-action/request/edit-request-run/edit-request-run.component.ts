@@ -1,7 +1,7 @@
 import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType } from '../../../../../../../shared';
-import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType } from '../../../../../../../shared/runner';
+import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
 import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';

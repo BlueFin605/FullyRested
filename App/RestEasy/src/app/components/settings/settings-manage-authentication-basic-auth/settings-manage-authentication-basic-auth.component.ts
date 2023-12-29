@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsBasicAuth } from '../../../../../../shared';
-import { AuthenticationDetailsBasicAuth } from '../../../../../../shared';
+import { CreateEmptyAuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
+import { AuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-settings-manage-authentication-basic-auth',

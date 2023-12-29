@@ -8,8 +8,8 @@ import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-r
 import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
 import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { CreateEmptyAction } from '../../../../../../../shared';
-import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared';
+import { CreateEmptyAction } from '../../../../../../../shared/runner';
+import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
 
 @Component({
   selector: 'app-edit-request',

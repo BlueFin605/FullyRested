@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
-import { guidGenerator } from '../../../../../shared/src';
+import { guidGenerator } from '../../../../../shared/runner';
 
 @Injectable({
   providedIn: 'root'

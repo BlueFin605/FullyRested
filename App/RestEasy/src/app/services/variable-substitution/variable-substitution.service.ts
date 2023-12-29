@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Collection, VariableTable, SecretTable } from '../../../../../shared';
+import { Collection, VariableTable, SecretTable } from '../../../../../shared/runner';
 
 const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
 

@@ -1,7 +1,7 @@
 import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { Collection, CurrentState, REConstants, TraversedDrectory, RestAction, File } from '../../../../../shared';
+import { Collection, CurrentState, REConstants, TraversedDrectory, RestAction, File } from '../../../../../shared/runner';
 
 export interface SelectedTreeItem {
   // id: string;

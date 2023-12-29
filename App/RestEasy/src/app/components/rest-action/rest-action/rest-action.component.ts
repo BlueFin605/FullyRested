@@ -5,8 +5,8 @@ import { ContentTypeHelperService } from 'src/app/services/content-type-helper/c
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { CreateEmptyAction } from '../../../../../../shared';
-import { RestAction, Collection } from '../../../../../../shared';
+import { CreateEmptyAction } from '../../../../../../shared/runner';
+import { RestAction, Collection } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-rest-action',

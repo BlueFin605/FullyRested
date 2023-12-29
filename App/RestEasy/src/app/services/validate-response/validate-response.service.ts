@@ -3,7 +3,7 @@ import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-20
 import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
-import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared';
+import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
 
 export interface ResponseValidation {
   information: string[];

@@ -1,7 +1,7 @@
 import { Command } from "commander"; // add this line
 var figlet = require("figlet");
-import { RestAction } from "../../shared"
-import { CreateEmptyAction } from "../../shared"
+import { RestAction } from "../../shared/runner"
+import { CreateEmptyAction } from "../../shared/runner"
 
 
 //https://blog.logrocket.com/building-typescript-cli-node-js-commander/

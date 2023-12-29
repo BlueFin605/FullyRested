@@ -1,9 +1,9 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { RestActionResult, ExecuteRestCallsService, EmptyActionResult, ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
-import { Collection, RestAction, RestActionRun, ValidationType } from '../../../../../../shared';
+import { Collection, RestAction, RestActionRun, ValidationType } from '../../../../../../shared/runner';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { CreateEmptyRestActionRun, CreateEmptyAction } from '../../../../../../shared';
+import { CreateEmptyRestActionRun, CreateEmptyAction } from '../../../../../../shared/runner';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
 @Component({
