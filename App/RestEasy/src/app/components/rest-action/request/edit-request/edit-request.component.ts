@@ -1,15 +1,13 @@
-import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
+import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
 
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
-import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
-import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CreateEmptyAction } from '../../../../../../../shared/runner';
 import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
+import { ExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-edit-request',

@@ -1,5 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { RestActionResult, EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestActionResult } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-display-response',

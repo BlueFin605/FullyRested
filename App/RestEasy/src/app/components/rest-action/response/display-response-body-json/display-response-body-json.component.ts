@@ -1,7 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { JsonEditorOptions } from '@maaxgr/ang-jsoneditor'
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
-import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { RestActionResultBody } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-display-response-body-json',

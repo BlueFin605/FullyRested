@@ -1,15 +1,11 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
-import { ExecuteRestAction, RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
+import { ExecuteRestAction, RestActionResult } from '../../../../../shared/builder';
+import { ResponseValidation } from '../../../../../shared/validator';
 
-export interface ResponseValidation {
-  information: string[];
-  errors: string[];
-  valid: boolean;
-};
 
 @Injectable({
   providedIn: 'root'

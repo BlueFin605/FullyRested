@@ -24,7 +24,11 @@
     ]
   },
   "references": [
-      { "path": "../shared" }
+      { "path": "../shared/builder" },
+      { "path": "../shared/runner" },
+      { "path": "../shared/validator" }
+
+
   ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

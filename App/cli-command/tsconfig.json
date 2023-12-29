@@ -11,6 +11,8 @@
     },
     "include": ["src/**/*"],
     "references": [
-        { "path": "../shared/runner" }
+        { "path": "../shared/runner" },
+        { "path": "../shared/builder" },
+        { "path": "../shared/validator" },
     ]
   }

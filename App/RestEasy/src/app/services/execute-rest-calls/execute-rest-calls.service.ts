@@ -1,34 +1,8 @@
 import { Injectable } from '@angular/core';
-import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
-import { ResponseValidation } from '../validate-response/validate-response.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
-import { AuthenticationDetails, SecretTable, VariableTable, RestActionValidation, Collection, Environment } from '../../../../../shared/runner';
+import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
+import { RestActionResult, ExecuteRestAction } from '../../../../../shared/builder/src';
 
-export interface ExecuteRestAction {
-  verb: string;
-  protocol: string;
-  url: string;
-  headers: { [header: string]: string };
-  body: any;
-  authentication: AuthenticationDetails | undefined;
-  secrets: SecretTable[] | undefined;
-  variables: VariableTable[] | undefined;
-  validation: RestActionValidation | undefined;
-};
-
-export interface RestActionResult {
-  status: number | string;
-  statusText: string | undefined;
-  headers: { [header: string]: string };
-  headersSent: { [header: string]: string };
-  body: RestActionResultBody | undefined;
-  validated: ResponseValidation | undefined;
-}
-
-export interface RestActionResultBody {
-  contentType: string;
-  body: ArrayBuffer;
-}
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
 export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined, validated: undefined };

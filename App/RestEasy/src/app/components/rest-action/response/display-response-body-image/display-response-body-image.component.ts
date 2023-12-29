@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { RestActionResultBody } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { DomSanitizer } from '@angular/platform-browser';
+import { RestActionResultBody } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-display-response-body-image',
