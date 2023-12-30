@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
-import { RestActionResult, ExecuteRestAction } from '../../../../../shared/builder/src';
+import { RestActionResult, IExecuteRestAction } from '../../../../../shared/builder/src';
 
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
@@ -18,7 +18,7 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
+  async executeTest(action: IExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
     this.AddAuthentication(action, collection);
     var actionText = JSON.stringify(action);
     actionText = this.replacer.replaceVariables(actionText, collection, action.variables, action.secrets);
@@ -34,7 +34,7 @@ export class ExecuteRestCallsService {
     return response;
   }
 
-  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) {
+  AddAuthentication(action: IExecuteRestAction, collection: Collection | undefined) {
     var auth: AuthenticationDetails | undefined;
     auth = collection?.config.collectionEnvironment.auth;
 
@@ -48,7 +48,7 @@ export class ExecuteRestCallsService {
     console.log(action.authentication);
   }
 
-  BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
+  BuildMockData(action: IExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
     var enc = new TextEncoder();
 
     var mockjson: RestActionResult = {

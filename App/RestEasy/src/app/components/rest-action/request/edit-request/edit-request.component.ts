@@ -7,7 +7,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CreateEmptyAction } from '../../../../../../../shared/runner';
 import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
-import { ExecuteRestAction } from '../../../../../../../shared/builder/src';
+import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-edit-request',
@@ -33,7 +33,7 @@ export class EditRequestComponent implements OnInit {
   }
 
   @Output()
-  execute = new EventEmitter<ExecuteRestAction>();
+  execute = new EventEmitter<IExecuteRestAction>();
 
   displayUrl: string = '';
 
@@ -209,7 +209,7 @@ export class EditRequestComponent implements OnInit {
 
   async test() {
     console.log(this.action.body);
-    var action: ExecuteRestAction = {
+    var action: IExecuteRestAction = {
       verb: this.action.verb,
       protocol: this.action.protocol,
       url: this.displayUrl,

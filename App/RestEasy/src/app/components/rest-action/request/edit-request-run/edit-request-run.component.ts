@@ -2,7 +2,7 @@ import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
 import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType } from '../../../../../../../shared/runner';
 import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
-import { ExecuteRestAction } from '../../../../../../../shared/builder';
+import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 
@@ -31,7 +31,7 @@ export class EditRequestRunComponent implements OnInit {
   nameChange = new EventEmitter<string>();
 
   @Output()
-  execute = new EventEmitter<ExecuteRestAction>();
+  execute = new EventEmitter<IExecuteRestAction>();
 
   @Input()
   collection: Collection = CreateEmptyCollection(this.systemSupport);
@@ -134,17 +134,16 @@ export class EditRequestRunComponent implements OnInit {
     var combined = this.combineAllHeaders(this._run.headers, this.action.headers);
     var headers = this.convertHeaderArraysAsValues(combined ?? []);
 
-    var action: ExecuteRestAction = {
-      verb: this.action.verb,
-      protocol: this.action.protocol,
-      url: this.displayUrl,
-      headers: headers,
-      body: this.action.body,
-      authentication: this.findAuthentication(),
-      secrets: this._run.secrets,
-      variables: this._run.variables,
-      validation: this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined))
-    };
+    var action: IExecuteRestAction = ExecuteRestAction.NewExecuteRestAction()
+                                                      .setVerb(this.action.verb)
+                                                      .setProtocol(this.action.protocol)
+                                                      .setUrl(this.displayUrl)
+                                                      .setHeaders(headers)
+                                                      .setBody(this.action.body)
+                                                      .setSecrets(this._run.secrets)
+                                                      .setAuthentication(this.findAuthentication())
+                                                      .setVariables(this._run.variables)
+                                                      .setValidation(this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined)));
 
     console.log(`emit[${action.url}]`);
     console.log(action);

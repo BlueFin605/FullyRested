@@ -4,7 +4,7 @@ import { ActionRepositoryService } from 'src/app/services/action-repository/acti
 import { CreateEmptyAction } from '../../../../../../shared/runner';
 import { RestAction, Collection } from '../../../../../../shared/runner';
 import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult, ExecuteRestAction } from '../../../../../../shared/builder/src';
+import { RestActionResult, IExecuteRestAction } from '../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-rest-action',
@@ -68,7 +68,7 @@ export class RestActionComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  async executeAction(action: ExecuteRestAction) {
+  async executeAction(action: IExecuteRestAction) {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.collection}]`)
     this.response = await this.era.executeTest(action, this.collection);

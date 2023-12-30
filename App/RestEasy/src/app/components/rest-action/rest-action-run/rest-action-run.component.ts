@@ -5,7 +5,7 @@ import { ActionRepositoryService } from 'src/app/services/action-repository/acti
 import { CreateEmptyRestActionRun, CreateEmptyAction } from '../../../../../../shared/runner';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult, ExecuteRestAction } from '../../../../../../shared/builder/src';
+import { RestActionResult, IExecuteRestAction } from '../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-rest-action-run',
@@ -56,7 +56,7 @@ export class RestActionRunComponent implements OnInit {
     this.nameChange.emit(name);
   }
 
-  async executeAction(action: ExecuteRestAction) {
+  async executeAction(action: IExecuteRestAction) {
     this.response = EmptyActionResult;
     console.log(`executeAction[${action}][${this.collection}]`)
     this.response = await this.era.executeTest(action, this.collection);

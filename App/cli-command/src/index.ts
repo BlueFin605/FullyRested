@@ -2,6 +2,7 @@ import { Command } from "commander"; // add this line
 var figlet = require("figlet");
 import { RestAction } from "../../shared/runner"
 import { CreateEmptyAction } from "../../shared/runner"
+import { ExecuteRestAction, IExecuteRestAction } from "../../shared/builder"
 
 
 //https://blog.logrocket.com/building-typescript-cli-node-js-commander/
@@ -23,6 +24,6 @@ program
 const options = program.opts();
 
 if (options.collection) {
-  var action:RestAction = CreateEmptyAction();
+  var action:IExecuteRestAction = ExecuteRestAction.NewExecuteRestAction().setVerb('POST');
   console.log(action);
 }

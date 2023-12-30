@@ -1,7 +1,6 @@
 {
   "main": "dist/index.js",
   "dependencies": {
-  },
-  "devDependencies": {
+    "tslib": "^2.6.2"
   }
 }

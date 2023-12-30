@@ -3,7 +3,7 @@ import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-20
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
-import { ExecuteRestAction, RestActionResult } from '../../../../../shared/builder';
+import { IExecuteRestAction, RestActionResult } from '../../../../../shared/builder';
 import { ResponseValidation } from '../../../../../shared/validator';
 
 
@@ -14,7 +14,7 @@ export class ValidateResponseService {
 
   constructor(private contentTypeHelper: ContentTypeHelperService, private replacer: VariableSubstitutionService) { }
 
-  public async validateResponse(action: ExecuteRestAction, 
+  public async validateResponse(action: IExecuteRestAction, 
                                 response: RestActionResult,
                                 collection: Collection | undefined): Promise<ResponseValidation | undefined> {
     
