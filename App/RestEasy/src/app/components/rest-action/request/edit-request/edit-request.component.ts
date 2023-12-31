@@ -5,7 +5,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { CreateEmptyAction, RestTypeVerb } from '../../../../../../../shared/runner';
+import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '../../../../../../../shared/runner';
 import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
 import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
@@ -17,6 +17,10 @@ import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
 export class EditRequestComponent implements OnInit {
   public get restTypeVerb(): typeof RestTypeVerb {
     return RestTypeVerb;
+  }
+
+  public get httpProtocol(): typeof HttpProtocol {
+    return HttpProtocol;
   }
 
   private _action: RestAction = CreateEmptyAction();
@@ -51,11 +55,11 @@ export class EditRequestComponent implements OnInit {
 
     if (value.startsWith("https://")) {
       value = value.substring(8);
-      this.action.protocol = "https";
+      this.action.protocol = HttpProtocol.https
     } else
       if (value.startsWith("http://")) {
         value = value.substring(7);
-        this.action.protocol = "http";
+        this.action.protocol = HttpProtocol.http;
       }
 
     //find end of base url

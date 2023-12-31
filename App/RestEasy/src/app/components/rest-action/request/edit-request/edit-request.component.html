@@ -24,8 +24,8 @@
         <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
             <mat-select [(value)]="action.protocol" (selectionChange)="onProtocolChange($event)">
-                <mat-option value="http">HTTP</mat-option>
-                <mat-option value="https">HTTPS</mat-option>
+                <mat-option [value]="httpProtocol.http">HTTP</mat-option>
+                <mat-option [value]="httpProtocol.https">HTTPS</mat-option>
             </mat-select>
         </mat-form-field>
     </div>

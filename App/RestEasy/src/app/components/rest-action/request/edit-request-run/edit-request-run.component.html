@@ -17,8 +17,8 @@
     </div>
 
     <div class="verb-basics run-protocol">
-        <p *ngIf="action.protocol=='http'">HTTP</p>
-        <p *ngIf="action.protocol=='https'">HTTPS</p>
+        <p *ngIf="action.protocol==httpProtocol.http">HTTP</p>
+        <p *ngIf="action.protocol==httpProtocol.https">HTTPS</p>
     </div>
 
     <div class="verb-basics run-url">

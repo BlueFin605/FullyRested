@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb } from '../../../../../../../shared/runner';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
 import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
 import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -16,6 +16,10 @@ export class EditRequestRunComponent implements OnInit {
     return RestTypeVerb;
   }
 
+  public get httpProtocol(): typeof HttpProtocol {
+    return HttpProtocol;
+  }
+  
   _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()

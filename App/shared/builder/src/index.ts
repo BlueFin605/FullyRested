@@ -1,13 +1,13 @@
 import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
 import { ResponseValidation } from '../../validator'
-import { RestTypeVerb } from '../../runner'
+import { RestTypeVerb, HttpProtocol } from '../../runner'
 
 // https://wallis.dev/blog/typescript-project-references
 // https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
 
 export interface IExecuteRestAction {
   verb: RestTypeVerb;
-  protocol: string;
+  protocol: HttpProtocol;
   url: string;
   headers: { [header: string]: string };
   body: any;
@@ -20,7 +20,7 @@ export interface IExecuteRestAction {
 export class ExecuteRestAction implements IExecuteRestAction
 {
   verb: RestTypeVerb;
-  protocol: string; 
+  protocol: HttpProtocol; 
   url: string;
   headers: { [header: string]: string; };
   body: any;
@@ -43,7 +43,7 @@ export class ExecuteRestAction implements IExecuteRestAction
   
   public static NewExecuteRestAction(): ExecuteRestAction {
     return new ExecuteRestAction({verb: RestTypeVerb.get, 
-                                  protocol: '', 
+                                  protocol: HttpProtocol.https, 
                                   url: '', 
                                   headers: {}, 
                                   body: {}, 
@@ -59,7 +59,7 @@ export class ExecuteRestAction implements IExecuteRestAction
     return new ExecuteRestAction({...me, verb: verb});
   }
 
-  public setProtocol(protocol: string) : ExecuteRestAction {
+  public setProtocol(protocol: HttpProtocol) : ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({...me, protocol: protocol});
   }
