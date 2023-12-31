@@ -4,7 +4,7 @@
     "body": {
         "contentType": "none"
     },
-    "verb": "get",
+    "verb": "restTypeVerb.patch",
     "protocol": "https",
     "url": "jsonplaceholder.typicode{{suffix}}/todos/1",
     "headers": [

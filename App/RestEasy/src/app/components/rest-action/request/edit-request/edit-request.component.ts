@@ -5,7 +5,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { CreateEmptyAction } from '../../../../../../../shared/runner';
+import { CreateEmptyAction, RestTypeVerb } from '../../../../../../../shared/runner';
 import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
 import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
@@ -15,6 +15,10 @@ import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
   styleUrls: ['./edit-request.component.css']
 })
 export class EditRequestComponent implements OnInit {
+  public get restTypeVerb(): typeof RestTypeVerb {
+    return RestTypeVerb;
+  }
+
   private _action: RestAction = CreateEmptyAction();
 
   @Input()

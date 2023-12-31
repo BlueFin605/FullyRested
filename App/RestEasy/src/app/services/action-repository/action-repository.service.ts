@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { SystemSupportService } from '../system-support/system-support.service';
-import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails } from '../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb } from '../../../../../shared/runner';
 import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '../../../../../shared/runner';
 
 
@@ -235,7 +235,7 @@ export class ActionRepositoryService {
         contentType: 'application/json',
         body: `{\\"products\\":[{\\"name\\":\\"car\\",\\"product\\":[{\\"name\\":\\"honda\\",\\"model\\":[{\\"id\\":\\"civic\\",\\"name\\":\\"civic\\"},{\\"id\\":\\"accord\\",\\"name\\":\\"accord\\"},{\\"id\\":\\"crv\\",\\"name\\":\\"crv\\"},{\\"id\\":\\"pilot\\",\\"name\\":\\"pilot\\"},{\\"id\\":\\"odyssey\\",\\"name\\":\\"odyssey\\"}]}]}]}`
       },
-      verb: "get",
+      verb: RestTypeVerb.get,
       protocol: "https",
       url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
       headers: [
@@ -354,7 +354,7 @@ const mockCurrentState: CurrentState = {
             id: "3af54a2-ee78-1236-958d-83e496a94ba3",
             name: "Image (trade-me)",
             body: { contentType: 'application/json', body: '{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}' },
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [
@@ -397,7 +397,7 @@ const mockCurrentState: CurrentState = {
             id: "3af54a2-ee12-1236-95aa-83e496a94ba4",
             name: "XML Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
             headers: [
@@ -472,7 +472,7 @@ const mockCurrentState: CurrentState = {
             id: "ddd54a4-ee95-4321-95aa-83e496a94ba4",
             name: "JSON Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "jsonplaceholder.typicode.com/todos/1",
             headers: [
@@ -527,7 +527,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "ddd54a4-ee95-7654-95fd-73e496a94ba4",
             name: "logo",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [],
@@ -545,7 +545,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "ccc54c4-ee95-7654-95fd-86e496a94ba5",
             name: "google search",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "www.google.com/search",
             headers: [],
@@ -624,7 +624,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "d87019dc-0eea-45a2-a1fa-1e4b57a6b76e",
             name: "MDListModule Search",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "www.google.com/search",
             headers: [],
@@ -685,7 +685,7 @@ const mockCurrentState: CurrentState = {
             id: "92f54a1-be78-4606-958d-13e456a94aac",
             name: "XML Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "cdn.animenewsnetwork.com/encyclopedia/api.xml",
             headers: [
@@ -741,7 +741,7 @@ const mockCurrentState: CurrentState = {
             id: "32f54a1-be78-4606-958d-23e496a94aaf",
             name: "JSON Result(sfasfasfsadddd)",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "jsonplaceholder.typicode.com/todos/1",
             headers: [
@@ -796,7 +796,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "32b54a4-be78-5603-958d-23e496a94baf",
             name: "was this innamed",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [],
@@ -814,7 +814,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "32b54a4-be78-1206-958d-83e496a94bab",
             name: "google search",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "{{host}}/search",
             headers: [
@@ -911,7 +911,7 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "c78091f7-cdb4-465c-a8c9-02742470b92b",
             name: "stackoverflow search",
-            verb: "get",
+            verb: RestTypeVerb.get,
             protocol: "https",
             url: "stackoverflow.com/questions/32979630/how-can-i-display-a-save-as-dialog-in-an-electron-app",
             headers: [],

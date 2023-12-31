@@ -1,6 +1,6 @@
 import { Command } from "commander"; // add this line
 var figlet = require("figlet");
-import { RestAction } from "../../shared/runner"
+import { RestAction, RestTypeVerb } from "../../shared/runner"
 import { CreateEmptyAction } from "../../shared/runner"
 import { ExecuteRestAction, IExecuteRestAction } from "../../shared/builder"
 
@@ -24,6 +24,6 @@ program
 const options = program.opts();
 
 if (options.collection) {
-  var action:IExecuteRestAction = ExecuteRestAction.NewExecuteRestAction().setVerb('POST');
+  var action:IExecuteRestAction = ExecuteRestAction.NewExecuteRestAction().setVerb(RestTypeVerb.get);
   console.log(action);
 }

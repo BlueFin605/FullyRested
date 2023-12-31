@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType } from '../../../../../../../shared/runner';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb } from '../../../../../../../shared/runner';
 import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
 import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -12,6 +12,10 @@ import { SystemSupportService } from 'src/app/services/system-support/system-sup
   styleUrls: ['./edit-request-run.component.css']
 })
 export class EditRequestRunComponent implements OnInit {
+  public get restTypeVerb(): typeof RestTypeVerb {
+    return RestTypeVerb;
+  }
+
   _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()

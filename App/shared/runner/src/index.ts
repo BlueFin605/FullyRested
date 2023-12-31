@@ -103,7 +103,7 @@ export interface RestActionRun {
 export interface RestAction {
     id: string;
     name: string;
-    verb: string;
+    verb: RestTypeVerb;
     protocol: string;
     url: string;
     headers: HeaderTable[];
@@ -112,6 +112,16 @@ export interface RestAction {
     body: RestActionBody;
     runs: RestActionRun[];
     validation: RestActionValidation;
+}
+
+
+export enum RestTypeVerb {
+  get = "get",
+  post = "post",
+  patch = "patch",
+  option = "option",
+  delete = "delete",
+  put = "put"
 }
 
 export interface LocalRestAction {
@@ -194,7 +204,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     return {
       id: '',
       name: '',
-      verb: 'get',
+      verb: RestTypeVerb.get,
       protocol: 'https',
       url: '',
       headers: [],

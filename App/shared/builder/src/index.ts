@@ -1,11 +1,12 @@
 import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
 import { ResponseValidation } from '../../validator'
+import { RestTypeVerb } from '../../runner'
 
 // https://wallis.dev/blog/typescript-project-references
 // https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
 
 export interface IExecuteRestAction {
-  verb: string;
+  verb: RestTypeVerb;
   protocol: string;
   url: string;
   headers: { [header: string]: string };
@@ -18,7 +19,7 @@ export interface IExecuteRestAction {
 
 export class ExecuteRestAction implements IExecuteRestAction
 {
-  verb: string;
+  verb: RestTypeVerb;
   protocol: string; 
   url: string;
   headers: { [header: string]: string; };
@@ -41,7 +42,7 @@ export class ExecuteRestAction implements IExecuteRestAction
   }
   
   public static NewExecuteRestAction(): ExecuteRestAction {
-    return new ExecuteRestAction({verb:'', 
+    return new ExecuteRestAction({verb: RestTypeVerb.get, 
                                   protocol: '', 
                                   url: '', 
                                   headers: {}, 
@@ -53,7 +54,7 @@ export class ExecuteRestAction implements IExecuteRestAction
                                  });
   }
 
-  public setVerb(verb: string) : ExecuteRestAction {
+  public setVerb(verb: RestTypeVerb) : ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({...me, verb: verb});
   }
