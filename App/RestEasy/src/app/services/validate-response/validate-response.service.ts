@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
-import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
-import { IExecuteRestAction, RestActionResult } from '../../../../../shared/builder/src';
+import { IExecuteRestAction, RestActionResult, VariableSubstitution } from '../../../../../shared/builder/src';
 import { ResponseValidation } from '../../../../../shared/validator/src';
 
 
@@ -12,7 +11,7 @@ import { ResponseValidation } from '../../../../../shared/validator/src';
 })
 export class ValidateResponseService {
 
-  constructor(private contentTypeHelper: ContentTypeHelperService, private replacer: VariableSubstitutionService) { }
+  constructor(private contentTypeHelper: ContentTypeHelperService) { }
 
   public async validateResponse(action: IExecuteRestAction,
                                 response: RestActionResult,
@@ -28,7 +27,8 @@ export class ValidateResponseService {
     
     console.log('replace variables in validation');
     var validationAsText = JSON.stringify(action.validation);
-    validationAsText = this.replacer.replaceVariables(validationAsText, action.variables, action.secrets);
+
+    validationAsText = new VariableSubstitution().replaceVariables(validationAsText, action.variables, action.secrets);
     var validation = JSON.parse(validationAsText);
     console.log(validation);
 

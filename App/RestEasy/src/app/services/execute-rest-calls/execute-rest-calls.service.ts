@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
 import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
 
@@ -12,32 +11,20 @@ export const EmptyActionResult: RestActionResult = { status: "", statusText: und
 })
 export class ExecuteRestCallsService {
 
-  constructor(private replacer: VariableSubstitutionService) { }
+  constructor() { }
 
   getIpcRenderer() {
     return (<any>window).ipc;
   }
 
-  // async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
-  //   var actionWithAuth = this.AddAuthentication(action, collection);
-  //   var actionText = JSON.stringify(actionWithAuth);
-  //   actionText = this.replacer.replaceVariables(actionText, collection, actionWithAuth.variables, actionWithAuth.secrets);
-  //   actionWithAuth = JSON.parse(actionText);
-  //   console.log(actionText);
-  //   console.log(actionWithAuth);
-
-  //   if (this.getIpcRenderer() == undefined)
-  //     return this.BuildMockData(actionWithAuth);
-
-  //   var response = await this.getIpcRenderer().invoke('testRest', actionWithAuth);
-  //   console.log(response);
-  //   return response;
-  // }
-
   async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
-    var actionWithAuth = this.AddAuthentication(action, collection);
-    actionWithAuth = this.AddVariables(actionWithAuth, collection);
-    var replaced = this.replaceVariables(actionWithAuth);
+    var env = collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId);
+    var replaced:IExecuteRestAction = this.AddAuthentication(action, collection)
+                       .variables_pushBack(env?.variables)
+                       .variables_pushBack(collection?.config?.collectionEnvironment.variables)
+                       .secrets_pushBack(env?.secrets)
+                       .secrets_pushBack(collection?.config?.collectionEnvironment.secrets)
+                       .replaceVariables();
   
     if (this.getIpcRenderer() == undefined)
       return this.BuildMockData(replaced);
@@ -45,22 +32,6 @@ export class ExecuteRestCallsService {
     var response = await this.getIpcRenderer().invoke('testRest', replaced);
     console.log(response);
     return response;
-  }
-
-  AddVariables(action: ExecuteRestAction, collection: Collection | undefined): ExecuteRestAction {
-    return action.variables_pushBack(collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.variables)
-                 .variables_pushBack(collection?.config?.collectionEnvironment.variables)
-                 .secrets_pushBack(collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.secrets)
-                 .secrets_pushBack(collection?.config?.collectionEnvironment.secrets);
-  }
-
-  replaceVariables(action: ExecuteRestAction): IExecuteRestAction {
-    var actionText = JSON.stringify(action);
-    actionText = this.replacer.replaceVariables(actionText, action.variables, action.secrets);
-    action = JSON.parse(actionText);
-    console.log(actionText);
-    console.log(action);
-    return action;
   }
 
   AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) : ExecuteRestAction {
