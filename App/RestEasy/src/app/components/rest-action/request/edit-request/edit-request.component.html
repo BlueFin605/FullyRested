@@ -10,10 +10,12 @@
         <mat-form-field class="verb-selector-form-field">
             <mat-label>http verb</mat-label>
             <mat-select [(value)]="action.verb" (selectionChange)="onVerbChange($event)">
-                <mat-option value="get">GET</mat-option>
-                <mat-option value="post">POST</mat-option>
-                <mat-option value="patch">PATCH</mat-option>
-                <mat-option value="delete">DELETE</mat-option>
+                <mat-option [value]="restTypeVerb.get">GET</mat-option>
+                <mat-option [value]="restTypeVerb.post">POST</mat-option>
+                <mat-option [value]="restTypeVerb.patch">PATCH</mat-option>
+                <mat-option [value]="restTypeVerb.delete">DELETE</mat-option>
+                <mat-option [value]="restTypeVerb.put">PUT</mat-option>
+                <mat-option [value]="restTypeVerb.option">OPTION</mat-option>
             </mat-select>
         </mat-form-field>
     </div>
@@ -22,8 +24,8 @@
         <mat-form-field class="protocol-selector-form-field">
             <mat-label>protocol</mat-label>
             <mat-select [(value)]="action.protocol" (selectionChange)="onProtocolChange($event)">
-                <mat-option value="http">HTTP</mat-option>
-                <mat-option value="https">HTTPS</mat-option>
+                <mat-option [value]="httpProtocol.http">HTTP</mat-option>
+                <mat-option [value]="httpProtocol.https">HTTPS</mat-option>
             </mat-select>
         </mat-form-field>
     </div>

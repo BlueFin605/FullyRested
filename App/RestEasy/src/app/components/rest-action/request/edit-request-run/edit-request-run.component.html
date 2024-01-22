@@ -8,15 +8,17 @@
 
 <div class="run-header">
     <div class="verb-basics run-verb">
-        <p *ngIf="action.verb=='get'">GET</p>
-        <p *ngIf="action.verb=='post'">POST</p>
-        <p *ngIf="action.verb=='patch'">PATCH</p>
-        <p *ngIf="action.verb=='delete'">DELETE</p>
+        <p *ngIf="action.verb==restTypeVerb.get">GET</p>
+        <p *ngIf="action.verb==restTypeVerb.post">POST</p>
+        <p *ngIf="action.verb==restTypeVerb.patch">PATCH</p>
+        <p *ngIf="action.verb==restTypeVerb.put">PUT</p>
+        <p *ngIf="action.verb==restTypeVerb.delete">DELETE</p>
+        <p *ngIf="action.verb==restTypeVerb.option">OPTOINS</p>
     </div>
 
     <div class="verb-basics run-protocol">
-        <p *ngIf="action.protocol=='http'">HTTP</p>
-        <p *ngIf="action.protocol=='https'">HTTPS</p>
+        <p *ngIf="action.protocol==httpProtocol.http">HTTP</p>
+        <p *ngIf="action.protocol==httpProtocol.https">HTTPS</p>
     </div>
 
     <div class="verb-basics run-url">

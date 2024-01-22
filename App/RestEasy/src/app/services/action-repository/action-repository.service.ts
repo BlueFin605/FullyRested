@@ -1,285 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { RestActionResult } from '../execute-rest-calls/execute-rest-calls.service';
 import { SystemSupportService } from '../system-support/system-support.service';
+import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '../../../../../shared/runner';
+import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '../../../../../shared/runner';
 
-export const REConstants = {
-  CollectionExtension: ".reasycol",
-  ActionExtension: ".reasyreq"
-};
-
-export interface HeaderTable {
-  key: string;
-  value: string;
-  active: boolean;
-  id: string;
-};
-
-export interface ParamTable {
-  key: string;
-  value: string;
-  active: boolean;
-  id: string;
-};
-
-export interface VariableTable {
-  variable: string;
-  value: string;
-  active: boolean;
-  id: string;
-};
-
-export interface SecretTable {
-  $secret: string;
-  $value: string;
-  active: boolean;
-  id: string;
-}
-
-export interface AuthenticationDetails {
-  authentication: string;
-  awsSig: AuthenticationDetailsAWSSig;
-  basicAuth: AuthenticationDetailsBasicAuth;
-  bearerToken: AuthenticationDetailsBearerToken;
-}
-
-export interface AuthenticationDetailsAWSSig {
-  signUrl: boolean;
-  accessKey: string;
-  secretKey: string;
-  awsRegion: string;
-  serviceName: string;
-}
-
-export interface AuthenticationDetailsBasicAuth {
-  userName: string;
-  password: string;
-}
-
-export interface AuthenticationDetailsBearerToken {
-  token: string;
-}
-
-export interface RestActionBody {
-  contentType: string;
-  body: any;
-}
-
-export enum ValidationType {
-  Inherit = "Inherit",
-  None = "None",
-  ResponseCode = "ResponseCode",
-  Headers = "Headers",
-  Body = "Body",
-  HeadersBody = "HeadersBody"
-}
-
-export enum ValidationTypeBody {
-  None = "None",
-  JsonSchema = "JsonSchema"
-}
-
-export interface RestActionValidationJsonSchema {
-  schema: string;
-}
-
-export interface RestActionValidation {
-  type: ValidationType,
-  httpCode: number,
-  headers: HeaderTable[];
-  body: ValidationTypeBody;
-  jsonSchema: RestActionValidationJsonSchema | undefined;
-}
-
-export interface RestActionRun {
-  id: string;
-  name: string;
-  variables: VariableTable[];
-  secrets: SecretTable[];
-  authentication: AuthenticationDetails;
-  headers: HeaderTable[];
-  parameters: ParamTable[];
-  validation: RestActionValidation;
-}
-
-export interface RestAction {
-  id: string;
-  name: string;
-  verb: string;
-  protocol: string;
-  url: string;
-  headers: HeaderTable[];
-  parameters: ParamTable[];
-  authentication: AuthenticationDetails;
-  body: RestActionBody;
-  runs: RestActionRun[];
-  validation: RestActionValidation;
-}
-
-export interface LocalRestAction {
-  action: RestAction;
-  fullFilename: string;
-  dirty: boolean;
-  // active: boolean;
-  activeTab: boolean;
-}
-
-export interface LocalRestSession {
-  collectionGuid: string;
-  actions: LocalRestAction[];
-}
-
-export interface RecentFile {
-  name: string;
-  fullFileName: string;
-  path: string;
-}
-
-export interface CurrentState {
-  currentCollection: string;
-  sessions: LocalRestSession[];
-  recentCollections: RecentFile[];
-}
-
-export interface Environment {
-  name: string;
-  id: string;
-  variables: VariableTable[];
-  secrets: SecretTable[];
-  auth: AuthenticationDetails;
-}
-
-export interface CollectionConfig {
-  collectionGuid: string
-  collectionEnvironment: Environment;
-  environments: Environment[];
-  selectedEnvironmentId: string;
-}
-
-export interface Collection {
-  config: CollectionConfig;
-  filename: string;
-  name: string;
-  path: string;
-}
-
-export interface TraversedDrectory {
-  dir: Dir;
-  subdirs: TraversedDrectory[];
-  files: File[];
-}
-
-export interface Dir {
-  name: string;
-  path: string;
-  fullPath: string;
-}
-
-export interface File {
-  name: string;
-  path: string;
-  fullPath: string;
-}
-
-export interface SavedAsCompleted {
-  id: string;
-  fullFilename: string;
-  name: string;
-}
-
-export function CreateEmptyLocalAction(): LocalRestAction {
-  return { action: CreateEmptyAction(), dirty: false, fullFilename: '', activeTab: false };
-}
-
-export function CreateEmptyAction(): RestAction {
-  return {
-    id: '',
-    name: '',
-    verb: 'get',
-    protocol: 'https',
-    url: '',
-    headers: [],
-    parameters: [],
-    body: CreateEmptyActionBody(),
-    authentication: CreateEmptyAuthenticationDetails('inherit'),
-    runs: [],
-    validation: CreateEmptyRestActionValidation(undefined)
-  };
-}
-
-export function CreateEmptyActionBody(): RestActionBody {
-  return { contentType: 'none', body: undefined };
-}
-
-export function CreateEmptyEnvironment(): Environment {
-  return {
-    name: '',
-    id: '',
-    variables: [],
-    secrets: [],
-    auth: CreateEmptyAuthenticationDetails('inherit')
-  };
-}
-
-export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDetails {
-  return {
-    authentication: type,
-    awsSig: CreateEmptyAuthenticationDetailsAwsSig(),
-    basicAuth: CreateEmptyAuthenticationDetailsBasicAuth(),
-    bearerToken: CreateEmptyAuthenticationDetailsBearerToken()
-  };
-}
-
-export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
-  return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
-}
-
-export function CreateEmptyAuthenticationDetailsBasicAuth(): AuthenticationDetailsBasicAuth {
-  return { userName: '', password: '' };
-}
-
-export function CreateEmptyAuthenticationDetailsBearerToken(): AuthenticationDetailsBearerToken {
-  return { token: '' };
-}
-
-export function CreateEmptyCollection(): Collection {
-  return {
-    config: CreateEmptyCollectionConfig(),
-    filename: '',
-    name: '',
-    path: ''
-  };
-}
-
-export function CreateEmptyCollectionConfig(): CollectionConfig {
-  return {
-    collectionGuid: new SystemSupportService().generateGUID(),
-    collectionEnvironment: CreateEmptyEnvironment(),
-    environments: [],
-    selectedEnvironmentId: ''
-  }
-}
-
-export function CreateEmptyRestActionValidation(valType: ValidationType | undefined): RestActionValidation {
-  return {
-    type: valType ?? ValidationType.None,
-    headers: [],
-    body: ValidationTypeBody.None,
-    httpCode: 200,
-    jsonSchema: undefined
-  }
-};
-
-export function CreateEmptyRestActionRun(valType: ValidationType | undefined): RestActionRun {
-  return { id: new SystemSupportService().generateGUID(), 
-           name: '', 
-           parameters: [], 
-           headers: [], 
-           variables: [], 
-           secrets: [], 
-           authentication: CreateEmptyAuthenticationDetails('none'), 
-           validation: CreateEmptyRestActionValidation(valType) };
-}
 
 @Injectable({
   providedIn: 'root'
@@ -453,7 +177,7 @@ export class ActionRepositoryService {
   }
 
   public async newCollection() {
-    var collection: Collection = CreateEmptyCollection();
+    var collection: Collection = CreateEmptyCollection(this.systemSupport);
     collection.config.collectionEnvironment.auth.authentication = 'none';
     this.collections.next(collection);
   }
@@ -511,8 +235,8 @@ export class ActionRepositoryService {
         contentType: 'application/json',
         body: `{\\"products\\":[{\\"name\\":\\"car\\",\\"product\\":[{\\"name\\":\\"honda\\",\\"model\\":[{\\"id\\":\\"civic\\",\\"name\\":\\"civic\\"},{\\"id\\":\\"accord\\",\\"name\\":\\"accord\\"},{\\"id\\":\\"crv\\",\\"name\\":\\"crv\\"},{\\"id\\":\\"pilot\\",\\"name\\":\\"pilot\\"},{\\"id\\":\\"odyssey\\",\\"name\\":\\"odyssey\\"}]}]}]}`
       },
-      verb: "get",
-      protocol: "https",
+      verb: RestTypeVerb.get,
+      protocol: HttpProtocol.https,
       url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
       headers: [
         {
@@ -630,8 +354,8 @@ const mockCurrentState: CurrentState = {
             id: "3af54a2-ee78-1236-958d-83e496a94ba3",
             name: "Image (trade-me)",
             body: { contentType: 'application/json', body: '{\"products\":[{\"name\":\"car\",\"product\":[{\"name\":\"honda\",\"model\":[{\"id\":\"civic\",\"name\":\"civic\"},{\"id\":\"accord\",\"name\":\"accord\"},{\"id\":\"crv\",\"name\":\"crv\"},{\"id\":\"pilot\",\"name\":\"pilot\"},{\"id\":\"odyssey\",\"name\":\"odyssey\"}]}]}]}' },
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [
               {
@@ -673,8 +397,8 @@ const mockCurrentState: CurrentState = {
             id: "3af54a2-ee12-1236-95aa-83e496a94ba4",
             name: "XML Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "cdn.animenewsnetwork.com/encyclopedia/api.xml?title=4658",
             headers: [
               {
@@ -748,8 +472,8 @@ const mockCurrentState: CurrentState = {
             id: "ddd54a4-ee95-4321-95aa-83e496a94ba4",
             name: "JSON Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "jsonplaceholder.typicode.com/todos/1",
             headers: [
               {
@@ -803,8 +527,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "ddd54a4-ee95-7654-95fd-73e496a94ba4",
             name: "logo",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [],
             parameters: [],
@@ -821,8 +545,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "ccc54c4-ee95-7654-95fd-86e496a94ba5",
             name: "google search",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "www.google.com/search",
             headers: [],
             parameters: [
@@ -900,8 +624,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "d87019dc-0eea-45a2-a1fa-1e4b57a6b76e",
             name: "MDListModule Search",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "www.google.com/search",
             headers: [],
             parameters: [
@@ -961,8 +685,8 @@ const mockCurrentState: CurrentState = {
             id: "92f54a1-be78-4606-958d-13e456a94aac",
             name: "XML Result",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "cdn.animenewsnetwork.com/encyclopedia/api.xml",
             headers: [
               {
@@ -1017,8 +741,8 @@ const mockCurrentState: CurrentState = {
             id: "32f54a1-be78-4606-958d-23e496a94aaf",
             name: "JSON Result(sfasfasfsadddd)",
             body: { contentType: 'none', body: undefined },
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "jsonplaceholder.typicode.com/todos/1",
             headers: [
               {
@@ -1072,8 +796,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "32b54a4-be78-5603-958d-23e496a94baf",
             name: "was this innamed",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "www.trademe.co.nz/images/frend/trademe-logo-no-tagline.png",
             headers: [],
             parameters: [],
@@ -1090,8 +814,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "32b54a4-be78-1206-958d-83e496a94bab",
             name: "google search",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "{{host}}/search",
             headers: [
               {
@@ -1187,8 +911,8 @@ const mockCurrentState: CurrentState = {
           action: {
             id: "c78091f7-cdb4-465c-a8c9-02742470b92b",
             name: "stackoverflow search",
-            verb: "get",
-            protocol: "https",
+            verb: RestTypeVerb.get,
+            protocol: HttpProtocol.https,
             url: "stackoverflow.com/questions/32979630/how-can-i-display-a-save-as-dialog-in-an-electron-app",
             headers: [],
             parameters: [],

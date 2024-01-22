@@ -1,9 +1,10 @@
-import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
-import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, CreateEmptyAction, CreateEmptyRestActionRun, Collection, CreateEmptyCollection, SecretTable, VariableTable, RestActionValidation, ValidationType, CreateEmptyRestActionValidation } from 'src/app/services/action-repository/action-repository.service';
-import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
+import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
+import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
+import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
+import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
+import { ExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-edit-request-run',
@@ -11,7 +12,15 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
   styleUrls: ['./edit-request-run.component.css']
 })
 export class EditRequestRunComponent implements OnInit {
-  _run: RestActionRun = CreateEmptyRestActionRun(ValidationType.Inherit);
+  public get restTypeVerb(): typeof RestTypeVerb {
+    return RestTypeVerb;
+  }
+
+  public get httpProtocol(): typeof HttpProtocol {
+    return HttpProtocol;
+  }
+  
+  _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()
   action: RestAction = CreateEmptyAction();
@@ -33,11 +42,11 @@ export class EditRequestRunComponent implements OnInit {
   execute = new EventEmitter<ExecuteRestAction>();
 
   @Input()
-  collection: Collection = CreateEmptyCollection();
+  collection: Collection = CreateEmptyCollection(this.systemSupport);
 
   displayUrl: string = ''
 
-  constructor() { }
+  constructor(private systemSupport: SystemSupportService) { }
 
   ngOnInit(): void {
   }
@@ -111,14 +120,6 @@ export class EditRequestRunComponent implements OnInit {
     return action.concat(run);
   }
 
-  convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
-    var reverse = headers.reverse();
-    headers = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
-    var converted: { [headers: string]: string } = {};
-    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
-    return converted;
-  }
-
   findAuthentication(): AuthenticationDetails
   {
     if (!this._run.authentication || this._run.authentication.authentication == 'inherit')
@@ -130,20 +131,18 @@ export class EditRequestRunComponent implements OnInit {
   async test() {
     console.log(this.action.body);
 
-    var combined = this.combineAllHeaders(this._run.headers, this.action.headers);
-    var headers = this.convertHeaderArraysAsValues(combined ?? []);
+    var headers = this.combineAllHeaders(this._run.headers, this.action.headers);
 
-    var action: ExecuteRestAction = {
-      verb: this.action.verb,
-      protocol: this.action.protocol,
-      url: this.displayUrl,
-      headers: headers,
-      body: this.action.body,
-      authentication: this.findAuthentication(),
-      secrets: this._run.secrets,
-      variables: this._run.variables,
-      validation: this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined))
-    };
+    var action: ExecuteRestAction = ExecuteRestAction.NewExecuteRestAction()
+                                                      .setVerb(this.action.verb)
+                                                      .setProtocol(this.action.protocol)
+                                                      .setUrl(this.displayUrl)
+                                                      .setHeadersFromArray(headers)
+                                                      .setBody(this.action.body)
+                                                      .authentication_pushBack(this.findAuthentication())
+                                                      .secrets_pushBack(this._run.secrets)
+                                                      .variables_pushFront(this._run.variables)
+                                                      .setValidation(this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined)));
 
     console.log(`emit[${action.url}]`);
     console.log(action);

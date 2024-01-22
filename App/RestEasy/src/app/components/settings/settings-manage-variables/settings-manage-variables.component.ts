@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyEnvironment, Environment, VariableTable } from 'src/app/services/action-repository/action-repository.service'
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { VariableTable } from '../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {

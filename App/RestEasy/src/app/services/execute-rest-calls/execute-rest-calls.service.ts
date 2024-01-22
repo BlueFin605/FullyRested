@@ -1,34 +1,7 @@
 import { Injectable } from '@angular/core';
-import { RestActionComponent } from 'src/app/components/rest-action/rest-action/rest-action.component';
-import { Collection, AuthenticationDetails, Environment, SecretTable, VariableTable, RestActionValidation } from '../action-repository/action-repository.service';
-import { ResponseValidation } from '../validate-response/validate-response.service';
-import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
+import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
+import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
 
-export interface ExecuteRestAction {
-  verb: string;
-  protocol: string;
-  url: string;
-  headers: { [header: string]: string };
-  body: any;
-  authentication: AuthenticationDetails | undefined;
-  secrets: SecretTable[] | undefined;
-  variables: VariableTable[] | undefined;
-  validation: RestActionValidation | undefined;
-};
-
-export interface RestActionResult {
-  status: number | string;
-  statusText: string | undefined;
-  headers: { [header: string]: string };
-  headersSent: { [header: string]: string };
-  body: RestActionResultBody | undefined;
-  validated: ResponseValidation | undefined;
-}
-
-export interface RestActionResultBody {
-  contentType: string;
-  body: ArrayBuffer;
-}
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
 export const EmptyActionResult: RestActionResult = { status: "", statusText: undefined, headers: {}, headersSent: {}, body: undefined, validated: undefined };
@@ -38,43 +11,38 @@ export const EmptyActionResult: RestActionResult = { status: "", statusText: und
 })
 export class ExecuteRestCallsService {
 
-  constructor(private replacer: VariableSubstitutionService) { }
+  constructor() { }
 
   getIpcRenderer() {
     return (<any>window).ipc;
   }
 
   async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
-    this.AddAuthentication(action, collection);
-    var actionText = JSON.stringify(action);
-    actionText = this.replacer.replaceVariables(actionText, collection, action.variables, action.secrets);
-    action = JSON.parse(actionText);
-    console.log(actionText);
-    console.log(action);
-
+    var env = collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId);
+    var replaced:IExecuteRestAction = this.AddAuthentication(action, collection)
+                       .variables_pushBack(env?.variables)
+                       .variables_pushBack(collection?.config?.collectionEnvironment.variables)
+                       .secrets_pushBack(env?.secrets)
+                       .secrets_pushBack(collection?.config?.collectionEnvironment.secrets)
+                       .replaceVariables();
+  
     if (this.getIpcRenderer() == undefined)
-      return this.BuildMockData(action);
+      return this.BuildMockData(replaced);
 
-    var response = await this.getIpcRenderer().invoke('testRest', action);
+    var response = await this.getIpcRenderer().invoke('testRest', replaced);
     console.log(response);
     return response;
   }
 
-  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) {
-    var auth: AuthenticationDetails | undefined;
-    auth = collection?.config.collectionEnvironment.auth;
-
+  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) : ExecuteRestAction {
     var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
-    if (auth == undefined || (env != undefined && env.auth.authentication != 'inherit'))
-       auth = env?.auth;
-
-    if (action.authentication == undefined || action.authentication.authentication == 'inherit') {
-      action.authentication = auth;
-    }
-    console.log(action.authentication);
+    var actionWithAuth = action.authentication_pushBack(env?.auth)
+                               .authentication_pushBack(collection?.config.collectionEnvironment.auth);
+    console.log(actionWithAuth);
+    return actionWithAuth;
   }
 
-  BuildMockData(action: ExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
+  BuildMockData(action: IExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
     var enc = new TextEncoder();
 
     var mockjson: RestActionResult = {

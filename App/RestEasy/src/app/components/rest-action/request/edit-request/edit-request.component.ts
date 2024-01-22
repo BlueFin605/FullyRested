@@ -1,15 +1,13 @@
-import { Component, Input, Output, OnInit, EventEmitter, ViewChild } from '@angular/core';
+import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
 
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
-import { RestAction, HeaderTable, ParamTable, CreateEmptyAction } from 'src/app/services/action-repository/action-repository.service';
-import { ExecuteRestAction } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { EditRequestHeadersComponent } from '../edit-request-headers/edit-request-headers.component';
-import { EditRequestBodyComponent } from '../edit-request-body/edit-request-body.component';
-import { AuthenticationDetails, RestActionValidation } from 'src/app/services/action-repository/action-repository.service';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
+import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '../../../../../../../shared/runner';
+import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
+import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-edit-request',
@@ -17,6 +15,14 @@ import { SystemSupportService } from 'src/app/services/system-support/system-sup
   styleUrls: ['./edit-request.component.css']
 })
 export class EditRequestComponent implements OnInit {
+  public get restTypeVerb(): typeof RestTypeVerb {
+    return RestTypeVerb;
+  }
+
+  public get httpProtocol(): typeof HttpProtocol {
+    return HttpProtocol;
+  }
+
   private _action: RestAction = CreateEmptyAction();
 
   @Input()
@@ -49,11 +55,11 @@ export class EditRequestComponent implements OnInit {
 
     if (value.startsWith("https://")) {
       value = value.substring(8);
-      this.action.protocol = "https";
+      this.action.protocol = HttpProtocol.https
     } else
       if (value.startsWith("http://")) {
         value = value.substring(7);
-        this.action.protocol = "http";
+        this.action.protocol = HttpProtocol.http;
       }
 
     //find end of base url
@@ -197,12 +203,6 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
-    var converted: { [header: string]: string } = {};
-    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
-    return converted;
-  }
-
   convertParamsArraysAsValues(params: ParamTable[]): { [header: string]: string } {
     var converted: { [params: string]: string } = {};
     params.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
@@ -211,17 +211,15 @@ export class EditRequestComponent implements OnInit {
 
   async test() {
     console.log(this.action.body);
-    var action: ExecuteRestAction = {
-      verb: this.action.verb,
-      protocol: this.action.protocol,
-      url: this.displayUrl,
-      headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
-      body: this.action.body,
-      authentication: this.action.authentication,
-      secrets: undefined,
-      variables: undefined,
-      validation: this.action.validation
-    };
+
+    var action: ExecuteRestAction = ExecuteRestAction.NewExecuteRestAction()
+    .setVerb(this.action.verb)
+    .setProtocol(this.action.protocol)
+    .setUrl(this.displayUrl)
+    .setHeadersFromArray(this.action.headers ?? [])
+    .setBody(this.action.body)
+    .authentication_pushBack(this.action.authentication)
+    .setValidation(this.action.validation);
 
     console.log(`emit[${JSON.stringify(action)}]`)
     this.execute.emit(action);
