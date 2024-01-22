@@ -28,7 +28,7 @@ export class ValidateResponseService {
     
     console.log('replace variables in validation');
     var validationAsText = JSON.stringify(action.validation);
-    validationAsText = this.replacer.replaceVariables(validationAsText, collection, action.variables, action.secrets);
+    validationAsText = this.replacer.replaceVariables(validationAsText, action.variables, action.secrets);
     var validation = JSON.parse(validationAsText);
     console.log(validation);
 

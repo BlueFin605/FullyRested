@@ -36,7 +36,8 @@ export class ExecuteRestCallsService {
 
   async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
     var actionWithAuth = this.AddAuthentication(action, collection);
-    var replaced = this.replaceVariables(actionWithAuth, collection);
+    actionWithAuth = this.AddVariables(actionWithAuth, collection);
+    var replaced = this.replaceVariables(actionWithAuth);
   
     if (this.getIpcRenderer() == undefined)
       return this.BuildMockData(replaced);
@@ -46,9 +47,16 @@ export class ExecuteRestCallsService {
     return response;
   }
 
-  replaceVariables(action: ExecuteRestAction, collection: Collection | undefined): IExecuteRestAction {
+  AddVariables(action: ExecuteRestAction, collection: Collection | undefined): ExecuteRestAction {
+    return action.variables_pushBack(collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.variables)
+                 .variables_pushBack(collection?.config?.collectionEnvironment.variables)
+                 .secrets_pushBack(collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId)?.secrets)
+                 .secrets_pushBack(collection?.config?.collectionEnvironment.secrets);
+  }
+
+  replaceVariables(action: ExecuteRestAction): IExecuteRestAction {
     var actionText = JSON.stringify(action);
-    actionText = this.replacer.replaceVariables(actionText, collection, action.variables, action.secrets);
+    actionText = this.replacer.replaceVariables(actionText, action.variables, action.secrets);
     action = JSON.parse(actionText);
     console.log(actionText);
     console.log(action);

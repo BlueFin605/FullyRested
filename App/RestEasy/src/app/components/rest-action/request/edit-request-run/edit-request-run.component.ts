@@ -140,8 +140,8 @@ export class EditRequestRunComponent implements OnInit {
                                                       .setHeadersFromArray(headers)
                                                       .setBody(this.action.body)
                                                       .authentication_pushBack(this.findAuthentication())
-                                                      .setSecrets(this._run.secrets)
-                                                      .setVariables(this._run.variables)
+                                                      .secrets_pushBack(this._run.secrets)
+                                                      .variables_pushFront(this._run.variables)
                                                       .setValidation(this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined)));
 
     console.log(`emit[${action.url}]`);

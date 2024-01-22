@@ -17,10 +17,9 @@ export interface IExecuteRestAction {
   validation: RestActionValidation | undefined;
 };
 
-export class ExecuteRestAction implements IExecuteRestAction
-{
+export class ExecuteRestAction implements IExecuteRestAction {
   verb: RestTypeVerb;
-  protocol: HttpProtocol; 
+  protocol: HttpProtocol;
   url: string;
   headers: { [header: string]: string; };
   body: any;
@@ -29,7 +28,7 @@ export class ExecuteRestAction implements IExecuteRestAction
   variables: VariableTable[] | undefined;
   validation: RestActionValidation | undefined;
 
-  constructor (copy:IExecuteRestAction) {
+  constructor(copy: IExecuteRestAction) {
     this.verb = copy.verb;
     this.protocol = copy.protocol;
     this.url = copy.url;
@@ -40,7 +39,7 @@ export class ExecuteRestAction implements IExecuteRestAction
     this.variables = copy.variables;
     this.validation = copy.validation;
   }
-  
+
 
   private convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
     var reverse = headers.reverse();
@@ -51,81 +50,127 @@ export class ExecuteRestAction implements IExecuteRestAction
   }
 
   public static NewExecuteRestAction(): ExecuteRestAction {
-    return new ExecuteRestAction({verb: RestTypeVerb.get, 
-                                  protocol: HttpProtocol.https, 
-                                  url: '', 
-                                  headers: {}, 
-                                  body: {}, 
-                                  authentication: CreateEmptyAuthenticationDetails('inherit'),
-                                  secrets: undefined,
-                                  variables: undefined,
-                                  validation: CreateEmptyRestActionValidation(ValidationType.None)
-                                 });
+    return new ExecuteRestAction({
+      verb: RestTypeVerb.get,
+      protocol: HttpProtocol.https,
+      url: '',
+      headers: {},
+      body: {},
+      authentication: CreateEmptyAuthenticationDetails('inherit'),
+      secrets: undefined,
+      variables: undefined,
+      validation: CreateEmptyRestActionValidation(ValidationType.None)
+    });
   }
 
-  public setVerb(verb: RestTypeVerb) : ExecuteRestAction {
+  public setVerb(verb: RestTypeVerb): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, verb: verb});
+    return new ExecuteRestAction({ ...me, verb: verb });
   }
 
-  public setProtocol(protocol: HttpProtocol) : ExecuteRestAction {
+  public setProtocol(protocol: HttpProtocol): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, protocol: protocol});
+    return new ExecuteRestAction({ ...me, protocol: protocol });
   }
 
-  public setUrl(url: string) : ExecuteRestAction {
+  public setUrl(url: string): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, url: url});
+    return new ExecuteRestAction({ ...me, url: url });
   }
-  
-  public setHeaders(headers: { [header: string]: string; }) : ExecuteRestAction {
+
+  public setHeaders(headers: { [header: string]: string; }): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, headers: headers});
+    return new ExecuteRestAction({ ...me, headers: headers });
   }
-  
-  public setHeadersFromArray(headers: HeaderTable[]) : ExecuteRestAction {
+
+  public setHeadersFromArray(headers: HeaderTable[]): ExecuteRestAction {
     var me: ExecuteRestAction = this;
     var values = this.convertHeaderArraysAsValues(headers);
-    return new ExecuteRestAction({...me, headers: values});
-  }
-  
-  public setBody(body: any) : ExecuteRestAction {
-    var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, body: body});
+    return new ExecuteRestAction({ ...me, headers: values });
   }
 
-  public authentication_pushBack(auth: AuthenticationDetails | undefined) : ExecuteRestAction {
+  public setBody(body: any): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({ ...me, body: body });
+  }
+
+  public authentication_pushBack(auth: AuthenticationDetails | undefined): ExecuteRestAction {
     if (auth == undefined)
       return this;
-  
+
     if (this.authentication?.authentication != 'inherit')
       return this;
 
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, authentication: auth});
+    return new ExecuteRestAction({ ...me, authentication: auth });
   }
 
-  public authentication_pushFront(auth: AuthenticationDetails | undefined) : ExecuteRestAction {
+  public authentication_pushFront(auth: AuthenticationDetails | undefined): ExecuteRestAction {
     if (auth == undefined || auth.authentication == 'inherit')
       return this;
-  
+
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, authentication: auth});
-  }
-  
-  public setSecrets(secrets: SecretTable[] | undefined) : ExecuteRestAction {
-    var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, secrets: secrets});
+    return new ExecuteRestAction({ ...me, authentication: auth });
   }
 
-  public setVariables(variables: VariableTable[] | undefined) : ExecuteRestAction {
+  public variables_pushBack(variables: VariableTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, variables: variables});
+    var mergedVars: VariableTable[] = this.variables?.slice() ?? [];
+    variables?.forEach(v => {
+      //only use variable if it is not known
+      if (mergedVars.find(f => f.variable == v.variable) != undefined)
+        return;
+
+      mergedVars.push(v);
+    });
+    return new ExecuteRestAction({ ...me, variables: mergedVars });
   }
 
-  public setValidation(validation: RestActionValidation | undefined) : ExecuteRestAction {
+  public variables_pushFront(variables: VariableTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    return new ExecuteRestAction({...me, validation: validation});
+    var mergedVars: VariableTable[] = this.variables?.slice() ?? [];
+    variables?.forEach(v => {
+      //always use the variable
+      var foundIndex = mergedVars.findIndex(f => f.variable == v.variable);
+      if (foundIndex == -1)
+        mergedVars.push(v);
+      else
+        mergedVars[foundIndex] = v;
+    });
+    return new ExecuteRestAction({ ...me, variables: mergedVars });
+  }
+
+
+  public secrets_pushBack(secrets: SecretTable[] | undefined): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    var mergedSecrets: SecretTable[] = this.secrets?.slice() ?? [];
+    secrets?.forEach(v => {
+      //only use variable if it is not known
+      if (mergedSecrets.find(f => f.$secret == v.$secret) != undefined)
+        return;
+
+      mergedSecrets.push(v);
+    });
+    return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
+  }
+
+  public secret_pushFront(secrets: SecretTable[] | undefined): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    var mergedSecrets: SecretTable[] = this.secrets?.slice() ?? [];
+    secrets?.forEach(v => {
+      //always use the variable
+      var foundIndex = mergedSecrets.findIndex(f => f.$secret == v.$secret);
+      if (foundIndex == -1)
+        mergedSecrets.push(v);
+      else
+        mergedSecrets[foundIndex] = v;
+    });
+    return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
+  }
+
+  public setValidation(validation: RestActionValidation | undefined): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({ ...me, validation: validation });
   }
 }
 
