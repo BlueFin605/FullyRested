@@ -7,7 +7,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '../../../../../../../shared/runner';
 import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
-import { IExecuteRestAction } from '../../../../../../../shared/builder/src';
+import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
   selector: 'app-edit-request',
@@ -41,7 +41,7 @@ export class EditRequestComponent implements OnInit {
   }
 
   @Output()
-  execute = new EventEmitter<IExecuteRestAction>();
+  execute = new EventEmitter<ExecuteRestAction>();
 
   displayUrl: string = '';
 
@@ -203,12 +203,6 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
-    var converted: { [header: string]: string } = {};
-    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
-    return converted;
-  }
-
   convertParamsArraysAsValues(params: ParamTable[]): { [header: string]: string } {
     var converted: { [params: string]: string } = {};
     params.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
@@ -217,17 +211,15 @@ export class EditRequestComponent implements OnInit {
 
   async test() {
     console.log(this.action.body);
-    var action: IExecuteRestAction = {
-      verb: this.action.verb,
-      protocol: this.action.protocol,
-      url: this.displayUrl,
-      headers: this.convertHeaderArraysAsValues(this.action.headers ?? []),
-      body: this.action.body,
-      authentication: this.action.authentication,
-      secrets: undefined,
-      variables: undefined,
-      validation: this.action.validation
-    };
+
+    var action: ExecuteRestAction = ExecuteRestAction.NewExecuteRestAction()
+    .setVerb(this.action.verb)
+    .setProtocol(this.action.protocol)
+    .setUrl(this.displayUrl)
+    .setHeadersFromArray(this.action.headers ?? [])
+    .setBody(this.action.body)
+    .authentication_pushBack(this.action.authentication)
+    .setValidation(this.action.validation);
 
     console.log(`emit[${JSON.stringify(action)}]`)
     this.execute.emit(action);

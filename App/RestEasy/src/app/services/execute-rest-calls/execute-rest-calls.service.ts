@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { VariableSubstitutionService } from '../variable-substitution/variable-substitution.service';
 import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
-import { RestActionResult, IExecuteRestAction } from '../../../../../shared/builder/src';
+import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
 
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
@@ -18,34 +18,49 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(action: IExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
-    this.AddAuthentication(action, collection);
+  // async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
+  //   var actionWithAuth = this.AddAuthentication(action, collection);
+  //   var actionText = JSON.stringify(actionWithAuth);
+  //   actionText = this.replacer.replaceVariables(actionText, collection, actionWithAuth.variables, actionWithAuth.secrets);
+  //   actionWithAuth = JSON.parse(actionText);
+  //   console.log(actionText);
+  //   console.log(actionWithAuth);
+
+  //   if (this.getIpcRenderer() == undefined)
+  //     return this.BuildMockData(actionWithAuth);
+
+  //   var response = await this.getIpcRenderer().invoke('testRest', actionWithAuth);
+  //   console.log(response);
+  //   return response;
+  // }
+
+  async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
+    var actionWithAuth = this.AddAuthentication(action, collection);
+    var replaced = this.replaceVariables(actionWithAuth, collection);
+  
+    if (this.getIpcRenderer() == undefined)
+      return this.BuildMockData(replaced);
+
+    var response = await this.getIpcRenderer().invoke('testRest', replaced);
+    console.log(response);
+    return response;
+  }
+
+  replaceVariables(action: ExecuteRestAction, collection: Collection | undefined): IExecuteRestAction {
     var actionText = JSON.stringify(action);
     actionText = this.replacer.replaceVariables(actionText, collection, action.variables, action.secrets);
     action = JSON.parse(actionText);
     console.log(actionText);
     console.log(action);
-
-    if (this.getIpcRenderer() == undefined)
-      return this.BuildMockData(action);
-
-    var response = await this.getIpcRenderer().invoke('testRest', action);
-    console.log(response);
-    return response;
+    return action;
   }
 
-  AddAuthentication(action: IExecuteRestAction, collection: Collection | undefined) {
-    var auth: AuthenticationDetails | undefined;
-    auth = collection?.config.collectionEnvironment.auth;
-
+  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) : ExecuteRestAction {
     var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
-    if (auth == undefined || (env != undefined && env.auth.authentication != 'inherit'))
-       auth = env?.auth;
-
-    if (action.authentication == undefined || action.authentication.authentication == 'inherit') {
-      action.authentication = auth;
-    }
-    console.log(action.authentication);
+    var actionWithAuth = action.authentication_pushBack(env?.auth)
+                               .authentication_pushBack(collection?.config.collectionEnvironment.auth);
+    console.log(actionWithAuth);
+    return actionWithAuth;
   }
 
   BuildMockData(action: IExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {

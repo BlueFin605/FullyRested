@@ -1,4 +1,4 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
 import { ResponseValidation } from '../../validator'
 import { RestTypeVerb, HttpProtocol } from '../../runner'
 
@@ -41,6 +41,15 @@ export class ExecuteRestAction implements IExecuteRestAction
     this.validation = copy.validation;
   }
   
+
+  private convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
+    var reverse = headers.reverse();
+    headers = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
+    var converted: { [headers: string]: string } = {};
+    headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
+    return converted;
+  }
+
   public static NewExecuteRestAction(): ExecuteRestAction {
     return new ExecuteRestAction({verb: RestTypeVerb.get, 
                                   protocol: HttpProtocol.https, 
@@ -48,8 +57,8 @@ export class ExecuteRestAction implements IExecuteRestAction
                                   headers: {}, 
                                   body: {}, 
                                   authentication: CreateEmptyAuthenticationDetails('inherit'),
-                                  secrets: [],
-                                  variables: [],
+                                  secrets: undefined,
+                                  variables: undefined,
                                   validation: CreateEmptyRestActionValidation(ValidationType.None)
                                  });
   }
@@ -74,16 +83,36 @@ export class ExecuteRestAction implements IExecuteRestAction
     return new ExecuteRestAction({...me, headers: headers});
   }
   
+  public setHeadersFromArray(headers: HeaderTable[]) : ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    var values = this.convertHeaderArraysAsValues(headers);
+    return new ExecuteRestAction({...me, headers: values});
+  }
+  
   public setBody(body: any) : ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({...me, body: body});
   }
 
-  public setAuthentication(auth: AuthenticationDetails) : ExecuteRestAction {
+  public authentication_pushBack(auth: AuthenticationDetails | undefined) : ExecuteRestAction {
+    if (auth == undefined)
+      return this;
+  
+    if (this.authentication?.authentication != 'inherit')
+      return this;
+
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({...me, authentication: auth});
   }
 
+  public authentication_pushFront(auth: AuthenticationDetails | undefined) : ExecuteRestAction {
+    if (auth == undefined || auth.authentication == 'inherit')
+      return this;
+  
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({...me, authentication: auth});
+  }
+  
   public setSecrets(secrets: SecretTable[] | undefined) : ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({...me, secrets: secrets});
