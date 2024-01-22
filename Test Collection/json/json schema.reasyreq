@@ -7,7 +7,7 @@
     "headers": [
         {
             "key": "user-agent",
-            "value": "resteasy",
+            "value": "fullyrested",
             "active": true,
             "id": "aaa"
         },

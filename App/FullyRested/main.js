@@ -327,7 +327,7 @@ function traverseDirectory(request) {
     console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
 
     // var path = app.getPath("userData");
-    //var path = `/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src`;
+    //var path = `/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src`;
     var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
     if (request.pathname == '')
         return tree;
@@ -357,7 +357,7 @@ function walkSync(dir, filter, tree) {
 }
 
 async function loadCollection() {
-    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'RestEasy Projects', extensions: ['reasycol'] }] });
+    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'FullyRested Projects', extensions: ['reasycol'] }] });
 
     try {
         console.log(file);
@@ -404,7 +404,7 @@ function saveCollection(request) {
 
 function saveCollectionAs(request) {
     console.log(request);
-    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Collection', extensions: ['reasycol'] }] });
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Collection', extensions: ['reasycol'] }] });
     console.log(userChosenPath);
     if (userChosenPath == undefined) {
         return;
@@ -484,7 +484,7 @@ async function addPasswords(obj, serviceName) {
 }
 
 function buildKeytarService(collectionConfig) {
-    return `resteasy-collection-${collectionConfig.collectionGuid}`;
+    return `fullyrested-collection-${collectionConfig.collectionGuid}`;
 }
 
 function saveAsRequest(request) {
@@ -496,7 +496,7 @@ function saveAsRequest(request) {
 
     // defaultPath: toLocalPath, 
     console.log(request);
-    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'RestEasy Projects', extensions: ['reasyreq'] }] });
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Projects', extensions: ['reasyreq'] }] });
     console.log(userChosenPath);
     if (userChosenPath == undefined) {
         return;

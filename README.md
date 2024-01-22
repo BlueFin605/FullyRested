@@ -1,4 +1,4 @@
-# RestEasy
+# FullyRested
 
 ## Description
 While I am quite a fan of Postman I find that the there are a few short comings
