@@ -13,7 +13,7 @@ console.log(figlet.textSync("Rest Easy Runner"));
 
 program
   .version("1.0.0")
-  .description("Runner to execute RestEasy actions")
+  .description("Runner to execute FullyRested actions")
   .option("-c, --collection <value>", "collection file")
   .option("-e, --environment <value>", "select environement in collection")
   .option("-a, --action <value>", "action file")

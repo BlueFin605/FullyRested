@@ -104,7 +104,7 @@ export class ActionRepositoryService {
     else
       action.action.name = "new request " + max;
 
-    action.action.headers.push({ key: 'user-agent', value: 'resteasy', active: true, id: 'aaa' });
+    action.action.headers.push({ key: 'user-agent', value: 'fullyrested', active: true, id: 'aaa' });
     action.action.headers.push({ key: 'accept', value: '*', active: true, id: new SystemSupportService().generateGUID() });
     action.action.headers.push({ key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: new SystemSupportService().generateGUID() });
     return action;
@@ -539,7 +539,7 @@ const mockCurrentState: CurrentState = {
           },
           dirty: false,
           activeTab: false,
-          fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/trademe/logo.reasyreq"
+          fullFilename: "/Users/deanmitchell/Projects/FullyRested/Test Collection/trademe/logo.reasyreq"
         },
         {
           action: {
@@ -734,7 +734,7 @@ const mockCurrentState: CurrentState = {
           },
           dirty: false,
           activeTab: false,
-          fullFilename: "/Users/deanmitchell/Projects/RestEasy/Test Collection/xml/XML Result.reasyreq"
+          fullFilename: "/Users/deanmitchell/Projects/FullyRested/Test Collection/xml/XML Result.reasyreq"
         },
         {
           action: {
@@ -930,60 +930,60 @@ const mockCurrentState: CurrentState = {
   ],
   recentCollections: [
     {
-      fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my collection.reasycol",
+      fullFileName: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my collection.reasycol",
       name: "my collection.reasycol",
-      path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
+      path: "/Users/deanmitchell/Projects/FullyRested/Test Collection"
     },
     {
-      fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my 2nd collection.reasycol",
+      fullFileName: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my 2nd collection.reasycol",
       name: "my 2nd collection.reasycol",
-      path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
+      path: "/Users/deanmitchell/Projects/FullyRested/Test Collection"
     },
     {
-      fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my 3rd collection.reasycol",
+      fullFileName: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my 3rd collection.reasycol",
       name: "my 3rd collection.reasycol",
-      path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
+      path: "/Users/deanmitchell/Projects/FullyRested/Test Collection"
     },
     {
-      fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my 4th collection.reasycol",
+      fullFileName: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my 4th collection.reasycol",
       name: "my 4th collection.reasycol",
-      path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
+      path: "/Users/deanmitchell/Projects/FullyRested/Test Collection"
     },
     {
-      fullFileName: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my 5th collection.reasycol",
+      fullFileName: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my 5th collection.reasycol",
       name: "my 5th collection.reasycol",
-      path: "/Users/deanmitchell/Projects/RestEasy/Test Collection"
+      path: "/Users/deanmitchell/Projects/FullyRested/Test Collection"
     }
   ],
-  currentCollection: "/Users/deanmitchell/Projects/RestEasy/Test Collection/my collection.reasycol"
+  currentCollection: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my collection.reasycol"
 };
 
 const mockTraverse: TraversedDrectory = {
   dir: {
     name: "src",
-    path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-    fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src"
+    path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+    fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src"
   },
   subdirs: [
     {
       dir: {
         name: "app",
-        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app"
+        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app"
       },
       subdirs: [
         {
           dir: {
             name: "components",
-            path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-            fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components"
+            path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+            fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components"
           },
           subdirs: [
             {
               dir: {
                 name: "empty",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/empty"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/empty"
               },
               subdirs: [],
               files: []
@@ -991,164 +991,164 @@ const mockTraverse: TraversedDrectory = {
             {
               dir: {
                 name: "open-actions",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions"
               },
               subdirs: [],
               files: [
                 {
                   name: "open-actions.component.css",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions/open-actions.component.css"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions/open-actions.component.css"
                 },
                 {
                   name: "open-actions.component.html",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions/open-actions.component.html"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions/open-actions.component.html"
                 },
                 {
                   name: "open-actions.component.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions/open-actions.component.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions/open-actions.component.spec.ts"
                 },
                 {
                   name: "open-actions.component.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/open-actions/open-actions.component.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/open-actions/open-actions.component.ts"
                 }
               ]
             },
             {
               dir: {
                 name: "rest-action",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action"
               },
               subdirs: [
                 {
                   dir: {
                     name: "request",
-                    path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action",
-                    fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request"
+                    path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action",
+                    fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request"
                   },
                   subdirs: [
                     {
                       dir: {
                         name: "edit-request",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "edit-request.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request/edit-request.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request/edit-request.component.css"
                         },
                         {
                           name: "edit-request.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request/edit-request.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request/edit-request.component.html"
                         },
                         {
                           name: "edit-request.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request/edit-request.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request/edit-request.component.spec.ts"
                         },
                         {
                           name: "edit-request.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request/edit-request.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request/edit-request.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "edit-request-body",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "edit-request-body.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.css"
                         },
                         {
                           name: "edit-request-body.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.html"
                         },
                         {
                           name: "edit-request-body.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.spec.ts"
                         },
                         {
                           name: "edit-request-body.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-body/edit-request-body.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "edit-request-headers",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "edit-request-headers.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.css"
                         },
                         {
                           name: "edit-request-headers.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.html"
                         },
                         {
                           name: "edit-request-headers.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.spec.ts"
                         },
                         {
                           name: "edit-request-headers.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-headers/edit-request-headers.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "edit-request-parameters",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "edit-request-parameters.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.css"
                         },
                         {
                           name: "edit-request-parameters.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.html"
                         },
                         {
                           name: "edit-request-parameters.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.spec.ts"
                         },
                         {
                           name: "edit-request-parameters.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/request/edit-request-parameters/edit-request-parameters.component.ts"
                         }
                       ]
                     }
@@ -1158,247 +1158,247 @@ const mockTraverse: TraversedDrectory = {
                 {
                   dir: {
                     name: "response",
-                    path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action",
-                    fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response"
+                    path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action",
+                    fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response"
                   },
                   subdirs: [
                     {
                       dir: {
                         name: "display-response",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response/display-response.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response/display-response.component.css"
                         },
                         {
                           name: "display-response.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response/display-response.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response/display-response.component.html"
                         },
                         {
                           name: "display-response.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response/display-response.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response/display-response.component.spec.ts"
                         },
                         {
                           name: "display-response.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response/display-response.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response/display-response.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body/display-response-body.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body/display-response-body.component.css"
                         },
                         {
                           name: "display-response-body.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body/display-response-body.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body/display-response-body.component.html"
                         },
                         {
                           name: "display-response-body.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body/display-response-body.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body/display-response-body.component.spec.ts"
                         },
                         {
                           name: "display-response-body.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body/display-response-body.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body/display-response-body.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body-default",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body-default.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.css"
                         },
                         {
                           name: "display-response-body-default.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.html"
                         },
                         {
                           name: "display-response-body-default.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.spec.ts"
                         },
                         {
                           name: "display-response-body-default.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-default/display-response-body-default.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body-html",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body-html.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.css"
                         },
                         {
                           name: "display-response-body-html.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.html"
                         },
                         {
                           name: "display-response-body-html.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.spec.ts"
                         },
                         {
                           name: "display-response-body-html.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-html/display-response-body-html.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body-image",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body-image.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.css"
                         },
                         {
                           name: "display-response-body-image.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.html"
                         },
                         {
                           name: "display-response-body-image.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.spec.ts"
                         },
                         {
                           name: "display-response-body-image.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-image/display-response-body-image.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body-json",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body-json.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.css"
                         },
                         {
                           name: "display-response-body-json.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.html"
                         },
                         {
                           name: "display-response-body-json.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.spec.ts"
                         },
                         {
                           name: "display-response-body-json.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-json/display-response-body-json.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-body-xml",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-body-xml.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.css"
                         },
                         {
                           name: "display-response-body-xml.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.html"
                         },
                         {
                           name: "display-response-body-xml.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.spec.ts"
                         },
                         {
                           name: "display-response-body-xml.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-body-xml/display-response-body-xml.component.ts"
                         }
                       ]
                     },
                     {
                       dir: {
                         name: "display-response-headers",
-                        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response",
-                        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers"
+                        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response",
+                        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers"
                       },
                       subdirs: [],
                       files: [
                         {
                           name: "display-response-headers.component.css",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.css"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.css"
                         },
                         {
                           name: "display-response-headers.component.html",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.html"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.html"
                         },
                         {
                           name: "display-response-headers.component.spec.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.spec.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.spec.ts"
                         },
                         {
                           name: "display-response-headers.component.ts",
-                          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers",
-                          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.ts"
+                          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers",
+                          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/response/display-response-headers/display-response-headers.component.ts"
                         }
                       ]
                     }
@@ -1408,30 +1408,30 @@ const mockTraverse: TraversedDrectory = {
                 {
                   dir: {
                     name: "rest-action",
-                    path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action",
-                    fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action"
+                    path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action",
+                    fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action"
                   },
                   subdirs: [],
                   files: [
                     {
                       name: "rest-action.component.css",
-                      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action",
-                      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action/rest-action.component.css"
+                      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action",
+                      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action/rest-action.component.css"
                     },
                     {
                       name: "rest-action.component.html",
-                      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action",
-                      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action/rest-action.component.html"
+                      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action",
+                      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action/rest-action.component.html"
                     },
                     {
                       name: "rest-action.component.spec.ts",
-                      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action",
-                      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action/rest-action.component.spec.ts"
+                      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action",
+                      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action/rest-action.component.spec.ts"
                     },
                     {
                       name: "rest-action.component.ts",
-                      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action",
-                      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/rest-action/rest-action/rest-action.component.ts"
+                      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action",
+                      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/rest-action/rest-action/rest-action.component.ts"
                     }
                   ]
                 }
@@ -1441,30 +1441,30 @@ const mockTraverse: TraversedDrectory = {
             {
               dir: {
                 name: "collection-explorer",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer"
               },
               subdirs: [],
               files: [
                 {
                   name: "collection-explorer.component.css",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.css"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer/collection-explorer.component.css"
                 },
                 {
                   name: "collection-explorer.component.html",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.html"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer/collection-explorer.component.html"
                 },
                 {
                   name: "collection-explorer.component.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer/collection-explorer.component.spec.ts"
                 },
                 {
                   name: "collection-explorer.component.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/components/collection-explorer/collection-explorer.component.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/components/collection-explorer/collection-explorer.component.ts"
                 }
               ]
             }
@@ -1474,87 +1474,87 @@ const mockTraverse: TraversedDrectory = {
         {
           dir: {
             name: "services",
-            path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-            fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services"
+            path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+            fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services"
           },
           subdirs: [
             {
               dir: {
                 name: "action-repository",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/action-repository"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/action-repository"
               },
               subdirs: [],
               files: [
                 {
                   name: "action-repository.service.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/action-repository",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/action-repository/action-repository.service.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/action-repository",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/action-repository/action-repository.service.spec.ts"
                 },
                 {
                   name: "action-repository.service.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/action-repository",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/action-repository/action-repository.service.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/action-repository",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/action-repository/action-repository.service.ts"
                 }
               ]
             },
             {
               dir: {
                 name: "content-type-helper",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/content-type-helper"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/content-type-helper"
               },
               subdirs: [],
               files: [
                 {
                   name: "content-type-helper.service.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/content-type-helper",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/content-type-helper/content-type-helper.service.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/content-type-helper",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/content-type-helper/content-type-helper.service.spec.ts"
                 },
                 {
                   name: "content-type-helper.service.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/content-type-helper",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/content-type-helper/content-type-helper.service.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/content-type-helper",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/content-type-helper/content-type-helper.service.ts"
                 }
               ]
             },
             {
               dir: {
                 name: "execute-rest-calls",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/execute-rest-calls"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/execute-rest-calls"
               },
               subdirs: [],
               files: [
                 {
                   name: "execute-rest-calls.service.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/execute-rest-calls",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/execute-rest-calls/execute-rest-calls.service.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/execute-rest-calls",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/execute-rest-calls/execute-rest-calls.service.spec.ts"
                 },
                 {
                   name: "execute-rest-calls.service.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/execute-rest-calls",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/execute-rest-calls/execute-rest-calls.service.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/execute-rest-calls",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/execute-rest-calls/execute-rest-calls.service.ts"
                 }
               ]
             },
             {
               dir: {
                 name: "system-support",
-                path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services",
-                fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/system-support"
+                path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services",
+                fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/system-support"
               },
               subdirs: [],
               files: [
                 {
                   name: "system-support.service.spec.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/system-support",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/system-support/system-support.service.spec.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/system-support",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/system-support/system-support.service.spec.ts"
                 },
                 {
                   name: "system-support.service.ts",
-                  path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/system-support",
-                  fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/system-support/system-support.service.ts"
+                  path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/system-support",
+                  fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/system-support/system-support.service.ts"
                 }
               ]
             }
@@ -1562,8 +1562,8 @@ const mockTraverse: TraversedDrectory = {
           files: [
             {
               name: "CustomUrlSerializer.ts",
-              path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services",
-              fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/services/CustomUrlSerializer.ts"
+              path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services",
+              fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/services/CustomUrlSerializer.ts"
             }
           ]
         }
@@ -1571,78 +1571,78 @@ const mockTraverse: TraversedDrectory = {
       files: [
         {
           name: ".DS_Store",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/.DS_Store"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/.DS_Store"
         },
         {
           name: "app-routing.module.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app-routing.module.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app-routing.module.ts"
         },
         {
           name: "app.component.css",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app.component.css"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app.component.css"
         },
         {
           name: "app.component.html",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app.component.html"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app.component.html"
         },
         {
           name: "app.component.spec.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app.component.spec.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app.component.spec.ts"
         },
         {
           name: "app.component.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app.component.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app.component.ts"
         },
         {
           name: "app.module.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/app/app.module.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/app/app.module.ts"
         }
       ]
     },
     {
       dir: {
         name: "assets",
-        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/assets"
+        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/assets"
       },
       subdirs: [],
       files: [
         {
           name: ".gitkeep",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/assets",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/assets/.gitkeep"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/assets",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/assets/.gitkeep"
         },
         {
           name: "trademe-logo-no-tagline.png",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/assets",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/assets/trademe-logo-no-tagline.png"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/assets",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/assets/trademe-logo-no-tagline.png"
         }
       ]
     },
     {
       dir: {
         name: "environments",
-        path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-        fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/environments"
+        path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+        fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/environments"
       },
       subdirs: [],
       files: [
         {
           name: "environment.prod.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/environments",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/environments/environment.prod.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/environments",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/environments/environment.prod.ts"
         },
         {
           name: "environment.ts",
-          path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/environments",
-          fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/environments/environment.ts"
+          path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/environments",
+          fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/environments/environment.ts"
         }
       ]
     }
@@ -1650,38 +1650,38 @@ const mockTraverse: TraversedDrectory = {
   files: [
     {
       name: ".DS_Store",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/.DS_Store"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/.DS_Store"
     },
     {
       name: "favicon.ico",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/favicon.ico"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/favicon.ico"
     },
     {
       name: "index.html",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/index.html"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/index.html"
     },
     {
       name: "main.ts",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/main.ts"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/main.ts"
     },
     {
       name: "polyfills.ts",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/polyfills.ts"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/polyfills.ts"
     },
     {
       name: "styles.css",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/styles.css"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/styles.css"
     },
     {
       name: "test.ts",
-      path: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src",
-      fullPath: "/Users/deanmitchell/Projects/RestEasy/App/RestEasy/src/test.ts"
+      path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",
+      fullPath: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src/test.ts"
     }
   ]
 };
