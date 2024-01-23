@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, CurrentState, RecentFile, Collection, Environment, AuthenticationDetails, ValidationType } from '../../../../../shared/runner'
+import { ILocalRestSession, ILocalRestAction, ICurrentState, IRecentFile, ICollection, IEnvironment, IAuthenticationDetails, ValidationType } from '../../../../../shared/runner'
 import { CreateEmptyEnvironment, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from '../../../../../shared/runner'
 import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, CollectionExplorerComponent } from '../collection-explorer/collection-explorer.component';
@@ -19,10 +19,10 @@ interface SelectedTab {
   styleUrls: ['./open-actions.component.css']
 })
 export class OpenActionsComponent implements OnInit {
-  state: CurrentState = { currentCollection: '', sessions: [], recentCollections: [] };
-  public collection: Collection | undefined;
+  state: ICurrentState = { currentCollection: '', sessions: [], recentCollections: [] };
+  public collection: ICollection | undefined;
   enabledMenuOptions: string[] = [];
-  selectedEnvironment: Environment = CreateEmptyEnvironment();
+  selectedEnvironment: IEnvironment = CreateEmptyEnvironment();
   selectedTab: SelectedTab = {
     selectedType: '',
     selectedSubType: '',
@@ -102,7 +102,7 @@ export class OpenActionsComponent implements OnInit {
     });
   }
 
-  public currentSession(): LocalRestSession {
+  public currentSession(): ILocalRestSession {
     // console.log(`currentSession:[${this.collection?.config?.collectionGuid}]`);
 
     if (this.collection?.config?.collectionGuid == undefined)
@@ -111,12 +111,12 @@ export class OpenActionsComponent implements OnInit {
     return this.locateSession(this.collection.config.collectionGuid);
   }
 
-  private locateSession(sessionGuid: string): LocalRestSession {
+  private locateSession(sessionGuid: string): ILocalRestSession {
     var session = this.state.sessions.find(f => f.collectionGuid == sessionGuid);
     if (session != undefined)
       return session;
 
-    var newSession: LocalRestSession = { collectionGuid: sessionGuid, actions: [] };
+    var newSession: ILocalRestSession = { collectionGuid: sessionGuid, actions: [] };
     this.state.sessions.push(newSession);
     return newSession;
   }
@@ -135,18 +135,18 @@ export class OpenActionsComponent implements OnInit {
     this.rebuildTree();
   }
 
-  onActionChange(event: LocalRestAction) {
+  onActionChange(event: ILocalRestAction) {
     console.log(event);
     // console.log('set dirty');
     this.repo.saveCurrentState(this.state);
   }
 
-  onDirtyChange(event: LocalRestAction, dirty: boolean) {
+  onDirtyChange(event: ILocalRestAction, dirty: boolean) {
     console.log(`onDirtyChange(${dirty})`);
     event.dirty = dirty;
   }
 
-  onNameChange(event: LocalRestAction, name: string) {
+  onNameChange(event: ILocalRestAction, name: string) {
     console.log(`onNameChange(${name})`);
     this.rebuildTree();
   }
@@ -213,7 +213,7 @@ export class OpenActionsComponent implements OnInit {
     this.repo.saveRequest(action);
   }
 
-  openSoution(file: RecentFile) {
+  openSoution(file: IRecentFile) {
     console.log(`openCollection:[${JSON.stringify(file)}]`);
     this.repo.loadCollectionFromFile(file);
   }
@@ -244,7 +244,7 @@ export class OpenActionsComponent implements OnInit {
 
       if (selected.activeTab && activeTab != -1 && this.currentSession().actions[activeTab].dirty == false) {
         console.log(`overwriting existing active tab`);
-        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
+        var newAction: ILocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions[activeTab] = newAction;
         setTimeout(() => {
           this.tabs.selectedIndex = activeTab;
@@ -252,7 +252,7 @@ export class OpenActionsComponent implements OnInit {
       } else {
         console.log(`opening to new tab`);
         this.currentSession().actions.forEach(a => a.activeTab = false);
-        var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
+        var newAction: ILocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions.push(newAction);
         setTimeout(() => {
           this.tabs.selectedIndex = (this.currentSession().actions.length ?? 0) - 1;
@@ -309,7 +309,7 @@ export class OpenActionsComponent implements OnInit {
       return;
 
     console.log('createEnvironment');
-    var env: Environment = {
+    var env: IEnvironment = {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
       variables: [{ variable: '', value: '', active: true, id: 'a' }],
@@ -414,7 +414,7 @@ export class OpenActionsComponent implements OnInit {
     return false;
   }
 
-  environmentChange(env: Environment) {
+  environmentChange(env: IEnvironment) {
     if (this.collection == undefined)
       return;
 

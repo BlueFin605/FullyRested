@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CreateEmptyAuthenticationDetails } from '../../../../../../shared/runner';
-import { Environment } from '../../../../../../shared/runner';
+import { IEnvironment } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-settings-manage-environment',
@@ -10,10 +10,10 @@ import { Environment } from '../../../../../../shared/runner';
 export class SettingsManageEnvironmentComponent implements OnInit {
 
   @Input()
-  environment: Environment = { name: 'noname', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails('inherit') }//CreateEmptyEnvironment();
+  environment: IEnvironment = { name: 'noname', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails('inherit') }//CreateEmptyEnvironment();
 
   @Output()
-  environmentChange = new EventEmitter<Environment>();
+  environmentChange = new EventEmitter<IEnvironment>();
 
   constructor() { }
 

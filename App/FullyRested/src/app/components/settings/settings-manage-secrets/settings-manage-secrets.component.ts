@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { SecretTable } from '../../../../../../shared/runner';
+import { ISecretTable } from '../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {
@@ -32,10 +32,10 @@ const COLUMNS_SCHEMA = [
 export class SettingsManageSecretsComponent implements OnInit {
 
   @Input()
-  secrets: SecretTable[] = [];
+  secrets: ISecretTable[] = [];
 
   @Output()
-  secretsChange = new EventEmitter<SecretTable[]>();
+  secretsChange = new EventEmitter<ISecretTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;

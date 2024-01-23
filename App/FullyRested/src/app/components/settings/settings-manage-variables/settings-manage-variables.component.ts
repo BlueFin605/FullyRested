@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { VariableTable } from '../../../../../../shared/runner';
+import { IVariableTable } from '../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {
@@ -33,10 +33,10 @@ const COLUMNS_SCHEMA = [
 export class SettingsManageVariablesComponent implements OnInit {
 
   @Input()
-  variables: VariableTable[] = [];
+  variables: IVariableTable[] = [];
 
   @Output()
-  variablesChange = new EventEmitter<VariableTable[]>();
+  variablesChange = new EventEmitter<IVariableTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;

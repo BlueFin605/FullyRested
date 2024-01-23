@@ -6,7 +6,7 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '../../../../../../../shared/runner';
-import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
+import { IRestAction, IParamTable, IAuthenticationDetails, IRestActionValidation, IHeaderTable } from '../../../../../../../shared/runner';
 import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder/src';
 
 @Component({
@@ -23,19 +23,19 @@ export class EditRequestComponent implements OnInit {
     return HttpProtocol;
   }
 
-  private _action: RestAction = CreateEmptyAction();
+  private _action: IRestAction = CreateEmptyAction();
 
   @Input()
-  set action(action: RestAction) {
+  set action(action: IRestAction) {
     console.log(`set action[${JSON.stringify(action)}]`)
     this._action = action;
     this.onParamChange(this._action.parameters);
   }
 
   @Output()
-  actionChange = new EventEmitter<RestAction>();
+  actionChange = new EventEmitter<IRestAction>();
 
-  get action(): RestAction {
+  get action(): IRestAction {
     // console.log(`valid json:${this.bodyChild?.isValidJson()}`);
     return this._action;
   }
@@ -83,9 +83,9 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  private updateParamTable(queryParams: { [key: string]: any }, origParamTable: ParamTable[]): ParamTable[] {
+  private updateParamTable(queryParams: { [key: string]: any }, origParamTable: IParamTable[]): IParamTable[] {
 
-    var paramsTable: ParamTable[] = JSON.parse(JSON.stringify(origParamTable));
+    var paramsTable: IParamTable[] = JSON.parse(JSON.stringify(origParamTable));
 
     var newParams = this.convertParsedUrlParamsToArray(queryParams).filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
     var oldParams = paramsTable.filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
@@ -122,11 +122,11 @@ export class EditRequestComponent implements OnInit {
     return paramsTable;
   }
 
-  private convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
+  private convertParsedUrlParamsToArray(queryParams: Params): IParamTable[] {
     return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: this.systemSupport.generateGUID() } });
   }
 
-  private removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
+  private removeParam(parameters: IParamTable[], remove: IParamTable): IParamTable[] {
     var index = parameters.findIndex(f => f.key === remove.key && f.value === remove.value);
     if (index == -1) {
       console.log(`!!!!!item not found [${remove}] in []${JSON.stringify(parameters)}`);
@@ -137,7 +137,7 @@ export class EditRequestComponent implements OnInit {
     return parameters;
   }
 
-  private addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
+  private addParam(parameters: IParamTable[], added: IParamTable): IParamTable[] {
     // console.log(`addParam adding[${JSON.stringify(added)}]`);
     // console.log(`addParam parameters[${JSON.stringify(parameters)}]`);
 
@@ -165,19 +165,19 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  onAuthChange(auth: AuthenticationDetails) {
+  onAuthChange(auth: IAuthenticationDetails) {
     console.log(auth);
     console.log(this.action);
     this.actionChange.emit(this.action);
   }
 
-  onValidationChange(auth: RestActionValidation) {
+  onValidationChange(auth: IRestActionValidation) {
     console.log(auth);
     console.log(this.action);
     this.actionChange.emit(this.action);
   }
 
-  onHeadersChange(event: HeaderTable[]) {
+  onHeadersChange(event: IHeaderTable[]) {
     // console.log(event);    
     this.actionChange.emit(this.action);
   }
@@ -203,7 +203,7 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  convertParamsArraysAsValues(params: ParamTable[]): { [header: string]: string } {
+  convertParamsArraysAsValues(params: IParamTable[]): { [header: string]: string } {
     var converted: { [params: string]: string } = {};
     params.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
     return converted;

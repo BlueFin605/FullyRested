@@ -1,4 +1,4 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
+import { IAuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, IHeaderTable, IRestActionValidation, ISecretTable, ValidationType, IVariableTable } from '../../runner'
 import { ResponseValidation } from '../../validator'
 import { RestTypeVerb, HttpProtocol } from '../../runner'
 
@@ -13,10 +13,10 @@ export interface IExecuteRestAction {
   url: string;
   headers: { [header: string]: string };
   body: any;
-  authentication: AuthenticationDetails | undefined;
-  secrets: SecretTable[] | undefined;
-  variables: VariableTable[] | undefined;
-  validation: RestActionValidation | undefined;
+  authentication: IAuthenticationDetails | undefined;
+  secrets: ISecretTable[] | undefined;
+  variables: IVariableTable[] | undefined;
+  validation: IRestActionValidation | undefined;
 };
 
 export class ExecuteRestAction implements IExecuteRestAction {
@@ -25,10 +25,10 @@ export class ExecuteRestAction implements IExecuteRestAction {
   url: string;
   headers: { [header: string]: string; };
   body: any;
-  authentication: AuthenticationDetails | undefined;
-  secrets: SecretTable[] | undefined;
-  variables: VariableTable[] | undefined;
-  validation: RestActionValidation | undefined;
+  authentication: IAuthenticationDetails | undefined;
+  secrets: ISecretTable[] | undefined;
+  variables: IVariableTable[] | undefined;
+  validation: IRestActionValidation | undefined;
 
   constructor(copy: IExecuteRestAction) {
     this.verb = copy.verb;
@@ -43,7 +43,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
   }
 
 
-  private convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
+  private convertHeaderArraysAsValues(headers: IHeaderTable[]): { [header: string]: string } {
     var reverse = headers.reverse();
     headers = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
     var converted: { [headers: string]: string } = {};
@@ -85,7 +85,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, headers: headers });
   }
 
-  public setHeadersFromArray(headers: HeaderTable[]): ExecuteRestAction {
+  public setHeadersFromArray(headers: IHeaderTable[]): ExecuteRestAction {
     var me: ExecuteRestAction = this;
     var values = this.convertHeaderArraysAsValues(headers);
     return new ExecuteRestAction({ ...me, headers: values });
@@ -96,7 +96,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, body: body });
   }
 
-  public authentication_pushBack(auth: AuthenticationDetails | undefined): ExecuteRestAction {
+  public authentication_pushBack(auth: IAuthenticationDetails | undefined): ExecuteRestAction {
     if (auth == undefined)
       return this;
 
@@ -107,7 +107,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, authentication: auth });
   }
 
-  public authentication_pushFront(auth: AuthenticationDetails | undefined): ExecuteRestAction {
+  public authentication_pushFront(auth: IAuthenticationDetails | undefined): ExecuteRestAction {
     if (auth == undefined || auth.authentication == 'inherit')
       return this;
 
@@ -115,9 +115,9 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, authentication: auth });
   }
 
-  public variables_pushBack(variables: VariableTable[] | undefined): ExecuteRestAction {
+  public variables_pushBack(variables: IVariableTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    var mergedVars: VariableTable[] = this.variables?.slice() ?? [];
+    var mergedVars: IVariableTable[] = this.variables?.slice() ?? [];
     variables?.forEach(v => {
       //only use variable if it is not known
       if (mergedVars.find(f => f.variable == v.variable) != undefined)
@@ -128,9 +128,9 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, variables: mergedVars });
   }
 
-  public variables_pushFront(variables: VariableTable[] | undefined): ExecuteRestAction {
+  public variables_pushFront(variables: IVariableTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    var mergedVars: VariableTable[] = this.variables?.slice() ?? [];
+    var mergedVars: IVariableTable[] = this.variables?.slice() ?? [];
     variables?.forEach(v => {
       //always use the variable
       var foundIndex = mergedVars.findIndex(f => f.variable == v.variable);
@@ -143,9 +143,9 @@ export class ExecuteRestAction implements IExecuteRestAction {
   }
 
 
-  public secrets_pushBack(secrets: SecretTable[] | undefined): ExecuteRestAction {
+  public secrets_pushBack(secrets: ISecretTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    var mergedSecrets: SecretTable[] = this.secrets?.slice() ?? [];
+    var mergedSecrets: ISecretTable[] = this.secrets?.slice() ?? [];
     secrets?.forEach(v => {
       //only use variable if it is not known
       if (mergedSecrets.find(f => f.$secret == v.$secret) != undefined)
@@ -156,9 +156,9 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
   }
 
-  public secret_pushFront(secrets: SecretTable[] | undefined): ExecuteRestAction {
+  public secret_pushFront(secrets: ISecretTable[] | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    var mergedSecrets: SecretTable[] = this.secrets?.slice() ?? [];
+    var mergedSecrets: ISecretTable[] = this.secrets?.slice() ?? [];
     secrets?.forEach(v => {
       //always use the variable
       var foundIndex = mergedSecrets.findIndex(f => f.$secret == v.$secret);
@@ -170,7 +170,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
   }
 
-  public setValidation(validation: RestActionValidation | undefined): ExecuteRestAction {
+  public setValidation(validation: IRestActionValidation | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({ ...me, validation: validation });
   }
@@ -198,7 +198,7 @@ export interface RestActionResultBody {
 }
 
 export class VariableSubstitution {
-  public replaceVariables(text: string, variables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
+  public replaceVariables(text: string, variables: IVariableTable[] | undefined, secrets: ISecretTable[] | undefined): string {
     console.log(`replaceVariables[${text}]`);
     var matches = [...text.matchAll(regexp)];
 
@@ -210,14 +210,14 @@ export class VariableSubstitution {
     return text;
   }
 
-  private substituteValue(text: string, search: string, valueKey: string, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
+  private substituteValue(text: string, search: string, valueKey: string, overrideVariables: IVariableTable[] | undefined, overrideSecrets: ISecretTable[] | undefined): string {
     var variables = overrideVariables?.filter(f => f.active == true);
     var secrets = overrideSecrets?.filter(f => f.active == true);
     var replaced = text.replace(search, this.findVariable(valueKey, variables, secrets));
     return replaced;
   }
 
-  private findVariable(value: string, variables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
+  private findVariable(value: string, variables: IVariableTable[] | undefined, secrets: ISecretTable[] | undefined): string {
     console.log(`findVariable(${value})`)
     if (value.startsWith('$')) {
       value = value.substring(1);

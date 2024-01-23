@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
-import { Collection, RestAction, RestActionRun, ValidationType } from '../../../../../../shared/runner';
+import { ICollection, IRestAction, IRestActionRun, ValidationType } from '../../../../../../shared/runner';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CreateEmptyRestActionRun, CreateEmptyAction } from '../../../../../../shared/runner';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
@@ -14,13 +14,13 @@ import { ExecuteRestAction, RestActionResult } from '../../../../../../shared/bu
 })
 export class RestActionRunComponent implements OnInit {
   _runId: String = ''
-  run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
+  run: IRestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()
-  action: RestAction = CreateEmptyAction();
+  action: IRestAction = CreateEmptyAction();
 
   @Output()
-  actionChange = new EventEmitter<RestAction>();
+  actionChange = new EventEmitter<IRestAction>();
 
   @Input()
   set runId(id: string) {
@@ -30,7 +30,7 @@ export class RestActionRunComponent implements OnInit {
   }
   
   @Input()
-  collection: Collection | undefined;
+  collection: ICollection | undefined;
 
   @Output()
   nameChange = new EventEmitter<string>();
@@ -46,7 +46,7 @@ export class RestActionRunComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  onRunChange(event: RestActionRun) {
+  onRunChange(event: IRestActionRun) {
     console.log(event);
     this.actionChange.emit(this.action);
   }
@@ -64,7 +64,7 @@ export class RestActionRunComponent implements OnInit {
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
-  activeRun(id: string): RestActionRun
+  activeRun(id: string): IRestActionRun
   {
     var active = this.action.runs.find(r => r.id == id);
     if (active != undefined) {

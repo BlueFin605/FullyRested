@@ -6,42 +6,42 @@ export const REConstants = {
     ActionExtension: ".reasyreq"
 };
 
-export interface HeaderTable {
+export interface IHeaderTable {
     key: string;
     value: string;
     active: boolean;
     id: string;
 };
 
-export interface ParamTable {
+export interface IParamTable {
     key: string;
     value: string;
     active: boolean;
     id: string;
 };
 
-export interface VariableTable {
+export interface IVariableTable {
     variable: string;
     value: string;
     active: boolean;
     id: string;
 };
 
-export interface SecretTable {
+export interface ISecretTable {
     $secret: string;
     $value: string;
     active: boolean;
     id: string;
 }
 
-export interface AuthenticationDetails {
+export interface IAuthenticationDetails {
     authentication: string;
-    awsSig: AuthenticationDetailsAWSSig;
-    basicAuth: AuthenticationDetailsBasicAuth;
-    bearerToken: AuthenticationDetailsBearerToken;
+    awsSig: IAuthenticationDetailsAWSSig;
+    basicAuth: IAuthenticationDetailsBasicAuth;
+    bearerToken: IAuthenticationDetailsBearerToken;
 }
 
-export interface AuthenticationDetailsAWSSig {
+export interface IAuthenticationDetailsAWSSig {
     signUrl: boolean;
     accessKey: string;
     secretKey: string;
@@ -49,16 +49,16 @@ export interface AuthenticationDetailsAWSSig {
     serviceName: string;
 }
 
-export interface AuthenticationDetailsBasicAuth {
+export interface IAuthenticationDetailsBasicAuth {
     userName: string;
     password: string;
 }
 
-export interface AuthenticationDetailsBearerToken {
+export interface IAuthenticationDetailsBearerToken {
     token: string;
 }
 
-export interface RestActionBody {
+export interface IRestActionBody {
     contentType: string;
     body: any;
 }
@@ -77,41 +77,41 @@ export enum ValidationTypeBody {
     JsonSchema = "JsonSchema"
 }
 
-export interface RestActionValidationJsonSchema {
+export interface IRestActionValidationJsonSchema {
     schema: string;
 }
 
-export interface RestActionValidation {
+export interface IRestActionValidation {
     type: ValidationType,
     httpCode: number,
-    headers: HeaderTable[];
+    headers: IHeaderTable[];
     body: ValidationTypeBody;
-    jsonSchema: RestActionValidationJsonSchema | undefined;
+    jsonSchema: IRestActionValidationJsonSchema | undefined;
 }
 
-export interface RestActionRun {
+export interface IRestActionRun {
     id: string;
     name: string;
-    variables: VariableTable[];
-    secrets: SecretTable[];
-    authentication: AuthenticationDetails;
-    headers: HeaderTable[];
-    parameters: ParamTable[];
-    validation: RestActionValidation;
+    variables: IVariableTable[];
+    secrets: ISecretTable[];
+    authentication: IAuthenticationDetails;
+    headers: IHeaderTable[];
+    parameters: IParamTable[];
+    validation: IRestActionValidation;
 }
 
-export interface RestAction {
+export interface IRestAction {
     id: string;
     name: string;
     verb: RestTypeVerb;
     protocol: HttpProtocol;
     url: string;
-    headers: HeaderTable[];
-    parameters: ParamTable[];
-    authentication: AuthenticationDetails;
-    body: RestActionBody;
-    runs: RestActionRun[];
-    validation: RestActionValidation;
+    headers: IHeaderTable[];
+    parameters: IParamTable[];
+    authentication: IAuthenticationDetails;
+    body: IRestActionBody;
+    runs: IRestActionRun[];
+    validation: IRestActionValidation;
 }
 
 
@@ -129,83 +129,83 @@ export enum HttpProtocol {
   https = "https"
 }
 
-export interface LocalRestAction {
-    action: RestAction;
+export interface ILocalRestAction {
+    action: IRestAction;
     fullFilename: string;
     dirty: boolean;
     // active: boolean;
     activeTab: boolean;
 }
 
-export interface LocalRestSession {
+export interface ILocalRestSession {
     collectionGuid: string;
-    actions: LocalRestAction[];
+    actions: ILocalRestAction[];
 }
 
-export interface RecentFile {
+export interface IRecentFile {
     name: string;
     fullFileName: string;
     path: string;
 }
 
-export interface CurrentState {
+export interface ICurrentState {
     currentCollection: string;
-    sessions: LocalRestSession[];
-    recentCollections: RecentFile[];
+    sessions: ILocalRestSession[];
+    recentCollections: IRecentFile[];
 }
 
-export interface Environment {
+export interface IEnvironment {
     name: string;
     id: string;
-    variables: VariableTable[];
-    secrets: SecretTable[];
-    auth: AuthenticationDetails;
+    variables: IVariableTable[];
+    secrets: ISecretTable[];
+    auth: IAuthenticationDetails;
 }
 
-export interface CollectionConfig {
+export interface ICollectionConfig {
     collectionGuid: string
-    collectionEnvironment: Environment;
-    environments: Environment[];
+    collectionEnvironment: IEnvironment;
+    environments: IEnvironment[];
     selectedEnvironmentId: string;
 }
 
-export interface Collection {
-    config: CollectionConfig;
+export interface ICollection {
+    config: ICollectionConfig;
     filename: string;
     name: string;
     path: string;
 }
 
-export interface TraversedDrectory {
-    dir: Dir;
-    subdirs: TraversedDrectory[];
-    files: File[];
+export interface ITraversedDrectory {
+    dir: IDir;
+    subdirs: ITraversedDrectory[];
+    files: IFile[];
 }
 
-export interface Dir {
+export interface IDir {
     name: string;
     path: string;
     fullPath: string;
 }
 
-export interface File {
+export interface IFile {
     name: string;
     path: string;
     fullPath: string;
 }
 
-export interface SavedAsCompleted {
+export interface ISavedAsCompleted {
     id: string;
     fullFilename: string;
     name: string;
 }
 
 
-export function CreateEmptyLocalAction(): LocalRestAction {
+export function CreateEmptyLocalAction(): ILocalRestAction {
     return { action: CreateEmptyAction(), dirty: false, fullFilename: '', activeTab: false };
   }
   
-  export function CreateEmptyAction(): RestAction {
+  export function CreateEmptyAction(): IRestAction {
     return {
       id: '',
       name: '',
@@ -221,11 +221,11 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     };
   }
   
-  export function CreateEmptyActionBody(): RestActionBody {
+  export function CreateEmptyActionBody(): IRestActionBody {
     return { contentType: 'none', body: undefined };
   }
   
-  export function CreateEmptyEnvironment(): Environment {
+  export function CreateEmptyEnvironment(): IEnvironment {
     return {
       name: '',
       id: '',
@@ -235,7 +235,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     };
   }
   
-  export function CreateEmptyAuthenticationDetails(type: string): AuthenticationDetails {
+  export function CreateEmptyAuthenticationDetails(type: string): IAuthenticationDetails {
     return {
       authentication: type,
       awsSig: CreateEmptyAuthenticationDetailsAwsSig(),
@@ -244,19 +244,19 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     };
   }
   
-  export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
+  export function CreateEmptyAuthenticationDetailsAwsSig(): IAuthenticationDetailsAWSSig {
     return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
   }
   
-  export function CreateEmptyAuthenticationDetailsBasicAuth(): AuthenticationDetailsBasicAuth {
+  export function CreateEmptyAuthenticationDetailsBasicAuth(): IAuthenticationDetailsBasicAuth {
     return { userName: '', password: '' };
   }
   
-  export function CreateEmptyAuthenticationDetailsBearerToken(): AuthenticationDetailsBearerToken {
+  export function CreateEmptyAuthenticationDetailsBearerToken(): IAuthenticationDetailsBearerToken {
     return { token: '' };
   }
   
-  export function CreateEmptyCollection(guid: guidGenerator): Collection {
+  export function CreateEmptyCollection(guid: guidGenerator): ICollection {
     return {
       config: CreateEmptyCollectionConfig(guid),
       filename: '',
@@ -265,7 +265,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     };
   }
   
-  export function CreateEmptyCollectionConfig(guid: guidGenerator): CollectionConfig {
+  export function CreateEmptyCollectionConfig(guid: guidGenerator): ICollectionConfig {
     return {
       collectionGuid: guid.generateGUID(),
       collectionEnvironment: CreateEmptyEnvironment(),
@@ -274,7 +274,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     }
   }
   
-  export function CreateEmptyRestActionValidation(valType: ValidationType | undefined): RestActionValidation {
+  export function CreateEmptyRestActionValidation(valType: ValidationType | undefined): IRestActionValidation {
     return {
       type: valType ?? ValidationType.None,
       headers: [],
@@ -284,7 +284,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     }
   };
   
-  export function CreateEmptyRestActionRun(guid: guidGenerator, valType: ValidationType | undefined): RestActionRun {
+  export function CreateEmptyRestActionRun(guid: guidGenerator, valType: ValidationType | undefined): IRestActionRun {
     return { id: guid.generateGUID(), 
              name: '', 
              parameters: [], 

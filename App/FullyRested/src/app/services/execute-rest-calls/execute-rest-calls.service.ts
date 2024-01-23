@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
+import { IAuthenticationDetails, ICollection, IEnvironment } from '../../../../../shared/runner';
 import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
 
 
@@ -17,7 +17,7 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
+  async executeTest(action: ExecuteRestAction, collection: ICollection | undefined): Promise<RestActionResult> {
     var env = collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId);
     var replaced:IExecuteRestAction = this.AddAuthentication(action, collection)
                        .variables_pushBack(env?.variables)
@@ -34,8 +34,8 @@ export class ExecuteRestCallsService {
     return response;
   }
 
-  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) : ExecuteRestAction {
-    var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
+  AddAuthentication(action: ExecuteRestAction, collection: ICollection | undefined) : ExecuteRestAction {
+    var env:IEnvironment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
     var actionWithAuth = action.authentication_pushBack(env?.auth)
                                .authentication_pushBack(collection?.config.collectionEnvironment.auth);
     console.log(actionWithAuth);

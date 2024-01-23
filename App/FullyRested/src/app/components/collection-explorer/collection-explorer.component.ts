@@ -1,7 +1,7 @@
 import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { Collection, CurrentState, REConstants, TraversedDrectory, RestAction, File } from '../../../../../shared/runner';
+import { ICollection, ICurrentState, REConstants, ITraversedDrectory, IRestAction, IFile } from '../../../../../shared/runner';
 
 export interface SelectedTreeItem {
   // id: string;
@@ -31,13 +31,13 @@ export class ProductTreeviewConfig extends TreeviewConfig {
   ]
 })
 export class CollectionExplorerComponent implements OnInit {
-  _collection: Collection | undefined;
+  _collection: ICollection | undefined;
 
   @Input()
-  state: CurrentState | undefined;
+  state: ICurrentState | undefined;
 
   @Input()
-  set collection(collection: Collection | undefined) {
+  set collection(collection: ICollection | undefined) {
     if (collection == undefined) {
       this._collection = collection;
       this.items = [];
@@ -71,7 +71,7 @@ export class CollectionExplorerComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  async rebuildTree(collection: Collection, state: CurrentState): Promise<boolean> {
+  async rebuildTree(collection: ICollection, state: ICurrentState): Promise<boolean> {
     var dir = await this.repo.traverseDirectory(collection.path, [REConstants.ActionExtension]);
     this.items = [await this.buildTreeview(dir, collection.name, state)];
     this.expandTree(this.items);
@@ -79,7 +79,7 @@ export class CollectionExplorerComponent implements OnInit {
     return true;
   }
 
-  private async buildTreeview(traverse: TraversedDrectory, name: string, state: CurrentState): Promise<TreeviewItem> {
+  private async buildTreeview(traverse: ITraversedDrectory, name: string, state: ICurrentState): Promise<TreeviewItem> {
     var children = [this.systemSettings(), await this.convertDirToTreeviewItem(traverse, state)];
 
     return new TreeviewItem({
@@ -121,7 +121,7 @@ export class CollectionExplorerComponent implements OnInit {
     });
   }
 
-  private async convertDirToTreeviewItem(traverse: TraversedDrectory, state: CurrentState): Promise<TreeviewItem> {
+  private async convertDirToTreeviewItem(traverse: ITraversedDrectory, state: ICurrentState): Promise<TreeviewItem> {
     var children = await Promise.all(traverse.subdirs.map(async s => this.convertDirToTreeviewItem(s, state)));
 
     var runChildren = await Promise.all(traverse.files.map(async f => {
@@ -142,8 +142,8 @@ export class CollectionExplorerComponent implements OnInit {
     });
   }
 
-  private async BuildRunChildren(f: File, state: CurrentState): Promise<TreeviewItem[]> {
-    var action: RestAction = await this.LoadAction(f, state);
+  private async BuildRunChildren(f: IFile, state: ICurrentState): Promise<TreeviewItem[]> {
+    var action: IRestAction = await this.LoadAction(f, state);
 
     var children: TreeviewItem[] = action.runs.map(r => new TreeviewItem({
       text: r.name,
@@ -154,7 +154,7 @@ export class CollectionExplorerComponent implements OnInit {
     return children;
   }
 
-  async LoadAction(f: File, state: CurrentState): Promise<RestAction> {
+  async LoadAction(f: IFile, state: ICurrentState): Promise<IRestAction> {
     var recent = state.sessions.find(s => s.collectionGuid == this._collection?.config.collectionGuid);
     if (recent != undefined) {
        var action = recent.actions.find(a => a.fullFilename == f.fullPath);

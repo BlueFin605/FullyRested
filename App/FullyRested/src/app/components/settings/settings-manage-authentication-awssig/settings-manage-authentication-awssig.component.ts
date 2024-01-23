@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CreateEmptyAuthenticationDetailsAwsSig } from '../../../../../../shared/runner';
-import { AuthenticationDetailsAWSSig } from '../../../../../../shared/runner';
+import { IAuthenticationDetailsAWSSig } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-settings-manage-authentication-awssig',
@@ -9,10 +9,10 @@ import { AuthenticationDetailsAWSSig } from '../../../../../../shared/runner';
 })
 export class SettingsManageAuthenticationAWSSigComponent implements OnInit {
 @Input()
-  awssig: AuthenticationDetailsAWSSig = CreateEmptyAuthenticationDetailsAwsSig();
+  awssig: IAuthenticationDetailsAWSSig = CreateEmptyAuthenticationDetailsAwsSig();
 
   @Output()
-  awssigChange = new EventEmitter<AuthenticationDetailsAWSSig>();
+  awssigChange = new EventEmitter<IAuthenticationDetailsAWSSig>();
 
   constructor() { }
 

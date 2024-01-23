@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { SystemSupportService } from '../system-support/system-support.service';
 import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '../../../../../shared/runner';
-import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '../../../../../shared/runner';
+import { ICollection, ISavedAsCompleted, ICurrentState, IEnvironment, IAuthenticationDetails, IRestAction, IRestActionRun, IRestActionValidation, ValidationType, ValidationTypeBody, ILocalRestAction, ITraversedDrectory, IRecentFile } from '../../../../../shared/runner';
 
 
 @Injectable({
@@ -11,8 +11,8 @@ import { Collection, SavedAsCompleted, CurrentState, Environment, Authentication
 
 export class ActionRepositoryService {
   // collections = new BehaviorSubject<Collection>({config: { collectionGuid: 'abcd' }, filename: '<filename>', path: '<path>'});
-  collections = new BehaviorSubject<Collection | undefined>(undefined);
-  savedAs = new BehaviorSubject<SavedAsCompleted | undefined>(undefined);
+  collections = new BehaviorSubject<ICollection | undefined>(undefined);
+  savedAs = new BehaviorSubject<ISavedAsCompleted | undefined>(undefined);
 
   constructor(private systemSupport: SystemSupportService) {
     console.log('ActionRepositoryService ctor');
@@ -20,30 +20,30 @@ export class ActionRepositoryService {
     if (this.getIpcRenderer() == undefined)
       return;
 
-    this.getIpcRenderer().receive('loadCollectionResponse', (collection: Collection) => {
+    this.getIpcRenderer().receive('loadCollectionResponse', (collection: ICollection) => {
       this.patchCollection(collection);
       this.collections.next(collection);
     });
 
-    this.getIpcRenderer().receive('savedAsCompleted', (savedAs: SavedAsCompleted) => {
+    this.getIpcRenderer().receive('savedAsCompleted', (savedAs: ISavedAsCompleted) => {
       this.savedAs.next(savedAs);
     });
   }
 
-  private patchCollection(collection: Collection) {
+  private patchCollection(collection: ICollection) {
     this.patchEnvironment(collection.config.collectionEnvironment);
     collection.config.environments.forEach(e => this.patchEnvironment(e))
   }
 
-  patchState(state: CurrentState) {
+  patchState(state: ICurrentState) {
     state.sessions.forEach(s => s.actions.forEach(a => this.patchRequest(a.action)));
   }
 
-  patchEnvironment(env: Environment): void {
+  patchEnvironment(env: IEnvironment): void {
     this.patchAuthentication(env.auth);
   }
 
-  patchAuthentication(auth: AuthenticationDetails) {
+  patchAuthentication(auth: IAuthenticationDetails) {
     if (auth.basicAuth == undefined)
       auth.basicAuth = CreateEmptyAuthenticationDetailsBasicAuth();
 
@@ -51,7 +51,7 @@ export class ActionRepositoryService {
       auth.bearerToken = CreateEmptyAuthenticationDetailsBearerToken();
   }
 
-  patchRequest(request: RestAction) {
+  patchRequest(request: IRestAction) {
     this.patchAuthentication(request.authentication);
     if (request.runs == undefined)
       request.runs = [];
@@ -70,14 +70,14 @@ export class ActionRepositoryService {
       request.body = CreateEmptyActionBody();
   }
 
-  patchRun(run: RestActionRun): void {
+  patchRun(run: IRestActionRun): void {
     if (run.validation == undefined)
       run.validation = CreateEmptyRestActionValidation(undefined)
 
     this.patchValidation(run.validation);
   }
 
-  patchValidation(validation: RestActionValidation) {
+  patchValidation(validation: IRestActionValidation) {
     if (validation.type == undefined)
       validation.type = ValidationType.None;
 
@@ -95,9 +95,9 @@ export class ActionRepositoryService {
     return (<any>window).ipc;
   }
 
-  public createNewAction(max: number): LocalRestAction {
+  public createNewAction(max: number): ILocalRestAction {
     console.log(max);
-    var action: LocalRestAction = CreateEmptyLocalAction();
+    var action: ILocalRestAction = CreateEmptyLocalAction();
     action.action.id = this.systemSupport.generateGUID();
     if (isFinite(max) == false)
       action.action.name = "new request";
@@ -110,18 +110,18 @@ export class ActionRepositoryService {
     return action;
   }
 
-  public async traverseDirectory(pathname: string, filter: string[]): Promise<TraversedDrectory> {
+  public async traverseDirectory(pathname: string, filter: string[]): Promise<ITraversedDrectory> {
     if (this.getIpcRenderer() == undefined)
       return this.mockTraverseDirectory();
 
     return this.getIpcRenderer().invoke('traverseDirectory', { pathname: pathname, filter: filter });
   }
 
-  public async getCurrentState(): Promise<CurrentState> {
+  public async getCurrentState(): Promise<ICurrentState> {
     if (this.getIpcRenderer() == undefined)
       return this.mockCurrentState();
 
-    var state: CurrentState = await this.getIpcRenderer().invoke('readState', '');
+    var state: ICurrentState = await this.getIpcRenderer().invoke('readState', '');
 
     this.patchState(state);
     //  if (state.actions.length == 0)
@@ -131,28 +131,28 @@ export class ActionRepositoryService {
     return state;
   }
 
-  public async saveCurrentState(state: CurrentState) {
+  public async saveCurrentState(state: ICurrentState) {
     if (this.getIpcRenderer() == undefined)
       return;
 
     await this.getIpcRenderer().send('saveState', state);
   }
 
-  public async saveAsRequest(request: LocalRestAction) {
+  public async saveAsRequest(request: ILocalRestAction) {
     if (this.getIpcRenderer() == undefined)
       return;
 
     await this.getIpcRenderer().send('saveAsRequest', request.action);
   }
 
-  public async saveRequest(request: LocalRestAction) {
+  public async saveRequest(request: ILocalRestAction) {
     if (this.getIpcRenderer() == undefined)
       return;
 
     await this.getIpcRenderer().send('saveRequest', { fullFilename: request.fullFilename, action: request.action });
   }
 
-  public async loadRequest(fullFilename: string): Promise<RestAction> {
+  public async loadRequest(fullFilename: string): Promise<IRestAction> {
     if (fullFilename == undefined || fullFilename == "")
       return CreateEmptyAction();
 
@@ -161,7 +161,7 @@ export class ActionRepositoryService {
       return this.mockRequest(fullFilename);
     }
 
-    var request: RestAction = await this.getIpcRenderer().invoke('loadRequest', fullFilename);
+    var request: IRestAction = await this.getIpcRenderer().invoke('loadRequest', fullFilename);
     this.patchRequest(request);
     return request;
   }
@@ -177,12 +177,12 @@ export class ActionRepositoryService {
   }
 
   public async newCollection() {
-    var collection: Collection = CreateEmptyCollection(this.systemSupport);
+    var collection: ICollection = CreateEmptyCollection(this.systemSupport);
     collection.config.collectionEnvironment.auth.authentication = 'none';
     this.collections.next(collection);
   }
 
-  public async loadCollectionFromFile(file: RecentFile) {
+  public async loadCollectionFromFile(file: IRecentFile) {
     if (this.getIpcRenderer() == undefined) {
       console.log('send Mock');
       this.collections.next(this.mockCollection());
@@ -192,7 +192,7 @@ export class ActionRepositoryService {
     this.getIpcRenderer().send("loadCollectionFromFile", file);
   }
 
-  public async saveCollection(collection: Collection) {
+  public async saveCollection(collection: ICollection) {
     if (this.getIpcRenderer() == undefined) {
       setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
       return;
@@ -202,7 +202,7 @@ export class ActionRepositoryService {
   }
 
 
-  public async saveCollectionAs(collection: Collection) {
+  public async saveCollectionAs(collection: ICollection) {
     if (this.getIpcRenderer() == undefined) {
       setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
       return;
@@ -211,23 +211,23 @@ export class ActionRepositoryService {
     await this.getIpcRenderer().send('saveCollectionAs', collection);
   }
 
-  public async storeCollection(collection: Collection) {
+  public async storeCollection(collection: ICollection) {
     setTimeout(() => this.collections.next(JSON.parse(JSON.stringify(collection))));
   }
 
-  private mockCollection(): Collection {
+  private mockCollection(): ICollection {
     return mockCollection;
   }
 
-  private mockCurrentState(): CurrentState {
+  private mockCurrentState(): ICurrentState {
     return mockCurrentState;
   }
 
-  private mockTraverseDirectory(): TraversedDrectory {
+  private mockTraverseDirectory(): ITraversedDrectory {
     return mockTraverse;
   }
 
-  private mockRequest(name: string): RestAction {
+  private mockRequest(name: string): IRestAction {
     return {
       id: `${name}-mockrequest`,
       name: 'name',
@@ -344,7 +344,7 @@ const mockCollection = {
   name: 'collection name'
 };
 
-const mockCurrentState: CurrentState = {
+const mockCurrentState: ICurrentState = {
   sessions: [
     {
       collectionGuid: "nocollection",
@@ -958,7 +958,7 @@ const mockCurrentState: CurrentState = {
   currentCollection: "/Users/deanmitchell/Projects/FullyRested/Test Collection/my collection.reasycol"
 };
 
-const mockTraverse: TraversedDrectory = {
+const mockTraverse: ITraversedDrectory = {
   dir: {
     name: "src",
     path: "/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src",

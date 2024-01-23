@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { HeaderTable } from '../../../../../../../shared/runner';
+import { IHeaderTable } from '../../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {
@@ -34,10 +34,10 @@ const COLUMNS_SCHEMA = [
 export class EditRequestHeadersComponent implements OnInit {
 
   @Input()
-  headers: HeaderTable[] = [];
+  headers: IHeaderTable[] = [];
 
   @Output()
-  headersChange = new EventEmitter<HeaderTable[]>();
+  headersChange = new EventEmitter<IHeaderTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;

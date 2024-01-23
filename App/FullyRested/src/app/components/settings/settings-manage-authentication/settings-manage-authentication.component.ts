@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CreateEmptyAuthenticationDetails } from '../../../../../../shared/runner';
-import { AuthenticationDetails } from '../../../../../../shared/runner';
+import { IAuthenticationDetails } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-settings-manage-authentication',
@@ -9,10 +9,10 @@ import { AuthenticationDetails } from '../../../../../../shared/runner';
 })
 export class SettingsManageAuthenticationComponent implements OnInit {
   @Input()
-  auth: AuthenticationDetails = CreateEmptyAuthenticationDetails('inherit');
+  auth: IAuthenticationDetails = CreateEmptyAuthenticationDetails('inherit');
 
   @Output()
-  authChange = new EventEmitter<AuthenticationDetails>();
+  authChange = new EventEmitter<IAuthenticationDetails>();
 
   //selected: string = 'awssig';
   

@@ -2,7 +2,7 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CreateEmptyAction } from '../../../../../../shared/runner';
-import { RestAction, Collection } from '../../../../../../shared/runner';
+import { IRestAction, ICollection } from '../../../../../../shared/runner';
 import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { RestActionResult, ExecuteRestAction } from '../../../../../../shared/builder/src';
 
@@ -12,13 +12,13 @@ import { RestActionResult, ExecuteRestAction } from '../../../../../../shared/bu
   styleUrls: ['./rest-action.component.css']
 })
 export class RestActionComponent implements OnInit {
-  _action: RestAction = CreateEmptyAction();
+  _action: IRestAction = CreateEmptyAction();
   _laststate: string = "";
   _fullFilename: string = "";
   _originalSource: string = "";
 
   @Input()
-  set action(action: RestAction) {
+  set action(action: IRestAction) {
     console.log(`set action[${JSON.stringify(action)}]`)
     this._action = action;
     this._laststate = JSON.stringify(action);
@@ -26,7 +26,7 @@ export class RestActionComponent implements OnInit {
   }
 
   @Output()
-  actionChange = new EventEmitter<RestAction>();
+  actionChange = new EventEmitter<IRestAction>();
 
   @Output()
   nameChange = new EventEmitter<string>();
@@ -53,7 +53,7 @@ export class RestActionComponent implements OnInit {
   }
 
   @Input()
-  collection: Collection | undefined;
+  collection: ICollection | undefined;
 
   @Input()
   runId: string | undefined;
@@ -77,7 +77,7 @@ export class RestActionComponent implements OnInit {
     console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
-  onActionChange(event: RestAction) {
+  onActionChange(event: IRestAction) {
     console.log(event)
     console.log(this._action)
 

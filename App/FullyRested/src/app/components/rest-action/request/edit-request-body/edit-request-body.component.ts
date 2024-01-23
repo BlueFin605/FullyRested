@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
-import { RestActionBody } from '../../../../../../../shared/runner';
+import { IRestActionBody } from '../../../../../../../shared/runner';
 
 @Component({
   selector: 'app-edit-request-body',
@@ -9,13 +9,13 @@ import { RestActionBody } from '../../../../../../../shared/runner';
 })
 export class EditRequestBodyComponent implements OnInit {
   // private initialData: string;
-  visibleData: RestActionBody = {contentType: 'none', body: new ArrayBuffer(0)};
+  visibleData: IRestActionBody = {contentType: 'none', body: new ArrayBuffer(0)};
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
   @ViewChild('editor') bodyChild: JsonEditorComponent | undefined;
 
-  @Input() set body(body: RestActionBody) {
+  @Input() set body(body: IRestActionBody) {
     // this.initialData = body;
     if (this.visibleData == body)
         return;
@@ -35,7 +35,7 @@ export class EditRequestBodyComponent implements OnInit {
   }
 
   @Output()
-  bodyChange = new EventEmitter<RestActionBody>();
+  bodyChange = new EventEmitter<IRestActionBody>();
 
   constructor() {
     this.editorOptions = new JsonEditorOptions()

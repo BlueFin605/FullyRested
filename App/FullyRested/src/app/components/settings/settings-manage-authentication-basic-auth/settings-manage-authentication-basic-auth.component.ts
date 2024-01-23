@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CreateEmptyAuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
-import { AuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
+import { IAuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
 
 @Component({
   selector: 'app-settings-manage-authentication-basic-auth',
@@ -9,10 +9,10 @@ import { AuthenticationDetailsBasicAuth } from '../../../../../../shared/runner'
 })
 export class SettingsManageAuthenticationBasicAuthComponent implements OnInit {
   @Input()
-  basicauth: AuthenticationDetailsBasicAuth = CreateEmptyAuthenticationDetailsBasicAuth();
+  basicauth: IAuthenticationDetailsBasicAuth = CreateEmptyAuthenticationDetailsBasicAuth();
 
   @Output()
-  basicauthChange = new EventEmitter<AuthenticationDetailsBasicAuth>();
+  basicauthChange = new EventEmitter<IAuthenticationDetailsBasicAuth>();
 
   constructor() { }
 

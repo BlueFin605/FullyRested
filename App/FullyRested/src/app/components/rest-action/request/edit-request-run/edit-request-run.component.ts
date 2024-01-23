@@ -1,6 +1,6 @@
 import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
+import { IRestAction, IRestActionRun, IHeaderTable, IParamTable, IAuthenticationDetails, ICollection, ISecretTable, IVariableTable, IRestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
 import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
@@ -20,20 +20,20 @@ export class EditRequestRunComponent implements OnInit {
     return HttpProtocol;
   }
   
-  _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
+  _run: IRestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
 
   @Input()
-  action: RestAction = CreateEmptyAction();
+  action: IRestAction = CreateEmptyAction();
 
   @Input()
-  set run(run: RestActionRun) {
+  set run(run: IRestActionRun) {
     console.log(`set action[${JSON.stringify(run)}]`)
     this._run = run;
     this.onParamChange(this._run.parameters);
   }
 
   @Output()
-  runChange = new EventEmitter<RestActionRun>();
+  runChange = new EventEmitter<IRestActionRun>();
 
   @Output()
   nameChange = new EventEmitter<string>();
@@ -42,7 +42,7 @@ export class EditRequestRunComponent implements OnInit {
   execute = new EventEmitter<ExecuteRestAction>();
 
   @Input()
-  collection: Collection = CreateEmptyCollection(this.systemSupport);
+  collection: ICollection = CreateEmptyCollection(this.systemSupport);
 
   displayUrl: string = ''
 
@@ -51,7 +51,7 @@ export class EditRequestRunComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  onParamChange(params: ParamTable[]) {
+  onParamChange(params: IParamTable[]) {
     const urlTree = new UrlTree();
     urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
     var combined = this.combineAllParamaters(this._run.parameters, this.action.parameters);
@@ -67,28 +67,28 @@ export class EditRequestRunComponent implements OnInit {
     this.runChange.emit(this._run);
   }
 
-  onAuthChange(auth: AuthenticationDetails) {
+  onAuthChange(auth: IAuthenticationDetails) {
     console.log(auth);
     console.log(this.action);
     this.runChange.emit(this._run);
   }
 
-  onHeadersChange(event: HeaderTable[]) {
+  onHeadersChange(event: IHeaderTable[]) {
     console.log(event);    
     this.runChange.emit(this._run);
   }
 
-  onSecretsChange(event: SecretTable[]) {
+  onSecretsChange(event: ISecretTable[]) {
     // console.log(event);    
     this.runChange.emit(this._run);
   }
 
-  onVariablesChange(event: VariableTable[]) {
+  onVariablesChange(event: IVariableTable[]) {
     // console.log(event);    
     this.runChange.emit(this._run);
   }
 
-  onValidationChange(event: RestActionValidation) {
+  onValidationChange(event: IRestActionValidation) {
     // console.log(event);    
     this.runChange.emit(this._run);
   }
@@ -100,13 +100,13 @@ export class EditRequestRunComponent implements OnInit {
     this.nameChange.emit(value);
   }
 
-  combineAllParamaters(run: ParamTable[], action: ParamTable[]) {
+  combineAllParamaters(run: IParamTable[], action: IParamTable[]) {
     console.log(run);
     console.log(action);
     return action.concat(run);
   }
 
-  convertParamsArraysAsValues(params: ParamTable[]): { [params: string]: string } {
+  convertParamsArraysAsValues(params: IParamTable[]): { [params: string]: string } {
     var reverse = params.reverse();
     params = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
     var converted: { [params: string]: string } = {};
@@ -114,13 +114,13 @@ export class EditRequestRunComponent implements OnInit {
     return converted;
   }
 
-  combineAllHeaders(run: HeaderTable[], action: HeaderTable[]) {
+  combineAllHeaders(run: IHeaderTable[], action: IHeaderTable[]) {
     console.log(run);
     console.log(action);
     return action.concat(run);
   }
 
-  findAuthentication(): AuthenticationDetails
+  findAuthentication(): IAuthenticationDetails
   {
     if (!this._run.authentication || this._run.authentication.authentication == 'inherit')
        return this.action.authentication;

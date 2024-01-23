@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { ParamTable } from '../../../../../../../shared/runner';
+import { IParamTable } from '../../../../../../../shared/runner';
 
 const COLUMNS_SCHEMA = [
   {
@@ -35,10 +35,10 @@ const COLUMNS_SCHEMA = [
 export class EditRequestParametersComponent implements OnInit {
 
   @Input()
-  params: ParamTable[] = [];
+  params: IParamTable[] = [];
 
   @Output()
-  paramsChange = new EventEmitter<ParamTable[]>();
+  paramsChange = new EventEmitter<IParamTable[]>();
 
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;

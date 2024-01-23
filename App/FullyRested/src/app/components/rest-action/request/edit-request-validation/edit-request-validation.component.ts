@@ -3,7 +3,7 @@ import { MatRadioChange } from '@angular/material/radio';
 import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
-import { ValidationType, ValidationTypeBody, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
+import { ValidationType, ValidationTypeBody, IRestActionValidation, IHeaderTable } from '../../../../../../../shared/runner';
 
 @Component({
   selector: 'app-edit-request-validation',
@@ -18,7 +18,7 @@ export class EditRequestValidationComponent implements OnInit {
     return ValidationTypeBody;
   }
   // private initialData: string;
-  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation(undefined);
+  visibleSchema: IRestActionValidation = CreateEmptyRestActionValidation(undefined);
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
@@ -27,7 +27,7 @@ export class EditRequestValidationComponent implements OnInit {
   @Input()
   showInherit: boolean = false;
 
-  @Input() set validation(validation: RestActionValidation) {
+  @Input() set validation(validation: IRestActionValidation) {
     // this.initialData = schema;
     if (this.visibleSchema == validation)
       return;
@@ -46,7 +46,7 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
   @Output()
-  validationChange = new EventEmitter<RestActionValidation>();
+  validationChange = new EventEmitter<IRestActionValidation>();
 
   constructor(public validateResponse: ValidateResponseService) {
     this.editorOptions = new JsonEditorOptions()
@@ -84,7 +84,7 @@ export class EditRequestValidationComponent implements OnInit {
     this.validationChange.emit(this.visibleSchema);
   }
 
-  onHeadersChange(event: HeaderTable[]) {
+  onHeadersChange(event: IHeaderTable[]) {
     // console.log(event);    
     this.validationChange.emit(this.visibleSchema);
   }
