@@ -1,5 +1,5 @@
-import { IAuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, IHeaderTable, IRestActionValidation, ISecretTable, ValidationType, IVariableTable } from '../../runner'
-import { ResponseValidation } from '../../validator'
+import { IAuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, IHeaderTable, IRestActionValidation, ISecretTable, ValidationType, IVariableTable, IRestActionValidationJsonSchema, ValidationTypeBody } from '../../runner'
+import { IResponseValidation } from '../../validator'
 import { RestTypeVerb, HttpProtocol } from '../../runner'
 
 const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
@@ -189,7 +189,7 @@ export interface RestActionResult {
   headers: { [header: string]: string };
   headersSent: { [header: string]: string };
   body: RestActionResultBody | undefined;
-  validated: ResponseValidation | undefined;
+  validated: IResponseValidation | undefined;
 }
 
 export interface RestActionResultBody {
@@ -227,3 +227,44 @@ export class VariableSubstitution {
     }
   }
 }
+
+
+export class RestActionValidation implements IRestActionValidation {
+  type: ValidationType = ValidationType.None;
+  httpCode: number = 200;
+  headers: IHeaderTable[] = [];
+  body: ValidationTypeBody = ValidationTypeBody.None;
+  jsonSchema: IRestActionValidationJsonSchema | undefined;
+
+  constructor(copy: IRestActionValidation) {
+    this.type = copy.type;
+    this.httpCode = copy.httpCode;
+    this.headers = copy.headers;
+    this.body = copy.body;
+    this.jsonSchema = copy.jsonSchema;
+  }
+
+  public setType(type: ValidationType): RestActionValidation {
+    var me: RestActionValidation = this;
+    return new RestActionValidation({ ...me, type: type });
+  }
+
+  public setHttpCode(httpCode: number): RestActionValidation {
+    var me: RestActionValidation = this;
+    return new RestActionValidation({ ...me, httpCode: httpCode });
+  }
+
+  public setHeaders(headers: IHeaderTable[]): RestActionValidation {
+    var me: RestActionValidation = this;
+    return new RestActionValidation({ ...me, headers: headers });
+  }
+
+  public setJsonSchema(schema: IRestActionValidationJsonSchema | undefined): RestActionValidation {
+    var me: RestActionValidation = this;
+    if (schema == undefined)
+      return new RestActionValidation({ ...me, jsonSchema: undefined, body: ValidationTypeBody.None });
+
+    return new RestActionValidation({ ...me, jsonSchema: schema, body: ValidationTypeBody.JsonSchema });
+  }
+}
+

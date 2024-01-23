@@ -3,7 +3,7 @@ import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-20
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
 import { ICollection, ValidationType, IRestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
 import { IExecuteRestAction, RestActionResult, VariableSubstitution } from '../../../../../shared/builder/src';
-import { ResponseValidation } from '../../../../../shared/validator/src';
+import { IResponseValidation } from '../../../../../shared/validator/src';
 
 
 @Injectable({
@@ -15,7 +15,7 @@ export class ValidateResponseService {
 
   public async validateResponse(action: IExecuteRestAction,
                                 response: RestActionResult,
-                                collection: ICollection | undefined): Promise<ResponseValidation | undefined> {
+                                collection: ICollection | undefined): Promise<IResponseValidation | undefined> {
     
     console.log('validating response json schema')
     console.log(action.validation?.jsonSchema?.schema);
@@ -49,7 +49,7 @@ export class ValidateResponseService {
     return { information: [], errors: [], valid: true };
   }
 
-  public async validatePayload(validation: IRestActionValidation, response: RestActionResult): Promise<ResponseValidation> {
+  public async validatePayload(validation: IRestActionValidation, response: RestActionResult): Promise<IResponseValidation> {
     console.log('validatePayload');
 
     if (validation?.body == ValidationTypeBody.None) {
@@ -91,7 +91,7 @@ export class ValidateResponseService {
   }
 
 
-  validateHeaders(validation: IRestActionValidation, response: RestActionResult): ResponseValidation | PromiseLike<ResponseValidation | undefined> | undefined {
+  validateHeaders(validation: IRestActionValidation, response: RestActionResult): IResponseValidation | PromiseLike<IResponseValidation | undefined> | undefined {
     console.log('ValidateHeaders');
     console.log(validation?.headers);
     console.log(response.headers);
