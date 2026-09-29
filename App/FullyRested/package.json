@@ -4,13 +4,14 @@
   "main": "main.js",
   "scripts": {
     "ng": "ng",
-    "start": "electron-forge start",
+    "start": "npm run build:core && electron-forge start",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "electron": "ng build && electron .",
+    "electron": "npm run build:core && ng build && electron .",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "build:core": "npm --prefix ../core run build"
   },
   "private": true,
   "dependencies": {
@@ -24,11 +25,9 @@
     "@angular/platform-browser": "^14.0.0",
     "@angular/platform-browser-dynamic": "^14.0.0",
     "@angular/router": "^14.0.0",
-    "@aws-crypto/sha256-js": "^5.2.0",
-    "@aws-sdk/signature-v4": "^3.374.0",
+    "@fullyrested/core": "file:../core",
     "@maaxgr/ang-jsoneditor": "^14.0.0",
     "@treeview/ngx-treeview": "^14.0.0",
-    "axios": "^1.5.1",
     "electron-squirrel-startup": "^1.0.0",
     "jsoneditor": "^9.10.3",
     "keytar": "^7.9.0",

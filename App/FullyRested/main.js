@@ -2,14 +2,8 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
-const url = require('url');
-const axios = require('axios');
 const keytar = require('keytar');
-const { request } = require('node:http');
-const { SignatureV4 } = require('@aws-sdk/signature-v4');
-const { Sha256 } = require('@aws-crypto/sha256-js');
-// import sigv4 from '@aws-sdk/signature-v4';
-// const { SignatureV4 } = sigv4;
+const { executeRequest } = require('@fullyrested/core');
 
 let win;
 
@@ -37,7 +31,7 @@ app.whenReady().then(() => {
     })
 
     ipcMain.handle("testRest", (event, request) => {
-        return executeAction(event, request);
+        return executeRequest(request);
     });
 
     ipcMain.handle("readState", (event, request) => {
@@ -92,191 +86,6 @@ ipcMain.on("navigateDirectory", (event, path) => {
     process.chdir(path);
     getDirectory();
 });
-
-async function executeAction(event, request) {
-    console.log(`request:[${JSON.stringify(request)})`);
-
-    var url = `${request.protocol}://${request.url}`;
-
-    var additionalHeaders = [];
-
-    try {
-        switch (request.authentication?.authentication) {
-            case 'awssig':
-                url = await addAwsSigToRequest(url, request)
-                break;
-            case 'basicauth':
-                await addBasicAuthToRequest(request)
-                break;
-            case 'bearertoken':
-                await addBearerTokenToRequest(request)
-                break;
-        }
-
-        request.headers['content-type'] = request.body.contentType;
-
-        console.log('=========== request ===========`')
-        console.log(url);
-        console.log(request);
-        console.log('--------------------------------')
-
-        var axiosRequest = {
-            method: request.verb,
-            url: url,
-            data: buildData(request.body),
-            headers: request.headers,
-            transformResponse: (r) => r,
-            responseType: 'arraybuffer'
-        }
-
-        console.log(axiosRequest);
-
-        console.log('--------------------------------')
-
-        var response = await axios(axiosRequest);
-
-        console.log('=========== response ===========`')
-        console.log(response.statusText);
-        console.log(`response data type:[${typeof (response.data)}]`);
-        console.log(response.data);
-        console.log(response.data.headers);
-
-        // console.log(`[${JSON.stringify(response.request)}]`)
-        return {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-            headersSent: response.request._headers,
-            body: { contentType: response.headers['content-type'], body: response.data }
-        };
-    }
-    catch (error) {
-        console.log(`Exception:[${JSON.stringify(error)}]`)
-        if (error.response != undefined) {
-            console.log(`[${error.response.status}, ${error.response.statusText}, ${error.response.headers}]`)
-            return {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                headers: error.response.headers
-            };
-        }
-        if (error.code == 'ENOTFOUND')
-            return { status: -1, statusText: error.code };
-
-        if (error.code == 'ECONNRESET')
-            return { status: -2, statusText: error.code };
-
-        if (error.code == 'ETIMEDOUT')
-            return { status: -3, statusText: error.code };
-
-        if (error.code == 'CONNREFUSED')
-            return { status: -4, statusText: error.code };
-
-        if (error.code == 'CONNABORTED')
-            return { status: -5, statusText: error.code };
-
-        if (error.code == 'HOSTUNREACH')
-            return { status: -6, statusText: error.code };
-
-        if (error.code == 'AI_AGAIN')
-            return { status: -7, statusText: error.code };
-
-        if (error.code == 'ENOENT')
-            return { status: -8, statusText: error.code };
-
-        return { status: -99, statusText: error.code };
-    }
-}
-
-function buildData(body) {
-    switch (body.contentType) {
-        case 'application/x-www-form-urlencoded':
-        case 'none':
-            {
-                console.log('no body');
-                return undefined;
-            }
-    }
-
-    console.log(body.body);
-    return body.body;
-}
-
-async function addAwsSigToRequest(url, rawrequest) {
-    console.log('addAwsSigToRequest');
-    // console.log(url);
-    // console.log(rawrequest);
-
-    const urlParts = new URL(url);
-
-    const awsQueryParams = {};
-    urlParts.searchParams.forEach((value, key) => {
-        awsQueryParams[key] = value;
-    });
-
-    rawrequest.headers['host'] = urlParts.host;
-
-    const request = {
-        hostname: urlParts.hostname,
-        path: urlParts.pathname,
-        method: 'GET',
-        protocol: urlParts.protocol,
-        query: awsQueryParams,
-        headers: rawrequest.headers
-    };
-
-    // console.log(request);
-
-    const sigv4 = new SignatureV4({
-        service: rawrequest.authentication.awsSig.serviceName,
-        region: rawrequest.authentication.awsSig.awsRegion,
-        credentials: {
-            accessKeyId: rawrequest.authentication.awsSig.accessKey,
-            secretAccessKey: rawrequest.authentication.awsSig.secretKey
-        },
-        sha256: Sha256,
-    });
-
-    if (rawrequest.authentication.awsSig.signUrl == false) {
-        var signedrequest = await sigv4.sign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
-        console.log(signedrequest);
-        rawrequest.headers = signedrequest.headers;
-        return url
-    }
-
-    var signedrl = await sigv4.presign(request, { signableHeaders: new Set(), unsignableHeaders: new Set() });
-    console.log(signedrl);
-    rawrequest.headers = signedrl.headers;
-
-    const searchParams = new URLSearchParams();
-    for (const key in signedrl.query) {
-        if (signedrl.query.hasOwnProperty(key)) {
-            searchParams.append(key, signedrl.query[key]);
-        }
-    }
-
-    urlParts.search = searchParams.toString();
-    const finalUrl = urlParts.toString();
-    console.log(finalUrl);
-    console.log(rawrequest);
-    return finalUrl;
-}
-
-async function addBearerTokenToRequest(rawrequest) {
-    console.log('addBearerTokenToRequest');
-    rawrequest.headers['Authorization'] = `Bearer ${rawrequest.authentication.bearerToken.token}`;
-}
-
-async function addBasicAuthToRequest(rawrequest) {
-    console.log('addBasicAuthToRequest');
-    var base64 = bytesToBase64(new TextEncoder().encode(`${rawrequest.authentication.basicAuth.userName}:${rawrequest.authentication.basicAuth.password}`)); // "YSDEgCDwkICAIOaWhyDwn6aE"
-    rawrequest.headers['Authorization'] = `Basic ${base64}`;
-}
-
-function bytesToBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
-    return btoa(binString);
-}
 
 function saveState(request) {
     console.log(app.getPath("userData"));
