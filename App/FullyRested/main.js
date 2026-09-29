@@ -3,7 +3,13 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('node:path')
 const fs = require('fs');
 const keytar = require('keytar');
-const { executeRequest } = require('@fullyrested/core');
+const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest } = require('@fullyrested/core');
+
+// Secret values live in the OS keychain, never in collection or request files
+const keychain = {
+    get: (service, account) => keytar.getPassword(service, account),
+    set: (service, account, value) => keytar.setPassword(service, account, value)
+};
 
 let win;
 
@@ -62,19 +68,19 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on("saveCollection", (event, request) => {
-        saveCollection(request);
+        saveCollection(request).catch(err => console.log(`saveCollection failed: ${err.message}`));
     });
 
     ipcMain.on("saveCollectionAs", (event, request) => {
-        saveCollectionAs(request);
+        saveCollectionAs(request).catch(err => console.log(`saveCollectionAs failed: ${err.message}`));
     });
 
     ipcMain.on("saveAsRequest", (event, request) => {
-        saveAsRequest(request);
+        saveAsRequest(request).catch(err => console.log(`saveAsRequest failed: ${err.message}`));
     });
 
     ipcMain.on("saveRequest", (event, request) => {
-        saveRequest(request);
+        saveRequest(request).catch(err => console.log(`saveRequest failed: ${err.message}`));
     });
 })
 
@@ -112,12 +118,10 @@ function readState() {
     }
 }
 
-function loadRequest(fullFilename) {
+async function loadRequest(fullFilename) {
     try {
-        console.log(fullFilename);
-        var request = fs.readFileSync(fullFilename);
-        console.log(request);
-        return JSON.parse(request);
+        var request = JSON.parse(fs.readFileSync(fullFilename));
+        return await loadSecrets(request, keychain, secretServiceForRequest(request.id));
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.log(`File not found!:[${fullFilename}]`);
@@ -194,8 +198,8 @@ async function loadCollectionFromFile(filename, name, path) {
             });
         });
 
-        var collectionConfig = await addSecrets(data);
-        console.log(collectionConfig);
+        var parsed = JSON.parse(data);
+        var collectionConfig = await loadSecrets(parsed, keychain, secretServiceForCollection(parsed.collectionGuid));
         win.webContents.send("loadCollectionResponse", { config: collectionConfig, filename: filename, name: name, path: path });
     }
     catch (err) {
@@ -203,18 +207,14 @@ async function loadCollectionFromFile(filename, name, path) {
     }
 }
 
-function saveCollection(request) {
-    console.log(`saveCollection`);
-    console.log(request);
-    var sanitised = sanitiseObject(request.config);
-    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4)); // Even making it async would not add more than a few lines
+async function saveCollection(request) {
+    var sanitised = await storeSecrets(request.config, keychain, secretServiceForCollection(request.config.collectionGuid));
+    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4));
     win.webContents.send("loadCollectionResponse", request);
 }
 
-function saveCollectionAs(request) {
-    console.log(request);
+async function saveCollectionAs(request) {
     var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Collection', extensions: ['reasycol'] }] });
-    console.log(userChosenPath);
     if (userChosenPath == undefined) {
         return;
     }
@@ -222,108 +222,25 @@ function saveCollectionAs(request) {
     request.filename = userChosenPath
     request.path = path.dirname(request.filename);
     request.name = path.basename(request.filename);
-    saveCollection(request);
+    await saveCollection(request);
 }
 
-async function addSecrets(data) {
-    var obj = JSON.parse(data);
-
-    await addPasswords(obj, buildKeytarService(obj));
-
-    return obj;
-}
-
-function sanitiseObject(collectionConfig) {
-    var serviceName = buildKeytarService(collectionConfig);
-
-    //make a copy
-    var copy = JSON.parse(JSON.stringify(collectionConfig));
-    stripPasswords(copy, serviceName);
-    return copy;
-}
-
-function stripPasswords(obj, serviceName) {
-    Object.keys(obj).forEach(key => {
-        // console.log(`key: [${key}], value: [${obj[key]}]`)
-
-        if (obj[key] === null) {
-            return;
-        }
-
-        if (typeof obj[key] === 'object') {
-            // console.log(`$secret: ${$secret}, $value: ${$value}`);
-            var $secret = obj[key]['$secret'];
-            var $value = obj[key]['$value'];
-
-            if ($secret && $value) {
-                console.log(`sanitise $secret[${$secret}] $value[${$value}] into [${serviceName}]`);
-                keytar.setPassword(serviceName, $secret, $value);
-                obj[key]['$value'] = undefined;
-            }
-
-            stripPasswords(obj[key], serviceName);
-        }
-    })
-}
-
-async function addPasswords(obj, serviceName) {
-    for await (const key of Object.keys(obj)) {
-        // Object.keys(obj).forEach(key => {
-        // console.log(`key: [${key}], value: [${obj[key]}]`)
-
-        if (obj[key] === null) {
-            return;
-        }
-
-        if (typeof obj[key] === 'object') {
-            // console.log(`$secret: ${$secret}, $value: ${$value}`);
-            var $secret = obj[key]['$secret'];
-
-            if ($secret) {
-                var $value = await keytar.getPassword(serviceName, $secret);
-                console.log(`retrieve $secret[${$secret}] from [${serviceName}]`);
-                console.log($value);
-                obj[key]['$value'] = $value;
-                console.log(obj[key]);
-            }
-
-            await addPasswords(obj[key], serviceName);
-        }
-    }
-}
-
-function buildKeytarService(collectionConfig) {
-    return `fullyrested-collection-${collectionConfig.collectionGuid}`;
-}
-
-function saveAsRequest(request) {
-    // app.getPath("desktop")       // User's Desktop folder
-    // app.getPath("documents")     // User's "My Documents" folder
-    // app.getPath("downloads")     // User's Downloads folder
-
-    //    var toLocalPath = path.resolve(app.getPath("desktop"), path.basename(remoteUrl);
-
-    // defaultPath: toLocalPath, 
-    console.log(request);
+async function saveAsRequest(request) {
     var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Projects', extensions: ['reasyreq'] }] });
-    console.log(userChosenPath);
     if (userChosenPath == undefined) {
         return;
     }
-    fs.writeFileSync(userChosenPath, JSON.stringify(request, null, 4));
+    var sanitised = await storeSecrets(request, keychain, secretServiceForRequest(request.id));
+    fs.writeFileSync(userChosenPath, JSON.stringify(sanitised, null, 4));
     if (request.name.startsWith("<unnamed")) {
-        console.log(request.name);
         var basename = path.basename(userChosenPath);
-        console.log(basename);
         request.name = basename.substring(0, basename.length - 9);
-        console.log(request.name);
     }
     win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }
 
-function saveRequest(request) {
-    console.log(request);
-
-    fs.writeFileSync(request.fullFilename, JSON.stringify(request.action, null, 4));
+async function saveRequest(request) {
+    var sanitised = await storeSecrets(request.action, keychain, secretServiceForRequest(request.action.id));
+    fs.writeFileSync(request.fullFilename, JSON.stringify(sanitised, null, 4));
     win.webContents.send("savedAsCompleted", { id: request.action.id, fullFilename: request.fullFilename, name: request.action.name });
-};
+}
