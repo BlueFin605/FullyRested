@@ -45,9 +45,3 @@ function lookup(name: string, variables: VariableTable[] | undefined, secrets: S
   return variables?.find(v => v.active == true && v.variable == name)?.value ?? '';
 }
 
-// Kept for the Angular ValidateResponseService until validation moves into core
-export class VariableSubstitution {
-  public replaceVariables(text: string, variables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
-    return substituteText(text, variables, secrets);
-  }
-}
