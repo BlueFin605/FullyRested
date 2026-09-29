@@ -3,7 +3,10 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('node:path')
 const fs = require('fs');
 const keytar = require('keytar');
-const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest } = require('@fullyrested/core');
+const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
+
+// dialog filters want extensions without the dot
+const withoutDot = extensions => extensions.map(e => e.substring(1));
 
 // Secret values live in the OS keychain, never in collection or request files
 const keychain = {
@@ -154,7 +157,7 @@ function walkSync(dir, filter, tree) {
 }
 
 async function loadCollection() {
-    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'FullyRested Projects', extensions: ['reasycol'] }] });
+    var file = await dialog.showOpenDialog(win, { filters: [{ name: 'FullyRested Collections', extensions: withoutDot(COLLECTION_FILE_EXTENSIONS) }] });
 
     try {
         if (file.canceled == false) {
@@ -195,7 +198,7 @@ async function saveCollection(request) {
 }
 
 async function saveCollectionAs(request) {
-    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Collection', extensions: ['reasycol'] }] });
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Collection', extensions: withoutDot(COLLECTION_FILE_EXTENSIONS.slice(0, 1)) }] });
     if (userChosenPath == undefined) {
         return;
     }
@@ -207,7 +210,7 @@ async function saveCollectionAs(request) {
 }
 
 async function saveAsRequest(request) {
-    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Projects', extensions: ['reasyreq'] }] });
+    var userChosenPath = dialog.showSaveDialogSync({ defaultPath: request.name, filters: [{ name: 'FullyRested Request', extensions: withoutDot(ACTION_FILE_EXTENSIONS.slice(0, 1)) }] });
     if (userChosenPath == undefined) {
         return;
     }
@@ -215,7 +218,7 @@ async function saveAsRequest(request) {
     fs.writeFileSync(userChosenPath, JSON.stringify(sanitised, null, 4));
     if (request.name.startsWith("<unnamed")) {
         var basename = path.basename(userChosenPath);
-        request.name = basename.substring(0, basename.length - 9);
+        request.name = basename.substring(0, basename.length - path.extname(basename).length);
     }
     win.webContents.send("savedAsCompleted", { id: request.id, fullFilename: userChosenPath, name: request.name });
 }

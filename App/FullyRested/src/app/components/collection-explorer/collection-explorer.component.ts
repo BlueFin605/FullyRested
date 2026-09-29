@@ -1,7 +1,7 @@
 import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
 import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { Collection, CurrentState, REConstants, TraversedDrectory, RestAction, File } from '@fullyrested/core';
+import { ACTION_FILE_EXTENSIONS, Collection, CurrentState, TraversedDrectory, RestAction, File } from '@fullyrested/core';
 
 export interface SelectedTreeItem {
   // id: string;
@@ -70,7 +70,7 @@ export class CollectionExplorerComponent implements OnInit {
   }
 
   async rebuildTree(collection: Collection, state: CurrentState): Promise<boolean> {
-    var dir = await this.repo.traverseDirectory(collection.path, [REConstants.ActionExtension]);
+    var dir = await this.repo.traverseDirectory(collection.path, ACTION_FILE_EXTENSIONS);
     this.items = [await this.buildTreeview(dir, collection.name, state)];
     this.expandTree(this.items);
     return true;
