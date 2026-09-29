@@ -25,7 +25,7 @@ const createWindow = () => {
     if (!app.isPackaged)
         win.webContents.openDevTools();
 
-    win.loadFile('dist/rest-easy/index.html');
+    win.loadFile('dist/fullyrested/index.html');
 }
 
 app.whenReady().then(() => {

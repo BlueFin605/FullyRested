@@ -9,7 +9,7 @@ import { ExecuteRestAction, IExecuteRestAction } from "@fullyrested/core"
 
 const program = new Command();
 
-console.log(figlet.textSync("Rest Easy Runner"));
+console.log(figlet.textSync("FullyRested"));
 
 program
   .version("1.0.0")
