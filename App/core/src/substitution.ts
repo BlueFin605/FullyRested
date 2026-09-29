@@ -45,3 +45,11 @@ function lookup(name: string, variables: VariableTable[] | undefined, secrets: S
   return variables?.find(v => v.active == true && v.variable == name)?.value ?? '';
 }
 
+
+const SECRET_REFERENCE = /\{\{\$[0-9a-zA-Z]*?\}\}/g;
+
+// True when a credential field holds a literal value rather than only {{$secret}} references.
+// Literal values (and {{variables}}) end up in plain text in collection and request files.
+export function isRawCredential(value: string | undefined): boolean {
+  return (value ?? '').replace(SECRET_REFERENCE, '').trim() != '';
+}

@@ -9,6 +9,7 @@
         <mat-form-field class="basicauth-field">
             <mat-label>Password</mat-label>
             <input matInput placeholder="Input" [(ngModel)]="basicauth.password" (ngModelChange)="onChange($event)">
+            <mat-hint class="raw-credential" *ngIf="raw(basicauth.password)">{{ rawCredentialHint }}</mat-hint>
         </mat-form-field>
     </div>
 </div>
