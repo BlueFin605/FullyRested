@@ -22,7 +22,8 @@ const createWindow = () => {
         }
     })
 
-    win.webContents.openDevTools();
+    if (!app.isPackaged)
+        win.webContents.openDevTools();
 
     win.loadFile('dist/rest-easy/index.html');
 }
@@ -82,11 +83,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
-
-ipcMain.on("navigateDirectory", (event, path) => {
-    process.chdir(path);
-    getDirectory();
-});
 
 function saveState(request) {
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
