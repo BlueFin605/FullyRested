@@ -5,9 +5,9 @@ import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
 
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '../../../../../../../shared/runner';
-import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '../../../../../../../shared/runner';
-import { ExecuteRestAction, IExecuteRestAction } from '../../../../../../../shared/builder/src';
+import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '@fullyrested/core';
+import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '@fullyrested/core';
+import { ExecuteRestAction, IExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request',

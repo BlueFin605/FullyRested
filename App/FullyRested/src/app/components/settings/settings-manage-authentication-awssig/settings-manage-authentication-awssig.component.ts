@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsAwsSig } from '../../../../../../shared/runner';
-import { AuthenticationDetailsAWSSig } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsAwsSig } from '@fullyrested/core';
+import { AuthenticationDetailsAWSSig } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication-awssig',

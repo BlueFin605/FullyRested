@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { VariableTable } from '../../../../../../shared/runner';
+import { VariableTable } from '@fullyrested/core';
 
 const COLUMNS_SCHEMA = [
   {

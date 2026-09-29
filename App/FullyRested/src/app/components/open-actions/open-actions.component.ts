@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
-import { LocalRestSession, LocalRestAction, CurrentState, RecentFile, Collection, Environment, AuthenticationDetails, ValidationType } from '../../../../../shared/runner'
-import { CreateEmptyEnvironment, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from '../../../../../shared/runner'
+import { LocalRestSession, LocalRestAction, CurrentState, RecentFile, Collection, Environment, AuthenticationDetails, ValidationType } from '@fullyrested/core'
+import { CreateEmptyEnvironment, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from '@fullyrested/core'
 import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, CollectionExplorerComponent } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';

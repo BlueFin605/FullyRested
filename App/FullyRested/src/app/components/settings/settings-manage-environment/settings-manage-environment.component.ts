@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetails } from '../../../../../../shared/runner';
-import { Environment } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
+import { Environment } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-environment',

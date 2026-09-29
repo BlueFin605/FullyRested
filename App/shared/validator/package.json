@@ -1,7 +1,0 @@
-{
-  "main": "dist/index.js",
-  "dependencies": {
-  },
-  "devDependencies": {
-  }
-}

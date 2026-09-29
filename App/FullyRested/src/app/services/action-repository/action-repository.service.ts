@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { SystemSupportService } from '../system-support/system-support.service';
-import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '../../../../../shared/runner';
-import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
+import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '@fullyrested/core';
 
 
 @Injectable({

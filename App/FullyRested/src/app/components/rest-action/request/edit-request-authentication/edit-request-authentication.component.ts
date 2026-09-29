@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetails } from '../../../../../../../shared/runner';
-import { AuthenticationDetails } from '../../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
+import { AuthenticationDetails } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request-authentication',

@@ -1,11 +1,11 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
-import { Collection, RestAction, RestActionRun, ValidationType } from '../../../../../../shared/runner';
+import { Collection, RestAction, RestActionRun, ValidationType } from '@fullyrested/core';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { CreateEmptyRestActionRun, CreateEmptyAction } from '../../../../../../shared/runner';
+import { CreateEmptyRestActionRun, CreateEmptyAction } from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { ExecuteRestAction, RestActionResult } from '../../../../../../shared/builder/src';
+import { ExecuteRestAction, RestActionResult } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action-run',

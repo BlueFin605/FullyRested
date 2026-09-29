@@ -1,0 +1,17 @@
+{
+  "name": "@fullyrested/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FullyRested request model, variable substitution, execution and validation - shared by the desktop app and the CLI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "~5.4.5",
+    "vitest": "^2.1.9"
+  }
+}

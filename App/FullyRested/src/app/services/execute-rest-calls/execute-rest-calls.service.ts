@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
-import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
+import { AuthenticationDetails, Collection, Environment } from '@fullyrested/core';
+import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '@fullyrested/core';
 
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };

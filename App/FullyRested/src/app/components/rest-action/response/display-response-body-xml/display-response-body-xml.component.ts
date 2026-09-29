@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
-import { RestActionResultBody } from '../../../../../../../shared/builder/src';
+import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-display-response-body-xml',

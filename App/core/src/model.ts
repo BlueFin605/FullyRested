@@ -1,6 +1,3 @@
-// https://wallis.dev/blog/typescript-project-references
-// https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
-
 export const REConstants = {
     CollectionExtension: ".reasycol",
     ActionExtension: ".reasyreq"
@@ -298,3 +295,9 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   export interface guidGenerator {
     generateGUID(): string;
   }
+
+export interface ResponseValidation {
+  information: string[];
+  errors: string[];
+  valid: boolean;
+}

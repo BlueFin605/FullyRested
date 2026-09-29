@@ -1,10 +1,10 @@
 import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
-import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
+import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
-import { ExecuteRestAction } from '../../../../../../../shared/builder/src';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request-run',

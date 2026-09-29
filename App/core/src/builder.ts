@@ -1,6 +1,4 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
-import { ResponseValidation } from '../../validator'
-import { RestTypeVerb, HttpProtocol } from '../../runner'
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
 
 const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
 

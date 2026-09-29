@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsBearerToken } from '../../../../../../shared/runner';
-import { AuthenticationDetailsBearerToken } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsBearerToken } from '@fullyrested/core';
+import { AuthenticationDetailsBearerToken } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication-bearer-token',

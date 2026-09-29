@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { OutputUnit, addSchema, validate } from "@hyperjump/json-schema/draft-2020-12";
 import { ContentTypeHelperService } from '../content-type-helper/content-type-helper.service';
-import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '../../../../../shared/runner';
-import { IExecuteRestAction, RestActionResult, VariableSubstitution } from '../../../../../shared/builder/src';
-import { ResponseValidation } from '../../../../../shared/validator/src';
+import { Collection, ValidationType, RestActionValidation, ValidationTypeBody } from '@fullyrested/core';
+import { IExecuteRestAction, RestActionResult, VariableSubstitution } from '@fullyrested/core';
+import { ResponseValidation } from '@fullyrested/core';
 
 
 @Injectable({
