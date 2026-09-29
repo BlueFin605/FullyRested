@@ -30,7 +30,6 @@ export class ExecuteRestCallsService {
       return this.BuildMockData(replaced);
 
     var response = await this.getIpcRenderer().invoke('testRest', replaced);
-    console.log(response);
     return response;
   }
 
@@ -38,7 +37,6 @@ export class ExecuteRestCallsService {
     var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
     var actionWithAuth = action.authentication_pushBack(env?.auth)
                                .authentication_pushBack(collection?.config.collectionEnvironment.auth);
-    console.log(actionWithAuth);
     return actionWithAuth;
   }
 

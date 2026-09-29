@@ -7,7 +7,6 @@ const {contextBridge,ipcRenderer} = require("electron");
 contextBridge.exposeInMainWorld(
     "ipc", {
         send: (channel, data) => {
-            console.log(`send[${channel}][${data}]`);
             // whitelist channels
             let validChannels = ["loadCollection","loadCollectionFromFile","saveState", "saveCollection", "saveAsRequest", "saveRequest", "saveCollection", "saveCollectionAs"];
             if (validChannels.includes(channel)) {
@@ -15,7 +14,6 @@ contextBridge.exposeInMainWorld(
             }
         },
         receive: (channel, func) => {
-            console.log(`receieve[${channel}][${func}]`);
             let validChannels = ["loadCollectionResponse", "savedAsCompleted"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
@@ -25,7 +23,6 @@ contextBridge.exposeInMainWorld(
             }
         },
         invoke: (channel, args) => {
-            console.log(`invoke[${channel}][${args}]`);
             let validChannels = ["testRest", "readState", "traverseDirectory", "loadRequest"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);

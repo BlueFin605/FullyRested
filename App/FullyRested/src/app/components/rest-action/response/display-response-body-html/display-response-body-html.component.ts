@@ -21,7 +21,6 @@ export class DisplayResponseBodyHtmlComponent implements OnInit {
 
     this.rawhtml = this.contentTypeHelper.convertArrayBufferToString(body.contentType, body.body);
     this.formattedhtml = this.formatCode(this.rawhtml, true, true);
-    // console.log(this.formattedhtml);
   }
 
   constructor(private contentTypeHelper: ContentTypeHelperService) {
@@ -31,7 +30,6 @@ export class DisplayResponseBodyHtmlComponent implements OnInit {
   }
 
   onViewChange(event:any){
-    console.log(event);
     this.selectedview = event.value;
   }
 

@@ -44,8 +44,6 @@ export class CollectionExplorerComponent implements OnInit {
       return;
     }
 
-    console.log('set collection');
-    console.log(collection);
     this._collection = collection;
     if (this.state != undefined)
       this.rebuildTree(collection, this.state);
@@ -75,7 +73,6 @@ export class CollectionExplorerComponent implements OnInit {
     var dir = await this.repo.traverseDirectory(collection.path, [REConstants.ActionExtension]);
     this.items = [await this.buildTreeview(dir, collection.name, state)];
     this.expandTree(this.items);
-    console.log(this.items);
     return true;
   }
 
@@ -186,7 +183,6 @@ export class CollectionExplorerComponent implements OnInit {
   }
 
   onClick($event: TreeviewItem) {
-    console.log(`onClick:[${$event.value.key}][${$event.value.type}]`);
     this.selected = $event.value.key;
     this.selectedChange.emit(this.selected);
 
@@ -200,7 +196,6 @@ export class CollectionExplorerComponent implements OnInit {
   }
   
   onDblClick($event: TreeviewItem) {
-    console.log(`onDblClick:[${$event.value.key}][${$event.value.type}]`);
     
     if (this.openActionFile(false, $event) == true)
       return;

@@ -23,7 +23,6 @@ export class SettingsManageAuthenticationComponent implements OnInit {
 
   onChange($event: any)
   {
-    console.log($event);
     this.authChange.emit(this.auth);
   }
 }

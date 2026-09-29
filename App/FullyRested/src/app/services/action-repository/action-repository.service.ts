@@ -15,7 +15,6 @@ export class ActionRepositoryService {
   savedAs = new BehaviorSubject<SavedAsCompleted | undefined>(undefined);
 
   constructor(private systemSupport: SystemSupportService) {
-    console.log('ActionRepositoryService ctor');
 
     if (this.getIpcRenderer() == undefined)
       return;
@@ -96,7 +95,6 @@ export class ActionRepositoryService {
   }
 
   public createNewAction(max: number): LocalRestAction {
-    console.log(max);
     var action: LocalRestAction = CreateEmptyLocalAction();
     action.action.id = this.systemSupport.generateGUID();
     if (isFinite(max) == false)
@@ -127,7 +125,6 @@ export class ActionRepositoryService {
     //  if (state.actions.length == 0)
     //     state.actions.push(CreateEmptyLocalAction());
 
-    console.log(state);
     return state;
   }
 
@@ -157,7 +154,6 @@ export class ActionRepositoryService {
       return CreateEmptyAction();
 
     if (this.getIpcRenderer() == undefined) {
-      console.log('send Mock action');
       return this.mockRequest(fullFilename);
     }
 
@@ -168,7 +164,6 @@ export class ActionRepositoryService {
 
   public async loadCollection() {
     if (this.getIpcRenderer() == undefined) {
-      console.log('send Mock collection');
       this.collections.next(this.mockCollection());
       return;
     }
@@ -184,7 +179,6 @@ export class ActionRepositoryService {
 
   public async loadCollectionFromFile(file: RecentFile) {
     if (this.getIpcRenderer() == undefined) {
-      console.log('send Mock');
       this.collections.next(this.mockCollection());
       return;
     }

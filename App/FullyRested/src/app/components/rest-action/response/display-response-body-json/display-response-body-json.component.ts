@@ -25,7 +25,6 @@ export class DisplayResponseBodyJsonComponent implements OnInit {
       this.objData = JSON.parse(this.rawData);
      }
      catch (error) {
-      console.log(`Invalid JSON[${this.rawData}]`);
       this.objData = {};
      }
   }

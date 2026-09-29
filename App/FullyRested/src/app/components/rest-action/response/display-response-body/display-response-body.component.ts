@@ -18,14 +18,12 @@ export class DisplayResponseBodyComponent implements OnInit {
   }
 
   get responseType(): string {
-      //  console.log(`responseType[${this.body?.contentType}]`);
     if (this.body == undefined) {
       return 'unknown';
     }
 
     var type = this.contentTypeHelper.decode(this.body.contentType);
 
-    // console.log(type);
 
     switch (type.part1) {
       case 'application':

@@ -21,8 +21,6 @@ export class SettingsManageEnvironmentComponent implements OnInit {
   }
 
   modelChange(name: string) {
-    console.log(`modelChange[${name}]`);
-    console.log(this.environment);
     this.environmentChange.emit(this.environment);
   }
 }

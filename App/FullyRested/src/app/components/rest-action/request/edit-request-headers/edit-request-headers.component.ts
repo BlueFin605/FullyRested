@@ -62,7 +62,6 @@ export class EditRequestHeadersComponent implements OnInit {
 
   add() {
     this.headers = [...this.headers, { key: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
-    console.log(this.headers);
     this.headersChange.emit(this.headers);
   }
 

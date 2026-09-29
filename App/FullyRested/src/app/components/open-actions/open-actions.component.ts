@@ -38,8 +38,6 @@ export class OpenActionsComponent implements OnInit {
 
   constructor(private repo: ActionRepositoryService, private appRef: ApplicationRef, private systemSupport: SystemSupportService) {
     this.repo.collections.subscribe(s => {
-      console.log(`this.repo.collections.subscribe => [${JSON.stringify(s)}]`);
-      console.log(this.state);
       this.collection = s;
       // this.appRef.tick();
       if (s != undefined && s.filename.length > 0) {
@@ -54,11 +52,9 @@ export class OpenActionsComponent implements OnInit {
         this.tabs.realignInkBar(); // re-align the bottom border of the tab
       });
   
-      console.log(`this.repo.collections.subscribe, sent`)
     });
 
     this.repo.savedAs.subscribe(a => {
-      console.log(`this.repo.savedAs.subscribe => [${JSON.stringify(a)}]`);
 
       if (a == undefined)
         return;
@@ -80,7 +76,6 @@ export class OpenActionsComponent implements OnInit {
   ngOnInit(): void {
     this.repo.getCurrentState().then(s => {
       this.state = s;
-      // console.log(`tabs:[${this.tabs}]`)
       this.tabs.selectedIndex = 0;
     });
   }
@@ -103,7 +98,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   public currentSession(): LocalRestSession {
-    // console.log(`currentSession:[${this.collection?.config?.collectionGuid}]`);
 
     if (this.collection?.config?.collectionGuid == undefined)
       return this.locateSession("nocollection");
@@ -136,52 +130,42 @@ export class OpenActionsComponent implements OnInit {
   }
 
   onActionChange(event: LocalRestAction) {
-    console.log(event);
-    // console.log('set dirty');
     this.repo.saveCurrentState(this.state);
   }
 
   onDirtyChange(event: LocalRestAction, dirty: boolean) {
-    console.log(`onDirtyChange(${dirty})`);
     event.dirty = dirty;
   }
 
   onNameChange(event: LocalRestAction, name: string) {
-    console.log(`onNameChange(${name})`);
     this.rebuildTree();
   }
 
   openCollection() {
-    console.log('openCollection');
     this.repo.loadCollection();
   }
 
   newCollection() {
-    console.log('newCollection');
     this.repo.newCollection();
   }
 
   saveCollection() {
     if (this.collection == undefined)
       return;
-    console.log('saveCollection');
     this.repo.saveCollection(this.collection);
   }
 
   saveCollectionAs() {
     if (this.collection == undefined)
       return;
-    console.log('saveCollection');
     this.repo.saveCollectionAs(this.collection);
   }
 
   closeCollection() {
-    console.log('closeCollection');
     this.collection = undefined;
   }
 
   newRequest() {
-    console.log('newRequest');
     var count = Math.max(...this.currentSession().actions.filter(f => f.action.name.startsWith('new request'))
       .map(s => s.action.name.substring(12))
       .map(m => m.length == 0 ? 1 : parseInt(m))
@@ -204,7 +188,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   saveRequest() {
-    console.log(`save[${this.tabs?.selectedIndex}]`)
 
     if (this.tabs?.selectedIndex == null)
       return;
@@ -214,21 +197,17 @@ export class OpenActionsComponent implements OnInit {
   }
 
   openSoution(file: RecentFile) {
-    console.log(`openCollection:[${JSON.stringify(file)}]`);
     this.repo.loadCollectionFromFile(file);
   }
 
   openAction(selected: SelectedTreeItem) {
-    console.log(`openAction:[${selected.key}] activeTab[${selected.activeTab}]`);
 
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedTab = { selectedType: selected?.type, selectedSubType: selected?.subtype, selectedKey: selected?.key, runkey: selected?.runkey };
 
     var existingTab = this.currentSession().actions.findIndex(a => a.fullFilename == selected.key);
     if (existingTab != -1) {
-      console.log(`updating existing tab[${existingTab}] with activeTab[${selected.activeTab}] this.currentSession().actions[existingTab].activeTab}] [${this.currentSession().actions[existingTab].activeTab}]`);
       this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
-      console.log(this.currentSession().actions[existingTab]);
       this.tabs.selectedIndex = existingTab;
       this.repo.saveCurrentState(this.state);
       return;
@@ -236,21 +215,18 @@ export class OpenActionsComponent implements OnInit {
 
     this.repo.loadRequest(selected.key).then(a => {
       var activeTab = this.currentSession().actions.findIndex(a => a.activeTab);
-      console.log(`selected.activeTab[${selected.activeTab}] activeTab[${activeTab}] selected.key[${selected.key}]`)
 
       if (activeTab != -1) {
         this.currentSession().actions[activeTab].activeTab = false;
       }
 
       if (selected.activeTab && activeTab != -1 && this.currentSession().actions[activeTab].dirty == false) {
-        console.log(`overwriting existing active tab`);
         var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions[activeTab] = newAction;
         setTimeout(() => {
           this.tabs.selectedIndex = activeTab;
         });
       } else {
-        console.log(`opening to new tab`);
         this.currentSession().actions.forEach(a => a.activeTab = false);
         var newAction: LocalRestAction = { action: a, dirty: false, activeTab: selected.activeTab, fullFilename: selected.key };
         this.currentSession().actions.push(newAction);
@@ -263,8 +239,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   openSystem(selected: SelectedTreeItem) {
-    console.log(selected);
-    console.log(this.collection?.config?.environments);
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedTab = { selectedType: selected?.type, selectedSubType: selected?.subtype, selectedKey: selected?.key, runkey: undefined };
 
@@ -301,14 +275,12 @@ export class OpenActionsComponent implements OnInit {
                 this.selectedEnvironment = CreateEmptyEnvironment();
               }
 
-    console.log(this.selectedEnvironment);
   }
 
   createEnvironment() {
     if (this.collection == undefined)
       return;
 
-    console.log('createEnvironment');
     var env: Environment = {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
@@ -317,54 +289,41 @@ export class OpenActionsComponent implements OnInit {
       auth: CreateEmptyAuthenticationDetails('inherit')
     };
     this.collection.config.environments.push(env);
-    console.log(this.collection);
     this.repo.storeCollection(this.collection);
   }
 
   deleteEnvironment() {
-    console.log('deleteEnvironment');
     if (this.collection == undefined)
       return;
 
-    console.log(this.collection.config);
-    console.log(this.selectedEnvironment);
     this.collection.config.environments = this.collection.config.environments.filter(f => f.name != this.selectedEnvironment.name);
-    console.log(this.collection);
     this.repo.storeCollection(this.collection);
   }
 
   createRun() {
-    console.log(`createRun`);
 
     var existingTab = this.currentSession().actions.find(a => a.fullFilename == this.selectedTab.selectedKey);
     if (existingTab == undefined) {
-      console.log('Odd!!! - tab is not Not Found Error, it should be open, cannot add run');
       return;
     }
 
-    console.log(`adding run to tab[${existingTab}]`);
     existingTab.action.runs.push(CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit));
     existingTab.dirty = true;
     // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
-    console.log(existingTab);
     this.repo.saveCurrentState(this.state);
     this.rebuildTree();
   }
 
   deleteRun() {
-    console.log(this.selectedTab);
 
     var existingTab = this.currentSession().actions.find(a => a.fullFilename == this.selectedTab.selectedKey);
     if (existingTab == undefined) {
-      console.log('Odd!!! - tab is not Not Found Error, it should be open, cannot remove run');
       return;
     }
-    console.log(`adding run to tab[${existingTab}]`);
     existingTab.action.runs = existingTab.action.runs.filter(r => r.id != this.selectedTab.runkey);
     this.selectedTab = { ...this.selectedTab, runkey: undefined };
     existingTab.dirty = true;
     // this.currentSession().actions[existingTab].activeTab = selected.activeTab && this.currentSession().actions[existingTab].activeTab;
-    console.log(existingTab);
     this.repo.saveCurrentState(this.state);
     this.rebuildTree();
   }
@@ -374,7 +333,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   actionsVisible(): boolean {
-    // console.log(`actionVisible[${this.selectedType}][${this.selectedSubType}]`);
     if (this.selectedTab.selectedType == 'dir' && this.selectedTab.selectedSubType == 'system.settings.environments')
       return false;
 
@@ -385,7 +343,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   variablesVisible(): boolean {
-    // console.log(`variablesVisible[${this.selectedType}][${this.selectedSubType}]`);
     if (this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == "variables")
       return true;
 
@@ -393,7 +350,6 @@ export class OpenActionsComponent implements OnInit {
   }
 
   authenticationVisible(): boolean {
-    // console.log(`authenticationVisible[${this.selectedType}][${this.selectedSubType}]`);
     if (this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == "authentication")
       return true;
 
@@ -420,9 +376,6 @@ export class OpenActionsComponent implements OnInit {
 
     var solenv = this.collection.config.environments.findIndex(e => e.id == env.id);
     this.collection.config.environments[solenv] = env;
-    console.log(this.collection);
-    console.log(env);
-    console.log(this.selectedEnvironment);
     this.repo.storeCollection(this.collection);
   }
 
@@ -430,9 +383,7 @@ export class OpenActionsComponent implements OnInit {
     if (this.tabs?.selectedIndex == null)
       return;
 
-    console.log($event);
     var action = this.currentSession().actions[this.tabs.selectedIndex];
     this.explorerSelected = action.fullFilename;
-    console.log(`explorerSelected after[${this.explorerSelected}]`);
   }
 }

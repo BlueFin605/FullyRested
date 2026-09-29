@@ -30,7 +30,6 @@ export class DisplayResponseBodyXmlComponent implements OnInit {
   }
  
   onViewChange(event:any){
-    console.log(event);
     this.selectedview = event.value;
   } 
 

@@ -38,9 +38,7 @@ export class EditRequestValidationComponent implements OnInit {
       case ValidationTypeBody.JsonSchema:
         {
           const str = validation?.jsonSchema?.schema ?? '{}';
-          console.log(`set schema[${str}]`);
           this.jsonObj = JSON.parse(str);
-          console.log(this.jsonObj);
         }
     }
   }
@@ -60,9 +58,7 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
   onPayloadTypeChange(event: any) {
-    console.log(event);
     this.visibleSchema.body = event.value;
-    console.log(this.visibleSchema);
 
     switch (this.visibleSchema.body) {
       case ValidationTypeBody.JsonSchema:
@@ -79,29 +75,22 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
   onTypeChange(event: any) {
-    console.log(event);
     this.visibleSchema.type = event.value;
     this.validationChange.emit(this.visibleSchema);
   }
 
   onHeadersChange(event: HeaderTable[]) {
-    // console.log(event);    
     this.validationChange.emit(this.visibleSchema);
   }
 
 
   updateData(d: Event) {
-    console.log('updateData');
-    console.log(this.jsonObj);
-    console.log(JSON.stringify(d));
-    console.log(`[u]valid json:${this.schemaChild?.isValidJson()}`);
 
     //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the schema to be set to this, you are kind of stuffed if this is what you want your payload to be 
     if (d.isTrusted == true || this.visibleSchema.jsonSchema == undefined)
       return;
 
     this.visibleSchema.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';
-    console.log(JSON.stringify(this.visibleSchema));
     this.validationChange.emit(this.visibleSchema);
   }
 

@@ -27,9 +27,7 @@ export class EditRequestBodyComponent implements OnInit {
       case 'application/json':
         {
           const str = body?.body ?? '{}';
-          console.log(`set body[${str}]`);
           this.jsonObj = JSON.parse(str);
-          console.log(this.jsonObj);
         }
     }
   }
@@ -49,9 +47,7 @@ export class EditRequestBodyComponent implements OnInit {
   }
 
   onContentTypeChange(event: any) {
-    console.log(event);
     this.visibleData.contentType = event.value;
-    console.log(this.visibleData);
 
     switch(this.visibleData.contentType)
     {
@@ -61,9 +57,7 @@ export class EditRequestBodyComponent implements OnInit {
             this.visibleData.body = '{}';
             this.jsonObj = {};
           // const str = body?.body ?? '{}';
-          // console.log(`set body[${str}]`);
           // this.jsonObj = JSON.parse(str);
-          // console.log(this.jsonObj);
         }
     }
 
@@ -72,17 +66,12 @@ export class EditRequestBodyComponent implements OnInit {
   }
 
   updateData(d: Event) {
-    console.log('updateData');
-    console.log(this.jsonObj);
-    console.log(JSON.stringify(d));
-    console.log(`[u]valid json:${this.bodyChild?.isValidJson()}`);
 
     //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the body to be set to this, you are kind of stuffed if this is what you want your payload to be 
     if (d.isTrusted == true)
       return;
 
     this.visibleData.body = this.bodyChild?.getText() ?? '{}';
-    console.log(JSON.stringify(this.visibleData));
     this.bodyChange.emit(this.visibleData);
   }
 }

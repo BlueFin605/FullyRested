@@ -14,7 +14,6 @@ const keychain = {
 let win;
 
 const createWindow = () => {
-    console.log('createWindow');
     win = new BrowserWindow({
         width: 800,
         height: 600,
@@ -26,7 +25,6 @@ const createWindow = () => {
     win.webContents.openDevTools();
 
     win.loadFile('dist/rest-easy/index.html');
-    console.log('createWindow, done');
 }
 
 app.whenReady().then(() => {
@@ -49,17 +47,14 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle("traverseDirectory", (event, request) => {
-        console.log('ipcMain.handle -> traverseDirectory');
         return traverseDirectory(request);
     });
 
     ipcMain.on("loadCollection", (event, request) => {
-        console.log('ipcMain.handle -> loadCollection');
         return loadCollection();
     });
 
     ipcMain.on("loadCollectionFromFile", (event, request) => {
-        console.log('ipcMain.handle -> loadCollectionFromFile');
         return loadCollectionFromFile(request.fullFileName, request.name, request.path);
     });
 
@@ -94,8 +89,6 @@ ipcMain.on("navigateDirectory", (event, path) => {
 });
 
 function saveState(request) {
-    console.log(app.getPath("userData"));
-    //  console.log(userPath);
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
     //    Just curious but what's the advantage of electron-json-storage vs just 
     // var someObj = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }))
@@ -104,9 +97,7 @@ function saveState(request) {
 
 function readState() {
     try {
-        console.log(buildStateFilename());
         var state = fs.readFileSync(buildStateFilename());
-        console.log(state);
         return JSON.parse(state);
     } catch (err) {
         if (err.code === 'ENOENT') {
@@ -137,7 +128,6 @@ function buildStateFilename() {
 }
 
 function traverseDirectory(request) {
-    console.log(`function traverseDirectory[${request.pathname}][${request.filter}]`);
 
     // var path = app.getPath("userData");
     //var path = `/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src`;
@@ -147,8 +137,6 @@ function traverseDirectory(request) {
 
     walkSync(request.pathname, request.filter, tree);
     // var json = JSON.stringify(tree);
-    // console.log(json);
-    console.log(`function traverseDirectory[${request.pathname}][${request.filter}], completed`);
     return tree;
 }
 
@@ -173,7 +161,6 @@ async function loadCollection() {
     var file = await dialog.showOpenDialog(win, { filters: [{ name: 'FullyRested Projects', extensions: ['reasycol'] }] });
 
     try {
-        console.log(file);
         if (file.canceled == false) {
             var filename = file.filePaths[0];
             var pathname = path.dirname(filename);
@@ -188,9 +175,7 @@ async function loadCollection() {
 async function loadCollectionFromFile(filename, name, path) {
     try {
         var data = await new Promise((accept, reject) => {
-            console.log(`loadCollectionFromFile(${filename}, ${name}, ${path})`);
             fs.readFile(filename, (err, data) => {
-                console.log(`loadCollectionFromFile response (${err},${data}`);
                 if (err)
                     reject(err);
 

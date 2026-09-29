@@ -66,8 +66,6 @@ export class SettingsManageSecretsComponent implements OnInit {
   }
 
   modelChangeFn(value: any) {
-    // console.log(value);
-    // console.log(this.environment);
     this.secretsChange.emit(this.secrets);
   }
 }
