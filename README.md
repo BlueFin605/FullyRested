@@ -38,13 +38,8 @@ I like Postman, but it falls short in a few places:
 |---|---|
 | Desktop app (Electron + Angular) | Working: edit, run, validate and save requests and collections |
 | Shared core (`App/core`) | Holds the model, substitution, authentication, execution, validation and secret handling. Covered by unit tests |
-| CLI (`App/cli-command`) | **Stub.** It parses options and prints a banner but doesn't run anything yet |
+| CLI (`App/cli-command`) | Working: `fullyrested run` sends a request, one run, or a whole collection, and reports pass or fail |
 | Request chaining | **Not built yet.** Runs (named variants of a request) exist, but one request can't feed values into the next |
-
-Before the CLI can run requests, the step that works out a request's final
-settings (run, then request, then environment, then collection) has to move
-from the Angular components into core. [`SYSDOC.md`](SYSDOC.md) shows
-exactly which steps are shared today.
 
 ## Concepts
 
@@ -94,14 +89,49 @@ npm run electron
 
 Then open `Test Collection/my collection.frcol` to try the example requests.
 
-Build the CLI (currently a stub):
+Build the CLI and put `fullyrested` on your PATH:
 
 ```sh
 cd App/cli-command
 npm install
 npm run build
-node dist/index.js --help
+npm link
 ```
+
+(`npm unlink -g fullyrested-cli` removes it again. Without linking, run
+`node dist/index.js` in place of `fullyrested`.)
+
+## Command-line runner
+
+```sh
+# one request, using the collection's selected environment
+fullyrested run -c "Test Collection/my collection.frcol" -a "json/JSON Result.frreq"
+
+# one run of a request, in a named environment
+fullyrested run -c api.frcol -e Production -a users/get.frreq -r "not found"
+
+# every request in the collection's folder, with a JUnit report for CI
+fullyrested run -c api.frcol --all --junit results.xml
+```
+
+| Option | Meaning |
+|---|---|
+| `-c, --collection <file>` | The collection file. Required |
+| `-e, --environment <name>` | Environment by name or id. Default: the one selected in the collection |
+| `-a, --action <file>` | One request file. A relative path also resolves from the collection's folder |
+| `-r, --run <name>` | One run of that request, by name or id |
+| `--all` | Every run of `--action`, or every request under the collection's folder. A request with no runs is sent as it is |
+| `--junit <file>` | Also write a JUnit XML report |
+
+It prints one line per test, `PASS|FAIL <name> <status> <time>`, with any
+validation errors under it, then a summary. A request with no validation
+passes on any HTTP response. The exit code is 0 when everything passes, 1
+when anything fails, and 2 for bad options.
+
+**Secrets:** the CLI reads `{{$name}}` from the environment variable
+`FULLYRESTED_SECRET_<NAME>` (upper-cased, with anything not a letter or digit
+turned into `_`), then from the OS keychain the desktop app saves to. On CI,
+set the environment variables.
 
 ## Project layout
 
