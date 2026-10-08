@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { HeaderTable } from '../../../../../../../shared/runner';
+import { HeaderTable } from '@fullyrested/core';
 
 const COLUMNS_SCHEMA = [
   {
@@ -62,7 +62,6 @@ export class EditRequestHeadersComponent implements OnInit {
 
   add() {
     this.headers = [...this.headers, { key: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
-    console.log(this.headers);
     this.headersChange.emit(this.headers);
   }
 

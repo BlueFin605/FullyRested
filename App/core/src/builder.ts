@@ -1,8 +1,5 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, RestActionValidation, SecretTable, ValidationType, VariableTable } from '../../runner'
-import { ResponseValidation } from '../../validator'
-import { RestTypeVerb, HttpProtocol } from '../../runner'
-
-const regexp = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
+import { substituteDeep } from './substitution';
 
 // https://wallis.dev/blog/typescript-project-references
 // https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
@@ -175,11 +172,18 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, validation: validation });
   }
 
+  // Substitutes {{variables}} and {{$secrets}} everywhere a request value can appear.
+  // The variable and secret tables themselves are left as-is.
   public replaceVariables(): ExecuteRestAction {
-    var text = JSON.stringify(this);
-    var replacedText = new VariableSubstitution().replaceVariables(text, this.variables, this.secrets);
-    var replaced:ExecuteRestAction = JSON.parse(replacedText);
-    return replaced;
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({
+      ...me,
+      url: substituteDeep(this.url, this.variables, this.secrets),
+      headers: substituteDeep(this.headers, this.variables, this.secrets),
+      body: substituteDeep(this.body, this.variables, this.secrets),
+      authentication: substituteDeep(this.authentication, this.variables, this.secrets),
+      validation: substituteDeep(this.validation, this.variables, this.secrets)
+    });
   }
 }
 
@@ -197,33 +201,3 @@ export interface RestActionResultBody {
   body: ArrayBuffer;
 }
 
-export class VariableSubstitution {
-  public replaceVariables(text: string, variables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
-    console.log(`replaceVariables[${text}]`);
-    var matches = [...text.matchAll(regexp)];
-
-    console.log(matches);
-    matches.forEach(m => {
-      text = this.substituteValue(text, m[0], m[1], variables, secrets);
-    });
-
-    return text;
-  }
-
-  private substituteValue(text: string, search: string, valueKey: string, overrideVariables: VariableTable[] | undefined, overrideSecrets: SecretTable[] | undefined): string {
-    var variables = overrideVariables?.filter(f => f.active == true);
-    var secrets = overrideSecrets?.filter(f => f.active == true);
-    var replaced = text.replace(search, this.findVariable(valueKey, variables, secrets));
-    return replaced;
-  }
-
-  private findVariable(value: string, variables: VariableTable[] | undefined, secrets: SecretTable[] | undefined): string {
-    console.log(`findVariable(${value})`)
-    if (value.startsWith('$')) {
-      value = value.substring(1);
-      return secrets?.find(v => v.$secret == value)?.$value ?? "";
-    } else {
-      return variables?.find(v => v.variable == value)?.value ?? "";
-    }
-  }
-}

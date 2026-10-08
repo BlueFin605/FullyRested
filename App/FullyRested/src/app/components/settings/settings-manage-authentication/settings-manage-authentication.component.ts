@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetails } from '../../../../../../shared/runner';
-import { AuthenticationDetails } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
+import { AuthenticationDetails } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication',
@@ -23,7 +23,6 @@ export class SettingsManageAuthenticationComponent implements OnInit {
 
   onChange($event: any)
   {
-    console.log($event);
     this.authChange.emit(this.auth);
   }
 }

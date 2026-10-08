@@ -1,10 +1,10 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
-import { CreateEmptyAction } from '../../../../../../shared/runner';
-import { RestAction, Collection } from '../../../../../../shared/runner';
+import { CreateEmptyAction } from '@fullyrested/core';
+import { RestAction, Collection } from '@fullyrested/core';
 import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult, ExecuteRestAction } from '../../../../../../shared/builder/src';
+import { RestActionResult, ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action',
@@ -19,7 +19,6 @@ export class RestActionComponent implements OnInit {
 
   @Input()
   set action(action: RestAction) {
-    console.log(`set action[${JSON.stringify(action)}]`)
     this._action = action;
     this._laststate = JSON.stringify(action);
     this.dirtyChange.emit(this._laststate != this._originalSource);
@@ -36,18 +35,14 @@ export class RestActionComponent implements OnInit {
 
   @Input()
   set fullFilename(fullFlename: string) {
-    console.log(`set fullFilename[${fullFlename}]`)
 
     if (this._fullFilename == fullFlename)
       return;
 
     this._fullFilename = fullFlename;
     this.repository.loadRequest(fullFlename).then(a => {
-      console.log(a);
       this._originalSource = JSON.stringify(a)
       var currentstate = JSON.stringify(this._action);
-      console.log(`[A]currentstate:[${currentstate}]`);
-      console.log(`[A]_originalSource:[${this._originalSource}]`);
       this.dirtyChange.emit(currentstate != this._originalSource);
     });
   }
@@ -70,16 +65,11 @@ export class RestActionComponent implements OnInit {
 
   async executeAction(action: ExecuteRestAction) {
     this.response = EmptyActionResult;
-    console.log(`executeAction[${action}][${this.collection}]`)
     this.response = await this.era.executeTest(action, this.collection);
     this.response.validated = await this.validateResponse.validateResponse(action, this.response, this.collection);
-    console.log(this.response.validated);
-    console.log(`response data type:[${typeof (this.response.body)}][${this.response.body}]`);
   }
 
   onActionChange(event: RestAction) {
-    console.log(event)
-    console.log(this._action)
 
     var currentstate = JSON.stringify(this._action);
 
@@ -89,8 +79,6 @@ export class RestActionComponent implements OnInit {
 
     this._laststate = currentstate;
 
-    console.log(`currentstate:[${currentstate}]`);
-    console.log(`_originalSource:[${this._originalSource}]`);
 
     this.dirtyChange.emit(currentstate != this._originalSource);
 

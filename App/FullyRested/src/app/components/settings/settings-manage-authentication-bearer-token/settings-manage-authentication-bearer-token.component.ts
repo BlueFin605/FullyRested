@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsBearerToken } from '../../../../../../shared/runner';
-import { AuthenticationDetailsBearerToken } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsBearerToken, isRawCredential } from '@fullyrested/core';
+import { AuthenticationDetailsBearerToken } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication-bearer-token',
@@ -14,9 +14,15 @@ export class SettingsManageAuthenticationBearerTokenComponent implements OnInit 
   @Output()
   bearertokenChange = new EventEmitter<AuthenticationDetailsBearerToken>();
 
+  readonly rawCredentialHint = 'Saved in plain text — use a {{$secret}} reference';
+
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  raw(value: string | undefined): boolean {
+    return isRawCredential(value);
   }
 
   onChange($event: any) {

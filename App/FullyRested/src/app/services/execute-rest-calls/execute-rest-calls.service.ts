@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { AuthenticationDetails, Collection, Environment } from '../../../../../shared/runner';
-import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '../../../../../shared/builder/src';
+import { AuthenticationDetails, Collection, Environment } from '@fullyrested/core';
+import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '@fullyrested/core';
 
 
 //export const EmptyActionResultBody: RestActionResultBody = {contentType: undefined, body: undefined };
@@ -30,7 +30,6 @@ export class ExecuteRestCallsService {
       return this.BuildMockData(replaced);
 
     var response = await this.getIpcRenderer().invoke('testRest', replaced);
-    console.log(response);
     return response;
   }
 
@@ -38,7 +37,6 @@ export class ExecuteRestCallsService {
     var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
     var actionWithAuth = action.authentication_pushBack(env?.auth)
                                .authentication_pushBack(collection?.config.collectionEnvironment.auth);
-    console.log(actionWithAuth);
     return actionWithAuth;
   }
 

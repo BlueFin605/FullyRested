@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsAwsSig } from '../../../../../../shared/runner';
-import { AuthenticationDetailsAWSSig } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsAwsSig, isRawCredential } from '@fullyrested/core';
+import { AuthenticationDetailsAWSSig } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication-awssig',
@@ -14,9 +14,15 @@ export class SettingsManageAuthenticationAWSSigComponent implements OnInit {
   @Output()
   awssigChange = new EventEmitter<AuthenticationDetailsAWSSig>();
 
+  readonly rawCredentialHint = 'Saved in plain text — use a {{$secret}} reference';
+
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  raw(value: string | undefined): boolean {
+    return isRawCredential(value);
   }
 
   onChange($event: any) {

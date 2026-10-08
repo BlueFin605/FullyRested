@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
-import { AuthenticationDetailsBasicAuth } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetailsBasicAuth, isRawCredential } from '@fullyrested/core';
+import { AuthenticationDetailsBasicAuth } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-authentication-basic-auth',
@@ -14,9 +14,15 @@ export class SettingsManageAuthenticationBasicAuthComponent implements OnInit {
   @Output()
   basicauthChange = new EventEmitter<AuthenticationDetailsBasicAuth>();
 
+  readonly rawCredentialHint = 'Saved in plain text — use a {{$secret}} reference';
+
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  raw(value: string | undefined): boolean {
+    return isRawCredential(value);
   }
 
   onChange($event: any) {

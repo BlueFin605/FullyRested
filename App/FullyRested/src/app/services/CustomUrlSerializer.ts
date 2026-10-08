@@ -10,7 +10,6 @@ export class CustomUrlSerializer implements UrlSerializer {
         let dus = new DefaultUrlSerializer(),
             path = dus.serialize(tree);
         // use your regex to replace as per your requirement.
-        // console.log(`serialize:[${JSON.stringify(path)}]`);
         // return path.replace(/%2F/g,'/').replace(/%20/g,' ');
         return path
             .replace(/%40/gi, '@')

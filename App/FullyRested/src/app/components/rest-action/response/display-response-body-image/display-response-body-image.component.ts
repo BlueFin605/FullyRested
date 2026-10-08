@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { RestActionResultBody } from '../../../../../../../shared/builder/src';
+import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-display-response-body-image',
@@ -20,10 +20,8 @@ export class DisplayResponseBodyImageComponent implements OnInit {
     this._thumbnail = undefined;
     this._objectURL = "";
 
-    //console.log(`DisplayResponseBodyImageComponent set body:[${JSON.stringify(body)}]`)
     
     if (body == undefined) {
-      console.log(`body is undefined`);
       return;
     }
 
@@ -43,7 +41,5 @@ export class DisplayResponseBodyImageComponent implements OnInit {
 
     this._objectURL = 'data:image/jpeg;base64,' + this._data.toString('base64');
     this._thumbnail = this.sanitizer.bypassSecurityTrustUrl(this._objectURL);
-    // console.log(`content type:[${this._contenttype}] obj type[${typeof (this._data)}] len[${this._data.byteLength}]`);
-    console.log(`thumbnail:[${this._thumbnail}]`);
   }
 }

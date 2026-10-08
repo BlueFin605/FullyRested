@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { CreateEmptyAuthenticationDetails } from '../../../../../../shared/runner';
-import { Environment } from '../../../../../../shared/runner';
+import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
+import { Environment } from '@fullyrested/core';
 
 @Component({
   selector: 'app-settings-manage-environment',
@@ -21,8 +21,6 @@ export class SettingsManageEnvironmentComponent implements OnInit {
   }
 
   modelChange(name: string) {
-    console.log(`modelChange[${name}]`);
-    console.log(this.environment);
     this.environmentChange.emit(this.environment);
   }
 }

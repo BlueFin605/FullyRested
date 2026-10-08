@@ -1,15 +1,15 @@
 import { Command } from "commander"; // add this line
 var figlet = require("figlet");
-import { RestAction, RestTypeVerb } from "../../shared/runner"
-import { CreateEmptyAction } from "../../shared/runner"
-import { ExecuteRestAction, IExecuteRestAction } from "../../shared/builder"
+import { RestAction, RestTypeVerb } from "@fullyrested/core"
+import { CreateEmptyAction } from "@fullyrested/core"
+import { ExecuteRestAction, IExecuteRestAction } from "@fullyrested/core"
 
 
 //https://blog.logrocket.com/building-typescript-cli-node-js-commander/
 
 const program = new Command();
 
-console.log(figlet.textSync("Rest Easy Runner"));
+console.log(figlet.textSync("FullyRested"));
 
 program
   .version("1.0.0")

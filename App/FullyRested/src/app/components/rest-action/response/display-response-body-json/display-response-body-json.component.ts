@@ -1,7 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { JsonEditorOptions } from '@maaxgr/ang-jsoneditor'
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
-import { RestActionResultBody } from '../../../../../../../shared/builder/src';
+import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-display-response-body-json',
@@ -25,7 +25,6 @@ export class DisplayResponseBodyJsonComponent implements OnInit {
       this.objData = JSON.parse(this.rawData);
      }
      catch (error) {
-      console.log(`Invalid JSON[${this.rawData}]`);
       this.objData = {};
      }
   }

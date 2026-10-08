@@ -5,12 +5,14 @@
         <mat-form-field class="awssig-field">
             <mat-label>AccessKey</mat-label>
             <input matInput placeholder="Input" [(ngModel)]="awssig.accessKey" (ngModelChange)="onChange($event)">
+            <mat-hint class="raw-credential" *ngIf="raw(awssig.accessKey)">{{ rawCredentialHint }}</mat-hint>
         </mat-form-field>
     </div>
     <div class="awssigfield">
         <mat-form-field class="awssig-field">
             <mat-label>SecretKey</mat-label>
             <input matInput placeholder="Input" [(ngModel)]="awssig.secretKey" (ngModelChange)="onChange($event)">
+            <mat-hint class="raw-credential" *ngIf="raw(awssig.secretKey)">{{ rawCredentialHint }}</mat-hint>
         </mat-form-field>
     </div>
     <div class="awssigfield">

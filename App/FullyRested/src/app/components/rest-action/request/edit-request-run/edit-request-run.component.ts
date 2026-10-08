@@ -1,10 +1,10 @@
 import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
 import { UrlTree, UrlSegmentGroup, UrlSegment } from "@angular/router";
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '../../../../../../../shared/runner';
-import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '../../../../../../../shared/runner';
+import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
+import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection,  CreateEmptyRestActionValidation } from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
-import { ExecuteRestAction } from '../../../../../../../shared/builder/src';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request-run',
@@ -27,7 +27,6 @@ export class EditRequestRunComponent implements OnInit {
 
   @Input()
   set run(run: RestActionRun) {
-    console.log(`set action[${JSON.stringify(run)}]`)
     this._run = run;
     this.onParamChange(this._run.parameters);
   }
@@ -55,54 +54,42 @@ export class EditRequestRunComponent implements OnInit {
     const urlTree = new UrlTree();
     urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
     var combined = this.combineAllParamaters(this._run.parameters, this.action.parameters);
-    console.log(combined);
     urlTree.queryParams = this.convertParamsArraysAsValues(combined);
     const urlSerializer = new CustomUrlSerializer();
     var url = urlSerializer.serialize(urlTree);
     if (url.startsWith('/'))
       url = url.substring(1);
-    console.log(`onParamChange:[${JSON.stringify(url)}]`);
-    console.log(`onParamChange:[${JSON.stringify(this.action.parameters)}]`);
     this.displayUrl = url;
     this.runChange.emit(this._run);
   }
 
   onAuthChange(auth: AuthenticationDetails) {
-    console.log(auth);
-    console.log(this.action);
     this.runChange.emit(this._run);
   }
 
   onHeadersChange(event: HeaderTable[]) {
-    console.log(event);    
     this.runChange.emit(this._run);
   }
 
   onSecretsChange(event: SecretTable[]) {
-    // console.log(event);    
     this.runChange.emit(this._run);
   }
 
   onVariablesChange(event: VariableTable[]) {
-    // console.log(event);    
     this.runChange.emit(this._run);
   }
 
   onValidationChange(event: RestActionValidation) {
-    // console.log(event);    
     this.runChange.emit(this._run);
   }
   
   onNameChange(value: string) {
     this._run.name = value;
-    console.log(this.action);
     this.runChange.emit(this._run);
     this.nameChange.emit(value);
   }
 
   combineAllParamaters(run: ParamTable[], action: ParamTable[]) {
-    console.log(run);
-    console.log(action);
     return action.concat(run);
   }
 
@@ -115,8 +102,6 @@ export class EditRequestRunComponent implements OnInit {
   }
 
   combineAllHeaders(run: HeaderTable[], action: HeaderTable[]) {
-    console.log(run);
-    console.log(action);
     return action.concat(run);
   }
 
@@ -129,7 +114,6 @@ export class EditRequestRunComponent implements OnInit {
   }
 
   async test() {
-    console.log(this.action.body);
 
     var headers = this.combineAllHeaders(this._run.headers, this.action.headers);
 
@@ -144,8 +128,6 @@ export class EditRequestRunComponent implements OnInit {
                                                       .variables_pushFront(this._run.variables)
                                                       .setValidation(this._run.validation.type != ValidationType.Inherit ? this._run.validation : (this.action.validation ?? CreateEmptyRestActionValidation(undefined)));
 
-    console.log(`emit[${action.url}]`);
-    console.log(action);
     this.execute.emit(action);
   }
 }

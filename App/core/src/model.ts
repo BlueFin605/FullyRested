@@ -1,10 +1,13 @@
-// https://wallis.dev/blog/typescript-project-references
-// https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
-
 export const REConstants = {
-    CollectionExtension: ".reasycol",
-    ActionExtension: ".reasyreq"
+    CollectionExtension: ".frcol",
+    ActionExtension: ".frreq",
+    LegacyCollectionExtension: ".reasycol",
+    LegacyActionExtension: ".reasyreq"
 };
+
+// Extensions to accept when opening files: new first, then the old Rest Easy ones
+export const COLLECTION_FILE_EXTENSIONS = [REConstants.CollectionExtension, REConstants.LegacyCollectionExtension];
+export const ACTION_FILE_EXTENSIONS = [REConstants.ActionExtension, REConstants.LegacyActionExtension];
 
 export interface HeaderTable {
     key: string;
@@ -298,3 +301,9 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   export interface guidGenerator {
     generateGUID(): string;
   }
+
+export interface ResponseValidation {
+  information: string[];
+  errors: string[];
+  valid: boolean;
+}
