@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { JsonEditorOptions } from '@maaxgr/ang-jsoneditor'
+import { JsonEditorOptions } from '../../../json-editor/json-editor.component';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 import { RestActionResultBody } from '@fullyrested/core';
 

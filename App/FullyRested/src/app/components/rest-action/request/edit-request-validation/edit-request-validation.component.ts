@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { JsonEditorOptions, JsonEditorComponent } from '../../../json-editor/json-editor.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { CreateEmptyRestActionValidation } from '@fullyrested/core';
 import { ValidationType, ValidationTypeBody, RestActionValidation, HeaderTable } from '@fullyrested/core';
@@ -84,10 +84,10 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
 
-  updateData(d: Event) {
+  updateData(d: unknown) {
 
-    //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the schema to be set to this, you are kind of stuffed if this is what you want your payload to be 
-    if (d.isTrusted == true || this.visibleSchema.jsonSchema == undefined)
+    // Native DOM change events from inside the editor also bubble out through (change); only the editor's own event carries JSON
+    if (d instanceof Event || this.visibleSchema.jsonSchema == undefined)
       return;
 
     this.visibleSchema.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';

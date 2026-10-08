@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
-import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import { JsonEditorOptions, JsonEditorComponent } from '../../../json-editor/json-editor.component';
 import { RestActionBody } from '@fullyrested/core';
 
 @Component({
@@ -65,10 +65,10 @@ export class EditRequestBodyComponent implements OnInit {
     // this.selectedview = event.value;
   }
 
-  updateData(d: Event) {
+  updateData(d: unknown) {
 
-    //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the body to be set to this, you are kind of stuffed if this is what you want your payload to be 
-    if (d.isTrusted == true)
+    // Native DOM change events from inside the editor also bubble out through (change); only the editor's own event carries JSON
+    if (d instanceof Event)
       return;
 
     this.visibleData.body = this.bodyChild?.getText() ?? '{}';
