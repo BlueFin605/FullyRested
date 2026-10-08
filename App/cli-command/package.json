@@ -5,19 +5,18 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "npm --prefix ../core run build && tsc -p tsconfig.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@fullyrested/core": "file:../core",
-    "commander": "^11.1.0",
-    "figlet": "^1.7.0"
+    "commander": "^11.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
-    "@types/uuid": "^9.0.6",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9"
   }
 }
