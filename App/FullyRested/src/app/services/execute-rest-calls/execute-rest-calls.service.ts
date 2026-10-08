@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AuthenticationDetails, Collection, Environment } from '@fullyrested/core';
+import { Collection, applyEnvironment } from '@fullyrested/core';
 import { RestActionResult, ExecuteRestAction, IExecuteRestAction } from '@fullyrested/core';
 
 
@@ -18,26 +18,13 @@ export class ExecuteRestCallsService {
   }
 
   async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<RestActionResult> {
-    var env = collection?.config?.environments?.find(e => e.id == collection.config.selectedEnvironmentId);
-    var replaced:IExecuteRestAction = this.AddAuthentication(action, collection)
-                       .variables_pushBack(env?.variables)
-                       .variables_pushBack(collection?.config?.collectionEnvironment.variables)
-                       .secrets_pushBack(env?.secrets)
-                       .secrets_pushBack(collection?.config?.collectionEnvironment.secrets)
-                       .replaceVariables();
+    var replaced: IExecuteRestAction = applyEnvironment(action, collection?.config).replaceVariables();
   
     if (this.getIpcRenderer() == undefined)
       return this.BuildMockData(replaced);
 
     var response = await this.getIpcRenderer().invoke('testRest', replaced);
     return response;
-  }
-
-  AddAuthentication(action: ExecuteRestAction, collection: Collection | undefined) : ExecuteRestAction {
-    var env:Environment | undefined = collection?.config.environments.find( e => e.id == collection.config.selectedEnvironmentId);
-    var actionWithAuth = action.authentication_pushBack(env?.auth)
-                               .authentication_pushBack(collection?.config.collectionEnvironment.auth);
-    return actionWithAuth;
   }
 
   BuildMockData(action: IExecuteRestAction): RestActionResult | PromiseLike<RestActionResult> {
