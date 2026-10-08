@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { SystemSupportService } from '../system-support/system-support.service';
-import { CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation, CreateEmptyActionBody, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
-import { Collection, SavedAsCompleted, CurrentState, Environment, AuthenticationDetails, RestAction, RestActionRun, RestActionValidation, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '@fullyrested/core';
+import { normaliseAction, normaliseCollectionConfig, normaliseCurrentState, CreateEmptyRestActionValidation, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection, CreateEmptyAuthenticationDetails, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
+import { Collection, SavedAsCompleted, CurrentState, RestAction, ValidationType, ValidationTypeBody, LocalRestAction, TraversedDrectory, RecentFile } from '@fullyrested/core';
 
 
 @Injectable({
@@ -20,74 +20,13 @@ export class ActionRepositoryService {
       return;
 
     this.getIpcRenderer().receive('loadCollectionResponse', (collection: Collection) => {
-      this.patchCollection(collection);
+      normaliseCollectionConfig(collection.config);
       this.collections.next(collection);
     });
 
     this.getIpcRenderer().receive('savedAsCompleted', (savedAs: SavedAsCompleted) => {
       this.savedAs.next(savedAs);
     });
-  }
-
-  private patchCollection(collection: Collection) {
-    this.patchEnvironment(collection.config.collectionEnvironment);
-    collection.config.environments.forEach(e => this.patchEnvironment(e))
-  }
-
-  patchState(state: CurrentState) {
-    state.sessions.forEach(s => s.actions.forEach(a => this.patchRequest(a.action)));
-  }
-
-  patchEnvironment(env: Environment): void {
-    this.patchAuthentication(env.auth);
-  }
-
-  patchAuthentication(auth: AuthenticationDetails) {
-    if (auth.basicAuth == undefined)
-      auth.basicAuth = CreateEmptyAuthenticationDetailsBasicAuth();
-
-    if (auth.bearerToken == undefined)
-      auth.bearerToken = CreateEmptyAuthenticationDetailsBearerToken();
-  }
-
-  patchRequest(request: RestAction) {
-    this.patchAuthentication(request.authentication);
-    if (request.runs == undefined)
-      request.runs = [];
-
-    if (request.validation == undefined)
-      request.validation = CreateEmptyRestActionValidation(undefined)
-
-    this.patchValidation(request.validation);
-
-    if (request.runs == undefined)
-      request.runs = [];
-
-    request.runs.forEach(r => this.patchRun(r))
-
-    if (request.body == undefined || typeof(request.body) == "string")
-      request.body = CreateEmptyActionBody();
-  }
-
-  patchRun(run: RestActionRun): void {
-    if (run.validation == undefined)
-      run.validation = CreateEmptyRestActionValidation(undefined)
-
-    this.patchValidation(run.validation);
-  }
-
-  patchValidation(validation: RestActionValidation) {
-    if (validation.type == undefined)
-      validation.type = ValidationType.None;
-
-    if (validation.headers == undefined)
-      validation.headers = [];
-
-    if (validation.body == undefined)
-      validation.body = ValidationTypeBody.None;
-
-    if (validation.httpCode == undefined)
-      validation.httpCode = 200;
   }
 
   private getIpcRenderer() {
@@ -121,7 +60,7 @@ export class ActionRepositoryService {
 
     var state: CurrentState = await this.getIpcRenderer().invoke('readState', '');
 
-    this.patchState(state);
+    normaliseCurrentState(state);
     //  if (state.actions.length == 0)
     //     state.actions.push(CreateEmptyLocalAction());
 
@@ -158,8 +97,7 @@ export class ActionRepositoryService {
     }
 
     var request: RestAction = await this.getIpcRenderer().invoke('loadRequest', fullFilename);
-    this.patchRequest(request);
-    return request;
+    return normaliseAction(request);
   }
 
   public async loadCollection() {
