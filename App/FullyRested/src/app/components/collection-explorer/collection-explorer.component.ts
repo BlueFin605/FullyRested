@@ -1,5 +1,4 @@
-import { Component, OnInit, Injectable, Input, Output, EventEmitter } from '@angular/core';
-import { TreeviewConfig, TreeviewItem } from '@treeview/ngx-treeview';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { ACTION_FILE_EXTENSIONS, Collection, CurrentState, TraversedDrectory, RestAction, File } from '@fullyrested/core';
 
@@ -13,22 +12,25 @@ export interface SelectedTreeItem {
   activeTab: boolean;
 }
 
-@Injectable()
-export class ProductTreeviewConfig extends TreeviewConfig {
-  override hasAllCheckBox = true;
-  override hasFilter = true;
-  override hasCollapseExpand = false;
-  // override maxHeight = 400;
-  override compact = true;
+// One row of the explorer tree. value holds what the row is (type, subtype, key, menu actions, ...)
+export class TreeviewItem {
+  text: string;
+  value: any;
+  children: TreeviewItem[] | undefined;
+  collapsed: boolean;
+
+  constructor(item: { text: string, value: any, children?: TreeviewItem[], collapsed?: boolean }) {
+    this.text = item.text;
+    this.value = item.value;
+    this.children = item.children != undefined && item.children.length > 0 ? item.children : undefined;
+    this.collapsed = item.collapsed ?? false;
+  }
 }
 
 @Component({
   selector: 'app-collection-explorer',
   templateUrl: './collection-explorer.component.html',
-  styleUrls: ['./collection-explorer.component.css'],
-  providers: [
-    { provide: TreeviewConfig, useClass: ProductTreeviewConfig }
-  ]
+  styleUrls: ['./collection-explorer.component.css']
 })
 export class CollectionExplorerComponent implements OnInit {
   _collection: Collection | undefined;
@@ -162,7 +164,7 @@ export class CollectionExplorerComponent implements OnInit {
     return this.repo.loadRequest(f.fullPath);
   }
 
-  private expandTree(items: TreeviewItem[]): boolean {
+  private expandTree(items: TreeviewItem[] | undefined): boolean {
     if (items == undefined)
       return false;
 
@@ -221,8 +223,24 @@ export class CollectionExplorerComponent implements OnInit {
 
     return false;
   }
-  private onFilterChange($event: any) {
+  filter: string = '';
 
+  toggle(item: TreeviewItem) {
+    item.collapsed = !item.collapsed;
+  }
+
+  // While filtering, a row shows when its text or anything below it matches, and matching branches are open
+  isVisible(item: TreeviewItem): boolean {
+    const filter = this.filter.trim().toLowerCase();
+    return filter == '' || this.matches(item, filter);
+  }
+
+  isExpanded(item: TreeviewItem): boolean {
+    return item.children != undefined && (this.filter.trim() != '' || !item.collapsed);
+  }
+
+  private matches(item: TreeviewItem, filter: string): boolean {
+    return item.text.toLowerCase().includes(filter) || (item.children ?? []).some(c => this.matches(c, filter));
   }
 }
 

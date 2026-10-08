@@ -26,7 +26,6 @@
     "@angular/platform-browser-dynamic": "^14.0.0",
     "@angular/router": "^14.0.0",
     "@fullyrested/core": "file:../core",
-    "@treeview/ngx-treeview": "^14.0.0",
     "electron-squirrel-startup": "^1.0.0",
     "jsoneditor": "^9.10.3",
     "keytar": "^7.9.0",

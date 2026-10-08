@@ -17,7 +17,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { JsonEditorComponent } from './components/json-editor/json-editor.component';
-import { TreeviewModule } from '@treeview/ngx-treeview';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -88,7 +87,6 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    TreeviewModule.forRoot(),
     MatFormFieldModule, 
     MatSelectModule,
     MatInputModule,
