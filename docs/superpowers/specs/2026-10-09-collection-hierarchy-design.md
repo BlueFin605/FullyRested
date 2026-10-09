@@ -86,8 +86,8 @@ ScopeNode (abstract)   parent?: ScopeNode; error?: Error; layer(): ScopeSettings
   the merge code with `resolve()`.
 - `resolveRequest`, `applyEnvironment` and `resolveExecuteAction` are removed;
   all callers move to `node.resolve()`.
-- Tree helpers on nodes: `find(relativePath)`, `requests()` (all request nodes
-  below, stable order), `folders()`, `runs()` on `RequestNode`.
+- Tree helpers on nodes: `find(relativePath)`, `requestNodes()` (all request nodes
+  below, stable order), `folderNodes()`, `runs()` on `RequestNode`.
 
 ### Building the tree
 
@@ -110,7 +110,7 @@ loadCollectionTree(collectionFile: string, source: CollectionSource, store: Secr
 ### Errors
 
 A file that fails to read, parse or normalise stays in the tree as a node with
-`error` set. `resolve()` and `effectiveSettings()` throw when the node or any
+`loadError: LoadError` ({ file, message }) set. `resolve()` and `effectiveSettings()` throw when the node or any
 ancestor has an error, naming the file:
 `Cannot resolve 'logo': trademe/folder.frfolder is invalid: <reason>`.
 Broken layers are never skipped silently.
@@ -130,8 +130,8 @@ Broken layers are never skipped silently.
 
 - `files.ts` becomes `FsCollectionSource` (Node `fs`).
 - `run.ts` loads the tree once. Case selection:
-  - `--all` → `root.requests()`
-  - `--folder <path>` → `root.find(path).requests()` (new option; unknown path is a `UsageError`)
+  - `--all` → `root.requestNodes()`
+  - `--folder <path>` → `root.find(path).requestNodes()` (new option; unknown path is a `UsageError`)
   - `--action <file>` → `root.find(path)`; `--run` as today
 - A node whose `resolve()` throws becomes a failed result carrying the error
   message; the run continues.
