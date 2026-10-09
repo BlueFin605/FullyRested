@@ -17,7 +17,6 @@ import {
   HttpProtocol,
   RestTypeVerb,
   buildRequestUrl,
-  resolveRequest,
 } from '@fullyrested/core';
 import {
   RestAction,
@@ -26,7 +25,6 @@ import {
   RestActionValidation,
   HeaderTable,
 } from '@fullyrested/core';
-import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request',
@@ -60,7 +58,7 @@ export class EditRequestComponent implements OnInit {
   }
 
   @Output()
-  execute = new EventEmitter<ExecuteRestAction>();
+  execute = new EventEmitter<void>();
 
   displayUrl: string = '';
   // What the URL editor shows: protocol + url + query. Only reset from outside (load, params table),
@@ -236,6 +234,6 @@ export class EditRequestComponent implements OnInit {
   }
 
   async test() {
-    this.execute.emit(resolveRequest(this.action));
+    this.execute.emit();
   }
 }

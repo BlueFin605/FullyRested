@@ -3,6 +3,7 @@
     [(action)]="_action"
     [collection]="collection"
     [runId]="runId"
+    [fullFilename]="_fullFilename"
     (actionChange)="onActionChange($event)"
     (nameChange)="onNameChange($event)"
   ></app-rest-action-run>
@@ -12,7 +13,7 @@
       splitFirst
       [(action)]="_action"
       (actionChange)="onActionChange($event)"
-      (execute)="executeAction($event)"
+      (execute)="executeAction()"
     ></app-edit-request>
     <app-display-response
       splitSecond

@@ -1,29 +1,27 @@
 import { TestBed } from '@angular/core/testing';
-import { Collection, CreateEmptyAuthenticationDetails, CreateEmptyEnvironment, ExecuteRestAction, HttpProtocol, IExecuteRestAction, RestTypeVerb } from '@fullyrested/core';
+import {
+  CollectionConfig, CollectionNode, CreateEmptyAction, CreateEmptyEnvironment, CreateEmptyFolderConfig, FolderNode,
+  IExecuteRestAction, normaliseCollectionConfig,
+} from '@fullyrested/core';
 
 import { ExecuteRestCallsService } from './execute-rest-calls.service';
 
-function request(url: string): ExecuteRestAction {
-  return new ExecuteRestAction({
-    verb: RestTypeVerb.get, protocol: HttpProtocol.https, url, headers: {}, body: {},
-    authentication: CreateEmptyAuthenticationDetails('none'), secrets: [], variables: [], validation: undefined
-  });
+const variable = (name: string, value: string) => ({ variable: name, value, active: true, id: name });
+
+function rootNode(): CollectionNode {
+  return new CollectionNode(normaliseCollectionConfig({
+    collectionGuid: 'c1',
+    selectedEnvironmentId: 'prod',
+    collectionEnvironment: { ...CreateEmptyEnvironment(), variables: [variable('host', 'collection.example'), variable('version', 'v1')] },
+    environments: [
+      { ...CreateEmptyEnvironment(), id: 'test', name: 'test', variables: [variable('host', 'test.example')] },
+      { ...CreateEmptyEnvironment(), id: 'prod', name: 'prod', variables: [variable('host', 'prod.example')] },
+    ],
+  } as CollectionConfig), 'api.frcol');
 }
 
-function collection(): Collection {
-  const variable = (variable: string, value: string) => ({ variable, value, active: true, id: variable });
-  return {
-    filename: '', name: '', path: '',
-    config: {
-      collectionGuid: 'c1',
-      selectedEnvironmentId: 'prod',
-      collectionEnvironment: { ...CreateEmptyEnvironment(), variables: [variable('host', 'collection.example'), variable('version', 'v1')] },
-      environments: [
-        { ...CreateEmptyEnvironment(), id: 'test', name: 'test', variables: [variable('host', 'test.example')] },
-        { ...CreateEmptyEnvironment(), id: 'prod', name: 'prod', variables: [variable('host', 'prod.example')] },
-      ]
-    }
-  };
+function nodeFor(url: string, root = rootNode()) {
+  return root.attach({ ...CreateEmptyAction(), url }, 'a.frreq');
 }
 
 describe('ExecuteRestCallsService', () => {
@@ -37,7 +35,7 @@ describe('ExecuteRestCallsService', () => {
   afterEach(() => delete (window as any).ipc);
 
   it('answers with the mock response in browser mode (no Electron ipc)', async () => {
-    const result = await service.executeTest(request('anything.example'), undefined);
+    const result = await service.executeNode(nodeFor('anything.example'));
     expect(result.status).toBe(200);
     expect(result.body?.contentType).toContain('application/json');
   });
@@ -52,7 +50,7 @@ describe('ExecuteRestCallsService', () => {
       }
     };
 
-    const result = await service.executeTest(request('{{host}}/{{version}}/todos'), collection());
+    const result = await service.executeNode(nodeFor('{{host}}/{{version}}/todos'), 'prod');
 
     expect(result.status).toBe(204);
     expect(sent.length).toBe(1);
@@ -64,9 +62,28 @@ describe('ExecuteRestCallsService', () => {
       invoke: () => Promise.resolve({ status: 200, body: { contentType: 'text/plain', body: new Uint8Array(42).buffer } })
     };
 
-    const result = await service.executeTest(request('x.example'), undefined);
+    const result = await service.executeNode(nodeFor('x.example'));
 
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(result.sizeBytes).toBe(42);
+  });
+
+  it('sends the request resolved through its folders', async () => {
+    const sent: any[] = [];
+    (window as any).ipc = {
+      invoke: async (channel: string, request: any) => {
+        sent.push([channel, request]);
+        return { status: 200, statusText: 'OK', headers: {}, headersSent: {}, body: undefined, validated: undefined };
+      },
+    };
+    const root = rootNode();
+    const folder = new FolderNode(root, 'f', { ...CreateEmptyFolderConfig('f'), headers: [{ key: 'x-folder', value: 'yes', active: true, id: 'h' }] }, true);
+    root.children.push(folder);
+
+    const result = await service.executeNode(root.attach({ ...CreateEmptyAction(), url: 'example.com' }, 'f/a.frreq'));
+
+    expect(sent[0][0]).toBe('testRest');
+    expect(sent[0][1].headers['x-folder']).toBe('yes');
+    expect(result.status).toBe(200);
   });
 });
