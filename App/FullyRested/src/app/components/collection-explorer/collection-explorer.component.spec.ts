@@ -47,6 +47,21 @@ describe('CollectionExplorerComponent', () => {
     expect(broken.value.error).toBe('bad json');
   });
 
+  it('offers a Headers row for the collection and for each environment', () => {
+    const { children } = create();
+    const settings = children.find((c) => c.text == 'Collection Settings')!;
+    const headers = settings.children!.find((c) => c.text == 'Headers')!;
+    expect(headers.value).toEqual({ type: 'system', subtype: 'headers', key: 'system.settings.headers' });
+
+    const envs = settings.children!.find((c) => c.text == 'Environments')!;
+    for (const env of envs.children!) {
+      const row = env.children!.find((c) => c.text == 'Headers')!;
+      expect(row.value.subtype).toBe('headers');
+      expect(row.value.key).toBe(`${env.value.key}.headers`);
+    }
+    expect(envs.children!.length).toBeGreaterThan(0);
+  });
+
   it('marks the collection row when the collection failed to load', () => {
     const { top } = create({ file: 'x.frcol', message: 'cannot read' });
     expect(top.value.error).toBe('cannot read');

@@ -81,6 +81,25 @@ describe('OpenActionsComponent folder settings', () => {
     expect(component.actionsVisible()).toBeFalse();
   });
 
+  it('points the headers pane at the collection or at one environment', () => {
+    const { component } = setup();
+    const config = (component as any).collection.config;
+    config.environments = [{ ...config.collectionEnvironment, id: 'env1', name: 'Prod', headers: [] }];
+
+    component.openSystem({ type: 'system', subtype: 'headers', key: 'system.settings.headers' } as any);
+    expect(component.selectedEnvironment).toBe(config.collectionEnvironment);
+    expect(component.headersVisible()).toBeTrue();
+
+    component.openSystem({ type: 'system', subtype: 'headers', key: 'system.settings.environments.env1.headers' } as any);
+    expect(component.selectedEnvironment).toBe(config.environments[0]);
+  });
+
+  it('does not show the headers pane for a folder', () => {
+    const { component } = setup();
+    component.openFolderSettings(folderHostPath);
+    expect(component.headersVisible()).toBeFalse();
+  });
+
   it('ignores a path that is not a folder in the tree', () => {
     const { component } = setup();
     component.openFolderSettings('/work/api/nothing');

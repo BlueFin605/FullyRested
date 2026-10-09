@@ -377,6 +377,11 @@ export class OpenActionsComponent implements OnInit {
             selected.key.endsWith(`${e.id}.authentication`),
           ) ?? CreateEmptyEnvironment();
       }
+    } else if (selected.type == 'system' && selected.subtype == 'headers') {
+      this.selectedEnvironment =
+        selected.key == 'system.settings.headers'
+          ? (this.collection?.config?.collectionEnvironment ?? CreateEmptyEnvironment())
+          : (this.collection?.config?.environments?.find((e) => selected.key.endsWith(`${e.id}.headers`)) ?? CreateEmptyEnvironment());
     } else if (
       selected.type == 'dir' &&
       selected.subtype == 'system.settings.environments'
@@ -498,6 +503,10 @@ export class OpenActionsComponent implements OnInit {
       return true;
 
     return false;
+  }
+
+  headersVisible(): boolean {
+    return this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'headers';
   }
 
   authenticationVisible(): boolean {

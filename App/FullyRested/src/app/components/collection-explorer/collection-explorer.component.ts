@@ -167,6 +167,11 @@ export class CollectionExplorerComponent implements OnInit {
         collapsed: false,
       }),
       new TreeviewItem({
+        text: 'Headers',
+        value: { type: 'system', subtype: 'headers', key: 'system.settings.headers' },
+        collapsed: false,
+      }),
+      new TreeviewItem({
         text: 'Secrets',
         value: {
           type: 'system',
@@ -232,6 +237,11 @@ export class CollectionExplorerComponent implements OnInit {
               subtype: 'authentication',
               key: `system.settings.environments.${e.id}.authentication`,
             },
+            collapsed: false,
+          }),
+          new TreeviewItem({
+            text: 'Headers',
+            value: { type: 'system', subtype: 'headers', key: `system.settings.environments.${e.id}.headers` },
             collapsed: false,
           }),
         ],
@@ -431,6 +441,8 @@ export class CollectionExplorerComponent implements OnInit {
         return 'key';
       case 'authentication':
         return 'lock';
+      case 'headers':
+        return 'view_list';
       default:
         return 'settings';
     }
