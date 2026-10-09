@@ -406,6 +406,7 @@ export class OpenActionsComponent implements OnInit {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
       variables: [{ variable: '', value: '', active: true, id: 'a' }],
+      headers: [],
       secrets: [
         {
           $secret: '',

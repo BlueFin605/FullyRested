@@ -163,12 +163,22 @@ export interface CurrentState {
     recentCollections: RecentFile[];
 }
 
-export interface Environment {
-    name: string;
-    id: string;
+// What every level of the hierarchy can set for the requests below it
+export interface ScopeSettings {
     variables: VariableTable[];
     secrets: SecretTable[];
     auth: AuthenticationDetails;
+    headers: HeaderTable[];
+}
+
+export interface Environment extends ScopeSettings {
+    name: string;
+    id: string;
+}
+
+// folder.frfolder: the settings a folder gives the folders and requests inside it
+export interface FolderConfig extends ScopeSettings {
+    folderId: string;
 }
 
 export interface CollectionConfig {
@@ -240,7 +250,18 @@ export function CreateEmptyLocalAction(): LocalRestAction {
       id: '',
       variables: [],
       secrets: [],
-      auth: CreateEmptyAuthenticationDetails('inherit')
+      auth: CreateEmptyAuthenticationDetails('inherit'),
+      headers: []
+    };
+  }
+
+  export function CreateEmptyFolderConfig(folderId: string): FolderConfig {
+    return {
+      folderId,
+      variables: [],
+      secrets: [],
+      auth: CreateEmptyAuthenticationDetails('inherit'),
+      headers: []
     };
   }
   

@@ -22,6 +22,7 @@ export class SettingsManageEnvironmentComponent implements OnInit {
     name: 'noname',
     id: '',
     variables: [],
+    headers: [],
     secrets: [],
     auth: CreateEmptyAuthenticationDetails('inherit'),
   }; //CreateEmptyEnvironment();

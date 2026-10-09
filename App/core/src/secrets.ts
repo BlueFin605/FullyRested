@@ -13,6 +13,10 @@ export function secretServiceForRequest(requestId: string): string {
   return `fullyrested-request-${requestId}`;
 }
 
+export function secretServiceForFolder(folderId: string): string {
+  return `fullyrested-folder-${folderId}`;
+}
+
 // Returns a copy of value with every non-empty { $secret, $value } moved into the store (the $value is removed)
 export async function storeSecrets<T>(value: T, store: SecretStore, service: string): Promise<T> {
   const copy = JSON.parse(JSON.stringify(value)) as T;

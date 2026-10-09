@@ -1,5 +1,5 @@
 import {
-    AuthenticationDetails, CollectionConfig, CurrentState, Environment, RestAction, RestActionRun, RestActionValidation,
+    AuthenticationDetails, CollectionConfig, CurrentState, Environment, FolderConfig, RestAction, RestActionRun, RestActionValidation,
     ValidationType, ValidationTypeBody,
     CreateEmptyActionBody, CreateEmptyAuthenticationDetails, CreateEmptyAuthenticationDetailsAwsSig,
     CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation
@@ -68,12 +68,22 @@ export function normaliseAction(action: RestAction): RestAction {
 export function normaliseEnvironment(env: Environment): Environment {
     env.variables = env.variables ?? [];
     env.secrets = env.secrets ?? [];
+    env.headers = env.headers ?? [];
     env.auth = normaliseAuthentication(env.auth, 'inherit');
     return env;
 }
 
+export function normaliseFolderConfig(config: FolderConfig): FolderConfig {
+    config.folderId = config.folderId ?? '';
+    config.variables = config.variables ?? [];
+    config.secrets = config.secrets ?? [];
+    config.headers = config.headers ?? [];
+    config.auth = normaliseAuthentication(config.auth, 'inherit');
+    return config;
+}
+
 export function normaliseCollectionConfig(config: CollectionConfig): CollectionConfig {
-    config.collectionEnvironment = normaliseEnvironment(config.collectionEnvironment ?? { name: 'system.settings', id: '', variables: [], secrets: [], auth: CreateEmptyAuthenticationDetails('none') });
+    config.collectionEnvironment = normaliseEnvironment(config.collectionEnvironment ?? { name: 'system.settings', id: '', variables: [], secrets: [], headers: [], auth: CreateEmptyAuthenticationDetails('none') });
     config.environments = (config.environments ?? []).map(normaliseEnvironment);
     config.selectedEnvironmentId = config.selectedEnvironmentId ?? '';
     return config;

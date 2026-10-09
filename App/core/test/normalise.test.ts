@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
     normaliseAction, normaliseCollectionConfig, normaliseCurrentState,
+    normaliseFolderConfig, normaliseEnvironment, CreateEmptyAuthenticationDetails, FolderConfig, Environment,
     CollectionConfig, CurrentState, RestAction, ValidationType, ValidationTypeBody
 } from '../src';
 
@@ -102,5 +103,27 @@ describe('normaliseCurrentState', () => {
         expect(state.recentCollections).toEqual([]);
         expect(state.sessions[0]!.actions[0]!.action.runs).toEqual([]);
         expect(state.sessions[0]!.actions[0]!.action.body.contentType).toBe('none');
+    });
+});
+
+describe('normaliseFolderConfig', () => {
+    it('fills every field of an empty folder file', () => {
+        expect(normaliseFolderConfig({} as FolderConfig)).toEqual({
+            folderId: '', variables: [], secrets: [], headers: [], auth: CreateEmptyAuthenticationDetails('inherit')
+        });
+    });
+
+    it('keeps what the file has', () => {
+        const header = { key: 'x-a', value: '1', active: true, id: 'h' };
+        const folder = normaliseFolderConfig({ folderId: 'f1', headers: [header] } as unknown as FolderConfig);
+        expect(folder.folderId).toBe('f1');
+        expect(folder.headers).toEqual([header]);
+    });
+});
+
+describe('normaliseEnvironment headers', () => {
+    it('gives older environments an empty header list', () => {
+        const env = normaliseEnvironment({ name: 'Dev', id: 'd', variables: [], secrets: [] } as unknown as Environment);
+        expect(env.headers).toEqual([]);
     });
 });

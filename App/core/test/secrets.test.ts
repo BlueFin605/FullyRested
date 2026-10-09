@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SecretStore, loadSecrets, secretServiceForCollection, secretServiceForRequest, storeSecrets } from '../src';
+import { SecretStore, loadSecrets, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets } from '../src';
 
 const memoryStore = () => {
   const data = new Map<string, string>();
@@ -65,4 +65,10 @@ describe('loadSecrets', () => {
     const loaded = await loadSecrets(stored, memoryStore().store, 'svc');
     expect(loaded.environments[0].secrets[0].$value).toBe('');
   });
+});
+
+describe('secretServiceForFolder', () => {
+    it('names the keychain service for a folder', () => {
+        expect(secretServiceForFolder('f1')).toBe('fullyrested-folder-f1');
+    });
 });

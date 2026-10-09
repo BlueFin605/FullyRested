@@ -12,6 +12,7 @@ export const mockCollection = {
         { variable: 'env', value: 'unknown', active: true, id: new SystemSupportService().generateGUID() },
         { variable: 'host', value: 'www.google.com', active: true, id: new SystemSupportService().generateGUID() }
       ],
+      headers: [],
       secrets: [
         { $secret: 'accesskey', $value: 'abcdefghijklm', active: true, id: new SystemSupportService().generateGUID() },
       ],
@@ -29,6 +30,7 @@ export const mockCollection = {
         variables: [
           { variable: 'env', value: 'prod', active: true, id: new SystemSupportService().generateGUID() }
         ],
+        headers: [],
         secrets: [
           { $secret: 'accesskey', $value: 'kjhfkjshdfkhksahfdkjasd', active: true, id: new SystemSupportService().generateGUID() },
         ],
@@ -38,6 +40,7 @@ export const mockCollection = {
         name: 'test',
         id: new SystemSupportService().generateGUID(),
         variables: [],
+        headers: [],
         secrets: [],
         auth: CreateEmptyAuthenticationDetails('inherit')
       },
@@ -45,6 +48,7 @@ export const mockCollection = {
         name: 'dev',
         id: new SystemSupportService().generateGUID(),
         variables: [],
+        headers: [],
         secrets: [],
         auth: CreateEmptyAuthenticationDetails('inherit')
       }
