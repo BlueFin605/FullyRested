@@ -282,6 +282,28 @@
           [(secrets)]="selectedEnvironment.secrets"
         ></app-settings-manage-secrets>
       </div>
+
+      <div class="pane settings-pane" [hidden]="!folderSettingsVisible()">
+        @if (selectedFolder) {
+          <h2 class="pane-title">
+            Folder settings <span class="pane-scope">· {{ selectedFolder.path }}</span>
+            <button mat-flat-button class="pane-action" (click)="saveFolderSettings()">Save</button>
+          </h2>
+          @if (selectedFolder.loadError) {
+            <p class="pane-error">
+              {{ selectedFolder.loadError.file }} could not be read ({{ selectedFolder.loadError.message }}). Saving replaces it.
+            </p>
+          }
+          <h3>Variables</h3>
+          <app-settings-manage-variables [(variables)]="selectedFolder.config.variables"></app-settings-manage-variables>
+          <h3>Secrets</h3>
+          <app-settings-manage-secrets [(secrets)]="selectedFolder.config.secrets"></app-settings-manage-secrets>
+          <h3>Headers</h3>
+          <app-key-value-table [(rows)]="selectedFolder.config.headers" keyLabel="Header"></app-key-value-table>
+          <h3>Authentication</h3>
+          <app-settings-manage-authentication [(auth)]="selectedFolder.config.auth"></app-settings-manage-authentication>
+        }
+      </div>
     </section>
   </main>
 

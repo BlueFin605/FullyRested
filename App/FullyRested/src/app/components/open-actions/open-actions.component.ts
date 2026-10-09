@@ -17,6 +17,8 @@ import {
   Environment,
   AuthenticationDetails,
   ValidationType,
+  FolderNode,
+  relativePath,
 } from '@fullyrested/core';
 import {
   CreateEmptyEnvironment,
@@ -38,6 +40,7 @@ import { ShortcutCommand, ShortcutsService } from 'src/app/services/shortcuts/sh
 import { RestActionComponent } from '../rest-action/rest-action/rest-action.component';
 import { PaletteItem } from '../command-palette/command-palette.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -77,6 +80,9 @@ export class OpenActionsComponent implements OnInit {
     CollectionExplorerComponent | undefined;
   @ViewChildren(RestActionComponent) restActions!: QueryList<RestActionComponent>;
 
+  selectedFolder: FolderNode | undefined;
+  selectedFolderPath = '';
+
   paletteOpen = false;
   paletteItems: PaletteItem[] = [];
 
@@ -84,6 +90,7 @@ export class OpenActionsComponent implements OnInit {
     private repo: ActionRepositoryService,
     private appRef: ApplicationRef,
     private systemSupport: SystemSupportService,
+    private trees: CollectionTreeService,
     public layout: LayoutService,
     public theme: ThemeService,
     shortcuts: ShortcutsService,
@@ -475,6 +482,8 @@ export class OpenActionsComponent implements OnInit {
 
     if (this.selectedTab.selectedType == 'system') return false;
 
+    if (this.selectedTab.selectedType == 'folder') return false;
+
     return true;
   }
 
@@ -516,6 +525,29 @@ export class OpenActionsComponent implements OnInit {
       return true;
 
     return false;
+  }
+
+  openFolderSettings(fullPath: string) {
+    const relative = this.collection ? relativePath(this.collection.path, fullPath) : undefined;
+    const node = relative == undefined ? undefined : this.trees.tree.value?.find(relative);
+    if (!(node instanceof FolderNode)) return;
+
+    if (node.config.folderId == '') node.config.folderId = this.systemSupport.generateGUID();
+    this.selectedFolder = node;
+    this.selectedFolderPath = fullPath;
+    this.selectedTab = { selectedType: 'folder', selectedSubType: 'settings', selectedKey: fullPath, runkey: undefined };
+  }
+
+  folderSettingsVisible(): boolean {
+    return this.selectedTab.selectedType == 'folder' && this.selectedFolder != undefined;
+  }
+
+  async saveFolderSettings() {
+    if (this.selectedFolder == undefined) return;
+    await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
+    await this.trees.reload();
+    // the reload made new nodes; point the pane at the fresh one
+    this.openFolderSettings(this.selectedFolderPath);
   }
 
   environmentChange(env: Environment) {
@@ -677,6 +709,9 @@ export class OpenActionsComponent implements OnInit {
     };
 
     switch (command.name) {
+      case 'folderSettings':
+        this.openFolderSettings(command.item.key);
+        break;
       case 'createEnvironment':
         this.createEnvironment();
         break;
