@@ -82,6 +82,7 @@ export class OpenActionsComponent implements OnInit {
 
   selectedFolder: FolderNode | undefined;
   selectedFolderPath = '';
+  folderSaveError = '';
 
   paletteOpen = false;
   paletteItems: PaletteItem[] = [];
@@ -120,6 +121,8 @@ export class OpenActionsComponent implements OnInit {
         this.tabs.realignInkBar(); // re-align the bottom border of the tab
       });
     });
+
+    this.trees.tree.pipe(takeUntilDestroyed()).subscribe(() => this.onTreeChange());
 
     this.repo.savedAs.subscribe((a) => {
       if (a == undefined) return;
@@ -527,15 +530,29 @@ export class OpenActionsComponent implements OnInit {
     return false;
   }
 
-  openFolderSettings(fullPath: string) {
+  private findFolder(fullPath: string): FolderNode | undefined {
     const relative = this.collection ? relativePath(this.collection.path, fullPath) : undefined;
     const node = relative == undefined ? undefined : this.trees.tree.value?.find(relative);
-    if (!(node instanceof FolderNode)) return;
+    if (!(node instanceof FolderNode)) return undefined;
 
     if (node.config.folderId == '') node.config.folderId = this.systemSupport.generateGUID();
+    return node;
+  }
+
+  openFolderSettings(fullPath: string) {
+    const node = this.findFolder(fullPath);
+    if (node == undefined) return;
+
+    if (fullPath != this.selectedFolderPath) this.folderSaveError = '';
     this.selectedFolder = node;
     this.selectedFolderPath = fullPath;
     this.selectedTab = { selectedType: 'folder', selectedSubType: 'settings', selectedKey: fullPath, runkey: undefined };
+  }
+
+  // Every reload makes new nodes: keep an open folder pane on the live one, and hide it if the folder is gone
+  onTreeChange() {
+    if (this.selectedTab.selectedType != 'folder' || this.selectedFolderPath == '') return;
+    this.selectedFolder = this.findFolder(this.selectedFolderPath);
   }
 
   folderSettingsVisible(): boolean {
@@ -544,10 +561,13 @@ export class OpenActionsComponent implements OnInit {
 
   async saveFolderSettings() {
     if (this.selectedFolder == undefined) return;
-    await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
-    await this.trees.reload();
-    // the reload made new nodes; point the pane at the fresh one
-    this.openFolderSettings(this.selectedFolderPath);
+    try {
+      await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
+      await this.trees.reload();
+      this.folderSaveError = '';
+    } catch (error) {
+      this.folderSaveError = (error as Error)?.message ?? String(error);
+    }
   }
 
   environmentChange(env: Environment) {

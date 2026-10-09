@@ -17,8 +17,57 @@ describe('OpenActionsComponent folder settings', () => {
     component.trees = { tree: new BehaviorSubject(root) };
     component.systemSupport = { generateGUID: () => 'new-guid' };
     component.selectedTab = { selectedType: '', selectedSubType: '', selectedKey: '', runkey: undefined };
-    return { component: component as OpenActionsComponent, folder };
+    component.selectedFolderPath = '';
+    component.folderSaveError = '';
+    component.repo = { saveFolder: jasmine.createSpy('saveFolder').and.resolveTo() };
+    component.trees.reload = jasmine.createSpy('reload').and.callFake(async () => {
+      // a reload builds new nodes
+      const fresh = new CollectionNode(root.config, 'api');
+      fresh.children.push(new FolderNode(fresh, 'api/users', CreateEmptyFolderConfig('x'), true));
+      component.trees.tree.next(fresh);
+      component.onTreeChange();
+    });
+    return { component: component as OpenActionsComponent, folder, root };
   }
+
+  it('follows the tree to the new node after a save', async () => {
+    const { component, folder } = setup();
+    component.openFolderSettings(folderHostPath);
+
+    await component.saveFolderSettings();
+
+    expect(component.selectedFolder).toBeDefined();
+    expect(component.selectedFolder).not.toBe(folder);
+    expect((component as any).trees.tree.value.find('api/users')).toBe(component.selectedFolder);
+  });
+
+  it('hides the pane when the folder disappears from the tree', () => {
+    const { component, root } = setup();
+    component.openFolderSettings(folderHostPath);
+    root.children.length = 0;
+    component.onTreeChange();
+    expect(component.selectedFolder).toBeUndefined();
+    expect(component.folderSettingsVisible()).toBeFalse();
+  });
+
+  it('keeps the message when saving fails', async () => {
+    const { component } = setup();
+    component.openFolderSettings(folderHostPath);
+    (component as any).repo.saveFolder.and.rejectWith(new Error('disk full'));
+
+    await component.saveFolderSettings();
+
+    expect(component.folderSaveError).toBe('disk full');
+  });
+
+  it('opens the pane from the folderSettings command', async () => {
+    const { component } = setup();
+    await component.onExplorerCommand({
+      name: 'folderSettings',
+      item: { key: folderHostPath, type: 'dir', subtype: 'folder', runkey: undefined },
+    } as any);
+    expect(component.folderSettingsVisible()).toBeTrue();
+  });
 
   it('opens the folder, giving it an id when it had none', () => {
     const { component, folder } = setup();

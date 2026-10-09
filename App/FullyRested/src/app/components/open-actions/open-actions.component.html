@@ -294,6 +294,9 @@
               {{ selectedFolder.loadError.file }} could not be read ({{ selectedFolder.loadError.message }}). Saving replaces it.
             </p>
           }
+          @if (folderSaveError) {
+            <p class="pane-error">Could not save: {{ folderSaveError }}</p>
+          }
           <h3>Variables</h3>
           <app-settings-manage-variables [(variables)]="selectedFolder.config.variables"></app-settings-manage-variables>
           <h3>Secrets</h3>
