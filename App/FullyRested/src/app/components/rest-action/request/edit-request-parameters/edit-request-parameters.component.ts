@@ -28,9 +28,10 @@ const COLUMNS_SCHEMA = [
 
 
 @Component({
-  selector: 'app-edit-request-parameters',
-  templateUrl: './edit-request-parameters.component.html',
-  styleUrls: ['./edit-request-parameters.component.css']
+    selector: 'app-edit-request-parameters',
+    templateUrl: './edit-request-parameters.component.html',
+    styleUrls: ['./edit-request-parameters.component.css'],
+    standalone: false
 })
 export class EditRequestParametersComponent implements OnInit {
 

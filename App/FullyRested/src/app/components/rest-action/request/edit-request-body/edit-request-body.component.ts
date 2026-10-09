@@ -3,9 +3,10 @@ import { JsonEditorOptions, JsonEditorComponent } from '../../../json-editor/jso
 import { RestActionBody } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-edit-request-body',
-  templateUrl: './edit-request-body.component.html',
-  styleUrls: ['./edit-request-body.component.css']
+    selector: 'app-edit-request-body',
+    templateUrl: './edit-request-body.component.html',
+    styleUrls: ['./edit-request-body.component.css'],
+    standalone: false
 })
 export class EditRequestBodyComponent implements OnInit {
   // private initialData: string;

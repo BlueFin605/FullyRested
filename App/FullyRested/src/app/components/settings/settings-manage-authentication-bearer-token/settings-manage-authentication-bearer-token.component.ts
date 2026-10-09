@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetailsBearerToken, isRawCredential } from '@f
 import { AuthenticationDetailsBearerToken } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-settings-manage-authentication-bearer-token',
-  templateUrl: './settings-manage-authentication-bearer-token.component.html',
-  styleUrls: ['./settings-manage-authentication-bearer-token.component.css']
+    selector: 'app-settings-manage-authentication-bearer-token',
+    templateUrl: './settings-manage-authentication-bearer-token.component.html',
+    styleUrls: ['./settings-manage-authentication-bearer-token.component.css'],
+    standalone: false
 })
 export class SettingsManageAuthenticationBearerTokenComponent implements OnInit {
   @Input()

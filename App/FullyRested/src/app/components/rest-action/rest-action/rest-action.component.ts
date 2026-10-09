@@ -7,9 +7,10 @@ import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/exe
 import { RestActionResult, ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-rest-action',
-  templateUrl: './rest-action.component.html',
-  styleUrls: ['./rest-action.component.css']
+    selector: 'app-rest-action',
+    templateUrl: './rest-action.component.html',
+    styleUrls: ['./rest-action.component.css'],
+    standalone: false
 })
 export class RestActionComponent implements OnInit {
   _action: RestAction = CreateEmptyAction();

@@ -28,9 +28,10 @@ export class TreeviewItem {
 }
 
 @Component({
-  selector: 'app-collection-explorer',
-  templateUrl: './collection-explorer.component.html',
-  styleUrls: ['./collection-explorer.component.css']
+    selector: 'app-collection-explorer',
+    templateUrl: './collection-explorer.component.html',
+    styleUrls: ['./collection-explorer.component.css'],
+    standalone: false
 })
 export class CollectionExplorerComponent implements OnInit {
   _collection: Collection | undefined;

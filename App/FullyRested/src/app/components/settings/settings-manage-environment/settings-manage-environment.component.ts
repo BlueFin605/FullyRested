@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
 import { Environment } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-settings-manage-environment',
-  templateUrl: './settings-manage-environment.component.html',
-  styleUrls: ['./settings-manage-environment.component.css']
+    selector: 'app-settings-manage-environment',
+    templateUrl: './settings-manage-environment.component.html',
+    styleUrls: ['./settings-manage-environment.component.css'],
+    standalone: false
 })
 export class SettingsManageEnvironmentComponent implements OnInit {
 

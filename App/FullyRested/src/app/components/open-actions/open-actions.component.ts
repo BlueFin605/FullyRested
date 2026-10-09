@@ -14,9 +14,10 @@ interface SelectedTab {
 }
 
 @Component({
-  selector: 'app-open-actions',
-  templateUrl: './open-actions.component.html',
-  styleUrls: ['./open-actions.component.css']
+    selector: 'app-open-actions',
+    templateUrl: './open-actions.component.html',
+    styleUrls: ['./open-actions.component.css'],
+    standalone: false
 })
 export class OpenActionsComponent implements OnInit {
   state: CurrentState = { currentCollection: '', sessions: [], recentCollections: [] };

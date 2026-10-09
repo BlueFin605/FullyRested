@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetailsBasicAuth, isRawCredential } from '@ful
 import { AuthenticationDetailsBasicAuth } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-settings-manage-authentication-basic-auth',
-  templateUrl: './settings-manage-authentication-basic-auth.component.html',
-  styleUrls: ['./settings-manage-authentication-basic-auth.component.css']
+    selector: 'app-settings-manage-authentication-basic-auth',
+    templateUrl: './settings-manage-authentication-basic-auth.component.html',
+    styleUrls: ['./settings-manage-authentication-basic-auth.component.css'],
+    standalone: false
 })
 export class SettingsManageAuthenticationBasicAuthComponent implements OnInit {
   @Input()

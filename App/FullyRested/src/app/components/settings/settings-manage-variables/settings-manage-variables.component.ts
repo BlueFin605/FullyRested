@@ -26,9 +26,10 @@ const COLUMNS_SCHEMA = [
 ]
 
 @Component({
-  selector: 'app-settings-manage-variables',
-  templateUrl: './settings-manage-variables.component.html',
-  styleUrls: ['./settings-manage-variables.component.css']
+    selector: 'app-settings-manage-variables',
+    templateUrl: './settings-manage-variables.component.html',
+    styleUrls: ['./settings-manage-variables.component.css'],
+    standalone: false
 })
 export class SettingsManageVariablesComponent implements OnInit {
 

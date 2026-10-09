@@ -1,9 +1,10 @@
 import { Component, OnInit, Input } from '@angular/core';
 
 @Component({
-  selector: 'app-display-response-headers',
-  templateUrl: './display-response-headers.component.html',
-  styleUrls: ['./display-response-headers.component.css']
+    selector: 'app-display-response-headers',
+    templateUrl: './display-response-headers.component.html',
+    styleUrls: ['./display-response-headers.component.css'],
+    standalone: false
 })
 export class DisplayResponseHeadersComponent implements OnInit {
   @Input()

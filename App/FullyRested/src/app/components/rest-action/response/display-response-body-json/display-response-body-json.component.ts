@@ -4,9 +4,10 @@ import { ContentTypeHelperService } from 'src/app/services/content-type-helper/c
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-display-response-body-json',
-  templateUrl: './display-response-body-json.component.html',
-  styleUrls: ['./display-response-body-json.component.css']
+    selector: 'app-display-response-body-json',
+    templateUrl: './display-response-body-json.component.html',
+    styleUrls: ['./display-response-body-json.component.css'],
+    standalone: false
 })
 export class DisplayResponseBodyJsonComponent implements OnInit {
   rawData: string = '';

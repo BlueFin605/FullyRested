@@ -3,9 +3,10 @@ import { EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-r
 import { RestActionResult } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-display-response',
-  templateUrl: './display-response.component.html',
-  styleUrls: ['./display-response.component.css']
+    selector: 'app-display-response',
+    templateUrl: './display-response.component.html',
+    styleUrls: ['./display-response.component.css'],
+    standalone: false
 })
 export class DisplayResponseComponent implements OnInit {
   @Input()

@@ -27,9 +27,10 @@ const COLUMNS_SCHEMA = [
 
 
 @Component({
-  selector: 'app-edit-request-headers',
-  templateUrl: './edit-request-headers.component.html',
-  styleUrls: ['./edit-request-headers.component.css']
+    selector: 'app-edit-request-headers',
+    templateUrl: './edit-request-headers.component.html',
+    styleUrls: ['./edit-request-headers.component.css'],
+    standalone: false
 })
 export class EditRequestHeadersComponent implements OnInit {
 

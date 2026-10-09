@@ -7,9 +7,10 @@ import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, He
 import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-edit-request',
-  templateUrl: './edit-request.component.html',
-  styleUrls: ['./edit-request.component.css']
+    selector: 'app-edit-request',
+    templateUrl: './edit-request.component.html',
+    styleUrls: ['./edit-request.component.css'],
+    standalone: false
 })
 export class EditRequestComponent implements OnInit {
   public get restTypeVerb(): typeof RestTypeVerb {

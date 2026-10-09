@@ -25,9 +25,10 @@ const COLUMNS_SCHEMA = [
   },
 ]
 @Component({
-  selector: 'app-settings-manage-secrets',
-  templateUrl: './settings-manage-secrets.component.html',
-  styleUrls: ['./settings-manage-secrets.component.css']
+    selector: 'app-settings-manage-secrets',
+    templateUrl: './settings-manage-secrets.component.html',
+    styleUrls: ['./settings-manage-secrets.component.css'],
+    standalone: false
 })
 export class SettingsManageSecretsComponent implements OnInit {
 

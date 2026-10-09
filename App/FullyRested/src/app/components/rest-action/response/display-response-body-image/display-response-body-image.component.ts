@@ -3,9 +3,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-display-response-body-image',
-  templateUrl: './display-response-body-image.component.html',
-  styleUrls: ['./display-response-body-image.component.css']
+    selector: 'app-display-response-body-image',
+    templateUrl: './display-response-body-image.component.html',
+    styleUrls: ['./display-response-body-image.component.css'],
+    standalone: false
 })
 export class DisplayResponseBodyImageComponent implements OnInit {
   _data: Buffer | undefined;

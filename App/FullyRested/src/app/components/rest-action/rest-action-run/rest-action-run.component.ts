@@ -8,9 +8,10 @@ import { EmptyActionResult, ExecuteRestCallsService } from 'src/app/services/exe
 import { ExecuteRestAction, RestActionResult } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-rest-action-run',
-  templateUrl: './rest-action-run.component.html',
-  styleUrls: ['./rest-action-run.component.css']
+    selector: 'app-rest-action-run',
+    templateUrl: './rest-action-run.component.html',
+    styleUrls: ['./rest-action-run.component.css'],
+    standalone: false
 })
 export class RestActionRunComponent implements OnInit {
   _runId: String = ''

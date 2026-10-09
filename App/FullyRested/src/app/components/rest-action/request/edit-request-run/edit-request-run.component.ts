@@ -5,9 +5,10 @@ import { SystemSupportService } from 'src/app/services/system-support/system-sup
 import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-edit-request-run',
-  templateUrl: './edit-request-run.component.html',
-  styleUrls: ['./edit-request-run.component.css']
+    selector: 'app-edit-request-run',
+    templateUrl: './edit-request-run.component.html',
+    styleUrls: ['./edit-request-run.component.css'],
+    standalone: false
 })
 export class EditRequestRunComponent implements OnInit {
   public get restTypeVerb(): typeof RestTypeVerb {

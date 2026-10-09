@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
 import { AuthenticationDetails } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-edit-request-authentication',
-  templateUrl: './edit-request-authentication.component.html',
-  styleUrls: ['./edit-request-authentication.component.css']
+    selector: 'app-edit-request-authentication',
+    templateUrl: './edit-request-authentication.component.html',
+    styleUrls: ['./edit-request-authentication.component.css'],
+    standalone: false
 })
 export class EditRequestAuthenticationComponent implements OnInit {
   @Input()

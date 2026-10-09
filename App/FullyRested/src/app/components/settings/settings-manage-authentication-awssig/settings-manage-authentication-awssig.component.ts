@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetailsAwsSig, isRawCredential } from '@fullyr
 import { AuthenticationDetailsAWSSig } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-settings-manage-authentication-awssig',
-  templateUrl: './settings-manage-authentication-awssig.component.html',
-  styleUrls: ['./settings-manage-authentication-awssig.component.css']
+    selector: 'app-settings-manage-authentication-awssig',
+    templateUrl: './settings-manage-authentication-awssig.component.html',
+    styleUrls: ['./settings-manage-authentication-awssig.component.css'],
+    standalone: false
 })
 export class SettingsManageAuthenticationAWSSigComponent implements OnInit {
 @Input()

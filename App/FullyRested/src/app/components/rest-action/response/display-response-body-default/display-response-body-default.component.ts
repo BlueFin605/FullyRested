@@ -3,9 +3,10 @@ import { ContentTypeHelperService } from 'src/app/services/content-type-helper/c
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-display-response-body-default',
-  templateUrl: './display-response-body-default.component.html',
-  styleUrls: ['./display-response-body-default.component.css']
+    selector: 'app-display-response-body-default',
+    templateUrl: './display-response-body-default.component.html',
+    styleUrls: ['./display-response-body-default.component.css'],
+    standalone: false
 })
 export class DisplayResponseBodyDefaultComponent implements OnInit {
   rawData: string = '';

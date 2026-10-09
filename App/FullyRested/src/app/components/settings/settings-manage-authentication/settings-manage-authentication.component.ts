@@ -3,9 +3,10 @@ import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
 import { AuthenticationDetails } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-settings-manage-authentication',
-  templateUrl: './settings-manage-authentication.component.html',
-  styleUrls: ['./settings-manage-authentication.component.css']
+    selector: 'app-settings-manage-authentication',
+    templateUrl: './settings-manage-authentication.component.html',
+    styleUrls: ['./settings-manage-authentication.component.css'],
+    standalone: false
 })
 export class SettingsManageAuthenticationComponent implements OnInit {
   @Input()

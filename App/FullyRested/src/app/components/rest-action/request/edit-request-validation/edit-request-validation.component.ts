@@ -6,9 +6,10 @@ import { CreateEmptyRestActionValidation } from '@fullyrested/core';
 import { ValidationType, ValidationTypeBody, RestActionValidation, HeaderTable } from '@fullyrested/core';
 
 @Component({
-  selector: 'app-edit-request-validation',
-  templateUrl: './edit-request-validation.component.html',
-  styleUrls: ['./edit-request-validation.component.css']
+    selector: 'app-edit-request-validation',
+    templateUrl: './edit-request-validation.component.html',
+    styleUrls: ['./edit-request-validation.component.css'],
+    standalone: false
 })
 export class EditRequestValidationComponent implements OnInit {
   public get validationType(): typeof ValidationType {
