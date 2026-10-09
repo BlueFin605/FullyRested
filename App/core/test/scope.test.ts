@@ -98,6 +98,47 @@ describe('scope precedence', () => {
     });
 });
 
+describe('request and run resolution', () => {
+    it('adds run parameters to the request parameters, the run winning a repeated key', () => {
+        const { request } = build();
+        request.action.url = 'host/search';
+        request.action.parameters = [h('q', 'from action'), h('page', '1')];
+        request.action.runs[0].parameters = [h('q', 'from run')];
+        expect(request.resolve().url).toBe('host/search?q=from+action&page=1');
+        expect(request.run('r1').resolve().url).toBe('host/search?q=from+run&page=1');
+    });
+
+    it('takes the request validation when the run inherits it, else the run validation', () => {
+        const { request } = build();
+        request.action.validation = CreateEmptyRestActionValidation(ValidationType.ResponseCode);
+        expect(request.resolve().validation?.type).toBe(ValidationType.ResponseCode);
+        expect(request.run('r1').resolve().validation?.type).toBe(ValidationType.ResponseCode);
+        request.action.runs[0].validation = CreateEmptyRestActionValidation(ValidationType.Headers);
+        expect(request.run('r1').resolve().validation?.type).toBe(ValidationType.Headers);
+    });
+
+    it('auth: a run beats the request unless the run inherits', () => {
+        const { request } = build();
+        request.action.authentication = bearer('action');
+        expect(request.run('r1').resolve().authentication?.bearerToken.token).toBe('action');
+        request.action.runs[0].authentication = bearer('run');
+        expect(request.run('r1').resolve().authentication?.bearerToken.token).toBe('run');
+    });
+
+    it('finds a run by name and does not reorder the request headers', () => {
+        const { request } = build();
+        request.action.headers = [h('accept', 'text/html'), h('x-action', 'yes')];
+        expect(request.run('one').run.id).toBe('r1');
+        request.run('r1').resolve();
+        request.resolve();
+        expect(request.action.headers.map(x => x.key)).toEqual(['accept', 'x-action']);
+    });
+
+    it('substitutes the resolved values', () => {
+        expect(build().request.resolve().replaceVariables().url).toBe('inner/x');
+    });
+});
+
 describe('effectiveSettings', () => {
     it('names where each value comes from and agrees with resolve()', () => {
         const { request } = build();

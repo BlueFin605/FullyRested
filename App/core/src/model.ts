@@ -196,24 +196,6 @@ export interface Collection {
     path: string;
 }
 
-export interface TraversedDrectory {
-    dir: Dir;
-    subdirs: TraversedDrectory[];
-    files: File[];
-}
-
-export interface Dir {
-    name: string;
-    path: string;
-    fullPath: string;
-}
-
-export interface File {
-    name: string;
-    path: string;
-    fullPath: string;
-}
-
 export interface SavedAsCompleted {
     id: string;
     fullFilename: string;
