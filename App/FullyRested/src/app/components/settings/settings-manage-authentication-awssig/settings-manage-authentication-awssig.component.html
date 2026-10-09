@@ -33,6 +33,20 @@
   </div>
   <div class="awssigfield">
     <mat-form-field class="awssig-field">
+      <mat-label>SessionToken (temporary credentials)</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="awssig.sessionToken"
+        (ngModelChange)="onChange($event)"
+      />
+      @if (raw(awssig.sessionToken)) {
+        <mat-hint class="raw-credential">{{ rawCredentialHint }}</mat-hint>
+      }
+    </mat-form-field>
+  </div>
+  <div class="awssigfield">
+    <mat-form-field class="awssig-field">
       <mat-label>AWS Region</mat-label>
       <input
         matInput

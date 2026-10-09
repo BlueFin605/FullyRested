@@ -76,6 +76,7 @@ describe('normaliseCollectionConfig', () => {
         expect(config.collectionEnvironment.auth.authentication).toBe('awssig');
         expect(config.collectionEnvironment.auth.awsSig.accessKey).toBe('akey');
         expect(config.collectionEnvironment.auth.awsSig.signUrl).toBe(false);
+        expect(config.collectionEnvironment.auth.awsSig.sessionToken).toBe('');   // saved before session tokens existed
         expect(config.environments.length).toBe(3);
         config.environments.forEach(e => {
             expect(e.auth.basicAuth).toBeDefined();

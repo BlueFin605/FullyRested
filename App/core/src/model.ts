@@ -48,6 +48,7 @@ export interface AuthenticationDetailsAWSSig {
     signUrl: boolean;
     accessKey: string;
     secretKey: string;
+    sessionToken?: string;   // temporary credentials (SSO, assumed roles); older files have none
     awsRegion: string;
     serviceName: string;
 }
@@ -253,7 +254,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   }
   
   export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
-    return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
+    return { signUrl: false, accessKey: '', secretKey: '', sessionToken: '', awsRegion: 'eu-central-1', serviceName: '' };
   }
   
   export function CreateEmptyAuthenticationDetailsBasicAuth(): AuthenticationDetailsBasicAuth {

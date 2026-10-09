@@ -44,7 +44,7 @@ async function signAwsSigV4(request: PreparedRequest, aws: AuthenticationDetails
   const signer = new SignatureV4({
     service: aws.serviceName,
     region: aws.awsRegion,
-    credentials: { accessKeyId: aws.accessKey, secretAccessKey: aws.secretKey },
+    credentials: { accessKeyId: aws.accessKey, secretAccessKey: aws.secretKey, sessionToken: aws.sessionToken || undefined },
     sha256: Sha256
   });
 

@@ -4,9 +4,9 @@ import { AuthenticationDetails, CreateEmptyAuthenticationDetails, PreparedReques
 
 // Credentials and date from the AWS SigV4 test suite
 const signingDate = new Date(Date.UTC(2015, 7, 30, 12, 36, 0));
-const aws = (signUrl: boolean): AuthenticationDetails => ({
+const aws = (signUrl: boolean, sessionToken?: string): AuthenticationDetails => ({
   ...CreateEmptyAuthenticationDetails('awssig'),
-  awsSig: { signUrl, accessKey: 'AKIDEXAMPLE', secretKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', awsRegion: 'us-east-1', serviceName: 'service' }
+  awsSig: { signUrl, accessKey: 'AKIDEXAMPLE', secretKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', sessionToken, awsRegion: 'us-east-1', serviceName: 'service' }
 });
 const request = (method: string, body?: string): PreparedRequest =>
   ({ method, url: 'https://example.amazonaws.com/?Param1=value1', headers: { 'content-type': 'text/plain' }, body });
@@ -52,6 +52,25 @@ describe('applyAuthentication', () => {
     expect(query.get('Param1')).toBe('value1');
     expect(query.get('X-Amz-Credential')).toBe('AKIDEXAMPLE/20150830/us-east-1/service/aws4_request');
     expect(query.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('sends and signs the session token of temporary credentials', async () => {
+    const signed = await applyAuthentication(request('GET'), aws(false, 'TOKEN/abc='), signingDate);
+
+    expect(signed.headers['x-amz-security-token']).toBe('TOKEN/abc=');
+    expect(signed.headers['authorization']).toMatch(/SignedHeaders=[^,]*x-amz-security-token/);
+    expect(signatureOf(signed)).not.toBe(signatureOf(await applyAuthentication(request('GET'), aws(false), signingDate)));
+  });
+
+  it('puts the session token in a presigned URL', async () => {
+    const signed = await applyAuthentication(request('GET'), aws(true, 'TOKEN/abc='), signingDate);
+    expect(new URL(signed.url).searchParams.get('X-Amz-Security-Token')).toBe('TOKEN/abc=');
+  });
+
+  it('sends no session token when it is empty', async () => {
+    const signed = await applyAuthentication(request('GET'), aws(false, ''), signingDate);
+    expect(signed.headers['x-amz-security-token']).toBeUndefined();
+    expect(signatureOf(signed)).toBe(signatureOf(await applyAuthentication(request('GET'), aws(false), signingDate)));
   });
 
   it('does not mutate the request it is given', async () => {

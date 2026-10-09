@@ -58,8 +58,11 @@ to `inherit` falls through to the next level.
 Files from the older Rest Easy app (`.reasycol` / `.reasyreq`) still open.
 **Save** keeps a file's name. **Save As** uses the new extensions.
 
+**Request bodies:** JSON, or form fields sent as
+`application/x-www-form-urlencoded`.
+
 **Authentication:** none, basic, bearer token and AWS Signature V4 (header or
-presigned URL).
+presigned URL, with a session token for temporary credentials).
 
 **Validation:** status code, response headers, and a JSON Schema check on the
 body.
