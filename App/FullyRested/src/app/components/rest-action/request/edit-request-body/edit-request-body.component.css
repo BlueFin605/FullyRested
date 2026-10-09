@@ -1,4 +1,44 @@
-.rb {
-    margin-left: 50px;
-    margin-top: 10px;
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.body-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.json-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-error);
+}
+
+.json-error mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.body-editor {
+  flex: 1;
+  min-height: 160px;
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  overflow: hidden;
+}
+
+.no-body {
+  padding: 24px;
+  text-align: center;
+  color: var(--fr-text-muted);
 }

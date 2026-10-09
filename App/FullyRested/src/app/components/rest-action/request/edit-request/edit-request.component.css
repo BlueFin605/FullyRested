@@ -1,39 +1,100 @@
-.action-header {
-    /* margin: 60px; */
-    margin-left: 60px;
-    margin-right: 60px;
-    display: flex;
-    margin-bottom: 5px;
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
-.verb-basics {
-    margin-right: 10px;
+.request-header {
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--fr-border);
+  flex: none;
 }
 
-.verb-selector-form-field, .protocol-selector-form-field {
-    width: 100%;
+.name-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fr-text);
+  font: 600 14px var(--fr-font-ui);
+  outline: 0;
 }
 
-.protocol-selector-form-field {
+.name-input:hover {
+  border-color: var(--fr-border);
 }
 
-.url-form-field {
-    width: 100%;
+.name-input:focus {
+  border-color: var(--fr-accent);
+  background: var(--fr-bg);
 }
 
-.action-verb {
-    width: 115px;
-    /* float: left; */
+/* method, URL and Send read as one control */
+.url-bar {
+  display: flex;
+  align-items: stretch;
+  height: 34px;
+  border: 1px solid var(--fr-border-strong);
+  border-radius: var(--fr-radius);
+  background: var(--fr-bg);
 }
 
-.action-protocol {
-    width: 115px;
+.url-bar:focus-within {
+  border-color: var(--fr-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fr-accent) 18%, transparent);
 }
 
-.action-url {
-    flex-grow: 1;    
+.verb-select {
+  width: 86px;
+  flex: none;
+  padding: 0 8px 0 12px;
+  align-self: center;
+  border-right: 1px solid var(--fr-border);
 }
 
-.action-send {
-    width: 10px;
+.verb-select .fr-method {
+  font-size: 12px;
+}
+
+.url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+  align-self: center;
+}
+
+.send {
+  flex: none;
+  height: auto;
+  margin: 3px;
+  padding: 0 18px;
+  border-radius: 4px;
+}
+
+.request-tabs {
+  flex: 1;
+  min-height: 0;
+}
+
+.request-tabs ::ng-deep > .mat-mdc-tab-body-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.request-tabs ::ng-deep > .mat-mdc-tab-body-wrapper > .mat-mdc-tab-body > .mat-mdc-tab-body-content {
+  height: 100%;
+  overflow: auto;
+}
+
+.tab-body {
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.tab-body.fill {
+  height: 100%;
 }

@@ -29,11 +29,16 @@ import {
 } from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ExecuteRestAction } from '@fullyrested/core';
+import { InheritedRow } from '../../../key-value-table/key-value-table.component';
+import { activeCount, authLabel } from '../request-labels';
 
 @Component({
   selector: 'app-edit-request-run',
   templateUrl: './edit-request-run.component.html',
-  styleUrls: ['./edit-request-run.component.css'],
+  styleUrls: [
+    '../edit-request/edit-request.component.css',
+    './edit-request-run.component.css',
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
@@ -74,7 +79,23 @@ export class EditRequestRunComponent implements OnInit {
 
   displayUrl: string = '';
 
+  readonly authLabel = authLabel;
+  readonly count = activeCount;
+
   constructor(private systemSupport: SystemSupportService) {}
+
+  get fullUrl(): string {
+    return this.displayUrl == '' ? '' : `${this.action.protocol}://${this.displayUrl}`;
+  }
+
+  // What the request already sends; the run's own rows add to these
+  inheritedParams(): InheritedRow[] {
+    return this.action.parameters.map((p) => ({ key: p.key, value: p.value, active: p.active }));
+  }
+
+  inheritedHeaders(): InheritedRow[] {
+    return this.action.headers.map((h) => ({ key: h.key, value: h.value, active: h.active }));
+  }
 
   ngOnInit(): void {}
 

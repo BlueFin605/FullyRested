@@ -1,36 +1,12 @@
 import {
   Component,
-  OnInit,
   Input,
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { SecretTable } from '@fullyrested/core';
 
-const COLUMNS_SCHEMA = [
-  {
-    key: 'isdelete',
-    type: 'isdelete',
-    label: '',
-  },
-  {
-    key: 'isenabled',
-    type: 'isenabled',
-    label: '',
-  },
-  {
-    key: '$secret',
-    type: 'text',
-    label: 'Secret',
-  },
-  {
-    key: '$value',
-    type: 'text',
-    label: 'Value',
-  },
-];
 @Component({
   selector: 'app-settings-manage-secrets',
   templateUrl: './settings-manage-secrets.component.html',
@@ -38,47 +14,15 @@ const COLUMNS_SCHEMA = [
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class SettingsManageSecretsComponent implements OnInit {
+export class SettingsManageSecretsComponent {
   @Input()
   secrets: SecretTable[] = [];
 
   @Output()
   secretsChange = new EventEmitter<SecretTable[]>();
 
-  displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
-  columnsSchema: any = COLUMNS_SCHEMA;
-
-  constructor(private systemSupport: SystemSupportService) {}
-
-  ngOnInit(): void {}
-
-  add() {
-    this.secrets = [
-      ...this.secrets,
-      {
-        $secret: '',
-        $value: '',
-        active: true,
-        id: this.systemSupport.generateGUID(),
-      },
-    ];
-    this.secretsChange.emit(this.secrets);
-  }
-
-  delete(id: string) {
-    this.secrets = this.secrets.filter((f) => f.id != id);
-    this.secretsChange.emit(this.secrets);
-  }
-
-  activeClicked(id: string) {
-    var entry = this.secrets.find((f) => f.id == id);
-    if (entry == undefined) return;
-
-    entry.active = !entry.active;
-    this.secretsChange.emit(this.secrets);
-  }
-
-  modelChangeFn(value: any) {
+  onRowsChange(rows: SecretTable[]) {
+    this.secrets = rows;
     this.secretsChange.emit(this.secrets);
   }
 }

@@ -1,52 +1,102 @@
-<div class="action-name">
-    <mat-form-field class="url-form-field">
-        <mat-label>Name</mat-label>
-        <input matInput placeholder="Input" [ngModel]="action.name" (ngModelChange)="onNameChange($event)">
-    </mat-form-field>
+<div class="request-header">
+  <input
+    class="name-input"
+    [ngModel]="action.name"
+    (ngModelChange)="onNameChange($event)"
+    placeholder="Untitled request"
+    aria-label="Request name"
+    spellcheck="false"
+  />
+  <div class="url-bar">
+    <mat-select
+      class="verb-select"
+      [(value)]="action.verb"
+      (selectionChange)="onVerbChange($event)"
+      panelWidth="120px"
+      aria-label="HTTP method"
+    >
+      <mat-select-trigger>
+        <span class="fr-method" [attr.data-verb]="action.verb">{{ action.verb | verbLabel }}</span>
+      </mat-select-trigger>
+      @for (verb of verbs; track verb) {
+        <mat-option [value]="verb">
+          <span class="fr-method" [attr.data-verb]="verb">{{ verb | verbLabel }}</span>
+        </mat-option>
+      }
+    </mat-select>
+    <app-code-editor
+      #urlEditor
+      class="url-input"
+      [singleLine]="true"
+      [value]="urlText"
+      (valueChange)="onUrlChange($event)"
+      (enter)="test()"
+      placeholder="Enter a URL, e.g. https://api.example.com/users"
+    ></app-code-editor>
+    <button mat-flat-button class="send" (click)="test()" matTooltip="Send (Ctrl+Enter)">
+      Send
+    </button>
+  </div>
 </div>
 
-<div class="action-header">
-    <div class="verb-basics action-verb">
-        <mat-form-field class="verb-selector-form-field">
-            <mat-label>http verb</mat-label>
-            <mat-select [(value)]="action.verb" (selectionChange)="onVerbChange($event)">
-                <mat-option [value]="restTypeVerb.get">GET</mat-option>
-                <mat-option [value]="restTypeVerb.post">POST</mat-option>
-                <mat-option [value]="restTypeVerb.patch">PATCH</mat-option>
-                <mat-option [value]="restTypeVerb.delete">DELETE</mat-option>
-                <mat-option [value]="restTypeVerb.put">PUT</mat-option>
-                <mat-option [value]="restTypeVerb.option">OPTION</mat-option>
-            </mat-select>
-        </mat-form-field>
+<mat-tab-group class="fr-subtabs request-tabs" animationDuration="0ms" [mat-stretch-tabs]="false">
+  <mat-tab>
+    <ng-template mat-tab-label>
+      Params
+      @if (count(action.parameters); as n) {
+        <span class="count">{{ n }}</span>
+      }
+    </ng-template>
+    <div class="tab-body">
+      <app-edit-request-parameters
+        [(params)]="action.parameters"
+        (paramsChange)="onParamChange($event)"
+      ></app-edit-request-parameters>
     </div>
-
-    <div class="verb-basics action-protocol">
-        <mat-form-field class="protocol-selector-form-field">
-            <mat-label>protocol</mat-label>
-            <mat-select [(value)]="action.protocol" (selectionChange)="onProtocolChange($event)">
-                <mat-option [value]="httpProtocol.http">HTTP</mat-option>
-                <mat-option [value]="httpProtocol.https">HTTPS</mat-option>
-            </mat-select>
-        </mat-form-field>
+  </mat-tab>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      Auth<span class="count">{{ authLabel(action.authentication.authentication) }}</span>
+    </ng-template>
+    <div class="tab-body">
+      <app-edit-request-authentication
+        [(auth)]="action.authentication"
+        (authChange)="onAuthChange($event)"
+      ></app-edit-request-authentication>
     </div>
-
-    <div class="verb-basics action-url">
-        <mat-form-field class="url-form-field">
-            <mat-label>URL</mat-label>
-            <input matInput placeholder="Input" [ngModel]="displayUrl" (ngModelChange)="onUrlChange($event)">
-        </mat-form-field>
+  </mat-tab>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      Headers
+      @if (count(action.headers); as n) {
+        <span class="count">{{ n }}</span>
+      }
+    </ng-template>
+    <div class="tab-body">
+      <app-edit-request-headers
+        [(headers)]="action.headers"
+        (headersChange)="onHeadersChange($event)"
+      ></app-edit-request-headers>
     </div>
-
-    <div class="verb-basics action-send">
-        <button mat-raised-button color="primary" (click)='test()'>Send</button>
+  </mat-tab>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      Body<span class="count">{{ bodyLabel(action.body.contentType) }}</span>
+    </ng-template>
+    <div class="tab-body fill">
+      <app-edit-request-body
+        [(body)]="action.body"
+        (bodyChange)="onBodyChange($event)"
+      ></app-edit-request-body>
     </div>
-</div>
-<div>
-    <mat-tab-group animationDuration="0ms">
-        <mat-tab label="Body"><app-edit-request-body [(body)]="action.body"  (bodyChange)="onBodyChange($event)"></app-edit-request-body></mat-tab>
-        <mat-tab label="Headers"><app-edit-request-headers [(headers)]="action.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></mat-tab>
-        <mat-tab label="Parameters"><app-edit-request-parameters [(params)]="action.parameters" (paramsChange)="onParamChange($event)"></app-edit-request-parameters></mat-tab>
-        <mat-tab label="Authentication"><app-edit-request-authentication [(auth)]="action.authentication" (authChange)="onAuthChange($event)"></app-edit-request-authentication></mat-tab>
-        <mat-tab label="Validation"><app-edit-request-validation [(validation)]="action.validation" (validationChange)="onValidationChange($event)"></app-edit-request-validation></mat-tab>
-    </mat-tab-group>
-</div>
+  </mat-tab>
+  <mat-tab>
+    <ng-template mat-tab-label>Validation</ng-template>
+    <div class="tab-body">
+      <app-edit-request-validation
+        [(validation)]="action.validation"
+        (validationChange)="onValidationChange($event)"
+      ></app-edit-request-validation>
+    </div>
+  </mat-tab>
+</mat-tab-group>

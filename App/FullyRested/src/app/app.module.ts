@@ -18,8 +18,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { JsonEditorComponent } from './components/json-editor/json-editor.component';
 import { CodeEditorComponent } from './components/code-editor/code-editor.component';
+import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
 import { SplitterDirective } from './components/splitter/splitter.directive';
 import { VerbLabelPipe } from './pipes/verb-label.pipe';
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
@@ -54,8 +54,8 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 
 @NgModule({
   declarations: [
-    JsonEditorComponent,
     CodeEditorComponent,
+    KeyValueTableComponent,
     SplitterDirective,
     VerbLabelPipe,
     SplitPaneComponent,

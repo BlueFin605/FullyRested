@@ -160,7 +160,7 @@ function languageSupport(language: CodeLanguage): Extension {
   selector: 'app-code-editor',
   template: '<div class="host" #host></div>',
   styles: [
-    ':host { display: block; min-height: 0; } .host { height: 100%; }',
+    ':host { display: block; min-height: 0; min-width: 0; overflow: hidden; } .host { height: 100%; }',
     ':host(.single-line) .host { height: auto; }',
   ],
   host: { '[class.single-line]': 'singleLine' },
@@ -253,7 +253,9 @@ export class CodeEditorComponent implements AfterViewInit, OnChanges, OnDestroy 
 
     if (this.placeholder) common.push(placeholderExt(this.placeholder));
 
-    if (!this.singleLine) return [basicSetup, ...common];
+    // read-only views (responses) wrap long lines, as minified bodies are often one line
+    if (!this.singleLine)
+      return [basicSetup, ...common, this.readOnly ? EditorView.lineWrapping : []];
 
     return [
       ...common,

@@ -1,4 +1,49 @@
-.rb {
-    margin-left: 50px;
-    margin-top: 10px;
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.group.grow {
+  align-items: stretch;
+}
+
+.group.grow .fr-segmented {
+  align-self: flex-start;
+}
+
+.group-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fr-text-faint);
+}
+
+.group app-edit-request-headers {
+  align-self: stretch;
+}
+
+.help {
+  margin: 0;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-text-muted);
+}
+
+.status-field {
+  width: 320px;
+}
+
+.schema-editor {
+  min-height: 200px;
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  overflow: hidden;
 }

@@ -5,7 +5,10 @@ import {
   OnInit,
   EventEmitter,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
+import { CodeEditorComponent } from '../../../code-editor/code-editor.component';
+import { VERBS, activeCount, authLabel, bodyLabel } from '../request-labels';
 import { DefaultUrlSerializer, Params } from '@angular/router';
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
@@ -60,12 +63,27 @@ export class EditRequestComponent implements OnInit {
   execute = new EventEmitter<ExecuteRestAction>();
 
   displayUrl: string = '';
+  // What the URL editor shows: protocol + url + query. Only reset from outside (load, params table),
+  // never while typing, so the caret doesn't jump.
+  urlText: string = '';
+
+  readonly verbs = VERBS;
+  readonly authLabel = authLabel;
+  readonly bodyLabel = bodyLabel;
+  readonly count = activeCount;
+
+  @ViewChild('urlEditor') urlEditor: CodeEditorComponent | undefined;
 
   constructor(private systemSupport: SystemSupportService) {}
 
   ngOnInit(): void {}
 
+  focusUrl() {
+    this.urlEditor?.focus();
+  }
+
   onUrlChange(value: any) {
+    this.urlText = value;
     if (value.startsWith('https://')) {
       value = value.substring(8);
       this.action.protocol = HttpProtocol.https;
@@ -184,6 +202,7 @@ export class EditRequestComponent implements OnInit {
 
   onParamChange(params: any) {
     this.displayUrl = buildRequestUrl(this.action.url, params);
+    this.urlText = this.displayUrl == '' ? '' : `${this.action.protocol}://${this.displayUrl}`;
     this.actionChange.emit(this.action);
   }
 

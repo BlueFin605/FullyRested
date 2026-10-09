@@ -55,7 +55,6 @@
     "electron": "^44.7.0",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~4.1.0",
-    "jsoneditor": "^9.10.3",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.2.0",

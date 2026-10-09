@@ -1,5 +1,4 @@
 @use '@angular/material' as mat;
-@import 'jsoneditor/dist/jsoneditor.min.css';
 @import 'material-icons/iconfont/filled.css';
 
 // Light and dark are equal: everything follows `color-scheme`, which
@@ -231,5 +230,3 @@ body.fr-resizing-y { cursor: row-resize; user-select: none; }
   width: auto !important;
 }
 
-// Render jsoneditor (still used by a few views) in the app's palette
-.jsoneditor { border-color: var(--fr-border) !important; }

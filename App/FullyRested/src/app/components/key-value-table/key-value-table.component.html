@@ -1,0 +1,81 @@
+<div class="kv" role="table">
+  <div class="kv-row kv-head" role="row">
+    <span></span>
+    <span role="columnheader">{{ keyLabel }}</span>
+    <span role="columnheader" class="value-head">
+      {{ valueLabel }}
+      @if (masked) {
+        <button
+          class="fr-icon-btn reveal"
+          (click)="revealed = !revealed"
+          [attr.aria-label]="revealed ? 'Hide values' : 'Show values'"
+          [matTooltip]="revealed ? 'Hide values' : 'Show values'"
+        >
+          <mat-icon>{{ revealed ? "visibility_off" : "visibility" }}</mat-icon>
+        </button>
+      }
+    </span>
+    <span></span>
+  </div>
+
+  @for (row of inherited; track $index) {
+    <div class="kv-row inherited" role="row" [class.inactive]="!row.active">
+      <span class="lock"><mat-icon>subdirectory_arrow_right</mat-icon></span>
+      <span class="cell">{{ row.key }}</span>
+      <span class="cell">{{ row.value }}</span>
+      <span class="fr-source">{{ inheritedSource }}</span>
+    </div>
+  }
+
+  @for (row of rows; track row.id) {
+    <div class="kv-row" role="row" [class.inactive]="!row.active">
+      <input
+        type="checkbox"
+        class="kv-check"
+        [checked]="row.active"
+        (change)="toggle(row)"
+        [attr.aria-label]="'Enable ' + row[keyField]"
+      />
+      <input
+        #keyInput
+        class="kv-input kv-key"
+        [(ngModel)]="row[keyField]"
+        (ngModelChange)="changed()"
+        [placeholder]="keyLabel"
+        spellcheck="false"
+      />
+      <input
+        #valueInput
+        class="kv-input kv-value"
+        [type]="valueType"
+        [(ngModel)]="row[valueField]"
+        (ngModelChange)="changed()"
+        [placeholder]="valueLabel"
+        spellcheck="false"
+      />
+      <button class="fr-icon-btn kv-delete" (click)="delete(row.id)" aria-label="Delete row">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <div class="kv-row kv-new" role="row">
+    <span></span>
+    <input
+      class="kv-input kv-key"
+      [ngModel]="newKey"
+      (ngModelChange)="addFrom('key', $event)"
+      [placeholder]="'Add ' + keyLabel.toLowerCase()"
+      spellcheck="false"
+    />
+    <input
+      class="kv-input kv-value"
+      [type]="valueType"
+      [ngModel]="newValue"
+      (ngModelChange)="addFrom('value', $event)"
+      [placeholder]="valueLabel"
+      spellcheck="false"
+    />
+    <span></span>
+  </div>
+</div>

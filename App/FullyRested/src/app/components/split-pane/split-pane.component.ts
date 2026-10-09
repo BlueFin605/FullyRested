@@ -24,7 +24,7 @@ import { SplitterMove } from '../splitter/splitter.directive';
   `,
   styles: [
     `
-      :host { display: block; height: 100%; }
+      :host { display: block; height: 100%; contain: inline-size; }
       .split { display: flex; height: 100%; }
       .split[data-orientation='vertical'] { flex-direction: column; }
       .split-pane { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
