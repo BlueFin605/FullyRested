@@ -6,6 +6,8 @@ import { mockCurrentState } from '../mocks/mock-current-state';
 import { mockRequest } from '../mocks/mock-request';
 import { mockTraverse } from '../mocks/mock-traverse';
 import { normaliseAction, normaliseCollectionConfig, normaliseCurrentState, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection } from '@fullyrested/core';
+import { mockCollectionSource } from '../mocks/mock-collection-source';
+import { CollectionSource, FolderConfig, SecretStore } from '@fullyrested/core';
 import { Collection, SavedAsCompleted, CurrentState, RestAction, LocalRestAction, TraversedDrectory, RecentFile } from '@fullyrested/core';
 
 
@@ -35,6 +37,36 @@ export class ActionRepositoryService {
 
   private getIpcRenderer() {
     return (<any>window).ipc;
+  }
+
+  // The collection folder, read through the main process (or the built-in mock in a plain browser)
+  public collectionSource(root: string): CollectionSource {
+    const ipc = this.getIpcRenderer();
+    if (ipc == undefined) return mockCollectionSource;
+
+    return {
+      listDir: (path: string) => ipc.invoke('listDir', { root, path }),
+      readText: (path: string) => ipc.invoke('readText', { root, path }),
+    };
+  }
+
+  // Reads secret values from the OS keychain; saving them is the main process's job
+  public secretStore(): SecretStore {
+    const ipc = this.getIpcRenderer();
+    return {
+      get: async (service: string, account: string) =>
+        ipc == undefined ? null : ipc.invoke('getSecret', { service, account }),
+      set: async () => {
+        throw new Error('Secrets are saved by the main process');
+      },
+    };
+  }
+
+  public async saveFolder(folderPath: string, config: FolderConfig): Promise<void> {
+    const ipc = this.getIpcRenderer();
+    if (ipc == undefined) return;
+
+    await ipc.invoke('saveFolder', { folderPath, config });
   }
 
   public createNewAction(max: number): LocalRestAction {

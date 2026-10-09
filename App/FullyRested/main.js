@@ -3,7 +3,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } = require('elec
 const path = require('node:path')
 const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
-const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
+const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, REConstants, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
 if (require('electron-squirrel-startup')) app.quit();
@@ -84,6 +84,24 @@ app.whenReady().then(() => {
         return traverseDirectory(request);
     });
 
+    ipcMain.handle("listDir", (event, request) => {
+        return fs.readdirSync(collectionPath(request), { withFileTypes: true }).map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
+    });
+
+    ipcMain.handle("readText", (event, request) => {
+        return fs.readFileSync(collectionPath(request), 'utf8');
+    });
+
+    ipcMain.handle("getSecret", (event, request) => {
+        if (!String(request.service).startsWith('fullyrested-'))
+            throw new Error('Not a FullyRested secret');
+        return keychain.get(request.service, request.account);
+    });
+
+    ipcMain.handle("saveFolder", (event, request) => {
+        return saveFolder(request);
+    });
+
     ipcMain.on("loadCollection", (event, request) => {
         return loadCollection();
     });
@@ -116,6 +134,20 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
+
+// A collection-relative path ('/' separated) as a real path; refuses anything that climbs out of the collection folder
+function collectionPath(request) {
+    var base = path.resolve(request.root);
+    var full = path.resolve(base, ...request.path.split('/').filter(p => p != ''));
+    if (full != base && !full.startsWith(base + path.sep))
+        throw new Error(`${request.path} is outside the collection folder`);
+    return full;
+}
+
+async function saveFolder(request) {
+    var sanitised = await storeSecrets(request.config, keychain, secretServiceForFolder(request.config.folderId));
+    fs.writeFileSync(path.join(request.folderPath, REConstants.FolderSettingsFile), JSON.stringify(sanitised, null, 4));
+}
 
 function saveState(request) {
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
