@@ -5,6 +5,9 @@ const fs = require('fs');
 const keytar = require('keytar');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
+// The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
+if (require('electron-squirrel-startup')) app.quit();
+
 // dialog filters want extensions without the dot
 const withoutDot = extensions => extensions.map(e => e.substring(1));
 
