@@ -10,3 +10,4 @@ export * from './normalise';
 export * from './resolve';
 export * from './paths';
 export * from './scope';
+export * from './tree';
