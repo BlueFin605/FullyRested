@@ -1,42 +1,94 @@
-{{run | json}}
+{{ run | json }}
 <div class="run-name">
-    <mat-form-field class="url-form-field">
-        <mat-label>Name</mat-label>
-        <input matInput placeholder="Input" [ngModel]="_run.name" (ngModelChange)="onNameChange($event)">
-    </mat-form-field>
+  <mat-form-field class="url-form-field">
+    <mat-label>Name</mat-label>
+    <input
+      matInput
+      placeholder="Input"
+      [ngModel]="_run.name"
+      (ngModelChange)="onNameChange($event)"
+    />
+  </mat-form-field>
 </div>
 
 <div class="run-header">
-    <div class="verb-basics run-verb">
-        <p *ngIf="action.verb==restTypeVerb.get">GET</p>
-        <p *ngIf="action.verb==restTypeVerb.post">POST</p>
-        <p *ngIf="action.verb==restTypeVerb.patch">PATCH</p>
-        <p *ngIf="action.verb==restTypeVerb.put">PUT</p>
-        <p *ngIf="action.verb==restTypeVerb.delete">DELETE</p>
-        <p *ngIf="action.verb==restTypeVerb.option">OPTOINS</p>
-    </div>
+  <div class="verb-basics run-verb">
+    @if (action.verb == restTypeVerb.get) {
+      <p>GET</p>
+    }
+    @if (action.verb == restTypeVerb.post) {
+      <p>POST</p>
+    }
+    @if (action.verb == restTypeVerb.patch) {
+      <p>PATCH</p>
+    }
+    @if (action.verb == restTypeVerb.put) {
+      <p>PUT</p>
+    }
+    @if (action.verb == restTypeVerb.delete) {
+      <p>DELETE</p>
+    }
+    @if (action.verb == restTypeVerb.option) {
+      <p>OPTOINS</p>
+    }
+  </div>
 
-    <div class="verb-basics run-protocol">
-        <p *ngIf="action.protocol==httpProtocol.http">HTTP</p>
-        <p *ngIf="action.protocol==httpProtocol.https">HTTPS</p>
-    </div>
+  <div class="verb-basics run-protocol">
+    @if (action.protocol == httpProtocol.http) {
+      <p>HTTP</p>
+    }
+    @if (action.protocol == httpProtocol.https) {
+      <p>HTTPS</p>
+    }
+  </div>
 
-    <div class="verb-basics run-url">
-        <p>{{displayUrl}}</p>
-    </div>
+  <div class="verb-basics run-url">
+    <p>{{ displayUrl }}</p>
+  </div>
 
-    <div class="verb-basics action-send">
-        <button mat-raised-button color="primary" (click)='test()'>Send</button>
-    </div>
+  <div class="verb-basics action-send">
+    <button mat-raised-button color="primary" (click)="test()">Send</button>
+  </div>
 </div>
 <div>
-    <mat-tab-group animationDuration="0ms">
-        <!-- <mat-tab label="Body"><app-edit-request-body [(body)]="action.body"  (bodyChange)="onBodyChange($event)"></app-edit-request-body></mat-tab> -->
-        <mat-tab label="Headers"><app-edit-request-headers [(headers)]="_run.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></mat-tab>
-        <mat-tab label="Parameters"><app-edit-request-parameters [(params)]="_run.parameters" (paramsChange)="onParamChange($event)"></app-edit-request-parameters></mat-tab>
-        <mat-tab label="Authentication"><app-edit-request-authentication [(auth)]="_run.authentication" (authChange)="onAuthChange($event)"></app-edit-request-authentication></mat-tab>
-        <mat-tab label="Variables"><app-settings-manage-variables [(variables)]="_run.variables" (variablesChange)="onVariablesChange($event)"></app-settings-manage-variables></mat-tab>
-        <mat-tab label="Secrets"><app-settings-manage-secrets [(secrets)]="_run.secrets" (secretsChange)="onSecretsChange($event)"></app-settings-manage-secrets></mat-tab>
-        <mat-tab label="Validation"><app-edit-request-validation [(validation)]="_run.validation" (validationChange)="onValidationChange($event)" [showInherit]=true></app-edit-request-validation></mat-tab>
-    </mat-tab-group>
+  <mat-tab-group animationDuration="0ms">
+    <!-- <mat-tab label="Body"><app-edit-request-body [(body)]="action.body"  (bodyChange)="onBodyChange($event)"></app-edit-request-body></mat-tab> -->
+    <mat-tab label="Headers"
+      ><app-edit-request-headers
+        [(headers)]="_run.headers"
+        (headersChange)="onHeadersChange($event)"
+      ></app-edit-request-headers
+    ></mat-tab>
+    <mat-tab label="Parameters"
+      ><app-edit-request-parameters
+        [(params)]="_run.parameters"
+        (paramsChange)="onParamChange($event)"
+      ></app-edit-request-parameters
+    ></mat-tab>
+    <mat-tab label="Authentication"
+      ><app-edit-request-authentication
+        [(auth)]="_run.authentication"
+        (authChange)="onAuthChange($event)"
+      ></app-edit-request-authentication
+    ></mat-tab>
+    <mat-tab label="Variables"
+      ><app-settings-manage-variables
+        [(variables)]="_run.variables"
+        (variablesChange)="onVariablesChange($event)"
+      ></app-settings-manage-variables
+    ></mat-tab>
+    <mat-tab label="Secrets"
+      ><app-settings-manage-secrets
+        [(secrets)]="_run.secrets"
+        (secretsChange)="onSecretsChange($event)"
+      ></app-settings-manage-secrets
+    ></mat-tab>
+    <mat-tab label="Validation"
+      ><app-edit-request-validation
+        [(validation)]="_run.validation"
+        (validationChange)="onValidationChange($event)"
+        [showInherit]="true"
+      ></app-edit-request-validation
+    ></mat-tab>
+  </mat-tab-group>
 </div>

@@ -1,29 +1,43 @@
-import { Command } from "commander"; // add this line
-var figlet = require("figlet");
-import { RestAction, RestTypeVerb } from "@fullyrested/core"
-import { CreateEmptyAction } from "@fullyrested/core"
-import { ExecuteRestAction, IExecuteRestAction } from "@fullyrested/core"
-
-
-//https://blog.logrocket.com/building-typescript-cli-node-js-commander/
+#!/usr/bin/env node
+import * as fs from 'fs';
+import * as path from 'path';
+import { Command } from 'commander';
+import { RunOptions, UsageError, runTests } from './run';
+import { formatResult, formatSummary, toJUnit } from './report';
+import { createSecretStore, secretEnvironmentVariable } from './secret-store';
 
 const program = new Command();
 
-console.log(figlet.textSync("FullyRested"));
+program
+  .name('fullyrested')
+  .description('Runs FullyRested requests from the command line')
+  .version(require('../package.json').version);
 
 program
-  .version("1.0.0")
-  .description("Runner to execute FullyRested actions")
-  .option("-c, --collection <value>", "collection file")
-  .option("-e, --environment <value>", "select environement in collection")
-  .option("-a, --action <value>", "action file")
-  .option("-r, --run <value>", "optional run")
-  .option("-a, --all <value>", "run all tests, if an action is provided will run all runs for the action")
-  .parse(process.argv);
+  .command('run')
+  .description('Send requests and check their validation. Exits 1 if any fail.')
+  .requiredOption('-c, --collection <file>', 'collection file (.frcol)')
+  .option('-e, --environment <name>', 'environment name or id (default: the collection\'s selected one)')
+  .option('-a, --action <file>', 'request file (.frreq); relative paths also resolve from the collection folder')
+  .option('-r, --run <name>', 'one run of the request, by name or id')
+  .option('--all', 'every run of --action, or every request in the collection folder')
+  .option('--junit <file>', 'also write a JUnit XML report')
+  .addHelpText('after', `
+Secrets come from environment variables first, then the OS keychain the
+desktop app uses. A secret named "api key" is read from ${secretEnvironmentVariable('api key')}.`)
+  .action(async (options: RunOptions & { junit?: string }) => {
+    try {
+      const results = await runTests(options, createSecretStore(), r => console.log(formatResult(r)));
+      console.log(formatSummary(results));
 
-const options = program.opts();
+      if (options.junit)
+        fs.writeFileSync(options.junit, toJUnit(path.basename(options.collection), results));
 
-if (options.collection) {
-  var action:IExecuteRestAction = ExecuteRestAction.NewExecuteRestAction().setVerb(RestTypeVerb.get);
-  console.log(action);
-}
+      process.exitCode = results.every(r => r.passed) ? 0 : 1;
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = error instanceof UsageError ? 2 : 1;
+    }
+  });
+
+program.parseAsync(process.argv);

@@ -1,10 +1,46 @@
 <div class="displayoptions">
-    <mat-radio-group aria-label="Content Type">
-      <mat-radio-button class="rb" value="none" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'none'">None</mat-radio-button>
-      <mat-radio-button class="rb" value="application/x-www-form-urlencoded" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/x-www-form-urlencoded'">application/x-www-form-urlencoded</mat-radio-button>
-      <mat-radio-button class="rb" value="application/json" name="view" (change)="onContentTypeChange($event)" [checked] = "visibleData.contentType == 'application/json'">application/json</mat-radio-button>
-    </mat-radio-group>
+  <mat-radio-group aria-label="Content Type">
+    <mat-radio-button
+      class="rb"
+      value="none"
+      name="view"
+      (change)="onContentTypeChange($event)"
+      [checked]="visibleData.contentType == 'none'"
+      >None</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="application/x-www-form-urlencoded"
+      name="view"
+      (change)="onContentTypeChange($event)"
+      [checked]="visibleData.contentType == 'application/x-www-form-urlencoded'"
+      >application/x-www-form-urlencoded</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="application/json"
+      name="view"
+      (change)="onContentTypeChange($event)"
+      [checked]="visibleData.contentType == 'application/json'"
+      >application/json</mat-radio-button
+    >
+  </mat-radio-group>
 </div>
 
-<json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor *ngIf="visibleData.contentType == 'application/json'"></json-editor>
+@if (visibleData.contentType == "application/json") {
+  <json-editor
+    [options]="editorOptions"
+    [data]="jsonObj"
+    (change)="updateData($event)"
+    (jsonChange)="updateData($event)"
+    #editor
+  ></json-editor>
+}
 
+@if (visibleData.contentType == "application/x-www-form-urlencoded") {
+  <app-edit-request-parameters
+    [params]="formFields"
+    (paramsChange)="onFormChange($event)"
+    addLabel="Add Field"
+  ></app-edit-request-parameters>
+}

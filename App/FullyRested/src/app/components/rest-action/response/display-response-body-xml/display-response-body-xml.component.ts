@@ -1,16 +1,23 @@
-import { Component, OnInit, Input } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-display-response-body-xml',
   templateUrl: './display-response-body-xml.component.html',
-  styleUrls: ['./display-response-body-xml.component.css']
+  styleUrls: ['./display-response-body-xml.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DisplayResponseBodyXmlComponent implements OnInit {
   rawData: string = '';
-  formattedXml: string = ''
-  selectedview: string = "formatted";
+  formattedXml: string = '';
+  selectedview: string = 'formatted';
 
   @Input()
   set body(body: RestActionResultBody | undefined) {
@@ -19,23 +26,25 @@ export class DisplayResponseBodyXmlComponent implements OnInit {
       return;
     }
 
-     this.rawData = this.contentTypeHelper.convertArrayBufferToString(body.contentType, body.body);
-     this.formattedXml = this.formatXml(this.rawData);
+    this.rawData = this.contentTypeHelper.convertArrayBufferToString(
+      body.contentType,
+      body.body,
+    );
+    this.formattedXml = this.formatXml(this.rawData);
   }
 
-  constructor(private contentTypeHelper: ContentTypeHelperService) { 
-  }
+  constructor(private contentTypeHelper: ContentTypeHelperService) {}
 
-  ngOnInit(): void {
-  }
- 
-  onViewChange(event:any){
+  ngOnInit(): void {}
+
+  onViewChange(event: any) {
     this.selectedview = event.value;
-  } 
+  }
 
   formatXml(data: string): string {
     var xmlDoc = new DOMParser().parseFromString(data, 'application/xml');
-    var xsltDoc = new DOMParser().parseFromString([
+    var xsltDoc = new DOMParser().parseFromString(
+      [
         // describes how we want to modify the XML - indent everything
         '<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform">',
         '  <xsl:strip-space elements="*"/>',
@@ -47,9 +56,11 @@ export class DisplayResponseBodyXmlComponent implements OnInit {
         '  </xsl:template>',
         '  <xsl:output indent="yes"/>',
         '</xsl:stylesheet>',
-    ].join('\n'), 'application/xml');
+      ].join('\n'),
+      'application/xml',
+    );
 
-    var xsltProcessor = new XSLTProcessor();    
+    var xsltProcessor = new XSLTProcessor();
     xsltProcessor.importStylesheet(xsltDoc);
     var resultDoc = xsltProcessor.transformToDocument(xmlDoc);
     var resultXml = new XMLSerializer().serializeToString(resultDoc);

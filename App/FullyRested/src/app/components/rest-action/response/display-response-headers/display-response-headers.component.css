@@ -35,7 +35,7 @@ table {
     hyphens: auto;
 }
 
-.mat-header-cell {
+.mat-mdc-header-cell {
     font-weight: bolder;
     font-size: small;
     color: black;

@@ -1,16 +1,23 @@
-import { Component, OnInit, Input } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-display-response-body-html',
   templateUrl: './display-response-body-html.component.html',
-  styleUrls: ['./display-response-body-html.component.css']
+  styleUrls: ['./display-response-body-html.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DisplayResponseBodyHtmlComponent implements OnInit {
   rawhtml: string = '';
-  formattedhtml: string = "";
-  selectedview: string = "preview";
+  formattedhtml: string = '';
+  selectedview: string = 'preview';
 
   @Input()
   set body(body: RestActionResultBody | undefined) {
@@ -19,27 +26,31 @@ export class DisplayResponseBodyHtmlComponent implements OnInit {
       return;
     }
 
-    this.rawhtml = this.contentTypeHelper.convertArrayBufferToString(body.contentType, body.body);
+    this.rawhtml = this.contentTypeHelper.convertArrayBufferToString(
+      body.contentType,
+      body.body,
+    );
     this.formattedhtml = this.formatCode(this.rawhtml, true, true);
   }
 
-  constructor(private contentTypeHelper: ContentTypeHelperService) {
-  }
+  constructor(private contentTypeHelper: ContentTypeHelperService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
-  onViewChange(event:any){
+  onViewChange(event: any) {
     this.selectedview = event.value;
   }
 
-  formatCode(code: string, stripWhiteSpaces: boolean, stripEmptyLines: boolean): string {
-    "use strict";
-    var whitespace = ' '.repeat(4);             // Default indenting 4 whitespaces
+  formatCode(
+    code: string,
+    stripWhiteSpaces: boolean,
+    stripEmptyLines: boolean,
+  ): string {
+    'use strict';
+    var whitespace = ' '.repeat(4); // Default indenting 4 whitespaces
     var currentIndent = 0;
     var char = null;
     var nextChar = null;
-
 
     var result = '';
     for (var pos = 0; pos <= code.length; pos++) {
@@ -59,11 +70,13 @@ export class DisplayResponseBodyHtmlComponent implements OnInit {
       }
 
       // remove multiple whitespaces
-      else if (stripWhiteSpaces === true && char === ' ' && nextChar === ' ') char = '';
+      else if (stripWhiteSpaces === true && char === ' ' && nextChar === ' ')
+        char = '';
       // remove empty lines
       else if (stripEmptyLines === true && char === '\n') {
         //debugger;
-        if (code.substr(pos, code.substr(pos).indexOf("<")).trim() === '') char = '';
+        if (code.substr(pos, code.substr(pos).indexOf('<')).trim() === '')
+          char = '';
       }
 
       result += char;
@@ -71,5 +84,4 @@ export class DisplayResponseBodyHtmlComponent implements OnInit {
 
     return result;
   }
-
 }

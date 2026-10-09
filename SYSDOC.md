@@ -7,8 +7,8 @@ runner. The intent and the user-facing concepts are in
 
 ## Tech stack
 
-Angular 14 UI in an Electron 27 desktop shell / TypeScript core library
-(CommonJS; axios, Ajv, `@smithy/signature-v4`) / Node CLI (commander).
+Angular 22 (Material) UI in an Electron 44 desktop shell / TypeScript 6 core library
+(CommonJS; axios, Ajv, `@smithy/signature-v4`) / Node CLI (commander, vitest).
 Nothing is deployed to AWS: the app is a local desktop app.
 
 ## Layers
@@ -21,7 +21,7 @@ flowchart TB
     end
     subgraph Hosts["Hosts: files, keychain, dialogs"]
         Main["Electron main process<br/>App/FullyRested/main.js"]
-        CliHost["CLI host<br/>not built yet"]
+        CliHost["CLI host<br/>App/cli-command/src"]
     end
     Core["@fullyrested/core<br/>App/core"]
     subgraph Storage["Storage"]
@@ -32,8 +32,9 @@ flowchart TB
     UI -->|"imports source"| Core
     Main -->|"requires dist"| Core
     CLI -->|"requires dist"| Core
-    CLI -.-> CliHost
-    CliHost -.-> Files
+    CLI --> CliHost
+    CliHost --> Files
+    CliHost --> Keychain
     Main --> Files
     Main --> Keychain
 ```
@@ -41,34 +42,29 @@ flowchart TB
 | Layer | Where | Job |
 |---|---|---|
 | Front ends | `App/FullyRested/src` (Angular), `App/cli-command` | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js` | Node-only work: reading and writing files, the keychain (`keytar`), dialogs, and the process that sends requests. The CLI has no host yet |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
 | Core | `App/core/src` | The engine: model, request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
-source into the renderer. It compiles to CommonJS with no ESM-only
-dependencies, because Electron 27's Node 18 can't `require()` ESM. Anything
-that touches the machine belongs in a host. `docs/reviews/2026-09-29-review.md`
+source into the renderer. It compiles to CommonJS, which Electron's main
+process and the CLI both `require()`. Anything that touches the machine
+belongs in a host. `docs/reviews/2026-09-29-review.md`
 records why the packages are linked with `file:` rather than npm workspaces.
 
 ## The request pipeline: what's shared
 
-The goal is that the UI and the CLI run one pipeline. Today only the middle
-of it lives in core:
+The UI and the CLI run one pipeline. Only file access and reporting differ:
 
-| Step | Where it lives | Shared? |
-|---|---|---|
-| Load a file and fill in its secrets | `main.js` (`loadRequest`, `loadCollectionFromFile`) calling core `loadSecrets` | Secret handling yes; file reading is host work |
-| Fill in fields missing from older files | `ActionRepositoryService.patchRequest` (Angular) | **No** |
-| Resolve settings: run → request → environment → collection | `edit-request-run.component.ts` `test()` and `onParamChange()` (URL plus params through Angular's `UrlTree`), then `ExecuteRestCallsService.executeTest`. Both use core's `ExecuteRestAction` builder methods | **Partly.** The merge operations are in core; the order they're applied in is in Angular |
-| Substitute variables and secrets | core `replaceVariables` / `substituteDeep` | Yes |
-| Authenticate and send | core `executeRequest`, called in `main.js` over the `testRest` IPC channel | Yes |
-| Validate the response | core `validateResponse`, called from the renderer | Yes |
-| Report | Angular response components | CLI reporting not built |
-
-Two rows marked "No" or "Partly" block the CLI from running a request
-exactly as the UI does. The kanban story "Resolve requests outside Angular"
-(`c74f3717-c3d1-4db9-b139-7687a900935b`) moves them into core.
+| Step | Where it lives |
+|---|---|
+| Load a file and fill in its secrets | Host: `main.js` (`loadRequest`, `loadCollectionFromFile`) or the CLI's `files.ts`, both calling core `loadSecrets` |
+| Fill in fields missing from older files | core `normaliseAction` / `normaliseCollectionConfig` |
+| Resolve settings: run → request → environment → collection | core `resolveRequest` (request + run, called by the request editors) and `applyEnvironment` (called by `ExecuteRestCallsService`); the CLI calls `resolveExecuteAction`, which is both |
+| Substitute variables and secrets | core `replaceVariables` / `substituteDeep` |
+| Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
+| Validate the response | core `validateResponse` |
+| Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
 ## Where the plan lives
 
@@ -92,7 +88,8 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | UI only, in a browser | `App/FullyRested`: `ng serve`. With no Electron IPC, the repository and execute services return built-in mock data |
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
-| Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js --help` |
+| Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
+| Test the CLI (vitest) | `App/cli-command`: `npm test` |
 
 Runtime state: the app keeps its open tabs and recent collections in
 `current_state.json` in Electron's userData folder. Secrets are stored under

@@ -1,9 +1,16 @@
 <div class="bearertokencontainer">
-    <div class="bearertokenfield">
-        <mat-form-field class="bearertoken-field">
-            <mat-label>Token</mat-label>
-            <input matInput placeholder="Input" [(ngModel)]="bearertoken.token" (ngModelChange)="onChange($event)">
-            <mat-hint class="raw-credential" *ngIf="raw(bearertoken.token)">{{ rawCredentialHint }}</mat-hint>
-        </mat-form-field>
-    </div>
+  <div class="bearertokenfield">
+    <mat-form-field class="bearertoken-field">
+      <mat-label>Token</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="bearertoken.token"
+        (ngModelChange)="onChange($event)"
+      />
+      @if (raw(bearertoken.token)) {
+        <mat-hint class="raw-credential">{{ rawCredentialHint }}</mat-hint>
+      }
+    </mat-form-field>
+  </div>
 </div>

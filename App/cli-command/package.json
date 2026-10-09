@@ -1,23 +1,31 @@
 {
-  "name": "cli-command",
-  "version": "1.0.0",
-  "description": "",
+  "name": "fullyrested-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Command-line runner for FullyRested collections",
   "main": "dist/index.js",
+  "bin": {
+    "fullyrested": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "npm --prefix ../core run build && tsc -p tsconfig.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0",
   "dependencies": {
     "@fullyrested/core": "file:../core",
-    "commander": "^11.1.0",
-    "figlet": "^1.7.0"
+    "@napi-rs/keyring": "^2.1.0",
+    "commander": "^11.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
-    "@types/uuid": "^9.0.6",
-    "typescript": "^5.3.3"
+    "@types/node": "^24.19.1",
+    "typescript": "~6.0.3",
+    "vitest": "^2.1.9"
   }
 }

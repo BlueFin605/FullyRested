@@ -1,14 +1,32 @@
-import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  ViewChild,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { MatRadioChange } from '@angular/material/radio';
-import { JsonEditorOptions, JsonEditorComponent } from '@maaxgr/ang-jsoneditor'
+import {
+  JsonEditorOptions,
+  JsonEditorComponent,
+} from '../../../json-editor/json-editor.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { CreateEmptyRestActionValidation } from '@fullyrested/core';
-import { ValidationType, ValidationTypeBody, RestActionValidation, HeaderTable } from '@fullyrested/core';
+import {
+  ValidationType,
+  ValidationTypeBody,
+  RestActionValidation,
+  HeaderTable,
+} from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request-validation',
   templateUrl: './edit-request-validation.component.html',
-  styleUrls: ['./edit-request-validation.component.css']
+  styleUrls: ['./edit-request-validation.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class EditRequestValidationComponent implements OnInit {
   public get validationType(): typeof ValidationType {
@@ -18,7 +36,8 @@ export class EditRequestValidationComponent implements OnInit {
     return ValidationTypeBody;
   }
   // private initialData: string;
-  visibleSchema: RestActionValidation = CreateEmptyRestActionValidation(undefined);
+  visibleSchema: RestActionValidation =
+    CreateEmptyRestActionValidation(undefined);
   jsonObj: object = {};
   public editorOptions: JsonEditorOptions;
 
@@ -29,17 +48,15 @@ export class EditRequestValidationComponent implements OnInit {
 
   @Input() set validation(validation: RestActionValidation) {
     // this.initialData = schema;
-    if (this.visibleSchema == validation)
-      return;
+    if (this.visibleSchema == validation) return;
 
     this.visibleSchema = validation;
 
     switch (validation?.body) {
-      case ValidationTypeBody.JsonSchema:
-        {
-          const str = validation?.jsonSchema?.schema ?? '{}';
-          this.jsonObj = JSON.parse(str);
-        }
+      case ValidationTypeBody.JsonSchema: {
+        const str = validation?.jsonSchema?.schema ?? '{}';
+        this.jsonObj = JSON.parse(str);
+      }
     }
   }
 
@@ -47,28 +64,28 @@ export class EditRequestValidationComponent implements OnInit {
   validationChange = new EventEmitter<RestActionValidation>();
 
   constructor(public validateResponse: ValidateResponseService) {
-    this.editorOptions = new JsonEditorOptions()
+    this.editorOptions = new JsonEditorOptions();
     this.editorOptions.enableTransform = true;
     this.editorOptions.mode = 'code';
     this.editorOptions.modes = ['code', 'text', 'tree', 'view']; // set all allowed modes
     this.editorOptions.mainMenuBar = false;
   }
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   onPayloadTypeChange(event: any) {
     this.visibleSchema.body = event.value;
 
     switch (this.visibleSchema.body) {
-      case ValidationTypeBody.JsonSchema:
-        {
-          if (this.visibleSchema?.jsonSchema?.schema == undefined) {
-            this.visibleSchema.jsonSchema = { schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{},"required":[]}` };
-          }
-
-          this.jsonObj = JSON.parse(this.visibleSchema?.jsonSchema.schema ?? {});
+      case ValidationTypeBody.JsonSchema: {
+        if (this.visibleSchema?.jsonSchema?.schema == undefined) {
+          this.visibleSchema.jsonSchema = {
+            schema: `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{},"required":[]}`,
+          };
         }
+
+        this.jsonObj = JSON.parse(this.visibleSchema?.jsonSchema.schema ?? {});
+      }
     }
 
     this.validationChange.emit(this.visibleSchema);
@@ -83,11 +100,9 @@ export class EditRequestValidationComponent implements OnInit {
     this.validationChange.emit(this.visibleSchema);
   }
 
-
-  updateData(d: Event) {
-
-    //I have no idea what this is, but lets ignore it since it causes us issues as I do not want the schema to be set to this, you are kind of stuffed if this is what you want your payload to be 
-    if (d.isTrusted == true || this.visibleSchema.jsonSchema == undefined)
+  updateData(d: unknown) {
+    // Native DOM change events from inside the editor also bubble out through (change); only the editor's own event carries JSON
+    if (d instanceof Event || this.visibleSchema.jsonSchema == undefined)
       return;
 
     this.visibleSchema.jsonSchema.schema = this.schemaChild?.getText() ?? '{}';
@@ -103,14 +118,16 @@ export class EditRequestValidationComponent implements OnInit {
   }
 
   public get responsecode(): boolean {
-    return this.visibleSchema.type != ValidationType.None && this.visibleSchema.type != ValidationType.Inherit;
+    return (
+      this.visibleSchema.type != ValidationType.None &&
+      this.visibleSchema.type != ValidationType.Inherit
+    );
   }
 
-  buildDescription(code: { code: number; desc: string; }) {
-    if (code.code < 1)
-      return code.desc;
+  buildDescription(code: { code: number; desc: string }) {
+    if (code.code < 1) return code.desc;
 
-    return `${code.code} - ${code.desc}`
+    return `${code.code} - ${code.desc}`;
   }
 
   onResponseCodeChange($event: any) {

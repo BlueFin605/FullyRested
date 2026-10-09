@@ -41,7 +41,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
 
 
   private convertHeaderArraysAsValues(headers: HeaderTable[]): { [header: string]: string } {
-    var reverse = headers.reverse();
+    var reverse = headers.slice().reverse();
     headers = reverse.filter((item, index) => reverse.findIndex(i => i.key == item.key) === index).reverse();
     var converted: { [headers: string]: string } = {};
     headers.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);

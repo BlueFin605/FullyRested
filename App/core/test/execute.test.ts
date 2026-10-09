@@ -65,6 +65,44 @@ describe('executeRequest', () => {
     expect(received.body).toBe('{"a":1}');
   });
 
+  const field = (key: string, value: string, active = true) => ({ key, value, active, id: key });
+
+  it('sends a form body URL-encoded with its content-type', async () => {
+    await executeRequest(to('/ok').setVerb(RestTypeVerb.post).setBody({
+      contentType: 'application/x-www-form-urlencoded',
+      body: [field('name', 'Ada Lovelace'), field('note', 'a&b=c/ü')]
+    }));
+
+    expect(received.headers['content-type']).toBe('application/x-www-form-urlencoded');
+    expect(received.body).toBe('name=Ada+Lovelace&note=a%26b%3Dc%2F%C3%BC');
+  });
+
+  it('leaves inactive and unnamed fields out of a form body', async () => {
+    await executeRequest(to('/ok').setVerb(RestTypeVerb.post).setBody({
+      contentType: 'application/x-www-form-urlencoded',
+      body: [field('kept', '1'), field('off', '2', false), field('', '3'), field('empty', '')]
+    }));
+
+    expect(received.body).toBe('kept=1&empty=');
+  });
+
+  it('substitutes variables into form fields', async () => {
+    const action = to('/ok').setVerb(RestTypeVerb.post)
+      .setBody({ contentType: 'application/x-www-form-urlencoded', body: [field('user', '{{user}}')] })
+      .variables_pushBack([{ variable: 'user', value: 'dean', active: true, id: 'v' }]);
+
+    await executeRequest(action.replaceVariables());
+
+    expect(received.body).toBe('user=dean');
+  });
+
+  it('sends an empty form body when there are no fields', async () => {
+    await executeRequest(to('/ok').setVerb(RestTypeVerb.post).setBody({ contentType: 'application/x-www-form-urlencoded', body: undefined }));
+
+    expect(received.headers['content-type']).toBe('application/x-www-form-urlencoded');
+    expect(received.body).toBe('');
+  });
+
   it('keeps a content-type header the user set explicitly', async () => {
     await executeRequest(to('/ok').setVerb(RestTypeVerb.put)
       .setHeaders({ 'Content-Type': 'application/vnd.api+json' })

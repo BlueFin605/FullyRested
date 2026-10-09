@@ -16,9 +16,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { NgxJsonViewerModule } from 'ngx-json-viewer';
-import { AngJsoneditorModule } from '@maaxgr/ang-jsoneditor' 
-import { TreeviewModule } from '@treeview/ngx-treeview';
+import { JsonEditorComponent } from './components/json-editor/json-editor.component';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -54,6 +52,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 
 @NgModule({
   declarations: [
+    JsonEditorComponent,
     AppComponent,
     RestActionComponent,
     DisplayResponseComponent,
@@ -88,9 +87,6 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    NgxJsonViewerModule,
-    AngJsoneditorModule,
-    TreeviewModule.forRoot(),
     MatFormFieldModule, 
     MatSelectModule,
     MatInputModule,

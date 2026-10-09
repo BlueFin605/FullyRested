@@ -48,6 +48,7 @@ export interface AuthenticationDetailsAWSSig {
     signUrl: boolean;
     accessKey: string;
     secretKey: string;
+    sessionToken?: string;   // temporary credentials (SSO, assumed roles); older files have none
     awsRegion: string;
     serviceName: string;
 }
@@ -61,10 +62,15 @@ export interface AuthenticationDetailsBearerToken {
     token: string;
 }
 
+// body is the JSON text for 'application/json', a FormField[] for FORM_CONTENT_TYPE, unused for 'none'
 export interface RestActionBody {
     contentType: string;
     body: any;
 }
+
+export const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
+
+export type FormField = ParamTable;
 
 export enum ValidationType {
     Inherit = "Inherit",
@@ -248,7 +254,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
   }
   
   export function CreateEmptyAuthenticationDetailsAwsSig(): AuthenticationDetailsAWSSig {
-    return { signUrl: false, accessKey: '', secretKey: '', awsRegion: 'eu-central-1', serviceName: '' };
+    return { signUrl: false, accessKey: '', secretKey: '', sessionToken: '', awsRegion: 'eu-central-1', serviceName: '' };
   }
   
   export function CreateEmptyAuthenticationDetailsBasicAuth(): AuthenticationDetailsBasicAuth {

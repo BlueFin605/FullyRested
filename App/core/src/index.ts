@@ -6,3 +6,5 @@ export * from './validate';
 export * from './auth';
 export * from './execute';
 export * from './secrets';
+export * from './normalise';
+export * from './resolve';

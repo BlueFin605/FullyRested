@@ -8,7 +8,7 @@ html {
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
-.mat-form-field-infix {
+.mat-mdc-form-field-infix {
   width: auto !important;
 }
 

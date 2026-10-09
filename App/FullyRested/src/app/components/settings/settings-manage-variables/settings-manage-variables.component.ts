@@ -1,37 +1,45 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { VariableTable } from '@fullyrested/core';
 
 const COLUMNS_SCHEMA = [
   {
-    key: "isdelete",
-    type: "isdelete",
-    label: ""
+    key: 'isdelete',
+    type: 'isdelete',
+    label: '',
   },
   {
-    key: "isenabled",
-    type: "isenabled",
-    label: ""
+    key: 'isenabled',
+    type: 'isenabled',
+    label: '',
   },
   {
-    key: "variable",
-    type: "text",
-    label: "Variable"
+    key: 'variable',
+    type: 'text',
+    label: 'Variable',
   },
   {
-    key: "value",
-    type: "text",
-    label: "Value"
+    key: 'value',
+    type: 'text',
+    label: 'Value',
   },
-]
+];
 
 @Component({
   selector: 'app-settings-manage-variables',
   templateUrl: './settings-manage-variables.component.html',
-  styleUrls: ['./settings-manage-variables.component.css']
+  styleUrls: ['./settings-manage-variables.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class SettingsManageVariablesComponent implements OnInit {
-
   @Input()
   variables: VariableTable[] = [];
 
@@ -41,27 +49,32 @@ export class SettingsManageVariablesComponent implements OnInit {
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor(private systemSupport: SystemSupportService) {
-  }
+  constructor(private systemSupport: SystemSupportService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   add() {
     var max = 0;
-    this.variables = [...this.variables, { variable: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
+    this.variables = [
+      ...this.variables,
+      {
+        variable: '',
+        value: '',
+        active: true,
+        id: this.systemSupport.generateGUID(),
+      },
+    ];
     this.variablesChange.emit(this.variables);
   }
 
   delete(id: string) {
-    this.variables = this.variables.filter(f => f.id != id);
+    this.variables = this.variables.filter((f) => f.id != id);
     this.variablesChange.emit(this.variables);
   }
 
   activeClicked(id: string) {
-    var entry = this.variables.find(f => f.id == id);
-    if (entry == undefined)
-      return;
+    var entry = this.variables.find((f) => f.id == id);
+    if (entry == undefined) return;
 
     entry.active = !entry.active;
     this.variablesChange.emit(this.variables);

@@ -1,6 +1,10 @@
 <mat-toolbar color="primary">
   <mat-toolbar-row>
-    <button mat-icon-button class="example-icon" aria-label="Example icon-button with menu icon">
+    <button
+      mat-icon-button
+      class="example-icon"
+      aria-label="Example icon-button with menu icon"
+    >
       <mat-icon>menu</mat-icon>
     </button>
     <span>FullyRested</span>
@@ -11,18 +15,28 @@
       <button class="remove_button" mat-icon-button (click)="saveRequest()">
         <mat-icon>save</mat-icon>
       </button>
-      <mat-icon class="example-icon" aria-hidden="false" aria-label="Example delete icon">new</mat-icon>
+      <mat-icon
+        class="example-icon"
+        aria-hidden="false"
+        aria-label="Example delete icon"
+        >new</mat-icon
+      >
     </div>
-    <div class="envselector" *ngIf="collection">
-      Select Environment:
-      <mat-form-field>
-        <mat-select [(value)]="collection.config!.selectedEnvironmentId">
-          <mat-option *ngFor="let env of collection?.config?.environments" [value]="env.id">
-            {{env.name}}
-          </mat-option>
+    @if (collection) {
+      <div class="envselector">
+        Select Environment:
+        <mat-select
+          class="envselect"
+          [(value)]="collection.config!.selectedEnvironmentId"
+        >
+          @for (env of collection.config.environments; track env) {
+            <mat-option [value]="env.id">
+              {{ env.name }}
+            </mat-option>
+          }
         </mat-select>
-      </mat-form-field>
-    </div>
+      </div>
+    }
   </mat-toolbar-row>
 
   <mat-toolbar-row>
@@ -30,11 +44,21 @@
       <button mat-button [matMenuTriggerFor]="file">File</button>
       <mat-menu #file="matMenu">
         <button mat-menu-item (click)="newCollection()">New Collection</button>
-        <button mat-menu-item (click)="openCollection()">Open Collection</button>
-        <button mat-menu-item [matMenuTriggerFor]="recentCollections">Open Recent</button>
-        <button mat-menu-item (click)="saveCollection()">Save Collection</button>
-        <button mat-menu-item (click)="saveCollectionAs()">Save Collection As</button>
-        <button mat-menu-item (click)="closeCollection()">Close Collection</button>
+        <button mat-menu-item (click)="openCollection()">
+          Open Collection
+        </button>
+        <button mat-menu-item [matMenuTriggerFor]="recentCollections">
+          Open Recent
+        </button>
+        <button mat-menu-item (click)="saveCollection()">
+          Save Collection
+        </button>
+        <button mat-menu-item (click)="saveCollectionAs()">
+          Save Collection As
+        </button>
+        <button mat-menu-item (click)="closeCollection()">
+          Close Collection
+        </button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="newRequest()">New Request</button>
         <button mat-menu-item (click)="saveRequest()">Save</button>
@@ -42,50 +66,98 @@
       </mat-menu>
 
       <mat-menu #recentCollections>
-        <button mat-menu-item (click)="openSoution(item)" *ngFor="let item of state.recentCollections">
-          {{ item.name }}
-        </button>
+        @for (item of state.recentCollections; track item) {
+          <button mat-menu-item (click)="openSoution(item)">
+            {{ item.name }}
+          </button>
+        }
       </mat-menu>
 
-      <button mat-button [matMenuTriggerFor]="collectionMenu">Collection</button>
+      <button mat-button [matMenuTriggerFor]="collectionMenu">
+        Collection
+      </button>
       <mat-menu #collectionMenu="matMenu">
-        <button mat-menu-item (click)="createEnvironment()" [disabled]="actionDisabled('createEnvironment')">Create Environment</button>
-        <button mat-menu-item (click)="deleteEnvironment()" [disabled]="actionDisabled('deleteEnvironment')">Delete Environment</button>
+        <button
+          mat-menu-item
+          (click)="createEnvironment()"
+          [disabled]="actionDisabled('createEnvironment')"
+        >
+          Create Environment
+        </button>
+        <button
+          mat-menu-item
+          (click)="deleteEnvironment()"
+          [disabled]="actionDisabled('deleteEnvironment')"
+        >
+          Delete Environment
+        </button>
         <mat-divider></mat-divider>
-        <button mat-menu-item (click)="createRun()" [disabled]="actionDisabled('createRun')">Create Run</button>
-        <button mat-menu-item (click)="deleteRun()" [disabled]="actionDisabled('deleteRun')">Delete Run</button>
+        <button
+          mat-menu-item
+          (click)="createRun()"
+          [disabled]="actionDisabled('createRun')"
+        >
+          Create Run
+        </button>
+        <button
+          mat-menu-item
+          (click)="deleteRun()"
+          [disabled]="actionDisabled('deleteRun')"
+        >
+          Delete Run
+        </button>
       </mat-menu>
     </div>
   </mat-toolbar-row>
 </mat-toolbar>
 
 <div class="explorer">
-  <app-collection-explorer [collection]="collection" 
-                         [state]="state"
-                         [(selected)]="explorerSelected"
-                         (openFile)="openAction($event)" 
-                         (openSystem)="openSystem($event)" #explorer></app-collection-explorer>
+  <app-collection-explorer
+    [collection]="collection"
+    [state]="state"
+    [(selected)]="explorerSelected"
+    (openFile)="openAction($event)"
+    (openSystem)="openSystem($event)"
+    #explorer
+  ></app-collection-explorer>
 </div>
 
 <div class="opendocuments" [hidden]="!actionsVisible()">
-  <mat-tab-group selectedIndex="0" animationDuration="0ms" #tabs (selectedTabChange)="tabChange($event)">
-    <mat-tab  *ngFor="let action of currentSession().actions" labelClass='dirty'>
-      <ng-template mat-tab-label>
-        <mat-icon class="dirty" *ngIf="action.dirty == true">circle</mat-icon>
-        <label [matTooltip]="action.fullFilename">{{action.action.name}}</label>
-        <button class="remove_button" mat-icon-button (click)="removeAction(action.action.id)">
-          <mat-icon class="remove_icon">cancel</mat-icon>
-        </button>
-      </ng-template>
-      <app-rest-action [collection]="collection" 
-                       [(action)]=action.action 
-                       [fullFilename]="action.fullFilename" 
-                       [runId]="selectedTab.runkey"
-                       (actionChange)="onActionChange(action)" 
-                       (dirtyChange)="onDirtyChange(action,$event)"
-                       (nameChange)="onNameChange(action, $event)">
-      </app-rest-action>
-    </mat-tab>
+  <mat-tab-group
+    selectedIndex="0"
+    animationDuration="0ms"
+    #tabs
+    (selectedTabChange)="tabChange($event)"
+  >
+    @for (action of currentSession().actions; track action) {
+      <mat-tab labelClass="dirty">
+        <ng-template mat-tab-label>
+          @if (action.dirty == true) {
+            <mat-icon class="dirty">circle</mat-icon>
+          }
+          <label [matTooltip]="action.fullFilename">{{
+            action.action.name
+          }}</label>
+          <button
+            class="remove_button"
+            mat-icon-button
+            (click)="removeAction(action.action.id)"
+          >
+            <mat-icon class="remove_icon">cancel</mat-icon>
+          </button>
+        </ng-template>
+        <app-rest-action
+          [collection]="collection"
+          [(action)]="action.action"
+          [fullFilename]="action.fullFilename"
+          [runId]="selectedTab.runkey"
+          (actionChange)="onActionChange(action)"
+          (dirtyChange)="onDirtyChange(action, $event)"
+          (nameChange)="onNameChange(action, $event)"
+        >
+        </app-rest-action>
+      </mat-tab>
+    }
 
     <mat-tab class="add_tab" disabled>
       <ng-template mat-tab-label>
@@ -98,17 +170,26 @@
 </div>
 
 <div class="opendocuments" [hidden]="!variablesVisible()">
-  <app-settings-manage-variables [(variables)]="selectedEnvironment.variables"></app-settings-manage-variables>
+  <app-settings-manage-variables
+    [(variables)]="selectedEnvironment.variables"
+  ></app-settings-manage-variables>
 </div>
 
 <div class="opendocuments" [hidden]="!authenticationVisible()">
-  <app-settings-manage-authentication [(auth)]="selectedEnvironment.auth"></app-settings-manage-authentication>
+  <app-settings-manage-authentication
+    [(auth)]="selectedEnvironment.auth"
+  ></app-settings-manage-authentication>
 </div>
 
 <div class="opendocuments" [hidden]="!environmentVisible()">
-  <app-settings-manage-environment [(environment)]="selectedEnvironment" (environmentChange)="environmentChange($event)"></app-settings-manage-environment>
+  <app-settings-manage-environment
+    [(environment)]="selectedEnvironment"
+    (environmentChange)="environmentChange($event)"
+  ></app-settings-manage-environment>
 </div>
 
 <div class="opendocuments" [hidden]="!secretsVisible()">
-  <app-settings-manage-secrets [(secrets)]="selectedEnvironment.secrets"></app-settings-manage-secrets>
+  <app-settings-manage-secrets
+    [(secrets)]="selectedEnvironment.secrets"
+  ></app-settings-manage-secrets>
 </div>

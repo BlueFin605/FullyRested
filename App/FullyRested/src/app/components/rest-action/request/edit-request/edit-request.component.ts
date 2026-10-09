@@ -1,18 +1,36 @@
-import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
-import { UrlTree, UrlSegmentGroup, DefaultUrlSerializer, UrlSegment, Params } from "@angular/router";
-
-import { CustomUrlSerializer } from 'src/app/services/CustomUrlSerializer';
-
+import {
+  Component,
+  Input,
+  Output,
+  OnInit,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import { DefaultUrlSerializer, Params } from '@angular/router';
 
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { CreateEmptyAction, HttpProtocol, RestTypeVerb } from '@fullyrested/core';
-import { RestAction, ParamTable, AuthenticationDetails, RestActionValidation, HeaderTable } from '@fullyrested/core';
-import { ExecuteRestAction, IExecuteRestAction } from '@fullyrested/core';
+import {
+  CreateEmptyAction,
+  HttpProtocol,
+  RestTypeVerb,
+  buildRequestUrl,
+  resolveRequest,
+} from '@fullyrested/core';
+import {
+  RestAction,
+  ParamTable,
+  AuthenticationDetails,
+  RestActionValidation,
+  HeaderTable,
+} from '@fullyrested/core';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request',
   templateUrl: './edit-request.component.html',
-  styleUrls: ['./edit-request.component.css']
+  styleUrls: ['./edit-request.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class EditRequestComponent implements OnInit {
   public get restTypeVerb(): typeof RestTypeVerb {
@@ -43,21 +61,18 @@ export class EditRequestComponent implements OnInit {
 
   displayUrl: string = '';
 
-  constructor(private systemSupport: SystemSupportService) { }
+  constructor(private systemSupport: SystemSupportService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   onUrlChange(value: any) {
-
-    if (value.startsWith("https://")) {
+    if (value.startsWith('https://')) {
       value = value.substring(8);
-      this.action.protocol = HttpProtocol.https
-    } else
-      if (value.startsWith("http://")) {
-        value = value.substring(7);
-        this.action.protocol = HttpProtocol.http;
-      }
+      this.action.protocol = HttpProtocol.https;
+    } else if (value.startsWith('http://')) {
+      value = value.substring(7);
+      this.action.protocol = HttpProtocol.http;
+    }
 
     //find end of base url
     var queryPos = value.indexOf('?');
@@ -71,29 +86,42 @@ export class EditRequestComponent implements OnInit {
     var parsedUrl = urlSerializer.parse(value);
     this.displayUrl = value;
 
-
-    this.action.parameters = this.updateParamTable(parsedUrl.queryParams, this.action.parameters);
+    this.action.parameters = this.updateParamTable(
+      parsedUrl.queryParams,
+      this.action.parameters,
+    );
     this.actionChange.emit(this.action);
   }
 
-  private updateParamTable(queryParams: { [key: string]: any }, origParamTable: ParamTable[]): ParamTable[] {
-
+  private updateParamTable(
+    queryParams: { [key: string]: any },
+    origParamTable: ParamTable[],
+  ): ParamTable[] {
     var paramsTable: ParamTable[] = JSON.parse(JSON.stringify(origParamTable));
 
-    var newParams = this.convertParsedUrlParamsToArray(queryParams).filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
-    var oldParams = paramsTable.filter(f => f.active == true); //.map(m => m.key + '_' + m.value);
+    var newParams = this.convertParsedUrlParamsToArray(queryParams).filter(
+      (f) => f.active == true,
+    ); //.map(m => m.key + '_' + m.value);
+    var oldParams = paramsTable.filter((f) => f.active == true); //.map(m => m.key + '_' + m.value);
 
-
-    let addedInNew = newParams.filter(x => oldParams.find(f => f.key == x.key && f.value == x.value) == undefined);
-    let removedInNew = oldParams.filter(x => newParams.find(f => f.key == x.key && f.value == x.value) == undefined);
-
+    let addedInNew = newParams.filter(
+      (x) =>
+        oldParams.find((f) => f.key == x.key && f.value == x.value) ==
+        undefined,
+    );
+    let removedInNew = oldParams.filter(
+      (x) =>
+        newParams.find((f) => f.key == x.key && f.value == x.value) ==
+        undefined,
+    );
 
     //okay if we are just chanign one param then let's just replace the value
-    if (addedInNew.length == 1 &&
+    if (
+      addedInNew.length == 1 &&
       removedInNew.length == 1 &&
-      addedInNew[0].key ===
-      removedInNew[0].key) {
-      var index = paramsTable.findIndex(f => f.key === addedInNew[0].key);
+      addedInNew[0].key === removedInNew[0].key
+    ) {
+      var index = paramsTable.findIndex((f) => f.key === addedInNew[0].key);
       if (index == -1) {
         return paramsTable;
       }
@@ -102,17 +130,29 @@ export class EditRequestComponent implements OnInit {
       return paramsTable;
     }
 
-    removedInNew.every(r => paramsTable = this.removeParam(paramsTable, r));
-    addedInNew.every(r => paramsTable = this.addParam(paramsTable, r));
+    removedInNew.every((r) => (paramsTable = this.removeParam(paramsTable, r)));
+    addedInNew.every((r) => (paramsTable = this.addParam(paramsTable, r)));
     return paramsTable;
   }
 
   private convertParsedUrlParamsToArray(queryParams: Params): ParamTable[] {
-    return Object.keys(queryParams).map(k => { return { key: k, value: queryParams[k], active: true, id: this.systemSupport.generateGUID() } });
+    return Object.keys(queryParams).map((k) => {
+      return {
+        key: k,
+        value: queryParams[k],
+        active: true,
+        id: this.systemSupport.generateGUID(),
+      };
+    });
   }
 
-  private removeParam(parameters: ParamTable[], remove: ParamTable): ParamTable[] {
-    var index = parameters.findIndex(f => f.key === remove.key && f.value === remove.value);
+  private removeParam(
+    parameters: ParamTable[],
+    remove: ParamTable,
+  ): ParamTable[] {
+    var index = parameters.findIndex(
+      (f) => f.key === remove.key && f.value === remove.value,
+    );
     if (index == -1) {
       return parameters;
     }
@@ -122,25 +162,28 @@ export class EditRequestComponent implements OnInit {
   }
 
   private addParam(parameters: ParamTable[], added: ParamTable): ParamTable[] {
-
-    var inactive = parameters.find(f => f.active == false && f.key === added.key && f.value === added.value);
+    var inactive = parameters.find(
+      (f) =>
+        f.active == false && f.key === added.key && f.value === added.value,
+    );
     if (inactive != undefined) {
       inactive.active = true;
       return parameters;
     }
 
-    return [...parameters, { key: added.key, value: added.value, active: true, id: this.systemSupport.generateGUID() }];
+    return [
+      ...parameters,
+      {
+        key: added.key,
+        value: added.value,
+        active: true,
+        id: this.systemSupport.generateGUID(),
+      },
+    ];
   }
 
   onParamChange(params: any) {
-    const urlTree = new UrlTree();
-    urlTree.root = new UrlSegmentGroup([new UrlSegment(this.action.url, {})], {});
-    urlTree.queryParams = this.convertParamsArraysAsValues(params);
-    const urlSerializer = new CustomUrlSerializer();
-    var url = urlSerializer.serialize(urlTree);
-    if (url.startsWith('/'))
-      url = url.substring(1);
-    this.displayUrl = url;
+    this.displayUrl = buildRequestUrl(this.action.url, params);
     this.actionChange.emit(this.action);
   }
 
@@ -173,24 +216,7 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  convertParamsArraysAsValues(params: ParamTable[]): { [header: string]: string } {
-    var converted: { [params: string]: string } = {};
-    params.filter(f => f.active == true && f.key != '' && f.value != '').forEach(v => converted[v.key] = v.value);
-    return converted;
-  }
-
   async test() {
-
-    var action: ExecuteRestAction = ExecuteRestAction.NewExecuteRestAction()
-    .setVerb(this.action.verb)
-    .setProtocol(this.action.protocol)
-    .setUrl(this.displayUrl)
-    .setHeadersFromArray(this.action.headers ?? [])
-    .setBody(this.action.body)
-    .authentication_pushBack(this.action.authentication)
-    .setValidation(this.action.validation);
-
-    this.execute.emit(action);
+    this.execute.emit(resolveRequest(this.action));
   }
 }
-
