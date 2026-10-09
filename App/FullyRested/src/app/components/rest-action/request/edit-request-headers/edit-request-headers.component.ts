@@ -1,39 +1,45 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { HeaderTable } from '@fullyrested/core';
 
 const COLUMNS_SCHEMA = [
   {
-    key: "isdelete",
-    type: "isdelete",
-    label: ""
+    key: 'isdelete',
+    type: 'isdelete',
+    label: '',
   },
   {
-    key: "isenabled",
-    type: "isenabled",
-    label: ""
+    key: 'isenabled',
+    type: 'isenabled',
+    label: '',
   },
   {
-    key: "key",
-    type: "text",
-    label: "Key"
+    key: 'key',
+    type: 'text',
+    label: 'Key',
   },
   {
-    key: "value",
-    type: "text",
-    label: "Value"
+    key: 'value',
+    type: 'text',
+    label: 'Value',
   },
-]
-
+];
 
 @Component({
-    selector: 'app-edit-request-headers',
-    templateUrl: './edit-request-headers.component.html',
-    styleUrls: ['./edit-request-headers.component.css'],
-    standalone: false
+  selector: 'app-edit-request-headers',
+  templateUrl: './edit-request-headers.component.html',
+  styleUrls: ['./edit-request-headers.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class EditRequestHeadersComponent implements OnInit {
-
   @Input()
   headers: HeaderTable[] = [];
 
@@ -43,18 +49,16 @@ export class EditRequestHeadersComponent implements OnInit {
   displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
   columnsSchema: any = COLUMNS_SCHEMA;
 
-  constructor(private systemSupport: SystemSupportService) {
-  }
+  constructor(private systemSupport: SystemSupportService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   // convertValuesAsArray(headers: { [header: string]: string }): headerTable[]
   // {
   //   return Object.entries(headers).map(h => {return {key: h[0], value: h[1]}});
   // }
 
-  // convertArraysAsValues(headers: headerTable[]): { [header: string]: string } 
+  // convertArraysAsValues(headers: headerTable[]): { [header: string]: string }
   // {
   //   var converted: { [header: string]: string } = {};
   //   headers.filter(f => f.key != '' && f.value != '').forEach(v => converted[v.key]=v.value);
@@ -62,19 +66,26 @@ export class EditRequestHeadersComponent implements OnInit {
   // }
 
   add() {
-    this.headers = [...this.headers, { key: '', value: '', active: true, id: this.systemSupport.generateGUID() }];
+    this.headers = [
+      ...this.headers,
+      {
+        key: '',
+        value: '',
+        active: true,
+        id: this.systemSupport.generateGUID(),
+      },
+    ];
     this.headersChange.emit(this.headers);
   }
 
   delete(id: string) {
-    this.headers = this.headers.filter(f => f.id != id);
+    this.headers = this.headers.filter((f) => f.id != id);
     this.headersChange.emit(this.headers);
   }
 
   activeClicked(id: string) {
-    var entry = this.headers.find(f => f.id == id);
-    if (entry == undefined)
-      return;
+    var entry = this.headers.find((f) => f.id == id);
+    if (entry == undefined) return;
 
     entry.active = !entry.active;
     this.headersChange.emit(this.headers);

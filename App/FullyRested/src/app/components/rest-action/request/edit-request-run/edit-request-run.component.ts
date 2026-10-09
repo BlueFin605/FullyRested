@@ -1,14 +1,41 @@
-import { Component, Input, Output, OnInit, EventEmitter } from '@angular/core';
-import { RestAction, RestActionRun, HeaderTable, ParamTable, AuthenticationDetails, Collection, SecretTable, VariableTable, RestActionValidation, ValidationType, RestTypeVerb, HttpProtocol } from '@fullyrested/core';
-import { CreateEmptyAction, CreateEmptyRestActionRun, CreateEmptyCollection, buildRequestUrl, resolveRequest } from '@fullyrested/core';
+import {
+  Component,
+  Input,
+  Output,
+  OnInit,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import {
+  RestAction,
+  RestActionRun,
+  HeaderTable,
+  ParamTable,
+  AuthenticationDetails,
+  Collection,
+  SecretTable,
+  VariableTable,
+  RestActionValidation,
+  ValidationType,
+  RestTypeVerb,
+  HttpProtocol,
+} from '@fullyrested/core';
+import {
+  CreateEmptyAction,
+  CreateEmptyRestActionRun,
+  CreateEmptyCollection,
+  buildRequestUrl,
+  resolveRequest,
+} from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
-    selector: 'app-edit-request-run',
-    templateUrl: './edit-request-run.component.html',
-    styleUrls: ['./edit-request-run.component.css'],
-    standalone: false
+  selector: 'app-edit-request-run',
+  templateUrl: './edit-request-run.component.html',
+  styleUrls: ['./edit-request-run.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class EditRequestRunComponent implements OnInit {
   public get restTypeVerb(): typeof RestTypeVerb {
@@ -18,8 +45,11 @@ export class EditRequestRunComponent implements OnInit {
   public get httpProtocol(): typeof HttpProtocol {
     return HttpProtocol;
   }
-  
-  _run: RestActionRun = CreateEmptyRestActionRun(this.systemSupport, ValidationType.Inherit);
+
+  _run: RestActionRun = CreateEmptyRestActionRun(
+    this.systemSupport,
+    ValidationType.Inherit,
+  );
 
   @Input()
   action: RestAction = CreateEmptyAction();
@@ -42,15 +72,17 @@ export class EditRequestRunComponent implements OnInit {
   @Input()
   collection: Collection = CreateEmptyCollection(this.systemSupport);
 
-  displayUrl: string = ''
+  displayUrl: string = '';
 
-  constructor(private systemSupport: SystemSupportService) { }
+  constructor(private systemSupport: SystemSupportService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   onParamChange(params: ParamTable[]) {
-    this.displayUrl = buildRequestUrl(this.action.url, this.action.parameters.concat(this._run.parameters));
+    this.displayUrl = buildRequestUrl(
+      this.action.url,
+      this.action.parameters.concat(this._run.parameters),
+    );
     this.runChange.emit(this._run);
   }
 
@@ -73,7 +105,7 @@ export class EditRequestRunComponent implements OnInit {
   onValidationChange(event: RestActionValidation) {
     this.runChange.emit(this._run);
   }
-  
+
   onNameChange(value: string) {
     this._run.name = value;
     this.runChange.emit(this._run);

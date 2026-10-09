@@ -1,18 +1,24 @@
-import { Component, OnInit, Input } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { JsonEditorOptions } from '../../../json-editor/json-editor.component';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
-    selector: 'app-display-response-body-json',
-    templateUrl: './display-response-body-json.component.html',
-    styleUrls: ['./display-response-body-json.component.css'],
-    standalone: false
+  selector: 'app-display-response-body-json',
+  templateUrl: './display-response-body-json.component.html',
+  styleUrls: ['./display-response-body-json.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DisplayResponseBodyJsonComponent implements OnInit {
   rawData: string = '';
   objData = {};
-  
+
   @Input()
   set body(body: RestActionResultBody | undefined) {
     if (body == undefined) {
@@ -21,26 +27,29 @@ export class DisplayResponseBodyJsonComponent implements OnInit {
       return;
     }
 
-     this.rawData = this.contentTypeHelper.convertArrayBufferToString(body.contentType, body.body);
-     try {
+    this.rawData = this.contentTypeHelper.convertArrayBufferToString(
+      body.contentType,
+      body.body,
+    );
+    try {
       this.objData = JSON.parse(this.rawData);
-     }
-     catch (error) {
+    } catch (error) {
       this.objData = {};
-     }
+    }
   }
 
   public editorOptions: JsonEditorOptions;
 
-  constructor(private contentTypeHelper: ContentTypeHelperService) { 
-    this.editorOptions = new JsonEditorOptions()
+  constructor(private contentTypeHelper: ContentTypeHelperService) {
+    this.editorOptions = new JsonEditorOptions();
     this.editorOptions.enableTransform = true;
     this.editorOptions.mode = 'code';
     this.editorOptions.modes = ['code', 'text', 'tree', 'view']; // set all allowed modes
     this.editorOptions.mainMenuBar = true;
-    this.editorOptions.onEditable = function(){return false;}
+    this.editorOptions.onEditable = function () {
+      return false;
+    };
   }
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 }

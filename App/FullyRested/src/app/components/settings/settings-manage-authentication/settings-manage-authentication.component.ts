@@ -1,12 +1,20 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CreateEmptyAuthenticationDetails } from '@fullyrested/core';
 import { AuthenticationDetails } from '@fullyrested/core';
 
 @Component({
-    selector: 'app-settings-manage-authentication',
-    templateUrl: './settings-manage-authentication.component.html',
-    styleUrls: ['./settings-manage-authentication.component.css'],
-    standalone: false
+  selector: 'app-settings-manage-authentication',
+  templateUrl: './settings-manage-authentication.component.html',
+  styleUrls: ['./settings-manage-authentication.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class SettingsManageAuthenticationComponent implements OnInit {
   @Input()
@@ -16,14 +24,12 @@ export class SettingsManageAuthenticationComponent implements OnInit {
   authChange = new EventEmitter<AuthenticationDetails>();
 
   //selected: string = 'awssig';
-  
-  constructor() { }
 
-  ngOnInit(): void {
-  }
+  constructor() {}
 
-  onChange($event: any)
-  {
+  ngOnInit(): void {}
+
+  onChange($event: any) {
     this.authChange.emit(this.auth);
   }
 }

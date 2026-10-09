@@ -1,22 +1,26 @@
-import { Component, OnInit, Input } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ContentTypeHelperService } from 'src/app/services/content-type-helper/content-type-helper.service';
 import { RestActionResultBody } from '@fullyrested/core';
 
 @Component({
-    selector: 'app-display-response-body',
-    templateUrl: './display-response-body.component.html',
-    styleUrls: ['./display-response-body.component.css'],
-    standalone: false
+  selector: 'app-display-response-body',
+  templateUrl: './display-response-body.component.html',
+  styleUrls: ['./display-response-body.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DisplayResponseBodyComponent implements OnInit {
   @Input()
   body: RestActionResultBody | undefined;
 
-  constructor(private contentTypeHelper: ContentTypeHelperService) {
-  }
+  constructor(private contentTypeHelper: ContentTypeHelperService) {}
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   get responseType(): string {
     if (this.body == undefined) {
@@ -25,34 +29,30 @@ export class DisplayResponseBodyComponent implements OnInit {
 
     var type = this.contentTypeHelper.decode(this.body.contentType);
 
-
     switch (type.part1) {
-      case 'application':
-        {
-          switch (type.part2) {
-            case 'json':
-              return "json";
-            default:
-              return "unknown";
-          }
+      case 'application': {
+        switch (type.part2) {
+          case 'json':
+            return 'json';
+          default:
+            return 'unknown';
         }
-        case 'text':
-          {
-            switch (type.part2) {
-              case 'html':
-                return "html";
-                case 'xml':
-                  return "xml";
-                default:
-                return "unknown";
-            }
-          }
-        case 'image':
-        {
-          return "image"
+      }
+      case 'text': {
+        switch (type.part2) {
+          case 'html':
+            return 'html';
+          case 'xml':
+            return 'xml';
+          default:
+            return 'unknown';
         }
+      }
+      case 'image': {
+        return 'image';
+      }
       default:
-        return "unknown";
+        return 'unknown';
     }
   }
 }
