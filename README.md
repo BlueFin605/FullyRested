@@ -52,8 +52,19 @@ I like Postman, but it falls short in a few places:
 | **Secret** | anywhere above | `{{$name}}`. The value is stored in the OS keychain, never in the file |
 
 When settings conflict, the most specific one wins. The order is
-**run → request → selected environment → collection**. Authentication set
-to `inherit` falls through to the next level.
+**run → request → folders → selected environment → collection**.
+Authentication set to `inherit` falls through to the next level.
+
+## Folder settings
+
+Any folder may hold a `folder.frfolder` file with variables, secrets, auth and
+headers that every request below it inherits. The order, nearest first, is
+**run → request → folders → environment → collection**. Headers merge by name.
+Auth `inherit` passes up to the next level; `none` stops the search.
+
+Edit a folder's settings from the explorer: right-click the folder, then
+**Folder settings**. `Test Collection/trademe/folder.frfolder` is an example.
+From the CLI, run one folder with `--folder <path>`.
 
 Files from the older Rest Easy app (`.reasycol` / `.reasyreq`) still open.
 **Save** keeps a file's name. **Save As** uses the new extensions.
@@ -124,6 +135,7 @@ fullyrested run -c api.frcol --all --junit results.xml
 | `-e, --environment <name>` | Environment by name or id. Default: the one selected in the collection |
 | `-a, --action <file>` | One request file. A relative path also resolves from the collection's folder |
 | `-r, --run <name>` | One run of that request, by name or id |
+| `-f, --folder <path>` | Every request under that folder |
 | `--all` | Every run of `--action`, or every request under the collection's folder. A request with no runs is sent as it is |
 | `--junit <file>` | Also write a JUnit XML report |
 

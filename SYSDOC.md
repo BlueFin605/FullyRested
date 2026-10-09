@@ -42,8 +42,8 @@ flowchart TB
 | Layer | Where | Job |
 |---|---|---|
 | Front ends | `App/FullyRested/src` (Angular), `App/cli-command` | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
-| Core | `App/core/src` | The engine: model, request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC; the CLI host supplies `FsCollectionSource`. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
+| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
@@ -58,9 +58,9 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 
 | Step | Where it lives |
 |---|---|
-| Load a file and fill in its secrets | Host: `main.js` (`loadRequest`, `loadCollectionFromFile`) or the CLI's `files.ts`, both calling core `loadSecrets` |
-| Fill in fields missing from older files | core `normaliseAction` / `normaliseCollectionConfig` |
-| Resolve settings: run → request → environment → collection | core `resolveRequest` (request + run, called by the request editors) and `applyEnvironment` (called by `ExecuteRestCallsService`); the CLI calls `resolveExecuteAction`, which is both |
+| Build the tree | core `loadCollectionTree` (`tree.ts`): the renderer over IPC in the app, `FsCollectionSource` in the CLI. Secrets are filled in by core `loadSecrets`, fields missing from older files by `normaliseAction` / `normaliseCollectionConfig` |
+| Resolve settings: run → request → folders → environment → collection | `RequestNode.resolve()` / `RunNode.resolve()`, called by `ExecuteRestCallsService.executeNode` and the CLI's `runCase` |
+| Show inherited settings | `effectiveSettings()`, used by the Inherited panel under the request and run editors |
 | Substitute variables and secrets | core `replaceVariables` / `substituteDeep` |
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
@@ -72,6 +72,8 @@ On the BlueFinWiki kanban board, under initiative **AI Refresh**
 (`e58ec7d8-09c2-4d67-81b7-9b1b2e72d989`), with epics for the core engine,
 secrets hygiene, the CLI runner, the stack upgrade and cleanup. Home's
 `configuration/fullyrested/config.json` maps this repo to that initiative.
+The `feature/collection-hierarchy` branch maps to the **Collection Hierarchy**
+initiative (`78286444-4af7-4e63-9929-1a63a8b641c7`); `active` stays UI Refresh.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it
@@ -94,4 +96,5 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 Runtime state: the app keeps its open tabs and recent collections in
 `current_state.json` in Electron's userData folder. Secrets are stored under
 the keychain services `fullyrested-collection-<collectionGuid>` and
-`fullyrested-request-<requestId>`.
+`fullyrested-request-<requestId>`; folder secrets use
+`fullyrested-folder-<folderId>`.
