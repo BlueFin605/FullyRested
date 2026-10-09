@@ -61,10 +61,15 @@ export interface AuthenticationDetailsBearerToken {
     token: string;
 }
 
+// body is the JSON text for 'application/json', a FormField[] for FORM_CONTENT_TYPE, unused for 'none'
 export interface RestActionBody {
     contentType: string;
     body: any;
 }
+
+export const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
+
+export type FormField = ParamTable;
 
 export enum ValidationType {
     Inherit = "Inherit",

@@ -11,7 +11,7 @@ import {
   JsonEditorOptions,
   JsonEditorComponent,
 } from '../../../json-editor/json-editor.component';
-import { RestActionBody } from '@fullyrested/core';
+import { FORM_CONTENT_TYPE, FormField, RestActionBody } from '@fullyrested/core';
 
 @Component({
   selector: 'app-edit-request-body',
@@ -27,6 +27,7 @@ export class EditRequestBodyComponent implements OnInit {
     body: new ArrayBuffer(0),
   };
   jsonObj: object = {};
+  formFields: FormField[] = [];
   public editorOptions: JsonEditorOptions;
 
   @ViewChild('editor') bodyChild: JsonEditorComponent | undefined;
@@ -41,7 +42,11 @@ export class EditRequestBodyComponent implements OnInit {
       case 'application/json': {
         const str = body?.body ?? '{}';
         this.jsonObj = JSON.parse(str);
+        break;
       }
+      case FORM_CONTENT_TYPE:
+        this.formFields = Array.isArray(body.body) ? body.body : [];
+        break;
     }
   }
 
@@ -63,14 +68,23 @@ export class EditRequestBodyComponent implements OnInit {
 
     switch (this.visibleData.contentType) {
       case 'application/json': {
-        if (this.visibleData.body == undefined) this.visibleData.body = '{}';
+        if (typeof this.visibleData.body != 'string') this.visibleData.body = '{}';
         this.jsonObj = {};
-        // const str = body?.body ?? '{}';
-        // this.jsonObj = JSON.parse(str);
+        break;
       }
+      case FORM_CONTENT_TYPE:
+        if (!Array.isArray(this.visibleData.body)) this.visibleData.body = [];
+        this.formFields = this.visibleData.body;
+        break;
     }
 
-    // this.selectedview = event.value;
+    this.bodyChange.emit(this.visibleData);
+  }
+
+  onFormChange(fields: FormField[]) {
+    this.formFields = fields;
+    this.visibleData.body = fields;
+    this.bodyChange.emit(this.visibleData);
   }
 
   updateData(d: unknown) {

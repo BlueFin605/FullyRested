@@ -36,3 +36,11 @@
     #editor
   ></json-editor>
 }
+
+@if (visibleData.contentType == "application/x-www-form-urlencoded") {
+  <app-edit-request-parameters
+    [params]="formFields"
+    (paramsChange)="onFormChange($event)"
+    addLabel="Add Field"
+  ></app-edit-request-parameters>
+}

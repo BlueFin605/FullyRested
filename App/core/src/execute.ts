@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RestActionBody, RestTypeVerb } from './model';
+import { FORM_CONTENT_TYPE, FormField, RestActionBody, RestTypeVerb } from './model';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { applyAuthentication, PreparedRequest } from './auth';
 
@@ -67,14 +67,25 @@ export function prepareRequest(action: IExecuteRestAction): PreparedRequest {
 }
 
 function serializeBody(body: RestActionBody | undefined): string | undefined {
-  // application/x-www-form-urlencoded bodies are not implemented yet, so nothing is sent for them
-  if (!body || !body.contentType || body.contentType == 'none' || body.contentType == 'application/x-www-form-urlencoded')
+  if (!body || !body.contentType || body.contentType == 'none')
     return undefined;
+
+  if (body.contentType == FORM_CONTENT_TYPE)
+    return serializeForm(body.body);
 
   if (body.body == undefined)
     return undefined;
 
   return typeof body.body == 'string' ? body.body : JSON.stringify(body.body);
+}
+
+// A form body is a table of { key, value, active } fields; inactive and unnamed ones are left out
+function serializeForm(fields: unknown): string {
+  const form = new URLSearchParams();
+  for (const field of Array.isArray(fields) ? fields as FormField[] : [])
+    if (field.active && field.key)
+      form.append(field.key, field.value ?? '');
+  return form.toString();
 }
 
 // The headers Node actually sent, including the ones axios added; falls back to what was asked for

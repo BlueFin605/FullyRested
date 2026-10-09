@@ -43,6 +43,10 @@ export class EditRequestParametersComponent implements OnInit {
   @Input()
   params: ParamTable[] = [];
 
+  // the same table edits form bodies, where the rows are fields
+  @Input()
+  addLabel = 'Add Parameter';
+
   @Output()
   paramsChange = new EventEmitter<ParamTable[]>();
 
