@@ -8,7 +8,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
-import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
   Collection,
@@ -93,7 +92,7 @@ export class CollectionExplorerComponent implements OnInit {
   @Input()
   set collection(collection: Collection | undefined) {
     this._collection = collection;
-    if (collection == undefined) this.items = [];
+    this.rebuild();
   }
 
   @Output()
@@ -117,7 +116,7 @@ export class CollectionExplorerComponent implements OnInit {
   @Output()
   selectedChange = new EventEmitter<string>();
 
-  constructor(private repo: ActionRepositoryService, private trees: CollectionTreeService) {
+  constructor(private trees: CollectionTreeService) {
     this.trees.tree.subscribe((root) => {
       this.root = root;
       this.rebuild();
@@ -139,7 +138,7 @@ export class CollectionExplorerComponent implements OnInit {
     this.items = [
       new TreeviewItem({
         text: this._collection.name,
-        value: { type: 'dir', key: '__root_dir__' },
+        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message },
         children: [this.systemSettings(), ...this.root.children.map((c) => this.convertNode(c, this._state!))],
         collapsed: true,
       }),
