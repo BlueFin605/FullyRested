@@ -125,10 +125,30 @@ describe('request and run resolution', () => {
         expect(request.run('r1').resolve().authentication?.bearerToken.token).toBe('run');
     });
 
-    it('finds a run by name and does not reorder the request headers', () => {
+    it('auth: falls to the selected environment, then the collection', () => {
+        const { root, request, outer } = build();
+        outer.config.auth = CreateEmptyAuthenticationDetails('inherit');
+        root.config.environments.find(e => e.id == 'prod')!.auth = bearer('prod');
+        expect(request.resolve({ environmentId: 'prod' }).authentication?.bearerToken.token).toBe('prod');
+        expect(request.resolve({ environmentId: 'dev' }).authentication?.bearerToken.token).toBe('collection');
+    });
+
+    it('secrets: environment beats collection, collection-only secrets pass through', () => {
+        const { root, request } = build();
+        root.config.environments.find(e => e.id == 'dev')!.secrets = [s('key', 'dev')];
+        root.config.collectionEnvironment.secrets.push(s('only', 'collection'));
+        const secrets = request.resolve().secrets;
+        expect(secrets?.find(x => x.$secret == 'key')?.$value).toBe('dev');
+        expect(secrets?.find(x => x.$secret == 'only')?.$value).toBe('collection');
+    });
+
+    it('finds a run by name', () => {
+        expect(build().request.run('one').run.id).toBe('r1');
+    });
+
+    it('does not reorder the request headers', () => {
         const { request } = build();
         request.action.headers = [h('accept', 'text/html'), h('x-action', 'yes')];
-        expect(request.run('one').run.id).toBe('r1');
         request.run('r1').resolve();
         request.resolve();
         expect(request.action.headers.map(x => x.key)).toEqual(['accept', 'x-action']);
