@@ -40,6 +40,33 @@ describe('CollectionTreeService (browser mode)', () => {
     expect(trees.tree.value!.config.selectedEnvironmentId).toBe('other');
   });
 
+  describe('unsaved folder edits across a reload', () => {
+    const googleOf = (trees: CollectionTreeService) => trees.tree.value!.find('google') as FolderNode;
+
+    it('survive a reload from an unrelated save', async () => {
+      const trees = await loaded();
+      const edited = googleOf(trees).config;
+      edited.headers = [{ key: 'x-draft', value: '1', active: true, id: 'd' }];
+      await trees.reload();
+      expect(googleOf(trees).config).toBe(edited);
+    });
+
+    it('are replaced by disk for the folder just saved', async () => {
+      const trees = await loaded();
+      const edited = googleOf(trees).config;
+      await trees.reload({ refreshed: 'google' });
+      expect(googleOf(trees).config).not.toBe(edited);
+    });
+
+    it('are not carried from a node that failed to load', async () => {
+      const trees = await loaded();
+      const edited = googleOf(trees).config;
+      googleOf(trees).loadError = { file: 'google/folder.frfolder', message: 'bad' };
+      await trees.reload();
+      expect(googleOf(trees).config).not.toBe(edited);
+    });
+  });
+
   it('has no tree, and nodeFor throws, while another collection is loading', async () => {
     const trees = await loaded();
     const repo = TestBed.inject(ActionRepositoryService);

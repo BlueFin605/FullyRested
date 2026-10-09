@@ -41,30 +41,11 @@ describe('OpenActionsComponent folder settings', () => {
     expect((component as any).trees.tree.value.find('api/users')).toBe(component.selectedFolder);
   });
 
-  it('carries unsaved folder edits over to the new node on an unrelated reload', () => {
-    const { component, folder } = setup();
-    component.openFolderSettings(folderHostPath);
-    const edited = component.selectedFolder!.config;
-    edited.headers = [{ key: 'x-draft', value: '1', active: true, id: 'd' }];
-
-    const fresh = new CollectionNode(normaliseCollectionConfig({} as CollectionConfig), 'api');
-    const freshFolder = new FolderNode(fresh, 'api/users', CreateEmptyFolderConfig('x'), true);
-    fresh.children.push(freshFolder);
-    (component as any).trees.tree.next(fresh);
-    component.onTreeChange();
-
-    expect(component.selectedFolder).toBe(freshFolder);
-    expect(freshFolder.config).toBe(edited);
-  });
-
-  it('takes the reloaded config after the folder own save', async () => {
+  it('tells the tree which folder it just saved', async () => {
     const { component } = setup();
     component.openFolderSettings(folderHostPath);
-    const edited = component.selectedFolder!.config;
-
     await component.saveFolderSettings();
-
-    expect(component.selectedFolder!.config).not.toBe(edited);
+    expect((component as any).trees.reload).toHaveBeenCalledWith({ refreshed: 'api/users' });
   });
 
   it('hides the pane when the folder disappears from the tree', () => {

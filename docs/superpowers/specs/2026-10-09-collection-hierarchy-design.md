@@ -67,7 +67,7 @@ from folders (run-over-request behaviour for those is unchanged).
 ## Core: the scope tree
 
 ```
-ScopeNode (abstract)   parent?: ScopeNode; error?: Error; layer(): ScopeSettings
+ScopeNode (abstract)   parent?: ScopeNode; loadError: LoadError | undefined; layer(): ScopeSettings
  ├─ CollectionNode     wraps CollectionConfig; root; owns environments
  ├─ FolderNode         wraps FolderConfig (or an empty one); name, relative path
  ├─ RequestNode        wraps RestAction + relative file path

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import {
-  Collection, CollectionConfig, CollectionNode, RequestNode, RestAction, RunNode,
+  Collection, CollectionConfig, CollectionNode, FolderNode, RequestNode, RestAction, RunNode,
   loadCollectionTree, normaliseCollectionConfig, relativePath,
 } from '@fullyrested/core';
 import { ActionRepositoryService } from '../action-repository/action-repository.service';
@@ -41,7 +41,8 @@ export class CollectionTreeService {
     this.reload();
   }
 
-  async reload(): Promise<void> {
+  // `refreshed` is the collection-relative folder just saved: it takes what is on disk, not the pane's edits
+  async reload(options?: { refreshed?: string }): Promise<void> {
     const token = ++this.loadToken;
     const collection = this.collection;
     if (collection == undefined) {
@@ -68,6 +69,15 @@ export class CollectionTreeService {
     }
 
     if (token !== this.loadToken) return;
+
+    // unsaved folder edits live on the old nodes: an unrelated reload (saving a request) must not drop them.
+    // tree.value is cleared when the collection file changes, so this only ever carries within one collection.
+    const previous = this.tree.value;
+    if (previous != undefined)
+      for (const folder of root.folderNodes()) {
+        const old = previous.find(folder.path);
+        if (old instanceof FolderNode && old.loadError == undefined && folder.path !== options?.refreshed) folder.config = old.config;
+      }
 
     // the settings panes edit the collection's own config object; settings edits may have swapped it mid-load
     root.config = this.collection!.config;
