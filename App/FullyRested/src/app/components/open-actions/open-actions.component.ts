@@ -559,10 +559,17 @@ export class OpenActionsComponent implements OnInit {
   }
 
   // Every reload makes new nodes: keep an open folder pane on the live one, and hide it if the folder is gone
+  // An unrelated reload (saving a request) must not drop the pane's unsaved edits, so they move to the new node;
+  // the folder's own save is the exception, its reload brings back what is on disk.
   onTreeChange() {
     if (this.selectedTab.selectedType != 'folder' || this.selectedFolderPath == '') return;
-    this.selectedFolder = this.findFolder(this.selectedFolderPath);
+    const previous = this.selectedFolder;
+    const fresh = this.findFolder(this.selectedFolderPath);
+    if (previous != undefined && fresh != undefined && fresh !== previous && !this.savingFolder) fresh.config = previous.config;
+    this.selectedFolder = fresh;
   }
+
+  private savingFolder = false;
 
   folderSettingsVisible(): boolean {
     return this.selectedTab.selectedType == 'folder' && this.selectedFolder != undefined;
@@ -572,10 +579,13 @@ export class OpenActionsComponent implements OnInit {
     if (this.selectedFolder == undefined) return;
     try {
       await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
+      this.savingFolder = true;
       await this.trees.reload();
       this.folderSaveError = '';
     } catch (error) {
       this.folderSaveError = (error as Error)?.message ?? String(error);
+    } finally {
+      this.savingFolder = false;
     }
   }
 

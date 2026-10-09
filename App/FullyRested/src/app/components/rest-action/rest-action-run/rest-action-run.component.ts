@@ -82,11 +82,19 @@ export class RestActionRunComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  // Evaluated every change-detection pass: a deleted run makes nodeFor throw, so show nothing
+  private inheritedCache: { key: unknown[]; node: ReturnType<CollectionTreeService['nodeFor']> } | undefined;
+
+  // Evaluated every change-detection pass, so it returns the same node until an input changes (a new
+  // object each pass trips NG0100). A deleted run makes nodeFor throw, so show nothing.
   get inheritedNode() {
+    const key = [this.action, this.fullFilename, this._runId, this.trees.tree.value, this.collection];
+    if (this.inheritedCache && this.inheritedCache.key.every((k, i) => k === key[i])) return this.inheritedCache.node;
     try {
-      return this.trees.nodeFor(this.action, this.fullFilename, this._runId as string);
+      const node = this.trees.nodeFor(this.action, this.fullFilename, this._runId as string);
+      this.inheritedCache = { key, node };
+      return node;
     } catch {
+      this.inheritedCache = undefined;
       return undefined;
     }
   }

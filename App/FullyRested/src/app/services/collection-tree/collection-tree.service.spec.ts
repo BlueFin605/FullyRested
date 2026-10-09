@@ -40,6 +40,15 @@ describe('CollectionTreeService (browser mode)', () => {
     expect(trees.tree.value!.config.selectedEnvironmentId).toBe('other');
   });
 
+  it('has no tree, and nodeFor throws, while another collection is loading', async () => {
+    const trees = await loaded();
+    const repo = TestBed.inject(ActionRepositoryService);
+    spyOn(console, 'error');
+    repo.collections.next({ ...mockCollection, filename: 'other.frcollection', name: 'other.frcollection' });
+    expect(trees.tree.value).toBeUndefined();
+    expect(() => trees.nodeFor(CreateEmptyAction(), '')).toThrowError('Collection is still loading');
+  });
+
   it('marks the root broken when the collection folder cannot be loaded', async () => {
     TestBed.configureTestingModule({});
     const repo = TestBed.inject(ActionRepositoryService);

@@ -80,11 +80,19 @@ export class RestActionComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  // Evaluated every change-detection pass: a tab mid-switch may not resolve yet, so swallow that
+  private inheritedCache: { key: unknown[]; node: ReturnType<CollectionTreeService['nodeFor']> } | undefined;
+
+  // Evaluated every change-detection pass, so it returns the same node until an input changes (a new
+  // object each pass trips NG0100). A tab mid-switch may not resolve yet, so swallow that.
   get inheritedNode() {
+    const key = [this._action, this._fullFilename, this.runId, this.trees.tree.value, this.collection];
+    if (this.inheritedCache && this.inheritedCache.key.every((k, i) => k === key[i])) return this.inheritedCache.node;
     try {
-      return this.trees.nodeFor(this._action, this._fullFilename);
+      const node = this.trees.nodeFor(this._action, this._fullFilename);
+      this.inheritedCache = { key, node };
+      return node;
     } catch {
+      this.inheritedCache = undefined;
       return undefined;
     }
   }

@@ -36,6 +36,8 @@ export class CollectionTreeService {
       return;
     }
 
+    // a different collection: drop the old tree so nothing sends against the wrong folders while this one loads
+    this.tree.next(undefined);
     this.reload();
   }
 
@@ -74,6 +76,7 @@ export class CollectionTreeService {
 
   // The node an open tab sends: wraps the tab's live action, under the folder its file is in
   nodeFor(action: RestAction, fullFilename: string | undefined, runId?: string): RequestNode | RunNode {
+    if (this.tree.value == undefined && this.collection?.path) throw new Error('Collection is still loading');
     const root = this.tree.value ?? new CollectionNode(this.collection?.config ?? normaliseCollectionConfig({} as CollectionConfig), '');
     const path = this.collection?.path;
     const relative = fullFilename && path ? relativePath(path, fullFilename) : undefined;
