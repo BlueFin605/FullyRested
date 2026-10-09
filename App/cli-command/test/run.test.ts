@@ -155,6 +155,19 @@ describe('folders', () => {
     expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
   });
 
+  it.each(['.', './', '.\\'])('treats --folder %s as the whole collection', async (dot) => {
+    const results = await runTests({ collection: collection(), folder: dot }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200', 'down', 'old']);
+  });
+
+  it('keeps folder headers when the file name differs in case from the tree', async () => {
+    // only meaningful on a case-insensitive file system
+    if (!fs.existsSync(path.join(folder, 'items', 'OK.FRREQ')))
+      return;
+    await runTests({ collection: collection(), action: path.join(folder, 'items', 'OK.FRREQ') }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+  });
+
   it('rejects an unknown folder', async () => {
     await expect(runTests({ collection: collection(), folder: 'nope' }, noKeychain)).rejects.toThrow(UsageError);
   });

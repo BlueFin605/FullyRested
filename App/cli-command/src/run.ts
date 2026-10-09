@@ -67,7 +67,14 @@ async function requestFor(file: string, root: CollectionNode, collectionFolder: 
   if (found instanceof RequestNode)
     return found;
 
-  return root.attach(await loadAction(full, store), undefined);
+  // find() is case-sensitive and the file system may not be: keep the request under the folders its path names
+  return root.attach(await loadAction(full, store), relative);
+}
+
+// --folder as the user types it: '.' and './' are the collection root
+function folderPath(folder: string): string {
+  const cleaned = folder.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  return cleaned == '.' ? '' : cleaned;
 }
 
 async function selectCases(options: RunOptions, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<TestCase[]> {
@@ -75,7 +82,7 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     if (options.action != undefined)
       throw new UsageError('Give --folder or --action, not both');
 
-    const folder = root.find(options.folder.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, ''));
+    const folder = root.find(folderPath(options.folder));
     if (!(folder instanceof ContainerNode))
       throw new UsageError(`Folder '${options.folder}' not found in the collection`);
     return folder.requestNodes().flatMap(casesFor);
