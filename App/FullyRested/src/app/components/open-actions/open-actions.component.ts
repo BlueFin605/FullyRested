@@ -2,6 +2,8 @@ import {
   Component,
   OnInit,
   ViewChild,
+  ViewChildren,
+  QueryList,
   ElementRef,
   ApplicationRef,
   ChangeDetectionStrategy,
@@ -32,6 +34,10 @@ import { ActionRepositoryService } from 'src/app/services/action-repository/acti
 import { LayoutService } from 'src/app/services/layout/layout.service';
 import { ThemeService } from 'src/app/services/theme/theme.service';
 import { SplitterMove } from '../splitter/splitter.directive';
+import { ShortcutCommand, ShortcutsService } from 'src/app/services/shortcuts/shortcuts.service';
+import { RestActionComponent } from '../rest-action/rest-action/rest-action.component';
+import { PaletteItem } from '../command-palette/command-palette.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -69,6 +75,10 @@ export class OpenActionsComponent implements OnInit {
   @ViewChild('workspace') workspace!: ElementRef<HTMLElement>;
   @ViewChild('explorer') collectionExplorer:
     CollectionExplorerComponent | undefined;
+  @ViewChildren(RestActionComponent) restActions!: QueryList<RestActionComponent>;
+
+  paletteOpen = false;
+  paletteItems: PaletteItem[] = [];
 
   constructor(
     private repo: ActionRepositoryService,
@@ -76,7 +86,12 @@ export class OpenActionsComponent implements OnInit {
     private systemSupport: SystemSupportService,
     public layout: LayoutService,
     public theme: ThemeService,
+    shortcuts: ShortcutsService,
   ) {
+    shortcuts.commands
+      .pipe(takeUntilDestroyed())
+      .subscribe((command) => this.onShortcut(command));
+
     this.repo.collections.subscribe((s) => {
       this.collection = s;
       // this.appRef.tick();
@@ -513,6 +528,104 @@ export class OpenActionsComponent implements OnInit {
     );
     this.collection.config.environments[solenv] = env;
     this.repo.storeCollection(this.collection);
+  }
+
+  onShortcut(command: ShortcutCommand) {
+    // while the palette is open it owns the keyboard, except to toggle itself
+    if (this.paletteOpen && command != 'commandPalette') return;
+
+    const count = this.currentSession().actions.length;
+    const index = this.tabs?.selectedIndex ?? 0;
+
+    switch (command) {
+      case 'send':
+        this.activeRestAction()?.send();
+        break;
+      case 'save':
+        if (count > 0) this.saveRequest();
+        break;
+      case 'newRequest':
+        this.newRequest();
+        break;
+      case 'openCollection':
+        this.openCollection();
+        break;
+      case 'closeTab':
+        if (count > 0) this.removeAction(this.currentSession().actions[index].action.id);
+        break;
+      case 'nextTab':
+        if (count > 0) this.tabs.selectedIndex = (index + 1) % count;
+        break;
+      case 'previousTab':
+        if (count > 0) this.tabs.selectedIndex = (index - 1 + count) % count;
+        break;
+      case 'toggleSidebar':
+        this.layout.toggleSidebar();
+        break;
+      case 'focusUrl':
+        this.activeRestAction()?.focusUrl();
+        break;
+      case 'commandPalette':
+        this.paletteOpen ? (this.paletteOpen = false) : this.openPalette();
+        break;
+    }
+  }
+
+  private activeRestAction(): RestActionComponent | undefined {
+    const active = this.currentSession().actions[this.tabs?.selectedIndex ?? -1];
+    return this.restActions?.find((r) => r.actionId == active?.action.id);
+  }
+
+  openPalette() {
+    this.paletteItems = this.buildPaletteItems();
+    this.paletteOpen = true;
+  }
+
+  private buildPaletteItems(): PaletteItem[] {
+    const root = this.collection?.path ?? '';
+    const requests: PaletteItem[] = (this.collectionExplorer?.requestFiles() ?? []).map((f) => ({
+      group: 'Requests',
+      label: f.name,
+      verb: f.verb,
+      detail: f.key.startsWith(root) ? f.key.substring(root.length).replace(/^[\\/]/, '') : f.key,
+      run: () => {
+        this.explorerSelected = f.key;
+        this.openAction({ activeTab: false, key: f.key, runkey: '', type: 'file', subtype: '', enabledMenuOptions: ['createRun'] });
+      },
+    }));
+
+    const openTabs: PaletteItem[] = this.currentSession().actions.map((a, index) => ({
+      group: 'Open tabs',
+      label: a.action.name,
+      verb: a.action.verb,
+      detail: a.dirty ? 'unsaved' : undefined,
+      run: () => (this.tabs.selectedIndex = index),
+    }));
+
+    const environments: PaletteItem[] =(this.collection?.config?.environments ?? []).map((e) => ({
+      group: 'Environments',
+      label: `Use ${e.name}`,
+      icon: e.id == this.collection?.config.selectedEnvironmentId ? 'radio_button_checked' : 'layers',
+      run: () => (this.collection!.config.selectedEnvironmentId = e.id),
+    }));
+
+    const command = (label: string, icon: string, run: () => void, shortcut?: string): PaletteItem =>
+      ({ group: 'Commands', label, icon, run, shortcut });
+
+    const commands: PaletteItem[] = [
+      command('New request', 'add', () => this.newRequest(), 'Ctrl+N'),
+      command('Save request', 'save', () => this.saveRequest(), 'Ctrl+S'),
+      command('Open collection…', 'folder_open', () => this.openCollection(), 'Ctrl+O'),
+      command('New collection…', 'create_new_folder', () => this.newCollection()),
+      command(`${this.layout.sidebarVisible() ? 'Hide' : 'Show'} sidebar`, 'view_sidebar', () => this.layout.toggleSidebar(), 'Ctrl+B'),
+      command('Toggle response position', 'view_agenda', () => this.layout.toggleOrientation()),
+      command('Theme: System', 'brightness_auto', () => this.theme.set('system')),
+      command('Theme: Light', 'light_mode', () => this.theme.set('light')),
+      command('Theme: Dark', 'dark_mode', () => this.theme.set('dark')),
+      ...(this.collection ? [command('New environment', 'layers', () => this.createEnvironment())] : []),
+    ];
+
+    return [...openTabs, ...requests, ...environments, ...commands];
   }
 
   resizeSidebar(move: SplitterMove) {

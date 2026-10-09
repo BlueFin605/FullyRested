@@ -20,6 +20,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { CodeEditorComponent } from './components/code-editor/code-editor.component';
 import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
+import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { SplitterDirective } from './components/splitter/splitter.directive';
 import { VerbLabelPipe } from './pipes/verb-label.pipe';
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
@@ -56,6 +57,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
   declarations: [
     CodeEditorComponent,
     KeyValueTableComponent,
+    CommandPaletteComponent,
     SplitterDirective,
     VerbLabelPipe,
     SplitPaneComponent,

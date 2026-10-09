@@ -136,8 +136,8 @@
   </header>
 
   <main class="workspace" #workspace>
-    @if (layout.sidebarVisible()) {
-      <aside class="sidebar" [style.width.px]="layout.sidebarWidth()">
+    <!-- hidden rather than removed, so the tree keeps its state -->
+    <aside class="sidebar" [hidden]="!layout.sidebarVisible()" [style.width.px]="layout.sidebarWidth()">
         <app-collection-explorer
           [collection]="collection"
           [state]="state"
@@ -147,14 +147,14 @@
           (command)="onExplorerCommand($event)"
           #explorer
         ></app-collection-explorer>
-      </aside>
-      <div
-        appSplitter="horizontal"
-        (splitterMove)="resizeSidebar($event)"
-        (splitterReset)="layout.resizeSidebar(260)"
-        aria-label="Resize sidebar"
-      ></div>
-    }
+    </aside>
+    <div
+      appSplitter="horizontal"
+      [hidden]="!layout.sidebarVisible()"
+      (splitterMove)="resizeSidebar($event)"
+      (splitterReset)="layout.resizeSidebar(260)"
+      aria-label="Resize sidebar"
+    ></div>
 
     <section class="editor">
       <div class="pane" [hidden]="!actionsVisible()">
@@ -298,6 +298,12 @@
     }
     <span class="spacer"></span>
     <span class="status-item hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> send</span>
-    <span class="status-item hint"><kbd>Ctrl</kbd>+<kbd>K</kbd> commands</span>
+    <button class="status-item hint palette-hint" (click)="openPalette()">
+      <kbd>Ctrl</kbd>+<kbd>K</kbd> commands
+    </button>
   </footer>
 </div>
+
+@if (paletteOpen) {
+  <app-command-palette [items]="paletteItems" (closed)="paletteOpen = false"></app-command-palette>
+}

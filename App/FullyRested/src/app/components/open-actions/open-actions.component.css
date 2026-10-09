@@ -361,3 +361,16 @@
   font-size: 10px;
   padding: 0 4px;
 }
+
+.sidebar[hidden],
+.fr-splitter[hidden] {
+  display: none;
+}
+
+.palette-hint {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}

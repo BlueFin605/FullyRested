@@ -5,7 +5,9 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
+import { EditRequestRunComponent } from '../request/edit-request-run/edit-request-run.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import {
   Collection,
@@ -65,7 +67,13 @@ export class RestActionRunComponent implements OnInit {
     private systemSupport: SystemSupportService,
   ) {}
 
+  @ViewChild(EditRequestRunComponent) runEditor: EditRequestRunComponent | undefined;
+
   ngOnInit(): void {}
+
+  send() {
+    this.runEditor?.test();
+  }
 
   onRunChange(event: RestActionRun) {
     this.actionChange.emit(this.action);

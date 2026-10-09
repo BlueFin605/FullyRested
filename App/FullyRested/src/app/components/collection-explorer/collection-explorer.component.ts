@@ -397,6 +397,19 @@ export class CollectionExplorerComponent implements OnInit {
   }
   filter: string = '';
 
+  // Every request file in the tree, for the command palette
+  requestFiles(): { name: string; key: string; verb: string }[] {
+    const files: { name: string; key: string; verb: string }[] = [];
+    const walk = (items: TreeviewItem[] | undefined) =>
+      (items ?? []).forEach((i) => {
+        if (i.value.type == 'file')
+          files.push({ name: i.text, key: i.value.key, verb: i.value.verb });
+        walk(i.children);
+      });
+    walk(this.items);
+    return files;
+  }
+
   onContextMenu(event: MouseEvent, item: TreeviewItem) {
     const hasOpen = item.value.type == 'file' || item.value.type == 'run';
     if (!hasOpen && (item.value.actions ?? []).length == 0) return;

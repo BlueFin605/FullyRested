@@ -20,6 +20,7 @@ import { DisplayResponseHeadersComponent } from './components/rest-action/respon
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { CodeEditorComponent } from './components/code-editor/code-editor.component';
 import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
+import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
 import { SettingsManageSecretsComponent } from './components/settings/settings-manage-secrets/settings-manage-secrets.component';
@@ -35,7 +36,7 @@ import { SettingsManageAuthenticationInheritComponent } from './components/setti
 // compile against the real AppModule (so a missing Material/forms import fails here) and render
 // with its default inputs, in browser mode (no Electron ipc).
 const components: Type<unknown>[] = [
-  AppComponent, OpenActionsComponent, CollectionExplorerComponent, KeyValueTableComponent,
+  AppComponent, OpenActionsComponent, CollectionExplorerComponent, KeyValueTableComponent, CommandPaletteComponent,
   RestActionComponent, RestActionRunComponent,
   EditRequestComponent, EditRequestHeadersComponent, EditRequestParametersComponent, EditRequestBodyComponent,
   EditRequestAuthenticationComponent, EditRequestRunComponent, EditRequestValidationComponent,

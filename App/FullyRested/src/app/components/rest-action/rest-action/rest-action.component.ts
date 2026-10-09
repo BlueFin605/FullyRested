@@ -5,7 +5,10 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
+import { EditRequestComponent } from '../request/edit-request/edit-request.component';
+import { RestActionRunComponent } from '../rest-action-run/rest-action-run.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CreateEmptyAction } from '@fullyrested/core';
@@ -73,7 +76,24 @@ export class RestActionComponent implements OnInit {
     public validateResponse: ValidateResponseService,
   ) {}
 
+  @ViewChild(EditRequestComponent) requestEditor: EditRequestComponent | undefined;
+  @ViewChild(RestActionRunComponent) runView: RestActionRunComponent | undefined;
+
   ngOnInit(): void {}
+
+  get actionId(): string {
+    return this._action.id;
+  }
+
+  // Ctrl+Enter: send whatever this tab shows, the request or the run
+  send() {
+    if (this.runView) this.runView.send();
+    else this.requestEditor?.test();
+  }
+
+  focusUrl() {
+    this.requestEditor?.focusUrl();
+  }
 
   async executeAction(action: ExecuteRestAction) {
     if (this.sending) return;
