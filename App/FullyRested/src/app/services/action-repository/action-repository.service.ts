@@ -4,11 +4,10 @@ import { SystemSupportService } from '../system-support/system-support.service';
 import { mockCollection } from '../mocks/mock-collection';
 import { mockCurrentState } from '../mocks/mock-current-state';
 import { mockRequest } from '../mocks/mock-request';
-import { mockTraverse } from '../mocks/mock-traverse';
 import { normaliseAction, normaliseCollectionConfig, normaliseCurrentState, CreateEmptyLocalAction, CreateEmptyAction, CreateEmptyCollection } from '@fullyrested/core';
 import { mockCollectionSource } from '../mocks/mock-collection-source';
 import { CollectionSource, FolderConfig, SecretStore } from '@fullyrested/core';
-import { Collection, SavedAsCompleted, CurrentState, RestAction, LocalRestAction, TraversedDrectory, RecentFile } from '@fullyrested/core';
+import { Collection, SavedAsCompleted, CurrentState, RestAction, LocalRestAction, RecentFile } from '@fullyrested/core';
 
 
 @Injectable({
@@ -81,13 +80,6 @@ export class ActionRepositoryService {
     action.action.headers.push({ key: 'accept', value: '*', active: true, id: new SystemSupportService().generateGUID() });
     action.action.headers.push({ key: 'accept-encoding', value: 'gzip, deflate, br', active: true, id: new SystemSupportService().generateGUID() });
     return action;
-  }
-
-  public async traverseDirectory(pathname: string, filter: string[]): Promise<TraversedDrectory> {
-    if (this.getIpcRenderer() == undefined)
-      return mockTraverse;
-
-    return this.getIpcRenderer().invoke('traverseDirectory', { pathname: pathname, filter: filter });
   }
 
   public async getCurrentState(): Promise<CurrentState> {

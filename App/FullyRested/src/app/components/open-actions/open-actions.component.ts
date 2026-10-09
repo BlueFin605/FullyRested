@@ -149,11 +149,8 @@ export class OpenActionsComponent implements OnInit {
   }
 
   private rebuildTree() {
-    setTimeout(async () => {
-      if (this.collection) {
-        await this.collectionExplorer?.rebuildTree(this.collection, this.state);
-      }
-    });
+    // redraw so the explorer picks up the open tabs' unsaved changes
+    setTimeout(() => this.collectionExplorer?.refresh());
   }
 
   public currentSession(): LocalRestSession {

@@ -80,10 +80,6 @@ app.whenReady().then(() => {
         return loadRequest(request);
     });
 
-    ipcMain.handle("traverseDirectory", (event, request) => {
-        return traverseDirectory(request);
-    });
-
     ipcMain.handle("listDir", (event, request) => {
         return fs.readdirSync(collectionPath(request), { withFileTypes: true }).map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
     });
@@ -186,36 +182,6 @@ async function loadRequest(fullFilename) {
 
 function buildStateFilename() {
     return path.join(app.getPath("userData"), "current_state.json");
-}
-
-function traverseDirectory(request) {
-
-    // var path = app.getPath("userData");
-    //var path = `/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src`;
-    var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
-    if (request.pathname == '')
-        return tree;
-
-    walkSync(request.pathname, request.filter, tree);
-    // var json = JSON.stringify(tree);
-    return tree;
-}
-
-function walkSync(dir, filter, tree) {
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-        if (file.isDirectory()) {
-            var fullPath = path.join(dir, file.name);
-            var node = { dir: file, subdirs: [], files: [] };
-            node.dir.fullPath = fullPath;
-            tree.subdirs.push(node);
-            walkSync(fullPath, filter, tree.subdirs[tree.subdirs.length - 1]);
-        } else
-            if (file.isFile() && filter.some(f => file.name.endsWith(f))) {
-                file.fullPath = path.join(dir, file.name);
-                tree.files.push(file);
-            }
-    }
 }
 
 async function loadCollection() {
