@@ -80,7 +80,7 @@ export class ExecuteRestCallsService {
               "factchecker": "Dov Seleucus"
             }
           }
-        }))
+        })).buffer
       },
 
       // body: {
