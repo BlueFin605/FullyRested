@@ -15,8 +15,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { JsonEditorComponent } from './components/json-editor/json-editor.component';
+import { CodeEditorComponent } from './components/code-editor/code-editor.component';
+import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
+import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
+import { SplitterDirective } from './components/splitter/splitter.directive';
+import { VerbLabelPipe } from './pipes/verb-label.pipe';
+import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -29,11 +36,7 @@ import { EditRequestComponent } from './components/rest-action/request/edit-requ
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
 import { EditRequestParametersComponent } from './components/rest-action/request/edit-request-parameters/edit-request-parameters.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
-import { DisplayResponseBodyJsonComponent } from './components/rest-action/response/display-response-body-json/display-response-body-json.component';
-import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
-import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
-import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 import { CollectionExplorerComponent } from './components/collection-explorer/collection-explorer.component';
 import { EditRequestAuthenticationComponent } from './components/rest-action/request/edit-request-authentication/edit-request-authentication.component';
@@ -52,7 +55,12 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 
 @NgModule({
   declarations: [
-    JsonEditorComponent,
+    CodeEditorComponent,
+    KeyValueTableComponent,
+    CommandPaletteComponent,
+    SplitterDirective,
+    VerbLabelPipe,
+    SplitPaneComponent,
     AppComponent,
     RestActionComponent,
     DisplayResponseComponent,
@@ -62,11 +70,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     EditRequestHeadersComponent,
     EditRequestParametersComponent,
     EditRequestBodyComponent,
-    DisplayResponseBodyJsonComponent,
-    DisplayResponseBodyDefaultComponent,
     DisplayResponseBodyImageComponent,
-    DisplayResponseBodyHtmlComponent,
-    DisplayResponseBodyXmlComponent,
     OpenActionsComponent,
     CollectionExplorerComponent,
     EditRequestAuthenticationComponent,
@@ -100,7 +104,9 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     MatRadioModule,
     MatListModule,
     MatTooltipModule,
-    MatToolbarModule
+    MatToolbarModule,
+    MatButtonToggleModule,
+    MatProgressSpinnerModule
   ],
   providers: [],
   bootstrap: [AppComponent]

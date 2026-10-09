@@ -1,53 +1,376 @@
-
-.explorer {
-    float: left;
-    width: 15%;
-    background-color: #f1f1f1;
-    padding-left: 3px;
+:host {
+  display: block;
+  height: 100vh;
 }
 
-/* sit beside the floated explorer even when a child is width: 100% (MDC tables) */
-.opendocuments {
-    overflow: hidden;
+.shell {
+  display: grid;
+  grid-template-rows: 38px 1fr 24px;
+  height: 100%;
 }
 
-.remove_button {
-    width: 24px;
+/* --- title bar -------------------------------------------------------- */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: var(--fr-surface);
+  border-bottom: 1px solid var(--fr-border);
 }
 
-.add_icon {
-    color:green;
-    font-size: 20px;
+.brand {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 8px 0 4px;
 }
 
-.remove_icon {
-    color:red;
-    font-size: 15px;
+.menubar {
+  display: flex;
 }
 
-.add_tab {
-    padding: 0px;
+.menu-trigger {
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fr-text);
+  font: inherit;
+  cursor: pointer;
 }
 
-.dirty {
-    color:red;
-    font-size: 8px;
+.menu-trigger:hover,
+.menu-trigger[aria-expanded="true"] {
+  background: var(--fr-hover);
 }
 
-.mat-toolbar-row {
-    height: 25px;
+.spacer {
+  flex: 1;
 }
 
-.envselector {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
+.env-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 8px;
+  margin-right: 4px;
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  background: var(--fr-bg);
+  cursor: pointer;
 }
 
-.envselect {
-    width: 160px;
-    margin-left: 8px;
-    padding: 2px 6px;
-    background-color: white;
-    border-radius: 3px;
+.env-picker mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--fr-text-muted);
+}
+
+.env-select {
+  width: 160px;
+  font-size: var(--fr-font-size);
+}
+
+/* --- workspace -------------------------------------------------------- */
+
+.workspace {
+  display: flex;
+  min-height: 0;
+}
+
+.sidebar {
+  flex: none;
+  background: var(--fr-surface);
+  overflow: hidden;
+}
+
+.editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane[hidden] {
+  display: none;
+}
+
+.settings-pane {
+  overflow: auto;
+  padding: 16px 24px;
+}
+
+.pane-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pane-scope {
+  font-weight: 400;
+  color: var(--fr-text-muted);
+}
+
+/* --- request tabs ----------------------------------------------------- */
+
+.doc-tabs {
+  flex: 1;
+  min-height: 0;
+  --mat-tab-container-height: 36px;
+  --mat-tab-divider-color: var(--fr-border);
+  --mat-tab-active-indicator-height: 2px;
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-header {
+  background: var(--fr-surface);
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-header .mat-mdc-tab {
+  padding: 0 4px 0 10px;
+  min-width: 0;
+  border-right: 1px solid var(--fr-border);
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-header .mat-mdc-tab.mdc-tab--active {
+  background: var(--fr-bg);
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-header .mat-mdc-tab-disabled {
+  border-right: 0;
+  padding: 0 4px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-body-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.doc-tabs ::ng-deep > .mat-mdc-tab-body-wrapper > .mat-mdc-tab-body > .mat-mdc-tab-body-content {
+  overflow: hidden;
+  height: 100%;
+}
+
+.doc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  font-size: var(--fr-font-size);
+  color: var(--fr-text);
+}
+
+.doc-tab .fr-method {
+  font-size: 10px;
+}
+
+.doc-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tab.preview .doc-tab-name {
+  font-style: italic;
+}
+
+.doc-tab-run {
+  color: var(--fr-text-muted);
+  white-space: nowrap;
+}
+
+/* the close button shows a dot while the tab has unsaved changes */
+.doc-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fr-text-muted);
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.doc-tab-close mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.doc-tab:hover .doc-tab-close,
+:host ::ng-deep .mdc-tab--active .doc-tab-close,
+.doc-tab-close.dirty {
+  visibility: visible;
+}
+
+.doc-tab-close:hover {
+  background: var(--fr-hover);
+  color: var(--fr-text);
+}
+
+.doc-tab-close.dirty:not(:hover) mat-icon {
+  display: none;
+}
+
+.doc-tab-close.dirty:not(:hover)::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fr-text-muted);
+}
+
+.new-tab {
+  width: 26px;
+  height: 26px;
+}
+
+/* --- empty states ----------------------------------------------------- */
+
+.empty-state {
+  position: absolute;
+  inset: 36px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--fr-text-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.empty-state h2 {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fr-text);
+}
+
+.empty-state p {
+  margin: 4px 0;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--fr-text-faint);
+}
+
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.hint {
+  font-size: var(--fr-font-size-sm);
+}
+
+.recent {
+  margin-top: 16px;
+  width: min(420px, 100%);
+  text-align: left;
+}
+
+.recent-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fr-text-faint);
+  margin-bottom: 4px;
+}
+
+.recent-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--fr-radius);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-item:hover {
+  background: var(--fr-hover);
+}
+
+.recent-name {
+  color: var(--fr-accent);
+}
+
+.recent-path {
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* --- status bar ------------------------------------------------------- */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 10px;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-text-muted);
+  background: var(--fr-surface);
+  border-top: 1px solid var(--fr-border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-item mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.status-item kbd {
+  font-size: 10px;
+  padding: 0 4px;
+}
+
+.sidebar[hidden],
+.fr-splitter[hidden] {
+  display: none;
+}
+
+.palette-hint {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }

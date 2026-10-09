@@ -5,7 +5,10 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
+import { EditRequestComponent } from '../request/edit-request/edit-request.component';
+import { RestActionRunComponent } from '../rest-action-run/rest-action-run.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CreateEmptyAction } from '@fullyrested/core';
@@ -13,8 +16,9 @@ import { RestAction, Collection } from '@fullyrested/core';
 import {
   EmptyActionResult,
   ExecuteRestCallsService,
+  TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult, ExecuteRestAction } from '@fullyrested/core';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action',
@@ -63,7 +67,8 @@ export class RestActionComponent implements OnInit {
   @Input()
   runId: string | undefined;
 
-  response: RestActionResult = EmptyActionResult;
+  response: TimedActionResult = EmptyActionResult;
+  sending = false;
 
   constructor(
     private era: ExecuteRestCallsService,
@@ -71,16 +76,39 @@ export class RestActionComponent implements OnInit {
     public validateResponse: ValidateResponseService,
   ) {}
 
+  @ViewChild(EditRequestComponent) requestEditor: EditRequestComponent | undefined;
+  @ViewChild(RestActionRunComponent) runView: RestActionRunComponent | undefined;
+
   ngOnInit(): void {}
 
+  get actionId(): string {
+    return this._action.id;
+  }
+
+  // Ctrl+Enter: send whatever this tab shows, the request or the run
+  send() {
+    if (this.runView) this.runView.send();
+    else this.requestEditor?.test();
+  }
+
+  focusUrl() {
+    this.requestEditor?.focusUrl();
+  }
+
   async executeAction(action: ExecuteRestAction) {
-    this.response = EmptyActionResult;
-    this.response = await this.era.executeTest(action, this.collection);
-    this.response.validated = await this.validateResponse.validateResponse(
-      action,
-      this.response,
-      this.collection,
-    );
+    if (this.sending) return;
+    this.sending = true;
+    try {
+      const response = await this.era.executeTest(action, this.collection);
+      response.validated = await this.validateResponse.validateResponse(
+        action,
+        response,
+        this.collection,
+      );
+      this.response = response;
+    } finally {
+      this.sending = false;
+    }
   }
 
   onActionChange(event: RestAction) {

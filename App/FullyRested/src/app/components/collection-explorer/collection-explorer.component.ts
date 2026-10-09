@@ -5,7 +5,9 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
+import { MatMenuTrigger } from '@angular/material/menu';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import {
   ACTION_FILE_EXTENSIONS,
@@ -25,6 +27,19 @@ export interface SelectedTreeItem {
   subtype: string;
   activeTab: boolean;
 }
+
+// A context-menu action on a tree row: createRun, deleteRun, createEnvironment, deleteEnvironment
+export interface ExplorerCommand {
+  name: string;
+  item: SelectedTreeItem;
+}
+
+const COMMANDS: { [name: string]: { label: string; icon: string } } = {
+  createRun: { label: 'New run', icon: 'add' },
+  deleteRun: { label: 'Delete run', icon: 'delete' },
+  createEnvironment: { label: 'New environment', icon: 'add' },
+  deleteEnvironment: { label: 'Delete environment', icon: 'delete' },
+};
 
 // One row of the explorer tree. value holds what the row is (type, subtype, key, menu actions, ...)
 export class TreeviewItem {
@@ -79,6 +94,13 @@ export class CollectionExplorerComponent implements OnInit {
 
   @Output()
   openSystem = new EventEmitter<SelectedTreeItem>();
+
+  @Output()
+  command = new EventEmitter<ExplorerCommand>();
+
+  @ViewChild('contextTrigger') contextTrigger: MatMenuTrigger | undefined;
+  contextItem: TreeviewItem | undefined;
+  contextPosition = { x: 0, y: 0 };
 
   items: TreeviewItem[] = [];
 
@@ -229,10 +251,16 @@ export class CollectionExplorerComponent implements OnInit {
 
     var runChildren = await Promise.all(
       traverse.files.map(async (f) => {
+        const action = await this.LoadAction(f, state);
         return new TreeviewItem({
           text: f.name,
-          value: { type: 'file', key: f.fullPath, actions: ['createRun'] },
-          children: await this.BuildRunChildren(f, state),
+          value: {
+            type: 'file',
+            key: f.fullPath,
+            verb: action.verb,
+            actions: ['createRun'],
+          },
+          children: this.BuildRunChildren(f, action),
         });
       }),
     );
@@ -247,12 +275,7 @@ export class CollectionExplorerComponent implements OnInit {
     });
   }
 
-  private async BuildRunChildren(
-    f: File,
-    state: CurrentState,
-  ): Promise<TreeviewItem[]> {
-    var action: RestAction = await this.LoadAction(f, state);
-
+  private BuildRunChildren(f: File, action: RestAction): TreeviewItem[] {
     var children: TreeviewItem[] = action.runs.map(
       (r) =>
         new TreeviewItem({
@@ -321,6 +344,10 @@ export class CollectionExplorerComponent implements OnInit {
 
     if (this.openRun(true, $event) == true) return;
 
+    // A plain folder has nothing to show, so a click opens or closes it
+    if ($event.value.type == 'dir' && $event.value.subtype == undefined && $event.children)
+      this.toggle($event);
+
     this.openSystem.emit({
       activeTab: true,
       key: $event.value.key,
@@ -369,6 +396,76 @@ export class CollectionExplorerComponent implements OnInit {
     return false;
   }
   filter: string = '';
+
+  // Every request file in the tree, for the command palette
+  requestFiles(): { name: string; key: string; verb: string }[] {
+    const files: { name: string; key: string; verb: string }[] = [];
+    const walk = (items: TreeviewItem[] | undefined) =>
+      (items ?? []).forEach((i) => {
+        if (i.value.type == 'file')
+          files.push({ name: i.text, key: i.value.key, verb: i.value.verb });
+        walk(i.children);
+      });
+    walk(this.items);
+    return files;
+  }
+
+  onContextMenu(event: MouseEvent, item: TreeviewItem) {
+    const hasOpen = item.value.type == 'file' || item.value.type == 'run';
+    if (!hasOpen && (item.value.actions ?? []).length == 0) return;
+
+    event.preventDefault();
+    this.contextItem = item;
+    this.contextPosition = { x: event.clientX, y: event.clientY };
+    this.selected = item.value.key;
+    this.selectedChange.emit(this.selected);
+    // let the anchor move before the menu measures it
+    setTimeout(() => this.contextTrigger?.openMenu());
+  }
+
+  emitCommand(name: string, item: TreeviewItem) {
+    const isRun = item.value.type == 'run';
+    this.command.emit({
+      name,
+      item: {
+        activeTab: false,
+        key: isRun ? item.value.actionFile : item.value.key,
+        runkey: isRun ? item.value.key : '',
+        type: item.value.type,
+        subtype: item.value.subtype,
+        enabledMenuOptions: item.value.actions ?? [],
+      },
+    });
+  }
+
+  commandLabel(name: string): string {
+    return COMMANDS[name]?.label ?? name;
+  }
+
+  commandIcon(name: string): string {
+    return COMMANDS[name]?.icon ?? 'chevron_right';
+  }
+
+  systemIcon(subtype: string): string {
+    switch (subtype) {
+      case 'variables':
+        return 'data_object';
+      case 'secrets':
+        return 'key';
+      case 'authentication':
+        return 'lock';
+      default:
+        return 'settings';
+    }
+  }
+
+  folderIcon(item: TreeviewItem): string {
+    if (item.value.key == '__root_dir__') return 'inventory_2';
+    if (item.value.key == 'system.settings') return 'settings';
+    if (item.value.subtype == 'environments') return 'layers';
+    if (item.value.subtype == 'system.settings.environments') return 'public';
+    return this.isExpanded(item) ? 'folder_open' : 'folder';
+  }
 
   toggle(item: TreeviewItem) {
     item.collapsed = !item.collapsed;

@@ -1,36 +1,12 @@
 import {
   Component,
-  OnInit,
   Input,
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { VariableTable } from '@fullyrested/core';
-
-const COLUMNS_SCHEMA = [
-  {
-    key: 'isdelete',
-    type: 'isdelete',
-    label: '',
-  },
-  {
-    key: 'isenabled',
-    type: 'isenabled',
-    label: '',
-  },
-  {
-    key: 'variable',
-    type: 'text',
-    label: 'Variable',
-  },
-  {
-    key: 'value',
-    type: 'text',
-    label: 'Value',
-  },
-];
+import { InheritedRow } from '../../key-value-table/key-value-table.component';
 
 @Component({
   selector: 'app-settings-manage-variables',
@@ -39,48 +15,21 @@ const COLUMNS_SCHEMA = [
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class SettingsManageVariablesComponent implements OnInit {
+export class SettingsManageVariablesComponent {
   @Input()
   variables: VariableTable[] = [];
 
   @Output()
   variablesChange = new EventEmitter<VariableTable[]>();
 
-  displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
-  columnsSchema: any = COLUMNS_SCHEMA;
+  @Input()
+  inherited: InheritedRow[] = [];
 
-  constructor(private systemSupport: SystemSupportService) {}
+  @Input()
+  inheritedSource = '';
 
-  ngOnInit(): void {}
-
-  add() {
-    var max = 0;
-    this.variables = [
-      ...this.variables,
-      {
-        variable: '',
-        value: '',
-        active: true,
-        id: this.systemSupport.generateGUID(),
-      },
-    ];
-    this.variablesChange.emit(this.variables);
-  }
-
-  delete(id: string) {
-    this.variables = this.variables.filter((f) => f.id != id);
-    this.variablesChange.emit(this.variables);
-  }
-
-  activeClicked(id: string) {
-    var entry = this.variables.find((f) => f.id == id);
-    if (entry == undefined) return;
-
-    entry.active = !entry.active;
-    this.variablesChange.emit(this.variables);
-  }
-
-  modelChangeFn(value: any) {
+  onRowsChange(rows: VariableTable[]) {
+    this.variables = rows;
     this.variablesChange.emit(this.variables);
   }
 }

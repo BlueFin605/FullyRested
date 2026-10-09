@@ -1,88 +1,64 @@
-<mat-toolbar color="primary">
-  <mat-toolbar-row>
+<div class="shell">
+  <header class="titlebar">
     <button
-      mat-icon-button
-      class="example-icon"
-      aria-label="Example icon-button with menu icon"
+      class="fr-icon-btn"
+      (click)="layout.toggleSidebar()"
+      matTooltip="Toggle sidebar (Ctrl+B)"
+      aria-label="Toggle sidebar"
     >
-      <mat-icon>menu</mat-icon>
+      <mat-icon>{{ layout.sidebarVisible() ? "menu_open" : "menu" }}</mat-icon>
     </button>
-    <span>FullyRested</span>
-  </mat-toolbar-row>
+    <span class="brand">FullyRested</span>
 
-  <mat-toolbar-row>
-    <div>
-      <button class="remove_button" mat-icon-button (click)="saveRequest()">
-        <mat-icon>save</mat-icon>
-      </button>
-      <mat-icon
-        class="example-icon"
-        aria-hidden="false"
-        aria-label="Example delete icon"
-        >new</mat-icon
-      >
-    </div>
-    @if (collection) {
-      <div class="envselector">
-        Select Environment:
-        <mat-select
-          class="envselect"
-          [(value)]="collection.config!.selectedEnvironmentId"
-        >
-          @for (env of collection.config.environments; track env) {
-            <mat-option [value]="env.id">
-              {{ env.name }}
-            </mat-option>
-          }
-        </mat-select>
-      </div>
-    }
-  </mat-toolbar-row>
-
-  <mat-toolbar-row>
-    <div class="menubar">
-      <button mat-button [matMenuTriggerFor]="file">File</button>
+    <nav class="menubar">
+      <button class="menu-trigger" [matMenuTriggerFor]="file">File</button>
       <mat-menu #file="matMenu">
-        <button mat-menu-item (click)="newCollection()">New Collection</button>
-        <button mat-menu-item (click)="openCollection()">
-          Open Collection
+        <button mat-menu-item (click)="newRequest()">
+          New Request <span class="shortcut">Ctrl+N</span>
         </button>
-        <button mat-menu-item [matMenuTriggerFor]="recentCollections">
+        <button mat-menu-item (click)="saveRequest()">
+          Save <span class="shortcut">Ctrl+S</span>
+        </button>
+        <button mat-menu-item (click)="saveAsRequest()">Save As…</button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="newCollection()">New Collection…</button>
+        <button mat-menu-item (click)="openCollection()">
+          Open Collection… <span class="shortcut">Ctrl+O</span>
+        </button>
+        <button
+          mat-menu-item
+          [matMenuTriggerFor]="recentCollections"
+          [disabled]="state.recentCollections.length == 0"
+        >
           Open Recent
         </button>
-        <button mat-menu-item (click)="saveCollection()">
+        <button mat-menu-item (click)="saveCollection()" [disabled]="!collection">
           Save Collection
         </button>
-        <button mat-menu-item (click)="saveCollectionAs()">
-          Save Collection As
+        <button mat-menu-item (click)="saveCollectionAs()" [disabled]="!collection">
+          Save Collection As…
         </button>
-        <button mat-menu-item (click)="closeCollection()">
+        <button mat-menu-item (click)="closeCollection()" [disabled]="!collection">
           Close Collection
         </button>
-        <mat-divider></mat-divider>
-        <button mat-menu-item (click)="newRequest()">New Request</button>
-        <button mat-menu-item (click)="saveRequest()">Save</button>
-        <button mat-menu-item (click)="saveAsRequest()">Save As</button>
       </mat-menu>
 
       <mat-menu #recentCollections>
         @for (item of state.recentCollections; track item) {
-          <button mat-menu-item (click)="openSoution(item)">
+          <button mat-menu-item (click)="openSoution(item)" [matTooltip]="item.fullFileName">
             {{ item.name }}
           </button>
         }
       </mat-menu>
 
-      <button mat-button [matMenuTriggerFor]="collectionMenu">
-        Collection
-      </button>
+      <button class="menu-trigger" [matMenuTriggerFor]="collectionMenu">Collection</button>
       <mat-menu #collectionMenu="matMenu">
         <button
           mat-menu-item
           (click)="createEnvironment()"
           [disabled]="actionDisabled('createEnvironment')"
         >
-          Create Environment
+          New Environment
         </button>
         <button
           mat-menu-item
@@ -97,7 +73,7 @@
           (click)="createRun()"
           [disabled]="actionDisabled('createRun')"
         >
-          Create Run
+          New Run
         </button>
         <button
           mat-menu-item
@@ -107,89 +83,227 @@
           Delete Run
         </button>
       </mat-menu>
-    </div>
-  </mat-toolbar-row>
-</mat-toolbar>
 
-<div class="explorer">
-  <app-collection-explorer
-    [collection]="collection"
-    [state]="state"
-    [(selected)]="explorerSelected"
-    (openFile)="openAction($event)"
-    (openSystem)="openSystem($event)"
-    #explorer
-  ></app-collection-explorer>
-</div>
+      <button class="menu-trigger" [matMenuTriggerFor]="viewMenu">View</button>
+      <mat-menu #viewMenu="matMenu">
+        <button mat-menu-item (click)="layout.toggleSidebar()">
+          {{ layout.sidebarVisible() ? "Hide" : "Show" }} Sidebar
+          <span class="shortcut">Ctrl+B</span>
+        </button>
+        <button mat-menu-item (click)="layout.toggleOrientation()">
+          {{ layout.splitOrientation() == "horizontal" ? "Response Below Request" : "Response Beside Request" }}
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="theme.set('system')">
+          <mat-icon>brightness_auto</mat-icon> Theme: System
+        </button>
+        <button mat-menu-item (click)="theme.set('light')">
+          <mat-icon>light_mode</mat-icon> Theme: Light
+        </button>
+        <button mat-menu-item (click)="theme.set('dark')">
+          <mat-icon>dark_mode</mat-icon> Theme: Dark
+        </button>
+      </mat-menu>
+    </nav>
 
-<div class="opendocuments" [hidden]="!actionsVisible()">
-  <mat-tab-group
-    selectedIndex="0"
-    animationDuration="0ms"
-    #tabs
-    (selectedTabChange)="tabChange($event)"
-  >
-    @for (action of currentSession().actions; track action) {
-      <mat-tab labelClass="dirty">
-        <ng-template mat-tab-label>
-          @if (action.dirty == true) {
-            <mat-icon class="dirty">circle</mat-icon>
-          }
-          <label [matTooltip]="action.fullFilename">{{
-            action.action.name
-          }}</label>
-          <button
-            class="remove_button"
-            mat-icon-button
-            (click)="removeAction(action.action.id)"
-          >
-            <mat-icon class="remove_icon">cancel</mat-icon>
-          </button>
-        </ng-template>
-        <app-rest-action
-          [collection]="collection"
-          [(action)]="action.action"
-          [fullFilename]="action.fullFilename"
-          [runId]="selectedTab.runkey"
-          (actionChange)="onActionChange(action)"
-          (dirtyChange)="onDirtyChange(action, $event)"
-          (nameChange)="onNameChange(action, $event)"
+    <span class="spacer"></span>
+
+    @if (collection) {
+      <label class="env-picker" matTooltip="Active environment">
+        <mat-icon>layers</mat-icon>
+        <mat-select
+          class="env-select"
+          placeholder="No environment"
+          [(value)]="collection.config!.selectedEnvironmentId"
+          aria-label="Environment"
         >
-        </app-rest-action>
-      </mat-tab>
+          <mat-option value="">No environment</mat-option>
+          @for (env of collection.config.environments; track env.id) {
+            <mat-option [value]="env.id">{{ env.name }}</mat-option>
+          }
+        </mat-select>
+      </label>
     }
 
-    <mat-tab class="add_tab" disabled>
-      <ng-template mat-tab-label>
-        <button class="add_button" mat-icon-button (click)="addAction($event)">
-          <mat-icon class="add_icon">add_circle</mat-icon>
-        </button>
-      </ng-template>
-    </mat-tab>
-  </mat-tab-group>
+    <button
+      class="fr-icon-btn"
+      (click)="theme.cycle()"
+      [matTooltip]="'Theme: ' + theme.mode()"
+      aria-label="Change theme"
+    >
+      <mat-icon>{{ theme.icon() }}</mat-icon>
+    </button>
+  </header>
+
+  <main class="workspace" #workspace>
+    <!-- hidden rather than removed, so the tree keeps its state -->
+    <aside class="sidebar" [hidden]="!layout.sidebarVisible()" [style.width.px]="layout.sidebarWidth()">
+        <app-collection-explorer
+          [collection]="collection"
+          [state]="state"
+          [(selected)]="explorerSelected"
+          (openFile)="openAction($event)"
+          (openSystem)="openSystem($event)"
+          (command)="onExplorerCommand($event)"
+          #explorer
+        ></app-collection-explorer>
+    </aside>
+    <div
+      appSplitter="horizontal"
+      [hidden]="!layout.sidebarVisible()"
+      (splitterMove)="resizeSidebar($event)"
+      (splitterReset)="layout.resizeSidebar(260)"
+      aria-label="Resize sidebar"
+    ></div>
+
+    <section class="editor">
+      <div class="pane" [hidden]="!actionsVisible()">
+        <mat-tab-group
+          class="doc-tabs"
+          selectedIndex="0"
+          animationDuration="0ms"
+          [mat-stretch-tabs]="false"
+          #tabs
+          (selectedTabChange)="tabChange($event)"
+        >
+          @for (action of currentSession().actions; track action) {
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <span
+                  class="doc-tab"
+                  [class.preview]="action.activeTab"
+                  [matTooltip]="action.fullFilename"
+                  matTooltipShowDelay="600"
+                  (auxclick)="onTabAuxClick($event, action.action.id)"
+                >
+                  <span class="fr-method" [attr.data-verb]="action.action.verb">{{
+                    action.action.verb | verbLabel
+                  }}</span>
+                  <span class="doc-tab-name">{{ action.action.name }}</span>
+                  @if (runNameFor(action); as runName) {
+                    <span class="doc-tab-run">› {{ runName }}</span>
+                  }
+                  <button
+                    class="doc-tab-close"
+                    [class.dirty]="action.dirty"
+                    (click)="removeAction(action.action.id); $event.stopPropagation()"
+                    [attr.aria-label]="'Close ' + action.action.name"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              </ng-template>
+              <app-rest-action
+                [collection]="collection"
+                [(action)]="action.action"
+                [fullFilename]="action.fullFilename"
+                [runId]="runIdFor(action)"
+                (actionChange)="onActionChange(action)"
+                (dirtyChange)="onDirtyChange(action, $event)"
+                (nameChange)="onNameChange(action, $event)"
+              >
+              </app-rest-action>
+            </mat-tab>
+          }
+
+          <mat-tab disabled>
+            <ng-template mat-tab-label>
+              <button
+                class="fr-icon-btn new-tab"
+                (click)="addAction($event)"
+                matTooltip="New request (Ctrl+N)"
+                aria-label="New request"
+              >
+                <mat-icon>add</mat-icon>
+              </button>
+            </ng-template>
+          </mat-tab>
+        </mat-tab-group>
+
+        @if (currentSession().actions.length == 0) {
+          <div class="empty-state">
+            @if (collection) {
+              <mat-icon class="empty-icon">send</mat-icon>
+              <h2>No request open</h2>
+              <p>Pick a request in the sidebar, or start a new one.</p>
+              <div class="empty-actions">
+                <button mat-flat-button (click)="newRequest()">New request</button>
+              </div>
+              <p class="hint"><kbd>Ctrl</kbd> + <kbd>N</kbd> new request · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> send</p>
+            } @else {
+              <mat-icon class="empty-icon">folder_open</mat-icon>
+              <h2>Open a collection</h2>
+              <p>A collection is a folder of request files you can keep in git.</p>
+              <div class="empty-actions">
+                <button mat-flat-button (click)="openCollection()">Open collection…</button>
+                <button mat-stroked-button (click)="newCollection()">New collection…</button>
+              </div>
+              @if (state.recentCollections.length > 0) {
+                <div class="recent">
+                  <div class="recent-title">Recent</div>
+                  @for (item of state.recentCollections; track item) {
+                    <button class="recent-item" (click)="openSoution(item)">
+                      <span class="recent-name">{{ item.name }}</span>
+                      <span class="recent-path">{{ item.path }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!variablesVisible()">
+        <h2 class="pane-title">Variables <span class="pane-scope">{{ settingsScope() }}</span></h2>
+        <app-settings-manage-variables
+          [(variables)]="selectedEnvironment.variables"
+        ></app-settings-manage-variables>
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!authenticationVisible()">
+        <h2 class="pane-title">Authentication <span class="pane-scope">{{ settingsScope() }}</span></h2>
+        <app-settings-manage-authentication
+          [(auth)]="selectedEnvironment.auth"
+        ></app-settings-manage-authentication>
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!environmentVisible()">
+        <h2 class="pane-title">Environment</h2>
+        <app-settings-manage-environment
+          [(environment)]="selectedEnvironment"
+          (environmentChange)="environmentChange($event)"
+        ></app-settings-manage-environment>
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!secretsVisible()">
+        <h2 class="pane-title">Secrets <span class="pane-scope">{{ settingsScope() }}</span></h2>
+        <app-settings-manage-secrets
+          [(secrets)]="selectedEnvironment.secrets"
+        ></app-settings-manage-secrets>
+      </div>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    @if (collection) {
+      <span class="status-item" [matTooltip]="collection.filename">
+        <mat-icon>folder</mat-icon>{{ collection.name }}
+      </span>
+      <span class="status-item">
+        <mat-icon>layers</mat-icon>{{ activeEnvironmentName() }}
+      </span>
+    } @else {
+      <span class="status-item">No collection open</span>
+    }
+    <span class="spacer"></span>
+    <span class="status-item hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> send</span>
+    <button class="status-item hint palette-hint" (click)="openPalette()">
+      <kbd>Ctrl</kbd>+<kbd>K</kbd> commands
+    </button>
+  </footer>
 </div>
 
-<div class="opendocuments" [hidden]="!variablesVisible()">
-  <app-settings-manage-variables
-    [(variables)]="selectedEnvironment.variables"
-  ></app-settings-manage-variables>
-</div>
-
-<div class="opendocuments" [hidden]="!authenticationVisible()">
-  <app-settings-manage-authentication
-    [(auth)]="selectedEnvironment.auth"
-  ></app-settings-manage-authentication>
-</div>
-
-<div class="opendocuments" [hidden]="!environmentVisible()">
-  <app-settings-manage-environment
-    [(environment)]="selectedEnvironment"
-    (environmentChange)="environmentChange($event)"
-  ></app-settings-manage-environment>
-</div>
-
-<div class="opendocuments" [hidden]="!secretsVisible()">
-  <app-settings-manage-secrets
-    [(secrets)]="selectedEnvironment.secrets"
-  ></app-settings-manage-secrets>
-</div>
+@if (paletteOpen) {
+  <app-command-palette [items]="paletteItems" (closed)="paletteOpen = false"></app-command-palette>
+}

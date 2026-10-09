@@ -2,6 +2,8 @@ import {
   Component,
   OnInit,
   ViewChild,
+  ViewChildren,
+  QueryList,
   ElementRef,
   ApplicationRef,
   ChangeDetectionStrategy,
@@ -25,9 +27,17 @@ import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import {
   SelectedTreeItem,
   CollectionExplorerComponent,
+  ExplorerCommand,
 } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { LayoutService } from 'src/app/services/layout/layout.service';
+import { ThemeService } from 'src/app/services/theme/theme.service';
+import { SplitterMove } from '../splitter/splitter.directive';
+import { ShortcutCommand, ShortcutsService } from 'src/app/services/shortcuts/shortcuts.service';
+import { RestActionComponent } from '../rest-action/rest-action/rest-action.component';
+import { PaletteItem } from '../command-palette/command-palette.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -62,15 +72,26 @@ export class OpenActionsComponent implements OnInit {
   explorerSelected: string = '';
 
   @ViewChild('tabs') tabs!: MatTabGroup;
-  @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
+  @ViewChild('workspace') workspace!: ElementRef<HTMLElement>;
   @ViewChild('explorer') collectionExplorer:
     CollectionExplorerComponent | undefined;
+  @ViewChildren(RestActionComponent) restActions!: QueryList<RestActionComponent>;
+
+  paletteOpen = false;
+  paletteItems: PaletteItem[] = [];
 
   constructor(
     private repo: ActionRepositoryService,
     private appRef: ApplicationRef,
     private systemSupport: SystemSupportService,
+    public layout: LayoutService,
+    public theme: ThemeService,
+    shortcuts: ShortcutsService,
   ) {
+    shortcuts.commands
+      .pipe(takeUntilDestroyed())
+      .subscribe((command) => this.onShortcut(command));
+
     this.repo.collections.subscribe((s) => {
       this.collection = s;
       // this.appRef.tick();
@@ -240,7 +261,8 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadCollectionFromFile(file);
   }
 
-  openAction(selected: SelectedTreeItem) {
+  // Resolves once the request's tab exists
+  openAction(selected: SelectedTreeItem): Promise<void> {
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedTab = {
       selectedType: selected?.type,
@@ -258,10 +280,10 @@ export class OpenActionsComponent implements OnInit {
         this.currentSession().actions[existingTab].activeTab;
       this.tabs.selectedIndex = existingTab;
       this.repo.saveCurrentState(this.state);
-      return;
+      return Promise.resolve();
     }
 
-    this.repo.loadRequest(selected.key).then((a) => {
+    return this.repo.loadRequest(selected.key).then((a) => {
       var activeTab = this.currentSession().actions.findIndex(
         (a) => a.activeTab,
       );
@@ -506,6 +528,174 @@ export class OpenActionsComponent implements OnInit {
     );
     this.collection.config.environments[solenv] = env;
     this.repo.storeCollection(this.collection);
+  }
+
+  onShortcut(command: ShortcutCommand) {
+    // while the palette is open it owns the keyboard, except to toggle itself
+    if (this.paletteOpen && command != 'commandPalette') return;
+
+    const count = this.currentSession().actions.length;
+    const index = this.tabs?.selectedIndex ?? 0;
+
+    switch (command) {
+      case 'send':
+        this.activeRestAction()?.send();
+        break;
+      case 'save':
+        if (count > 0) this.saveRequest();
+        break;
+      case 'newRequest':
+        this.newRequest();
+        break;
+      case 'openCollection':
+        this.openCollection();
+        break;
+      case 'closeTab':
+        if (count > 0) this.removeAction(this.currentSession().actions[index].action.id);
+        break;
+      case 'nextTab':
+        if (count > 0) this.tabs.selectedIndex = (index + 1) % count;
+        break;
+      case 'previousTab':
+        if (count > 0) this.tabs.selectedIndex = (index - 1 + count) % count;
+        break;
+      case 'toggleSidebar':
+        this.layout.toggleSidebar();
+        break;
+      case 'focusUrl':
+        this.activeRestAction()?.focusUrl();
+        break;
+      case 'commandPalette':
+        this.paletteOpen ? (this.paletteOpen = false) : this.openPalette();
+        break;
+    }
+  }
+
+  private activeRestAction(): RestActionComponent | undefined {
+    const active = this.currentSession().actions[this.tabs?.selectedIndex ?? -1];
+    return this.restActions?.find((r) => r.actionId == active?.action.id);
+  }
+
+  openPalette() {
+    this.paletteItems = this.buildPaletteItems();
+    this.paletteOpen = true;
+  }
+
+  private buildPaletteItems(): PaletteItem[] {
+    const root = this.collection?.path ?? '';
+    const requests: PaletteItem[] = (this.collectionExplorer?.requestFiles() ?? []).map((f) => ({
+      group: 'Requests',
+      label: f.name,
+      verb: f.verb,
+      detail: f.key.startsWith(root) ? f.key.substring(root.length).replace(/^[\\/]/, '') : f.key,
+      run: () => {
+        this.explorerSelected = f.key;
+        this.openAction({ activeTab: false, key: f.key, runkey: '', type: 'file', subtype: '', enabledMenuOptions: ['createRun'] });
+      },
+    }));
+
+    const openTabs: PaletteItem[] = this.currentSession().actions.map((a, index) => ({
+      group: 'Open tabs',
+      label: a.action.name,
+      verb: a.action.verb,
+      detail: a.dirty ? 'unsaved' : undefined,
+      run: () => (this.tabs.selectedIndex = index),
+    }));
+
+    const environments: PaletteItem[] =(this.collection?.config?.environments ?? []).map((e) => ({
+      group: 'Environments',
+      label: `Use ${e.name}`,
+      icon: e.id == this.collection?.config.selectedEnvironmentId ? 'radio_button_checked' : 'layers',
+      run: () => (this.collection!.config.selectedEnvironmentId = e.id),
+    }));
+
+    const command = (label: string, icon: string, run: () => void, shortcut?: string): PaletteItem =>
+      ({ group: 'Commands', label, icon, run, shortcut });
+
+    const commands: PaletteItem[] = [
+      command('New request', 'add', () => this.newRequest(), 'Ctrl+N'),
+      command('Save request', 'save', () => this.saveRequest(), 'Ctrl+S'),
+      command('Open collection…', 'folder_open', () => this.openCollection(), 'Ctrl+O'),
+      command('New collection…', 'create_new_folder', () => this.newCollection()),
+      command(`${this.layout.sidebarVisible() ? 'Hide' : 'Show'} sidebar`, 'view_sidebar', () => this.layout.toggleSidebar(), 'Ctrl+B'),
+      command('Toggle response position', 'view_agenda', () => this.layout.toggleOrientation()),
+      command('Theme: System', 'brightness_auto', () => this.theme.set('system')),
+      command('Theme: Light', 'light_mode', () => this.theme.set('light')),
+      command('Theme: Dark', 'dark_mode', () => this.theme.set('dark')),
+      ...(this.collection ? [command('New environment', 'layers', () => this.createEnvironment())] : []),
+    ];
+
+    return [...openTabs, ...requests, ...environments, ...commands];
+  }
+
+  resizeSidebar(move: SplitterMove) {
+    const left = this.workspace.nativeElement.getBoundingClientRect().left;
+    this.layout.resizeSidebar(move.clientX - left);
+  }
+
+  // Middle-click closes a tab, as in browsers and the other API clients
+  onTabAuxClick(event: MouseEvent, actionId: string) {
+    if (event.button != 1) return;
+    event.preventDefault();
+    this.removeAction(actionId);
+  }
+
+  // Only the tab the run was opened in shows it
+  runIdFor(action: LocalRestAction): string | undefined {
+    if (!this.selectedTab.runkey) return undefined;
+    return this.selectedTab.selectedKey == action.fullFilename
+      ? this.selectedTab.runkey
+      : undefined;
+  }
+
+  runNameFor(action: LocalRestAction): string | undefined {
+    const runId = this.runIdFor(action);
+    if (runId == undefined) return undefined;
+    return action.action.runs.find((r) => r.id == runId)?.name || 'run';
+  }
+
+  activeEnvironmentName(): string {
+    const id = this.collection?.config?.selectedEnvironmentId;
+    return (
+      this.collection?.config?.environments?.find((e) => e.id == id)?.name ??
+      'No environment'
+    );
+  }
+
+  // Which level a settings page edits: the collection itself or one environment
+  settingsScope(): string {
+    if (this.selectedTab.selectedKey.startsWith('system.settings.environments.'))
+      return `· ${this.selectedEnvironment.name}`;
+    return '· Collection';
+  }
+
+  async onExplorerCommand(command: ExplorerCommand) {
+    this.enabledMenuOptions = [command.name];
+    this.selectedTab = {
+      selectedType: command.item.type,
+      selectedSubType: command.item.subtype,
+      selectedKey: command.item.key,
+      runkey: command.item.runkey,
+    };
+
+    switch (command.name) {
+      case 'createEnvironment':
+        this.createEnvironment();
+        break;
+      case 'deleteEnvironment':
+        this.openSystem(command.item);
+        this.deleteEnvironment();
+        break;
+      // runs live in the open copy of the request, so open it (pinned) first
+      case 'createRun':
+        await this.openAction({ ...command.item, activeTab: false });
+        this.createRun();
+        break;
+      case 'deleteRun':
+        await this.openAction({ ...command.item, activeTab: false });
+        this.deleteRun();
+        break;
+    }
   }
 
   tabChange($event: MatTabChangeEvent) {

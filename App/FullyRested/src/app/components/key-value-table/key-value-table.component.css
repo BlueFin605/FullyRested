@@ -1,0 +1,140 @@
+:host {
+  display: block;
+}
+
+.kv {
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  overflow: hidden;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: 32px minmax(120px, 2fr) 3fr 44px;
+  align-items: center;
+  min-height: var(--fr-row);
+  border-bottom: 1px solid var(--fr-border);
+}
+
+.kv-row:last-child {
+  border-bottom: 0;
+}
+
+.kv-head {
+  min-height: 26px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fr-text-muted);
+  background: var(--fr-surface);
+}
+
+.kv-head > span {
+  padding: 0 8px;
+}
+
+.value-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reveal {
+  width: 20px;
+  height: 20px;
+}
+
+.reveal mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.kv-row > * + * {
+  border-left: 1px solid var(--fr-border);
+}
+
+.kv-check {
+  justify-self: center;
+  margin: 0;
+  accent-color: var(--fr-accent);
+  cursor: pointer;
+}
+
+.kv-input {
+  width: 100%;
+  height: var(--fr-row);
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fr-text);
+  font-family: var(--fr-font-mono);
+  font-size: 12.5px;
+}
+
+.kv-input:focus {
+  background: var(--fr-hover);
+  box-shadow: inset 0 -2px 0 var(--fr-accent);
+}
+
+.kv-input::placeholder {
+  color: var(--fr-text-faint);
+  font-family: var(--fr-font-ui);
+}
+
+.kv-delete {
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+}
+
+.kv-delete mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.kv-row:hover .kv-delete,
+.kv-delete:focus-visible {
+  visibility: visible;
+}
+
+.kv-row.inactive .kv-input,
+.kv-row.inactive .cell {
+  color: var(--fr-text-faint);
+  text-decoration: line-through;
+}
+
+.inherited {
+  background: var(--fr-surface);
+}
+
+.inherited .cell {
+  padding: 0 8px;
+  font-family: var(--fr-font-mono);
+  font-size: 12.5px;
+  color: var(--fr-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inherited .lock {
+  display: flex;
+  justify-content: center;
+  color: var(--fr-text-faint);
+}
+
+.inherited .lock mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.inherited .fr-source {
+  font-size: 10px;
+  text-align: center;
+  overflow: hidden;
+}

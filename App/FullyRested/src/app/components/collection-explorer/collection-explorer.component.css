@@ -1,43 +1,141 @@
-.treeview-container {
-    overflow-y: auto;
+:host {
+  display: block;
+  height: 100%;
+}
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .filter {
-    width: calc(100% - 12px);
-    margin: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px;
+  padding: 0 4px 0 8px;
+  height: 28px;
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  background: var(--fr-bg);
+}
+
+.filter:focus-within {
+  border-color: var(--fr-accent);
+}
+
+.filter mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--fr-text-faint);
+}
+
+.filter input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fr-text);
+  font: inherit;
+}
+
+.filter .clear {
+  width: 20px;
+  height: 20px;
+}
+
+.treeview-container {
+  flex: 1;
+  overflow: auto;
+  padding-bottom: 8px;
 }
 
 .no-items {
-    font-size: 0.9rem;
+  padding: 16px;
+  color: var(--fr-text-muted);
+  text-align: center;
 }
 
 ul.tree {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-ul.tree ul.tree {
-    margin-left: .5rem;
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding-right: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--fr-text);
+  border-left: 2px solid transparent;
 }
 
-.filePrefix {
-    font-size: 9px;
-    color: olive;
-    font-weight: bold;
-    letter-spacing: -.2px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-align: left;
+.row:hover {
+  background: var(--fr-hover);
 }
 
-.row-item {
-    cursor: pointer;
-    white-space: nowrap;
+.row.selected {
+  background: var(--fr-selected);
+  border-left-color: var(--fr-accent);
 }
 
-.selected {
-    background-color: grey;
-    border-color: black;
-    border-style: solid;
+.chevron {
+  display: inline-flex;
+  width: 16px;
+  flex: none;
+  color: var(--fr-text-faint);
+}
+
+.chevron mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.badge {
+  flex: none;
+  width: 34px;
+  font-size: 10px;
+  text-align: right;
+  padding-right: 2px;
+}
+
+.kind {
+  flex: none;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  margin: 0 9px 0 11px;
+  color: var(--fr-text-muted);
+}
+
+.kind.run {
+  color: var(--fr-accent);
+}
+
+.kind.folder {
+  margin: 0 4px 0 0;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row[data-type="run"] .label {
+  color: var(--fr-text-muted);
+}
+
+.context-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }

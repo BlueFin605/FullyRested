@@ -1,36 +1,12 @@
 import {
   Component,
-  OnInit,
   Input,
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ParamTable } from '@fullyrested/core';
-
-const COLUMNS_SCHEMA = [
-  {
-    key: 'isdelete',
-    type: 'isdelete',
-    label: '',
-  },
-  {
-    key: 'isenabled',
-    type: 'isenabled',
-    label: '',
-  },
-  {
-    key: 'key',
-    type: 'text',
-    label: 'Key',
-  },
-  {
-    key: 'value',
-    type: 'text',
-    label: 'Value',
-  },
-];
+import { InheritedRow } from '../../../key-value-table/key-value-table.component';
 
 @Component({
   selector: 'app-edit-request-parameters',
@@ -39,51 +15,26 @@ const COLUMNS_SCHEMA = [
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class EditRequestParametersComponent implements OnInit {
+export class EditRequestParametersComponent {
   @Input()
   params: ParamTable[] = [];
 
   // the same table edits form bodies, where the rows are fields
   @Input()
-  addLabel = 'Add Parameter';
+  keyLabel = 'Parameter';
 
   @Output()
   paramsChange = new EventEmitter<ParamTable[]>();
 
-  displayedColumns: string[] = COLUMNS_SCHEMA.map((col) => col.key);
-  columnsSchema: any = COLUMNS_SCHEMA;
+  // parameters set at a higher level (the request, when editing a run)
+  @Input()
+  inherited: InheritedRow[] = [];
 
-  constructor(private systemSupport: SystemSupportService) {}
+  @Input()
+  inheritedSource = '';
 
-  ngOnInit(): void {}
-
-  modelChangeFn(value: any) {
-    this.paramsChange.emit(this.params);
-  }
-
-  add() {
-    this.params = [
-      ...this.params,
-      {
-        key: '',
-        value: '',
-        active: true,
-        id: this.systemSupport.generateGUID(),
-      },
-    ];
-    this.paramsChange.emit(this.params);
-  }
-
-  delete(id: string) {
-    this.params = this.params.filter((f) => f.id != id);
-    this.paramsChange.emit(this.params);
-  }
-
-  activeClicked(id: string) {
-    var entry = this.params.find((f) => f.id === id);
-    if (entry == undefined) return;
-
-    entry.active = !entry.active;
+  onRowsChange(rows: ParamTable[]) {
+    this.params = rows;
     this.paramsChange.emit(this.params);
   }
 }

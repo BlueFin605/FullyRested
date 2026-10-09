@@ -1,46 +1,44 @@
-<div class="displayoptions">
-  <mat-radio-group aria-label="Content Type">
-    <mat-radio-button
-      class="rb"
-      value="none"
-      name="view"
-      (change)="onContentTypeChange($event)"
-      [checked]="visibleData.contentType == 'none'"
-      >None</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="application/x-www-form-urlencoded"
-      name="view"
-      (change)="onContentTypeChange($event)"
-      [checked]="visibleData.contentType == 'application/x-www-form-urlencoded'"
-      >application/x-www-form-urlencoded</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="application/json"
-      name="view"
-      (change)="onContentTypeChange($event)"
-      [checked]="visibleData.contentType == 'application/json'"
-      >application/json</mat-radio-button
-    >
-  </mat-radio-group>
+<div class="body-toolbar">
+  <mat-button-toggle-group
+    class="fr-segmented"
+    [value]="visibleData.contentType"
+    (change)="onContentTypeChange($event)"
+    hideSingleSelectionIndicator
+    aria-label="Body type"
+  >
+    <mat-button-toggle value="none">None</mat-button-toggle>
+    <mat-button-toggle value="application/json">JSON</mat-button-toggle>
+    <mat-button-toggle value="application/x-www-form-urlencoded">Form</mat-button-toggle>
+  </mat-button-toggle-group>
+  @if (visibleData.contentType == "application/json") {
+    <span class="spacer"></span>
+    @if (jsonError) {
+      <span class="json-error" [matTooltip]="jsonError"><mat-icon>error_outline</mat-icon>Invalid JSON</span>
+    }
+    <button class="fr-icon-btn" (click)="format()" matTooltip="Format JSON" aria-label="Format JSON">
+      <mat-icon>format_align_left</mat-icon>
+    </button>
+  }
 </div>
 
-@if (visibleData.contentType == "application/json") {
-  <json-editor
-    [options]="editorOptions"
-    [data]="jsonObj"
-    (change)="updateData($event)"
-    (jsonChange)="updateData($event)"
-    #editor
-  ></json-editor>
-}
-
-@if (visibleData.contentType == "application/x-www-form-urlencoded") {
-  <app-edit-request-parameters
-    [params]="formFields"
-    (paramsChange)="onFormChange($event)"
-    addLabel="Add Field"
-  ></app-edit-request-parameters>
+@switch (visibleData.contentType) {
+  @case ("application/json") {
+    <app-code-editor
+      class="body-editor"
+      language="json"
+      [value]="jsonText"
+      (valueChange)="updateData($event)"
+      placeholder="{ }"
+    ></app-code-editor>
+  }
+  @case ("application/x-www-form-urlencoded") {
+    <app-edit-request-parameters
+      [params]="formFields"
+      (paramsChange)="onFormChange($event)"
+      keyLabel="Field"
+    ></app-edit-request-parameters>
+  }
+  @default {
+    <div class="no-body">This request has no body.</div>
+  }
 }

@@ -1,117 +1,73 @@
-<div class="displayoptions">
-  <mat-radio-group aria-label="Validation Type">
+<section class="group">
+  <div class="group-label">Check the response</div>
+  <mat-button-toggle-group
+    class="fr-segmented"
+    [value]="visibleSchema.type"
+    (change)="onTypeChange($event)"
+    hideSingleSelectionIndicator
+    aria-label="Validation type"
+  >
     @if (showInherit == true) {
-      <mat-radio-button
-        class="rb"
-        value="{{ validationType.Inherit }}"
-        name="view"
-        (change)="onTypeChange($event)"
-        [checked]="visibleSchema.type == validationType.Inherit"
-        >Inherit</mat-radio-button
-      >
+      <mat-button-toggle [value]="validationType.Inherit">Inherit</mat-button-toggle>
     }
-    <mat-radio-button
-      class="rb"
-      value="{{ validationType.None }}"
-      name="view"
-      (change)="onTypeChange($event)"
-      [checked]="visibleSchema.type == validationType.None"
-      >None</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="{{ validationType.ResponseCode }}"
-      name="view"
-      (change)="onTypeChange($event)"
-      [checked]="visibleSchema.type == validationType.ResponseCode"
-      >Response Code</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="{{ validationType.Headers }}"
-      name="view"
-      (change)="onTypeChange($event)"
-      [checked]="visibleSchema.type == validationType.Headers"
-      >Headers</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="{{ validationType.Body }}"
-      name="view"
-      (change)="onTypeChange($event)"
-      [checked]="visibleSchema.type == validationType.Body"
-      >Body</mat-radio-button
-    >
-    <mat-radio-button
-      class="rb"
-      value="{{ validationType.HeadersBody }}"
-      name="view"
-      (change)="onTypeChange($event)"
-      [checked]="visibleSchema.type == validationType.HeadersBody"
-      >Headers & Body</mat-radio-button
-    >
-  </mat-radio-group>
-</div>
+    <mat-button-toggle [value]="validationType.None">None</mat-button-toggle>
+    <mat-button-toggle [value]="validationType.ResponseCode">Status code</mat-button-toggle>
+    <mat-button-toggle [value]="validationType.Headers">Headers</mat-button-toggle>
+    <mat-button-toggle [value]="validationType.Body">Body</mat-button-toggle>
+    <mat-button-toggle [value]="validationType.HeadersBody">Headers & body</mat-button-toggle>
+  </mat-button-toggle-group>
+  @if (visibleSchema.type == validationType.Inherit) {
+    <p class="help">Uses the request's validation.</p>
+  }
+</section>
 
 @if (responsecode) {
-  <div class="httpresult">
-    <mat-form-field>
-      <mat-label>Http Response Code</mat-label>
+  <section class="group">
+    <div class="group-label">Expected status</div>
+    <mat-form-field appearance="outline" class="status-field" subscriptSizing="dynamic">
       <mat-select
         [(value)]="visibleSchema.httpCode"
         (valueChange)="onResponseCodeChange($event)"
+        aria-label="Expected status code"
       >
         @for (code of validateResponse.httpResponses; track code) {
-          <mat-option [value]="code.code">{{
-            buildDescription(code)
-          }}</mat-option>
+          <mat-option [value]="code.code">{{ buildDescription(code) }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
-  </div>
+  </section>
 }
 
 @if (headers) {
-  <div>
+  <section class="group">
+    <div class="group-label">Expected headers</div>
     <app-edit-request-headers
       [(headers)]="visibleSchema.headers"
       (headersChange)="onHeadersChange($event)"
     ></app-edit-request-headers>
-  </div>
+  </section>
 }
 
 @if (body) {
-  <div>
-    <div class="displayoptions">
-      <mat-radio-group aria-label="Payload Validation Type">
-        <mat-radio-button
-          class="rb"
-          value="{{ validationTypePayload.None }}"
-          name="payload"
-          (change)="onPayloadTypeChange($event)"
-          [checked]="visibleSchema.body == validationTypePayload.None"
-          >None</mat-radio-button
-        >
-        <mat-radio-button
-          class="rb"
-          value="{{ validationTypePayload.JsonSchema }}"
-          name="payload"
-          (change)="onPayloadTypeChange($event)"
-          [checked]="visibleSchema.body == validationTypePayload.JsonSchema"
-          >Json Schema</mat-radio-button
-        >
-      </mat-radio-group>
-    </div>
+  <section class="group grow">
+    <div class="group-label">Body</div>
+    <mat-button-toggle-group
+      class="fr-segmented"
+      [value]="visibleSchema.body"
+      (change)="onPayloadTypeChange($event)"
+      hideSingleSelectionIndicator
+      aria-label="Body validation"
+    >
+      <mat-button-toggle [value]="validationTypePayload.None">None</mat-button-toggle>
+      <mat-button-toggle [value]="validationTypePayload.JsonSchema">JSON Schema</mat-button-toggle>
+    </mat-button-toggle-group>
     @if (visibleSchema.body == validationTypePayload.JsonSchema) {
-      <div>
-        <json-editor
-          [options]="editorOptions"
-          [data]="jsonObj"
-          (change)="updateData($event)"
-          (jsonChange)="updateData($event)"
-          #editor
-        ></json-editor>
-      </div>
+      <app-code-editor
+        class="schema-editor"
+        language="json"
+        [value]="schemaText"
+        (valueChange)="updateData($event)"
+      ></app-code-editor>
     }
-  </div>
+  </section>
 }

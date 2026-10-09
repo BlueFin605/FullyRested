@@ -1,0 +1,232 @@
+@use '@angular/material' as mat;
+@import 'material-icons/iconfont/filled.css';
+
+// Light and dark are equal: everything follows `color-scheme`, which
+// ThemeService sets on <html> (System = "light dark").
+html {
+  color-scheme: light dark;
+
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+      theme-type: color-scheme,
+    ),
+    typography: (
+      plain-family: var(--fr-font-ui),
+      brand-family: var(--fr-font-ui),
+    ),
+    density: -3,
+  ));
+
+  // Keep Material's surfaces on the app's palette so components blend in
+  @include mat.theme-overrides((
+    surface: var(--fr-bg),
+    surface-container: var(--fr-surface),
+    surface-container-low: var(--fr-surface),
+    surface-container-high: var(--fr-surface-2),
+    surface-container-highest: var(--fr-surface-2),
+    on-surface: var(--fr-text),
+    on-surface-variant: var(--fr-text-muted),
+    outline: var(--fr-border-strong),
+    outline-variant: var(--fr-border),
+    primary: var(--fr-accent),
+  ));
+}
+
+:root {
+  --fr-font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --fr-font-mono: "Cascadia Code", "Cascadia Mono", Consolas, "JetBrains Mono", Menlo, monospace;
+  --fr-font-size: 13px;
+  --fr-font-size-sm: 12px;
+  --fr-radius: 6px;
+  --fr-row: 28px;
+
+  --fr-bg: light-dark(#ffffff, #1e1f22);
+  --fr-surface: light-dark(#f6f7f9, #18191b);
+  --fr-surface-2: light-dark(#eceef2, #2b2d31);
+  --fr-hover: light-dark(rgb(0 0 0 / 5%), rgb(255 255 255 / 6%));
+  --fr-selected: light-dark(rgb(37 99 235 / 12%), rgb(76 141 255 / 18%));
+  --fr-border: light-dark(#e3e5e9, #303236);
+  --fr-border-strong: light-dark(#c9cdd4, #45484e);
+  --fr-text: light-dark(#1f2328, #e4e5e7);
+  --fr-text-muted: light-dark(#667080, #969ba3);
+  --fr-text-faint: light-dark(#9aa1ad, #6b7078);
+  --fr-accent: light-dark(#2563eb, #5b9bff);
+  --fr-on-accent: #ffffff;
+
+  --fr-method-get: light-dark(#15803d, #4ade80);
+  --fr-method-post: light-dark(#b45309, #fbbf24);
+  --fr-method-put: light-dark(#1d4ed8, #60a5fa);
+  --fr-method-patch: light-dark(#7e22ce, #c084fc);
+  --fr-method-delete: light-dark(#b91c1c, #f87171);
+  --fr-method-option: light-dark(#475569, #94a3b8);
+
+  --fr-ok: light-dark(#15803d, #4ade80);
+  --fr-warn: light-dark(#b45309, #fbbf24);
+  --fr-error: light-dark(#c62828, #f87171);
+  --fr-var: light-dark(#0e7490, #22d3ee);
+  --fr-secret: light-dark(#a21caf, #e879f9);
+
+  --fr-syn-key: light-dark(#0b5cad, #7cc4ff);
+  --fr-syn-string: light-dark(#a3501b, #f0a875);
+  --fr-syn-number: light-dark(#127a5c, #7ee0b5);
+  --fr-syn-tag: light-dark(#8a2b9c, #d39bf0);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--fr-bg);
+  color: var(--fr-text);
+  font-family: var(--fr-font-ui);
+  font-size: var(--fr-font-size);
+  overflow: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fr-border-strong) transparent;
+}
+
+// --- shared building blocks -------------------------------------------------
+
+// HTTP method text, colored by verb: <span class="fr-method" data-verb="get">GET</span>
+.fr-method {
+  font-family: var(--fr-font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--fr-method-option);
+
+  &[data-verb="get"] { color: var(--fr-method-get); }
+  &[data-verb="post"] { color: var(--fr-method-post); }
+  &[data-verb="put"] { color: var(--fr-method-put); }
+  &[data-verb="patch"] { color: var(--fr-method-patch); }
+  &[data-verb="delete"] { color: var(--fr-method-delete); }
+}
+
+// Small rounded label, optionally colored by level: ok | warn | error
+.fr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: var(--fr-font-size-sm);
+  font-weight: 600;
+  background: var(--fr-surface-2);
+  color: var(--fr-text-muted);
+  white-space: nowrap;
+
+  &[data-level="ok"] { color: var(--fr-ok); background: color-mix(in srgb, var(--fr-ok) 14%, transparent); }
+  &[data-level="warn"] { color: var(--fr-warn); background: color-mix(in srgb, var(--fr-warn) 14%, transparent); }
+  &[data-level="error"] { color: var(--fr-error); background: color-mix(in srgb, var(--fr-error) 14%, transparent); }
+}
+
+kbd, .fr-kbd {
+  font-family: var(--fr-font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--fr-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--fr-text-muted);
+  background: var(--fr-surface);
+}
+
+// Plain icon button used in toolbars and rows
+.fr-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fr-text-muted);
+  cursor: pointer;
+
+  &:hover { background: var(--fr-hover); color: var(--fr-text); }
+  &:focus-visible { outline: 2px solid var(--fr-accent); outline-offset: -2px; }
+
+  .mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+// Drag handle between panes (SplitterDirective). The hit area is wider than the line.
+.fr-splitter {
+  position: relative;
+  flex: none;
+  z-index: 2;
+  background: var(--fr-border);
+  touch-action: none;
+
+  &[data-orientation="horizontal"] { width: 1px; cursor: col-resize; }
+  &[data-orientation="vertical"] { height: 1px; cursor: row-resize; }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  &[data-orientation="horizontal"]::after { left: -3px; right: -3px; }
+  &[data-orientation="vertical"]::after { top: -3px; bottom: -3px; }
+
+  &:hover, &.dragging { background: var(--fr-accent); }
+}
+
+body.fr-resizing-x { cursor: col-resize; user-select: none; }
+body.fr-resizing-y { cursor: row-resize; user-select: none; }
+
+// Muted text that names where an inherited value came from
+.fr-source {
+  font-size: 11px;
+  color: var(--fr-text-faint);
+  font-style: italic;
+}
+
+// Compact Material tabs: used for request / response sub-tabs
+.fr-subtabs.mat-mdc-tab-group {
+  --mat-tab-container-height: 34px;
+  --mat-tab-label-text-size: 12.5px;
+  --mat-tab-label-text-weight: 500;
+  --mat-tab-divider-color: var(--fr-border);
+
+  .mat-mdc-tab { padding: 0 12px; min-width: 0; }
+  .mat-mdc-tab .count { margin-left: 4px; color: var(--fr-text-faint); font-weight: 400; }
+}
+
+// Small segmented control (mat-button-toggle-group) for view / body-type pickers
+.fr-segmented.mat-button-toggle-group {
+  --mat-button-toggle-height: 24px;
+  --mat-button-toggle-shape: var(--fr-radius);
+  --mat-button-toggle-label-text-size: 12px;
+  --mat-button-toggle-label-text-weight: 500;
+  --mat-button-toggle-divider-color: var(--fr-border);
+  --mat-button-toggle-text-color: var(--fr-text-muted);
+  --mat-button-toggle-selected-state-background-color: var(--fr-selected);
+  --mat-button-toggle-selected-state-text-color: var(--fr-accent);
+  border-color: var(--fr-border);
+
+  .mat-button-toggle-label-content { padding: 0 10px; line-height: 24px; }
+}
+
+// Material menus: tighter rows, with room for a shortcut hint
+.mat-mdc-menu-panel {
+  --mat-menu-item-label-text-size: 13px;
+  .mat-mdc-menu-item { min-height: 32px; }
+  .mat-mdc-menu-item .shortcut { margin-left: 24px; color: var(--fr-text-faint); font-size: 12px; float: right; }
+}
+
+.mat-mdc-form-field-infix {
+  width: auto !important;
+}
+

@@ -1,41 +1,44 @@
-<div class="contenttype">Content Type: {{ body?.contentType }}</div>
+<div class="body-toolbar">
+  <mat-button-toggle-group
+    class="fr-segmented"
+    [value]="view"
+    (change)="view = $event.value"
+    hideSingleSelectionIndicator
+    aria-label="Body view"
+  >
+    @if (kind != "image") {
+      <mat-button-toggle value="pretty">Pretty</mat-button-toggle>
+      <mat-button-toggle value="raw">Raw</mat-button-toggle>
+    }
+    @if (hasPreview) {
+      <mat-button-toggle value="preview">Preview</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+  <span class="content-type">{{ contentType }}</span>
+  <span class="spacer"></span>
+  @if (kind != "image") {
+    <button class="fr-icon-btn" (click)="copy()" [matTooltip]="copied ? 'Copied' : 'Copy body'" aria-label="Copy body">
+      <mat-icon>{{ copied ? "check" : "content_copy" }}</mat-icon>
+    </button>
+  }
+</div>
 
-<div>
-  @switch (responseType) {
-    @case ("json") {
-      <div>
-        <app-display-response-body-json
-          [body]="body"
-        ></app-display-response-body-json>
-      </div>
+<div class="body-content">
+  @switch (view) {
+    @case ("pretty") {
+      <app-code-editor [value]="pretty" [language]="language" [readOnly]="true"></app-code-editor>
     }
-    @case ("xml") {
-      <div>
-        <app-display-response-body-xml
-          [body]="body"
-        ></app-display-response-body-xml>
-      </div>
+    @case ("raw") {
+      <pre class="raw">{{ raw }}</pre>
     }
-    @case ("html") {
-      <div>
-        <app-display-response-body-html
-          [body]="body"
-        ></app-display-response-body-html>
-      </div>
-    }
-    @case ("image") {
-      <div>
-        <app-display-response-body-image
-          [body]="body"
-        ></app-display-response-body-image>
-      </div>
-    }
-    @default {
-      <span>
-        <app-display-response-body-default
-          [body]="body"
-        ></app-display-response-body-default>
-      </span>
+    @case ("preview") {
+      @if (kind == "image") {
+        <div class="image-preview">
+          <app-display-response-body-image [body]="_body"></app-display-response-body-image>
+        </div>
+      } @else {
+        <iframe class="html-preview" sandbox="" [srcdoc]="raw" title="HTML preview"></iframe>
+      }
     }
   }
 </div>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
@@ -21,8 +21,14 @@ let win;
 
 const createWindow = () => {
     win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1400,
+        height: 900,
+        minWidth: 900,
+        minHeight: 560,
+        // match the app's light/dark surface so there is no white flash on start
+        backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1f22' : '#ffffff',
+        // the app draws its own File/Collection/View menus; Alt still shows this one
+        autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
         }
@@ -34,7 +40,28 @@ const createWindow = () => {
     win.loadFile('dist/fullyrested/index.html');
 }
 
+// A small native menu: editing, reload, devtools and zoom. Request shortcuts (Ctrl+N, Ctrl+S, Ctrl+W, ...)
+// are left to the app, so nothing here may claim them.
+const appMenu = () => Menu.buildFromTemplate([
+    ...(process.platform === 'darwin' ? [{ role: 'appMenu' }] : []),
+    { role: 'editMenu' },
+    {
+        label: 'View',
+        submenu: [
+            { role: 'reload' },
+            { role: 'toggleDevTools' },
+            { type: 'separator' },
+            { role: 'resetZoom' },
+            { role: 'zoomIn' },
+            { role: 'zoomOut' },
+            { type: 'separator' },
+            { role: 'togglefullscreen' }
+        ]
+    }
+]);
+
 app.whenReady().then(() => {
+    Menu.setApplicationMenu(appMenu())
     createWindow()
 
     app.on('activate', () => {

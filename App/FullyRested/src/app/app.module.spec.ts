@@ -3,7 +3,6 @@ import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AppModule } from './app.module';
 import { AppComponent } from './app.component';
-import { JsonEditorComponent } from './components/json-editor/json-editor.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
 import { CollectionExplorerComponent } from './components/collection-explorer/collection-explorer.component';
 import { RestActionComponent } from './components/rest-action/rest-action/rest-action.component';
@@ -18,11 +17,11 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 import { DisplayResponseComponent } from './components/rest-action/response/display-response/display-response.component';
 import { DisplayResponseBodyComponent } from './components/rest-action/response/display-response-body/display-response-body.component';
 import { DisplayResponseHeadersComponent } from './components/rest-action/response/display-response-headers/display-response-headers.component';
-import { DisplayResponseBodyJsonComponent } from './components/rest-action/response/display-response-body-json/display-response-body-json.component';
-import { DisplayResponseBodyDefaultComponent } from './components/rest-action/response/display-response-body-default/display-response-body-default.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
-import { DisplayResponseBodyHtmlComponent } from './components/rest-action/response/display-response-body-html/display-response-body-html.component';
-import { DisplayResponseBodyXmlComponent } from './components/rest-action/response/display-response-body-xml/display-response-body-xml.component';
+import { CodeEditorComponent } from './components/code-editor/code-editor.component';
+import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
+import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
+import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 import { SettingsManageVariablesComponent } from './components/settings/settings-manage-variables/settings-manage-variables.component';
 import { SettingsManageSecretsComponent } from './components/settings/settings-manage-secrets/settings-manage-secrets.component';
 import { SettingsManageEnvironmentComponent } from './components/settings/settings-manage-environment/settings-manage-environment.component';
@@ -37,13 +36,12 @@ import { SettingsManageAuthenticationInheritComponent } from './components/setti
 // compile against the real AppModule (so a missing Material/forms import fails here) and render
 // with its default inputs, in browser mode (no Electron ipc).
 const components: Type<unknown>[] = [
-  AppComponent, JsonEditorComponent, OpenActionsComponent, CollectionExplorerComponent,
+  AppComponent, OpenActionsComponent, CollectionExplorerComponent, KeyValueTableComponent, CommandPaletteComponent,
   RestActionComponent, RestActionRunComponent,
   EditRequestComponent, EditRequestHeadersComponent, EditRequestParametersComponent, EditRequestBodyComponent,
   EditRequestAuthenticationComponent, EditRequestRunComponent, EditRequestValidationComponent,
   DisplayResponseComponent, DisplayResponseBodyComponent, DisplayResponseHeadersComponent,
-  DisplayResponseBodyJsonComponent, DisplayResponseBodyDefaultComponent, DisplayResponseBodyImageComponent,
-  DisplayResponseBodyHtmlComponent, DisplayResponseBodyXmlComponent,
+  DisplayResponseBodyImageComponent, CodeEditorComponent, SplitPaneComponent,
   SettingsManageVariablesComponent, SettingsManageSecretsComponent, SettingsManageEnvironmentComponent,
   SettingsManageAuthenticationComponent, SettingsManageAuthenticationAWSSigComponent,
   SettingsManageAuthenticationBasicAuthComponent, SettingsManageAuthenticationBearerTokenComponent,

@@ -19,20 +19,30 @@ describe('EditRequestBodyComponent', () => {
     const { fixture, element } = create({ contentType: FORM_CONTENT_TYPE, body: [{ key: 'name', value: 'Ada', active: true, id: '1' }] });
     await fixture.whenStable();   // ngModel writes input values asynchronously
 
-    const inputs = [...element.querySelectorAll('app-edit-request-parameters input.mat-mdc-input-element')] as HTMLInputElement[];
-    expect(element.querySelector('json-editor')).toBeNull();
-    expect(element.textContent).toContain('Add Field');
+    const inputs = [...element.querySelectorAll('app-edit-request-parameters .kv-row:not(.kv-new) .kv-input')] as HTMLInputElement[];
+    expect(element.querySelector('app-code-editor')).toBeNull();
     expect(inputs.map(i => i.value)).toEqual(['name', 'Ada']);
   });
 
-  it('adds a field to the body when Add Field is pressed', () => {
+  it('adds a field to the body when typing into the empty last row', () => {
     const { fixture, emitted, element } = create({ contentType: FORM_CONTENT_TYPE, body: [] });
 
-    (element.querySelector('.addparam button') as HTMLButtonElement).click();
+    const newKey = element.querySelector('.kv-new .kv-key') as HTMLInputElement;
+    newKey.value = 'n';
+    newKey.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     expect(emitted.at(-1)?.body.length).toBe(1);
-    expect(emitted.at(-1)?.body[0]).toEqual(jasmine.objectContaining({ key: '', value: '', active: true }));
+    expect(emitted.at(-1)?.body[0]).toEqual(jasmine.objectContaining({ key: 'n', value: '', active: true }));
+  });
+
+  it('keeps the JSON body as typed, including formatting', () => {
+    const { fixture, emitted } = create({ contentType: 'application/json', body: '{\n  "a": 1\n}' });
+
+    fixture.componentInstance.updateData('{\n  "a": 2\n}');
+
+    expect(emitted.at(-1)?.body).toBe('{\n  "a": 2\n}');
+    expect(fixture.componentInstance.jsonError).toBe('');
   });
 
   it('starts an empty field table when switching a JSON body to a form', () => {
