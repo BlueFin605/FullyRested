@@ -11,7 +11,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "build": "npm --prefix ../core run build && tsc -p tsconfig.json",
@@ -26,8 +26,8 @@
     "keytar": "^7.9.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
-    "typescript": "^5.3.3",
+    "@types/node": "^24.19.1",
+    "typescript": "~6.0.3",
     "vitest": "^2.1.9"
   }
 }

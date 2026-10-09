@@ -68,7 +68,8 @@ body.
 
 ## Getting started
 
-Prerequisites: Node.js 18 or later and npm.
+Prerequisites: Node.js 22 or later (24 is the pinned version, see `.nvmrc`)
+and npm.
 
 Build the shared core first. The app and the CLI both load its compiled
 output.

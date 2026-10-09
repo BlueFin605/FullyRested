@@ -7,7 +7,7 @@ runner. The intent and the user-facing concepts are in
 
 ## Tech stack
 
-Angular 14 UI in an Electron 27 desktop shell / TypeScript core library
+Angular 22 (Material) UI in an Electron 44 desktop shell / TypeScript 6 core library
 (CommonJS; axios, Ajv, `@smithy/signature-v4`) / Node CLI (commander, vitest).
 Nothing is deployed to AWS: the app is a local desktop app.
 
@@ -47,9 +47,9 @@ flowchart TB
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
-source into the renderer. It compiles to CommonJS with no ESM-only
-dependencies, because Electron 27's Node 18 can't `require()` ESM. Anything
-that touches the machine belongs in a host. `docs/reviews/2026-09-29-review.md`
+source into the renderer. It compiles to CommonJS, which Electron's main
+process and the CLI both `require()`. Anything that touches the machine
+belongs in a host. `docs/reviews/2026-09-29-review.md`
 records why the packages are linked with `file:` rather than npm workspaces.
 
 ## The request pipeline: what's shared
