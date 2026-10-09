@@ -8,3 +8,5 @@ export * from './execute';
 export * from './secrets';
 export * from './normalise';
 export * from './resolve';
+export * from './paths';
+export * from './scope';
