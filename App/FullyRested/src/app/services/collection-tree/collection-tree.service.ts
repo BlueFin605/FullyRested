@@ -14,6 +14,8 @@ import { ActionRepositoryService } from '../action-repository/action-repository.
 export class CollectionTreeService {
   tree = new BehaviorSubject<CollectionNode | undefined>(undefined);
   private collection: Collection | undefined;
+  // a newer load supersedes an older one still in flight
+  private loadToken = 0;
 
   constructor(private repo: ActionRepositoryService) {
     repo.collections.subscribe((c) => this.onCollection(c));
@@ -38,6 +40,7 @@ export class CollectionTreeService {
   }
 
   async reload(): Promise<void> {
+    const token = ++this.loadToken;
     const collection = this.collection;
     if (collection == undefined) {
       this.tree.next(undefined);
@@ -55,13 +58,18 @@ export class CollectionTreeService {
       root = await loadCollectionTree(collection.name, this.repo.collectionSource(collection.path), this.repo.secretStore());
       root.warnings.forEach((w) => console.warn(`[FullyRested] ${w}`));
     } catch (error) {
-      console.error(`[FullyRested] Cannot load ${collection.filename}: ${(error as Error).message}`);
+      const message = (error as Error).message;
+      console.error(`[FullyRested] Cannot load ${collection.filename}: ${message}`);
+      // requests below must not send without their folder settings: resolve() throws on a broken ancestor
       root = new CollectionNode(collection.config, collection.name);
+      root.loadError = { file: collection.name, message };
     }
 
-    // the settings panes edit the collection's own config object
-    root.config = collection.config;
-    if (this.collection === collection) this.tree.next(root);
+    if (token !== this.loadToken) return;
+
+    // the settings panes edit the collection's own config object; settings edits may have swapped it mid-load
+    root.config = this.collection!.config;
+    this.tree.next(root);
   }
 
   // The node an open tab sends: wraps the tab's live action, under the folder its file is in

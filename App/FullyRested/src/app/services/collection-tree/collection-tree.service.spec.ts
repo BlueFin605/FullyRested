@@ -39,4 +39,27 @@ describe('CollectionTreeService (browser mode)', () => {
     expect(trees.tree.value).toBe(before);
     expect(trees.tree.value!.config.selectedEnvironmentId).toBe('other');
   });
+
+  it('marks the root broken when the collection folder cannot be loaded', async () => {
+    TestBed.configureTestingModule({});
+    const repo = TestBed.inject(ActionRepositoryService);
+    const trees = TestBed.inject(CollectionTreeService);
+    spyOn(console, 'error');
+    repo.collections.next({ ...mockCollection, name: 'missing.frcollection' });
+    await trees.reload();
+    expect(trees.tree.value!.loadError).toBeDefined();
+    expect(() => trees.nodeFor(CreateEmptyAction(), '').resolve()).toThrow();
+  });
+
+  it('keeps a fresh load and the latest config when the collection re-emits mid-reload', async () => {
+    TestBed.configureTestingModule({});
+    const repo = TestBed.inject(ActionRepositoryService);
+    const trees = TestBed.inject(CollectionTreeService);
+    repo.collections.next(mockCollection);
+    const pending = trees.reload();
+    repo.collections.next({ ...mockCollection, config: { ...mockCollection.config, selectedEnvironmentId: 'newer' } });
+    await pending;
+    expect(trees.tree.value!.folderNodes().length).toBeGreaterThan(0);
+    expect(trees.tree.value!.config.selectedEnvironmentId).toBe('newer');
+  });
 });
