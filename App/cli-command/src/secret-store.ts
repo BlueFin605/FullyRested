@@ -7,10 +7,13 @@ export function secretEnvironmentVariable(name: string): string {
 
 type Keychain = { getPassword(service: string, account: string): Promise<string | null> };
 
-// keytar is optional: it needs a desktop keychain, which headless CI machines don't have
+// The same OS keychain entries the desktop app writes. Loaded lazily so a platform without a
+// prebuilt @napi-rs/keyring binary still runs on environment variables; headless CI machines
+// with no keychain service fail per lookup instead, which get() treats as "not found".
 function loadKeychain(): Keychain | undefined {
   try {
-    return require('keytar') as Keychain;
+    const { AsyncEntry } = require('@napi-rs/keyring') as typeof import('@napi-rs/keyring');
+    return { getPassword: async (service, account) => (await new AsyncEntry(service, account).getPassword()) ?? null };
   } catch {
     return undefined;
   }

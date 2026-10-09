@@ -18,8 +18,8 @@
   "private": true,
   "dependencies": {
     "@fullyrested/core": "file:../core",
-    "electron-squirrel-startup": "^1.0.0",
-    "keytar": "^7.9.0"
+    "@napi-rs/keyring": "^2.1.0",
+    "electron-squirrel-startup": "^1.0.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^22.2.2",

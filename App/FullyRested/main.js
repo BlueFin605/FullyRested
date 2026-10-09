@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
-const keytar = require('keytar');
+const { AsyncEntry } = require('@napi-rs/keyring');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
@@ -13,8 +13,8 @@ const withoutDot = extensions => extensions.map(e => e.substring(1));
 
 // Secret values live in the OS keychain, never in collection or request files
 const keychain = {
-    get: (service, account) => keytar.getPassword(service, account),
-    set: (service, account, value) => keytar.setPassword(service, account, value)
+    get: async (service, account) => (await new AsyncEntry(service, account).getPassword()) ?? null,
+    set: (service, account, value) => new AsyncEntry(service, account).setPassword(value)
 };
 
 let win;

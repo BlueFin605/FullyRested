@@ -42,7 +42,7 @@ flowchart TB
 | Layer | Where | Job |
 |---|---|---|
 | Front ends | `App/FullyRested/src` (Angular), `App/cli-command` | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`keytar`), dialogs, and the process that sends requests. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
 | Core | `App/core/src` | The engine: model, request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
