@@ -98,6 +98,33 @@ describe('scope precedence', () => {
     });
 });
 
+describe('duplicate keys within one layer', () => {
+    it('lets the last row win for headers, variables and secrets, and marks the earlier one overridden', () => {
+        const { request, inner } = build();
+        request.action.headers = [h('x-dup', 'first'), h('x-dup', 'last')];
+        inner.config.variables = [v('dup', 'first'), v('dup', 'last')];
+        inner.config.secrets = [s('dup', 'first'), s('dup', 'last')];
+
+        const resolved = request.resolve();
+        expect(resolved.headers['x-dup']).toBe('last');
+        expect(value(resolved.variables, 'dup')).toBe('last');
+        expect(resolved.secrets?.filter(x => x.$secret == 'dup').map(x => x.$value)).toEqual(['last']);
+
+        const effective = request.effectiveSettings();
+        expect(effective.headers.filter(x => x.value.key == 'x-dup').map(x => [x.value.value, x.overridden])).toEqual([['first', true], ['last', false]]);
+        expect(effective.variables.filter(x => x.value.variable == 'dup').map(x => x.overridden)).toEqual([true, false]);
+        expect(effective.secrets.filter(x => x.value.$secret == 'dup').map(x => x.overridden)).toEqual([true, false]);
+    });
+
+    it('still lets a nearer layer beat a duplicated outer one', () => {
+        const { request, inner } = build();
+        inner.config.headers = [h('x-dup', 'a'), h('x-dup', 'b')];
+        request.action.headers = [h('x-dup', 'request')];
+        expect(request.resolve().headers['x-dup']).toBe('request');
+        expect(request.effectiveSettings().headers.filter(x => x.value.key == 'x-dup').map(x => x.overridden)).toEqual([false, true, true]);
+    });
+});
+
 describe('request and run resolution', () => {
     it('adds run parameters to the request parameters, the run winning a repeated key', () => {
         const { request } = build();

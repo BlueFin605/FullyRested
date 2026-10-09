@@ -59,13 +59,14 @@ export function mergeLayers(layers: ScopeLayer[]): EffectiveSettings {
 function collect<T>(layers: ScopeLayer[], rows: (layer: ScopeLayer) => T[] | undefined, key: (row: T) => string, use: (row: T) => boolean): EffectiveValue<T>[] {
     const seen = new Set<string>();
     const values: EffectiveValue<T>[] = [];
-    for (const layer of layers)
-        for (const row of rows(layer) ?? []) {
-            if (!use(row))
-                continue;
-            values.push({ value: row, source: layer.source, overridden: seen.has(key(row)) });
-            seen.add(key(row));
-        }
+    for (const layer of layers) {
+        const used = (rows(layer) ?? []).filter(use);
+        // within one layer the last row for a key wins; across layers the nearest does
+        const last = new Map<string, number>();
+        used.forEach((row, i) => last.set(key(row), i));
+        used.forEach((row, i) => values.push({ value: row, source: layer.source, overridden: seen.has(key(row)) || last.get(key(row)) !== i }));
+        used.forEach(row => seen.add(key(row)));
+    }
     return values;
 }
 
