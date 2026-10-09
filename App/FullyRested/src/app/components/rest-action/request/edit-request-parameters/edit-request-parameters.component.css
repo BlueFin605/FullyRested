@@ -2,7 +2,7 @@ table {
     width: 100%;
 }
 
-th.mat-header-cell:first-of-type, td.mat-cell:first-of-type, td.mat-footer-cell:first-of-type{
+th.mat-mdc-header-cell:first-of-type, td.mat-mdc-cell:first-of-type, td.mat-mdc-footer-cell:first-of-type{
     padding-left: 0px;
 }
 
@@ -56,7 +56,7 @@ th.mat-header-cell:first-of-type, td.mat-cell:first-of-type, td.mat-footer-cell:
     hyphens: auto;
 }
 
-.mat-header-cell {
+.mat-mdc-header-cell {
     font-weight: bolder;
     font-size: small;
     color: black;

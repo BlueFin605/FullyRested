@@ -15,13 +15,11 @@
     </div>
     <div class="envselector" *ngIf="collection">
       Select Environment:
-      <mat-form-field>
-        <mat-select [(value)]="collection.config!.selectedEnvironmentId">
-          <mat-option *ngFor="let env of collection?.config?.environments" [value]="env.id">
-            {{env.name}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+      <mat-select class="envselect" [(value)]="collection.config!.selectedEnvironmentId">
+        <mat-option *ngFor="let env of collection?.config?.environments" [value]="env.id">
+          {{env.name}}
+        </mat-option>
+      </mat-select>
     </div>
   </mat-toolbar-row>
 

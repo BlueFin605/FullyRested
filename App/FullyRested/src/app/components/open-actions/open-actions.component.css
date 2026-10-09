@@ -6,6 +6,11 @@
     padding-left: 3px;
 }
 
+/* sit beside the floated explorer even when a child is width: 100% (MDC tables) */
+.opendocuments {
+    overflow: hidden;
+}
+
 .remove_button {
     width: 24px;
 }
@@ -18,10 +23,6 @@
 .remove_icon {
     color:red;
     font-size: 15px;
-}
-
-.mat-icon-button {
-
 }
 
 .add_tab {
@@ -38,6 +39,15 @@
 }
 
 .envselector {
-    /* float: right;
-    display: flex;  */
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.envselect {
+    width: 160px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background-color: white;
+    border-radius: 3px;
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, ApplicationRef } from '@angular/core';
 import { LocalRestSession, LocalRestAction, CurrentState, RecentFile, Collection, Environment, AuthenticationDetails, ValidationType } from '@fullyrested/core'
 import { CreateEmptyEnvironment, CreateEmptyAuthenticationDetails, CreateEmptyRestActionRun } from '@fullyrested/core'
-import { MatLegacyTabChangeEvent as MatTabChangeEvent, MatLegacyTabGroup as MatTabGroup } from '@angular/material/legacy-tabs';
+import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import { SelectedTreeItem, CollectionExplorerComponent } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';

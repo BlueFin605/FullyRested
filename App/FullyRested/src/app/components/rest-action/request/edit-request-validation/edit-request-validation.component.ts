@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, ViewChild, EventEmitter } from '@angular/core';
-import { MatLegacyRadioChange as MatRadioChange } from '@angular/material/legacy-radio';
+import { MatRadioChange } from '@angular/material/radio';
 import { JsonEditorOptions, JsonEditorComponent } from '../../../json-editor/json-editor.component';
 import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
 import { CreateEmptyRestActionValidation } from '@fullyrested/core';
