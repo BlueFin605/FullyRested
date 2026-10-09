@@ -80,6 +80,15 @@ export class RestActionComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  // Evaluated every change-detection pass: a tab mid-switch may not resolve yet, so swallow that
+  get inheritedNode() {
+    try {
+      return this.trees.nodeFor(this._action, this._fullFilename);
+    } catch {
+      return undefined;
+    }
+  }
+
   get actionId(): string {
     return this._action.id;
   }

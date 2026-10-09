@@ -1,0 +1,23 @@
+<section class="inherited">
+  <button class="inherited-bar" (click)="toggle()" [attr.aria-expanded]="expanded">
+    <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon> Inherited
+  </button>
+  @if (expanded) {
+    @if (view.error) {
+      <p class="inherited-error">{{ view.error }}</p>
+    } @else if (view.rows.length == 0) {
+      <p class="inherited-empty">Nothing inherited</p>
+    } @else {
+      <table>
+        @for (row of view.rows; track $index) {
+          <tr class="setting" [class.overridden]="row.overridden">
+            <td class="kind">{{ row.kind }}</td>
+            <td class="name">{{ row.name }}</td>
+            <td class="value">{{ row.value }}</td>
+            <td class="from">{{ row.from }}</td>
+          </tr>
+        }
+      </table>
+    }
+  }
+</section>

@@ -82,6 +82,15 @@ export class RestActionRunComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
+  // Evaluated every change-detection pass: a deleted run makes nodeFor throw, so show nothing
+  get inheritedNode() {
+    try {
+      return this.trees.nodeFor(this.action, this.fullFilename, this._runId as string);
+    } catch {
+      return undefined;
+    }
+  }
+
   onNameChange(name: string) {
     this.nameChange.emit(name);
   }

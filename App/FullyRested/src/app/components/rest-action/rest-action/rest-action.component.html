@@ -15,6 +15,11 @@
       (actionChange)="onActionChange($event)"
       (execute)="executeAction()"
     ></app-edit-request>
+    <app-inherited-settings
+      splitFirst
+      [node]="inheritedNode"
+      [environmentId]="collection?.config?.selectedEnvironmentId"
+    ></app-inherited-settings>
     <app-display-response
       splitSecond
       [response]="response"
