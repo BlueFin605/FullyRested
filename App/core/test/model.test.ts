@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CreateEmptyAction, ExecuteRestAction, HttpProtocol, RestTypeVerb, ValidationType } from '../src';
+import { REConstants, CreateEmptyAction, ExecuteRestAction, HttpProtocol, RestTypeVerb, ValidationType } from '../src';
 
 describe('model defaults', () => {
   it('creates an empty GET https action that inherits authentication', () => {
@@ -17,5 +17,11 @@ describe('model defaults', () => {
     expect(post.verb).toBe(RestTypeVerb.post);
     expect(post.url).toBe('api.example.com/items');
     expect(post.validation?.type).toBe(ValidationType.None);
+  });
+});
+
+describe('REConstants', () => {
+  it('names the folder settings file', () => {
+    expect(REConstants.FolderSettingsFile).toBe('folder.frfolder');
   });
 });

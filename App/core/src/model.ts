@@ -2,7 +2,8 @@ export const REConstants = {
     CollectionExtension: ".frcol",
     ActionExtension: ".frreq",
     LegacyCollectionExtension: ".reasycol",
-    LegacyActionExtension: ".reasyreq"
+    LegacyActionExtension: ".reasyreq",
+    FolderSettingsFile: "folder.frfolder"
 };
 
 // Extensions to accept when opening files: new first, then the old Rest Easy ones
