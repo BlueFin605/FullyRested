@@ -15,8 +15,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { JsonEditorComponent } from './components/json-editor/json-editor.component';
+import { CodeEditorComponent } from './components/code-editor/code-editor.component';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -53,6 +56,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 @NgModule({
   declarations: [
     JsonEditorComponent,
+    CodeEditorComponent,
     AppComponent,
     RestActionComponent,
     DisplayResponseComponent,
@@ -100,7 +104,9 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     MatRadioModule,
     MatListModule,
     MatTooltipModule,
-    MatToolbarModule
+    MatToolbarModule,
+    MatButtonToggleModule,
+    MatProgressSpinnerModule
   ],
   providers: [],
   bootstrap: [AppComponent]
