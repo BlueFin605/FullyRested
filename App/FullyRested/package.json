@@ -1,6 +1,8 @@
 {
   "name": "fullyrested",
   "version": "0.0.0",
+  "description": "A desktop REST client whose collections are plain files",
+  "author": "BlueFin605",
   "main": "main.js",
   "scripts": {
     "ng": "ng",
@@ -9,34 +11,30 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "electron": "npm run build:core && ng build && electron .",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "package": "npm run build:core && ng build && electron-forge package",
+    "make": "npm run build:core && ng build && electron-forge make",
     "build:core": "npm --prefix ../core run build"
   },
   "private": true,
   "dependencies": {
+    "@fullyrested/core": "file:../core",
+    "electron-squirrel-startup": "^1.0.0",
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^22.2.2",
     "@angular/animations": "^22.2.2",
     "@angular/cdk": "^22.2.2",
+    "@angular/cli": "^22.2.2",
     "@angular/common": "^22.2.2",
     "@angular/compiler": "^22.2.2",
+    "@angular/compiler-cli": "^22.2.2",
     "@angular/core": "^22.2.2",
     "@angular/forms": "^22.2.2",
     "@angular/material": "^22.2.2",
     "@angular/platform-browser": "^22.2.2",
     "@angular/platform-browser-dynamic": "^22.2.2",
     "@angular/router": "^22.2.2",
-    "@fullyrested/core": "file:../core",
-    "electron-squirrel-startup": "^1.0.0",
-    "jsoneditor": "^9.10.3",
-    "keytar": "^7.9.0",
-    "rxjs": "~7.5.0",
-    "tslib": "^2.3.0",
-    "zone.js": "~0.15.1"
-  },
-  "devDependencies": {
-    "@angular-devkit/build-angular": "^22.2.2",
-    "@angular/cli": "^22.2.2",
-    "@angular/compiler-cli": "^22.2.2",
     "@electron-forge/cli": "^8.0.1",
     "@electron-forge/maker-deb": "^8.0.1",
     "@electron-forge/maker-rpm": "^8.0.1",
@@ -47,11 +45,15 @@
     "electron": "^44.7.0",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~4.1.0",
+    "jsoneditor": "^9.10.3",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.0.0",
     "karma-jasmine-html-reporter": "~1.7.0",
-    "typescript": "~6.0.3"
+    "rxjs": "~7.5.0",
+    "tslib": "^2.3.0",
+    "typescript": "~6.0.3",
+    "zone.js": "~0.15.1"
   }
 }
