@@ -1,19 +1,40 @@
 <div class="displayoptions">
   <mat-radio-group aria-label="View Options">
-    <mat-radio-button class="rb" value="raw" name="view" (change)="onViewChange($event)" [checked] = "selectedview == 'raw'">Raw Response</mat-radio-button>
-    <mat-radio-button class="rb" value="formatted" name="view" (change)="onViewChange($event)" [checked] = "selectedview == 'formatted'">Formatted Html</mat-radio-button>
-    <mat-radio-button class="rb" value="preview" name="view" (change)="onViewChange($event)" [checked] = "selectedview == 'preview'">Preview</mat-radio-button>
+    <mat-radio-button
+      class="rb"
+      value="raw"
+      name="view"
+      (change)="onViewChange($event)"
+      [checked]="selectedview == 'raw'"
+      >Raw Response</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="formatted"
+      name="view"
+      (change)="onViewChange($event)"
+      [checked]="selectedview == 'formatted'"
+      >Formatted Html</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="preview"
+      name="view"
+      (change)="onViewChange($event)"
+      [checked]="selectedview == 'preview'"
+      >Preview</mat-radio-button
+    >
   </mat-radio-group>
 </div>
 
-<ng-container *ngIf="selectedview == 'raw'">
-  <div class="rawhtml">{{rawhtml}}</div>
-</ng-container>
+@if (selectedview == "raw") {
+  <div class="rawhtml">{{ rawhtml }}</div>
+}
 
-<ng-container *ngIf="selectedview == 'formatted'">
-  <div class="formattedhtml">{{formattedhtml}}</div>
-</ng-container>
+@if (selectedview == "formatted") {
+  <div class="formattedhtml">{{ formattedhtml }}</div>
+}
 
-<ng-container *ngIf="selectedview == 'preview'">
+@if (selectedview == "preview") {
   <div [innerHTML]="rawhtml"></div>
-</ng-container>
+}

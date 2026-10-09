@@ -1,20 +1,42 @@
 <form class="example-form">
-    <div>
-        <mat-form-field appearance="fill" class="method-field">
-            <mat-label>Authorisation Method</mat-label>
-            <mat-select [(value)]="auth.authentication" (selectionChange)="onChange($event)">
-                <mat-option value="inherit">Inherit</mat-option>
-                <mat-option value="none">None</mat-option>
-                <mat-option value="awssig">AWS Signature</mat-option>
-                <mat-option value="basicauth">Basic Auth</mat-option>
-                <mat-option value="bearertoken">Bearer Token</mat-option>
-            </mat-select>
-        </mat-form-field>
+  <div>
+    <mat-form-field appearance="fill" class="method-field">
+      <mat-label>Authorisation Method</mat-label>
+      <mat-select
+        [(value)]="auth.authentication"
+        (selectionChange)="onChange($event)"
+      >
+        <mat-option value="inherit">Inherit</mat-option>
+        <mat-option value="none">None</mat-option>
+        <mat-option value="awssig">AWS Signature</mat-option>
+        <mat-option value="basicauth">Basic Auth</mat-option>
+        <mat-option value="bearertoken">Bearer Token</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-        <app-settings-manage-authentication-awssig  *ngIf="auth.authentication=='awssig'" [(awssig)]="auth.awsSig" (awssigChange)="onChange($event)"></app-settings-manage-authentication-awssig>
-        <app-settings-manage-authentication-basic-auth  *ngIf="auth.authentication=='basicauth'" [(basicauth)]="auth.basicAuth" (basicauthChange)="onChange($event)"></app-settings-manage-authentication-basic-auth>
-        <app-settings-manage-authentication-bearer-token  *ngIf="auth.authentication=='bearertoken'" [(bearertoken)]="auth.bearerToken" (bearertokenChange)="onChange($event)"></app-settings-manage-authentication-bearer-token>
-        <app-settings-manage-authentication-none *ngIf="auth.authentication=='none'"></app-settings-manage-authentication-none>
-        <app-settings-manage-authentication-inherit *ngIf="auth.authentication=='inherit'"></app-settings-manage-authentication-inherit>
-    </div>
+    @if (auth.authentication == "awssig") {
+      <app-settings-manage-authentication-awssig
+        [(awssig)]="auth.awsSig"
+        (awssigChange)="onChange($event)"
+      ></app-settings-manage-authentication-awssig>
+    }
+    @if (auth.authentication == "basicauth") {
+      <app-settings-manage-authentication-basic-auth
+        [(basicauth)]="auth.basicAuth"
+        (basicauthChange)="onChange($event)"
+      ></app-settings-manage-authentication-basic-auth>
+    }
+    @if (auth.authentication == "bearertoken") {
+      <app-settings-manage-authentication-bearer-token
+        [(bearertoken)]="auth.bearerToken"
+        (bearertokenChange)="onChange($event)"
+      ></app-settings-manage-authentication-bearer-token>
+    }
+    @if (auth.authentication == "none") {
+      <app-settings-manage-authentication-none></app-settings-manage-authentication-none>
+    }
+    @if (auth.authentication == "inherit") {
+      <app-settings-manage-authentication-inherit></app-settings-manage-authentication-inherit>
+    }
+  </div>
 </form>

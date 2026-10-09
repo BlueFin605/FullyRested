@@ -1,30 +1,56 @@
 <div class="awssigcontainer">
-    <mat-checkbox [(ngModel)]="awssig.signUrl"(ngModelChange)="onChange($event)">Sign Url</mat-checkbox>
+  <mat-checkbox [(ngModel)]="awssig.signUrl" (ngModelChange)="onChange($event)"
+    >Sign Url</mat-checkbox
+  >
 
-    <div class="awssigfield">
-        <mat-form-field class="awssig-field">
-            <mat-label>AccessKey</mat-label>
-            <input matInput placeholder="Input" [(ngModel)]="awssig.accessKey" (ngModelChange)="onChange($event)">
-            <mat-hint class="raw-credential" *ngIf="raw(awssig.accessKey)">{{ rawCredentialHint }}</mat-hint>
-        </mat-form-field>
-    </div>
-    <div class="awssigfield">
-        <mat-form-field class="awssig-field">
-            <mat-label>SecretKey</mat-label>
-            <input matInput placeholder="Input" [(ngModel)]="awssig.secretKey" (ngModelChange)="onChange($event)">
-            <mat-hint class="raw-credential" *ngIf="raw(awssig.secretKey)">{{ rawCredentialHint }}</mat-hint>
-        </mat-form-field>
-    </div>
-    <div class="awssigfield">
-        <mat-form-field class="awssig-field">
-            <mat-label>AWS Region</mat-label>
-            <input matInput placeholder="Input" [(ngModel)]="awssig.awsRegion" (ngModelChange)="onChange($event)">
-        </mat-form-field>
-    </div>
-    <div class="awssigfield">
-        <mat-form-field class="awssig-field">
-            <mat-label>Service Name</mat-label>
-            <input matInput placeholder="Input" [(ngModel)]="awssig.serviceName" (ngModelChange)="onChange($event)">
-        </mat-form-field>
-    </div>
+  <div class="awssigfield">
+    <mat-form-field class="awssig-field">
+      <mat-label>AccessKey</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="awssig.accessKey"
+        (ngModelChange)="onChange($event)"
+      />
+      @if (raw(awssig.accessKey)) {
+        <mat-hint class="raw-credential">{{ rawCredentialHint }}</mat-hint>
+      }
+    </mat-form-field>
+  </div>
+  <div class="awssigfield">
+    <mat-form-field class="awssig-field">
+      <mat-label>SecretKey</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="awssig.secretKey"
+        (ngModelChange)="onChange($event)"
+      />
+      @if (raw(awssig.secretKey)) {
+        <mat-hint class="raw-credential">{{ rawCredentialHint }}</mat-hint>
+      }
+    </mat-form-field>
+  </div>
+  <div class="awssigfield">
+    <mat-form-field class="awssig-field">
+      <mat-label>AWS Region</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="awssig.awsRegion"
+        (ngModelChange)="onChange($event)"
+      />
+    </mat-form-field>
+  </div>
+  <div class="awssigfield">
+    <mat-form-field class="awssig-field">
+      <mat-label>Service Name</mat-label>
+      <input
+        matInput
+        placeholder="Input"
+        [(ngModel)]="awssig.serviceName"
+        (ngModelChange)="onChange($event)"
+      />
+    </mat-form-field>
+  </div>
 </div>

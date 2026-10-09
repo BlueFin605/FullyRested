@@ -1,35 +1,117 @@
 <div class="displayoptions">
   <mat-radio-group aria-label="Validation Type">
-    <mat-radio-button class="rb" value={{validationType.Inherit}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Inherit" *ngIf="showInherit == true">Inherit</mat-radio-button>
-    <mat-radio-button class="rb" value={{validationType.None}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.None">None</mat-radio-button>
-    <mat-radio-button class="rb" value={{validationType.ResponseCode}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.ResponseCode">Response Code</mat-radio-button>
-    <mat-radio-button class="rb" value={{validationType.Headers}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Headers">Headers</mat-radio-button>
-    <mat-radio-button class="rb" value={{validationType.Body}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.Body">Body</mat-radio-button>
-    <mat-radio-button class="rb" value={{validationType.HeadersBody}} name="view" (change)="onTypeChange($event)" [checked] = "visibleSchema.type == validationType.HeadersBody">Headers & Body</mat-radio-button>
+    @if (showInherit == true) {
+      <mat-radio-button
+        class="rb"
+        value="{{ validationType.Inherit }}"
+        name="view"
+        (change)="onTypeChange($event)"
+        [checked]="visibleSchema.type == validationType.Inherit"
+        >Inherit</mat-radio-button
+      >
+    }
+    <mat-radio-button
+      class="rb"
+      value="{{ validationType.None }}"
+      name="view"
+      (change)="onTypeChange($event)"
+      [checked]="visibleSchema.type == validationType.None"
+      >None</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="{{ validationType.ResponseCode }}"
+      name="view"
+      (change)="onTypeChange($event)"
+      [checked]="visibleSchema.type == validationType.ResponseCode"
+      >Response Code</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="{{ validationType.Headers }}"
+      name="view"
+      (change)="onTypeChange($event)"
+      [checked]="visibleSchema.type == validationType.Headers"
+      >Headers</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="{{ validationType.Body }}"
+      name="view"
+      (change)="onTypeChange($event)"
+      [checked]="visibleSchema.type == validationType.Body"
+      >Body</mat-radio-button
+    >
+    <mat-radio-button
+      class="rb"
+      value="{{ validationType.HeadersBody }}"
+      name="view"
+      (change)="onTypeChange($event)"
+      [checked]="visibleSchema.type == validationType.HeadersBody"
+      >Headers & Body</mat-radio-button
+    >
   </mat-radio-group>
 </div>
 
-<div class="httpresult" *ngIf="responsecode">
-  <mat-form-field>
-    <mat-label>Http Response Code</mat-label>
-    <mat-select [(value)]="visibleSchema.httpCode" (valueChange)="onResponseCodeChange($event)">
-      <mat-option *ngFor="let code of validateResponse.httpResponses" [value]="code.code">{{buildDescription(code)}}</mat-option>
-    </mat-select>
-  </mat-form-field>
-</div>
-
-<div *ngIf="headers">
-  <app-edit-request-headers [(headers)]="visibleSchema.headers" (headersChange)="onHeadersChange($event)"></app-edit-request-headers></div>
-
-<div *ngIf="body">
-  <div class="displayoptions">
-    <mat-radio-group aria-label="Payload Validation Type">
-      <mat-radio-button class="rb" value={{validationTypePayload.None}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.None">None</mat-radio-button>
-      <mat-radio-button class="rb" value={{validationTypePayload.JsonSchema}} name="payload" (change)="onPayloadTypeChange($event)" [checked] = "visibleSchema.body == validationTypePayload.JsonSchema">Json Schema</mat-radio-button>
-    </mat-radio-group>  
-  </div>    
-
-  <div *ngIf="visibleSchema.body == validationTypePayload.JsonSchema">
-    <json-editor [options]="editorOptions" [data]="jsonObj" (change)="updateData($event)" (jsonChange)="updateData($event)" #editor></json-editor>
+@if (responsecode) {
+  <div class="httpresult">
+    <mat-form-field>
+      <mat-label>Http Response Code</mat-label>
+      <mat-select
+        [(value)]="visibleSchema.httpCode"
+        (valueChange)="onResponseCodeChange($event)"
+      >
+        @for (code of validateResponse.httpResponses; track code) {
+          <mat-option [value]="code.code">{{
+            buildDescription(code)
+          }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
   </div>
-</div>
+}
+
+@if (headers) {
+  <div>
+    <app-edit-request-headers
+      [(headers)]="visibleSchema.headers"
+      (headersChange)="onHeadersChange($event)"
+    ></app-edit-request-headers>
+  </div>
+}
+
+@if (body) {
+  <div>
+    <div class="displayoptions">
+      <mat-radio-group aria-label="Payload Validation Type">
+        <mat-radio-button
+          class="rb"
+          value="{{ validationTypePayload.None }}"
+          name="payload"
+          (change)="onPayloadTypeChange($event)"
+          [checked]="visibleSchema.body == validationTypePayload.None"
+          >None</mat-radio-button
+        >
+        <mat-radio-button
+          class="rb"
+          value="{{ validationTypePayload.JsonSchema }}"
+          name="payload"
+          (change)="onPayloadTypeChange($event)"
+          [checked]="visibleSchema.body == validationTypePayload.JsonSchema"
+          >Json Schema</mat-radio-button
+        >
+      </mat-radio-group>
+    </div>
+    @if (visibleSchema.body == validationTypePayload.JsonSchema) {
+      <div>
+        <json-editor
+          [options]="editorOptions"
+          [data]="jsonObj"
+          (change)="updateData($event)"
+          (jsonChange)="updateData($event)"
+          #editor
+        ></json-editor>
+      </div>
+    }
+  </div>
+}
