@@ -1,43 +1,28 @@
-table {
-    width: 100%;
+:host {
+  display: block;
+  padding: 8px 12px;
 }
 
-.mat-column-key {
-    word-wrap: break-word !important;
-    white-space: unset !important;
-    flex: 0 0 28% !important;
-    width: 28% !important;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-  
-    word-break: break-word;
-  
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
-    hyphens: auto;
-
+.kv-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  font-family: var(--fr-font-mono);
+  font-size: 12.5px;
+  user-select: text;
 }
 
-.mat-column-value {
-    word-wrap: break-word !important;
-    white-space: unset !important;
-    flex: 0 0 28% !important;
-    width: 56% !important;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    
-    word-break: break-word;
-    
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
-    hyphens: auto;
+.kv-grid > div {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--fr-border);
+  word-break: break-all;
 }
 
-.mat-mdc-header-cell {
-    font-weight: bolder;
-    font-size: small;
-    color: black;
-    background-color: rgb(221, 217, 217);
-  }
+.key {
+  color: var(--fr-syn-key);
+  white-space: nowrap;
+}
+
+.none {
+  color: var(--fr-text-muted);
+  padding: 8px;
+}

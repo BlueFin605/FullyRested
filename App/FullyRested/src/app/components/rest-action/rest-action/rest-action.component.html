@@ -1,25 +1,23 @@
 @if (runId) {
-  <div class="section-border">
-    <app-rest-action-run
+  <app-rest-action-run
+    [(action)]="_action"
+    [collection]="collection"
+    [runId]="runId"
+    (actionChange)="onActionChange($event)"
+    (nameChange)="onNameChange($event)"
+  ></app-rest-action-run>
+} @else {
+  <app-split-pane>
+    <app-edit-request
+      splitFirst
       [(action)]="_action"
-      [collection]="collection"
-      [runId]="runId"
       (actionChange)="onActionChange($event)"
-      (nameChange)="onNameChange($event)"
-    ></app-rest-action-run>
-  </div>
-}
-@if (!runId) {
-  <div class="rest-action">
-    <div class="section-border">
-      <app-edit-request
-        [(action)]="_action"
-        (actionChange)="onActionChange($event)"
-        (execute)="executeAction($event)"
-      ></app-edit-request>
-    </div>
-    <div class="section-border">
-      <app-display-response [response]="response"></app-display-response>
-    </div>
-  </div>
+      (execute)="executeAction($event)"
+    ></app-edit-request>
+    <app-display-response
+      splitSecond
+      [response]="response"
+      [sending]="sending"
+    ></app-display-response>
+  </app-split-pane>
 }

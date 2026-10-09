@@ -1,50 +1,97 @@
-<ng-template #itemTemplate let-item="item">
-  <div class="form-inline row-item" [ngClass]="{
-    'selected' : item.value.key == selected,
-    'unselected' : item.value.key != selected
- }" (click)="onClick(item)" (dblclick)="onDblClick(item)">
-    <i *ngIf='item.value.type=="dir"' class="mr-1" (click)="toggle(item)" aria-hidden="true" [ngSwitch]="item.collapsed">
-      <svg *ngSwitchCase="true" width="0.8rem" height="0.8rem" viewBox="0 0 16 16" class="bi bi-caret-right-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12.14 8.753l-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z" />
-      </svg>
-      <svg *ngSwitchCase="false" width="0.8rem" height="0.8rem" viewBox="0 0 16 16" class="bi bi-caret-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-      </svg>
-    </i>
-    <i *ngIf='item.value.type=="file"' class="mr-1 filePrefix" (click)="toggle(item)" aria-hidden="true" [ngSwitch]="item.collapsed">
-      RE
-    </i>
-    <i *ngIf='item.value.type=="system"' class="mr-1 filePrefix" (click)="toggle(item)" aria-hidden="true" [ngSwitch]="item.collapsed">
-      SYS
-    </i>
-    <i *ngIf='item.value.type=="environment"' class="mr-1 filePrefix" (click)="toggle(item)" aria-hidden="true" [ngSwitch]="item.collapsed">
-      ENV
-    </i>
-    <i *ngIf='item.value.type=="run"' class="mr-1 filePrefix" (click)="toggle(item)" aria-hidden="true" [ngSwitch]="item.collapsed">
-      RUN
-    </i>
-    {{item.text}}
+<ng-template #rowTemplate let-item="item" let-depth="depth">
+  <div
+    class="row"
+    [class.selected]="item.value.key == selected"
+    [style.padding-left.px]="6 + depth * 14"
+    [attr.data-type]="item.value.type"
+    (click)="onClick(item)"
+    (dblclick)="onDblClick(item)"
+    (contextmenu)="onContextMenu($event, item)"
+    [attr.title]="item.value.type == 'file' ? item.value.key : null"
+  >
+    <span class="chevron" (click)="toggle(item); $event.stopPropagation()">
+      @if (item.children) {
+        <mat-icon>{{ isExpanded(item) ? "expand_more" : "chevron_right" }}</mat-icon>
+      }
+    </span>
+    @switch (item.value.type) {
+      @case ("file") {
+        <span class="badge fr-method" [attr.data-verb]="item.value.verb">{{
+          item.value.verb | verbLabel
+        }}</span>
+      }
+      @case ("run") {
+        <mat-icon class="kind run">tune</mat-icon>
+      }
+      @case ("system") {
+        <mat-icon class="kind">{{ systemIcon(item.value.subtype) }}</mat-icon>
+      }
+      @default {
+        <mat-icon class="kind folder">{{ folderIcon(item) }}</mat-icon>
+      }
+    }
+    <span class="label">{{ item.text }}</span>
   </div>
 </ng-template>
 
-
-<ng-template #branch let-items="items">
-  <ul class="tree">
-    <ng-container *ngFor="let item of items">
-      <li *ngIf="isVisible(item)">
-        <ng-container *ngTemplateOutlet="itemTemplate; context: { item: item }"></ng-container>
-        <ng-container *ngIf="isExpanded(item)">
-          <ng-container *ngTemplateOutlet="branch; context: { items: item.children }"></ng-container>
-        </ng-container>
-      </li>
-    </ng-container>
+<ng-template #branch let-items="items" let-depth="depth">
+  <ul class="tree" role="group">
+    @for (item of items; track item) {
+      @if (isVisible(item)) {
+        <li role="treeitem">
+          <ng-container
+            *ngTemplateOutlet="rowTemplate; context: { item: item, depth: depth }"
+          ></ng-container>
+          @if (isExpanded(item)) {
+            <ng-container
+              *ngTemplateOutlet="branch; context: { items: item.children, depth: depth + 1 }"
+            ></ng-container>
+          }
+        </li>
+      }
+    }
   </ul>
 </ng-template>
 
-<div class="treeview-container">
-  <input class="filter" type="text" placeholder="Filter" [(ngModel)]="filter">
-  <ng-container *ngIf="items.length > 0; else noItems">
-    <ng-container *ngTemplateOutlet="branch; context: { items: items }"></ng-container>
-  </ng-container>
-  <ng-template #noItems><div class="no-items">No items found</div></ng-template>
+<div class="explorer">
+  <div class="filter">
+    <mat-icon>search</mat-icon>
+    <input type="text" placeholder="Filter" [(ngModel)]="filter" aria-label="Filter requests" />
+    @if (filter) {
+      <button class="fr-icon-btn clear" (click)="filter = ''" aria-label="Clear filter">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  <div class="treeview-container" role="tree">
+    @if (items.length > 0) {
+      <ng-container *ngTemplateOutlet="branch; context: { items: items, depth: 0 }"></ng-container>
+    } @else {
+      <div class="no-items">{{ _collection ? "No requests found" : "No collection open" }}</div>
+    }
+  </div>
 </div>
+
+<!-- an invisible anchor moved to the pointer so the context menu opens where you clicked -->
+<div
+  class="context-anchor"
+  [style.left.px]="contextPosition.x"
+  [style.top.px]="contextPosition.y"
+  [matMenuTriggerFor]="contextMenu"
+  #contextTrigger="matMenuTrigger"
+></div>
+<mat-menu #contextMenu="matMenu">
+  @if (contextItem) {
+    @if (contextItem.value.type == "file" || contextItem.value.type == "run") {
+      <button mat-menu-item (click)="onDblClick(contextItem)">
+        <mat-icon>open_in_new</mat-icon> Open
+      </button>
+    }
+    @for (name of contextItem.value.actions ?? []; track name) {
+      <button mat-menu-item (click)="emitCommand(name, contextItem)">
+        <mat-icon>{{ commandIcon(name) }}</mat-icon> {{ commandLabel(name) }}
+      </button>
+    }
+  }
+</mat-menu>

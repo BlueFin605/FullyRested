@@ -1,18 +1,66 @@
 <div class="response">
-    <!-- <h2>Response</h2> -->
-    <div class="status" attr.level={{getlevel()}}>
-        <div class="statustext" attr.data-value="{{response.status}}">{{response.status}}</div>
-        <div class="statustext" attr.data-value="{{response.status}}">-</div>
-        <div class="statustext">{{response.statusText}}</div>
+  <div class="response-bar">
+    <span class="pane-label">Response</span>
+    @if (hasResponse() && !sending) {
+      <span class="fr-pill status" [attr.data-level]="statusLevel()">
+        {{ response.status || "Error" }} {{ response.statusText }}
+      </span>
+      @if (response.durationMs != undefined) {
+        <span class="fr-pill" matTooltip="Time">{{ response.durationMs }} ms</span>
+      }
+      @if (response.sizeBytes != undefined) {
+        <span class="fr-pill" matTooltip="Body size">{{ size() }}</span>
+      }
+      @if (response.validated) {
+        <span class="fr-pill" [attr.data-level]="response.validated.valid ? 'ok' : 'error'">
+          <mat-icon>{{ response.validated.valid ? "check_circle" : "error" }}</mat-icon>
+          {{ response.validated.valid ? "Valid" : response.validated.errors.length + " failed" }}
+        </span>
+      }
+    }
+    <span class="spacer"></span>
+    <button
+      class="fr-icon-btn"
+      (click)="layout.toggleOrientation()"
+      [matTooltip]="layout.splitOrientation() == 'horizontal' ? 'Show response below' : 'Show response beside'"
+      aria-label="Change layout"
+    >
+      <mat-icon>{{ layout.splitOrientation() == "horizontal" ? "view_agenda" : "view_column" }}</mat-icon>
+    </button>
+  </div>
+
+  @if (sending) {
+    <div class="state">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span>Sending…</span>
     </div>
-    <div class="valerrors" attr.level={{getlevel()}}>
-        <p>{{getErrorString()}}</p>
+  } @else if (!hasResponse()) {
+    <div class="state">
+      <mat-icon class="state-icon">send</mat-icon>
+      <span>Send the request to see the response</span>
+      <span class="hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
     </div>
-    <div>
-        <mat-tab-group animationDuration="0ms">
-            <mat-tab label="Body"> <app-display-response-body [body]="response.body"></app-display-response-body></mat-tab>
-            <mat-tab label="Headers"><app-display-response-headers [headers]="response.headers"></app-display-response-headers></mat-tab>
-            <mat-tab label="Request Headers"><app-display-response-headers [headers]="response.headersSent"></app-display-response-headers></mat-tab>
-        </mat-tab-group>
-    </div>
+  } @else {
+    @if (response.validated && !response.validated.valid) {
+      <ul class="validation-errors">
+        @for (error of response.validated.errors; track $index) {
+          <li><mat-icon>error_outline</mat-icon>{{ error }}</li>
+        }
+      </ul>
+    }
+    <mat-tab-group class="fr-subtabs response-tabs" animationDuration="0ms" [mat-stretch-tabs]="false">
+      <mat-tab>
+        <ng-template mat-tab-label>Body</ng-template>
+        <app-display-response-body [body]="response.body"></app-display-response-body>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>Headers<span class="count">{{ count(response.headers) }}</span></ng-template>
+        <app-display-response-headers [headers]="response.headers"></app-display-response-headers>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>Request headers<span class="count">{{ count(response.headersSent) }}</span></ng-template>
+        <app-display-response-headers [headers]="response.headersSent"></app-display-response-headers>
+      </mat-tab>
+    </mat-tab-group>
+  }
 </div>

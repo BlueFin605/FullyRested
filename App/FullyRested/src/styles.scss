@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @import 'jsoneditor/dist/jsoneditor.min.css';
+@import 'material-icons/iconfont/filled.css';
 
 // Light and dark are equal: everything follows `color-scheme`, which
 // ThemeService sets on <html> (System = "light dark").
@@ -161,6 +162,31 @@ kbd, .fr-kbd {
   .mat-icon { font-size: 18px; width: 18px; height: 18px; }
 }
 
+// Drag handle between panes (SplitterDirective). The hit area is wider than the line.
+.fr-splitter {
+  position: relative;
+  flex: none;
+  z-index: 2;
+  background: var(--fr-border);
+  touch-action: none;
+
+  &[data-orientation="horizontal"] { width: 1px; cursor: col-resize; }
+  &[data-orientation="vertical"] { height: 1px; cursor: row-resize; }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  &[data-orientation="horizontal"]::after { left: -3px; right: -3px; }
+  &[data-orientation="vertical"]::after { top: -3px; bottom: -3px; }
+
+  &:hover, &.dragging { background: var(--fr-accent); }
+}
+
+body.fr-resizing-x { cursor: col-resize; user-select: none; }
+body.fr-resizing-y { cursor: row-resize; user-select: none; }
+
 // Muted text that names where an inherited value came from
 .fr-source {
   font-size: 11px;
@@ -177,6 +203,21 @@ kbd, .fr-kbd {
 
   .mat-mdc-tab { padding: 0 12px; min-width: 0; }
   .mat-mdc-tab .count { margin-left: 4px; color: var(--fr-text-faint); font-weight: 400; }
+}
+
+// Small segmented control (mat-button-toggle-group) for view / body-type pickers
+.fr-segmented.mat-button-toggle-group {
+  --mat-button-toggle-height: 24px;
+  --mat-button-toggle-shape: var(--fr-radius);
+  --mat-button-toggle-label-text-size: 12px;
+  --mat-button-toggle-label-text-weight: 500;
+  --mat-button-toggle-divider-color: var(--fr-border);
+  --mat-button-toggle-text-color: var(--fr-text-muted);
+  --mat-button-toggle-selected-state-background-color: var(--fr-selected);
+  --mat-button-toggle-selected-state-text-color: var(--fr-accent);
+  border-color: var(--fr-border);
+
+  .mat-button-toggle-label-content { padding: 0 10px; line-height: 24px; }
 }
 
 // Material menus: tighter rows, with room for a shortcut hint

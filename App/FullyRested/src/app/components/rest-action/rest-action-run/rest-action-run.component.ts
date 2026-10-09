@@ -19,8 +19,9 @@ import { SystemSupportService } from 'src/app/services/system-support/system-sup
 import {
   EmptyActionResult,
   ExecuteRestCallsService,
+  TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { ExecuteRestAction, RestActionResult } from '@fullyrested/core';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action-run',
@@ -54,7 +55,8 @@ export class RestActionRunComponent implements OnInit {
   @Output()
   nameChange = new EventEmitter<string>();
 
-  response: RestActionResult = EmptyActionResult;
+  response: TimedActionResult = EmptyActionResult;
+  sending = false;
 
   constructor(
     private era: ExecuteRestCallsService,
@@ -74,13 +76,19 @@ export class RestActionRunComponent implements OnInit {
   }
 
   async executeAction(action: ExecuteRestAction) {
-    this.response = EmptyActionResult;
-    this.response = await this.era.executeTest(action, this.collection);
-    this.response.validated = await this.validateResponse.validateResponse(
-      action,
-      this.response,
-      this.collection,
-    );
+    if (this.sending) return;
+    this.sending = true;
+    try {
+      const response = await this.era.executeTest(action, this.collection);
+      response.validated = await this.validateResponse.validateResponse(
+        action,
+        response,
+        this.collection,
+      );
+      this.response = response;
+    } finally {
+      this.sending = false;
+    }
   }
 
   activeRun(id: string): RestActionRun {

@@ -25,9 +25,13 @@ import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 import {
   SelectedTreeItem,
   CollectionExplorerComponent,
+  ExplorerCommand,
 } from '../collection-explorer/collection-explorer.component';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { LayoutService } from 'src/app/services/layout/layout.service';
+import { ThemeService } from 'src/app/services/theme/theme.service';
+import { SplitterMove } from '../splitter/splitter.directive';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -62,7 +66,7 @@ export class OpenActionsComponent implements OnInit {
   explorerSelected: string = '';
 
   @ViewChild('tabs') tabs!: MatTabGroup;
-  @ViewChild('FileSelectInputDialog') FileSelectInputDialog!: ElementRef;
+  @ViewChild('workspace') workspace!: ElementRef<HTMLElement>;
   @ViewChild('explorer') collectionExplorer:
     CollectionExplorerComponent | undefined;
 
@@ -70,6 +74,8 @@ export class OpenActionsComponent implements OnInit {
     private repo: ActionRepositoryService,
     private appRef: ApplicationRef,
     private systemSupport: SystemSupportService,
+    public layout: LayoutService,
+    public theme: ThemeService,
   ) {
     this.repo.collections.subscribe((s) => {
       this.collection = s;
@@ -240,7 +246,8 @@ export class OpenActionsComponent implements OnInit {
     this.repo.loadCollectionFromFile(file);
   }
 
-  openAction(selected: SelectedTreeItem) {
+  // Resolves once the request's tab exists
+  openAction(selected: SelectedTreeItem): Promise<void> {
     this.enabledMenuOptions = selected?.enabledMenuOptions ?? [];
     this.selectedTab = {
       selectedType: selected?.type,
@@ -258,10 +265,10 @@ export class OpenActionsComponent implements OnInit {
         this.currentSession().actions[existingTab].activeTab;
       this.tabs.selectedIndex = existingTab;
       this.repo.saveCurrentState(this.state);
-      return;
+      return Promise.resolve();
     }
 
-    this.repo.loadRequest(selected.key).then((a) => {
+    return this.repo.loadRequest(selected.key).then((a) => {
       var activeTab = this.currentSession().actions.findIndex(
         (a) => a.activeTab,
       );
@@ -506,6 +513,76 @@ export class OpenActionsComponent implements OnInit {
     );
     this.collection.config.environments[solenv] = env;
     this.repo.storeCollection(this.collection);
+  }
+
+  resizeSidebar(move: SplitterMove) {
+    const left = this.workspace.nativeElement.getBoundingClientRect().left;
+    this.layout.resizeSidebar(move.clientX - left);
+  }
+
+  // Middle-click closes a tab, as in browsers and the other API clients
+  onTabAuxClick(event: MouseEvent, actionId: string) {
+    if (event.button != 1) return;
+    event.preventDefault();
+    this.removeAction(actionId);
+  }
+
+  // Only the tab the run was opened in shows it
+  runIdFor(action: LocalRestAction): string | undefined {
+    if (!this.selectedTab.runkey) return undefined;
+    return this.selectedTab.selectedKey == action.fullFilename
+      ? this.selectedTab.runkey
+      : undefined;
+  }
+
+  runNameFor(action: LocalRestAction): string | undefined {
+    const runId = this.runIdFor(action);
+    if (runId == undefined) return undefined;
+    return action.action.runs.find((r) => r.id == runId)?.name || 'run';
+  }
+
+  activeEnvironmentName(): string {
+    const id = this.collection?.config?.selectedEnvironmentId;
+    return (
+      this.collection?.config?.environments?.find((e) => e.id == id)?.name ??
+      'No environment'
+    );
+  }
+
+  // Which level a settings page edits: the collection itself or one environment
+  settingsScope(): string {
+    if (this.selectedTab.selectedKey.startsWith('system.settings.environments.'))
+      return `· ${this.selectedEnvironment.name}`;
+    return '· Collection';
+  }
+
+  async onExplorerCommand(command: ExplorerCommand) {
+    this.enabledMenuOptions = [command.name];
+    this.selectedTab = {
+      selectedType: command.item.type,
+      selectedSubType: command.item.subtype,
+      selectedKey: command.item.key,
+      runkey: command.item.runkey,
+    };
+
+    switch (command.name) {
+      case 'createEnvironment':
+        this.createEnvironment();
+        break;
+      case 'deleteEnvironment':
+        this.openSystem(command.item);
+        this.deleteEnvironment();
+        break;
+      // runs live in the open copy of the request, so open it (pinned) first
+      case 'createRun':
+        await this.openAction({ ...command.item, activeTab: false });
+        this.createRun();
+        break;
+      case 'deleteRun':
+        await this.openAction({ ...command.item, activeTab: false });
+        this.deleteRun();
+        break;
+    }
   }
 
   tabChange($event: MatTabChangeEvent) {

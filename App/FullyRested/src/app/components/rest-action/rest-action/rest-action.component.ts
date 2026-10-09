@@ -13,8 +13,9 @@ import { RestAction, Collection } from '@fullyrested/core';
 import {
   EmptyActionResult,
   ExecuteRestCallsService,
+  TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult, ExecuteRestAction } from '@fullyrested/core';
+import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action',
@@ -63,7 +64,8 @@ export class RestActionComponent implements OnInit {
   @Input()
   runId: string | undefined;
 
-  response: RestActionResult = EmptyActionResult;
+  response: TimedActionResult = EmptyActionResult;
+  sending = false;
 
   constructor(
     private era: ExecuteRestCallsService,
@@ -74,13 +76,19 @@ export class RestActionComponent implements OnInit {
   ngOnInit(): void {}
 
   async executeAction(action: ExecuteRestAction) {
-    this.response = EmptyActionResult;
-    this.response = await this.era.executeTest(action, this.collection);
-    this.response.validated = await this.validateResponse.validateResponse(
-      action,
-      this.response,
-      this.collection,
-    );
+    if (this.sending) return;
+    this.sending = true;
+    try {
+      const response = await this.era.executeTest(action, this.collection);
+      response.validated = await this.validateResponse.validateResponse(
+        action,
+        response,
+        this.collection,
+      );
+      this.response = response;
+    } finally {
+      this.sending = false;
+    }
   }
 
   onActionChange(event: RestAction) {

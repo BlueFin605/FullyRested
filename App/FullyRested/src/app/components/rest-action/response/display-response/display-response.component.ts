@@ -1,11 +1,14 @@
 import {
   Component,
-  OnInit,
   Input,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { EmptyActionResult } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { RestActionResult } from '@fullyrested/core';
+import {
+  EmptyActionResult,
+  TimedActionResult,
+} from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
+import { LayoutService } from 'src/app/services/layout/layout.service';
+import { formatBytes } from '../display-response-body/body-format';
 
 @Component({
   selector: 'app-display-response',
@@ -14,49 +17,36 @@ import { RestActionResult } from '@fullyrested/core';
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class DisplayResponseComponent implements OnInit {
+export class DisplayResponseComponent {
   @Input()
-  response: RestActionResult = EmptyActionResult;
+  response: TimedActionResult = EmptyActionResult;
 
-  constructor() {}
+  @Input()
+  sending = false;
 
-  ngOnInit(): void {}
+  constructor(public layout: LayoutService) {}
 
-  getlevel() {
-    if (this.response.validated == undefined)
-      return this.getLevelFromStatusCode();
-
-    return this.response.validated.valid ? 'Ok' : 'Error';
+  hasResponse(): boolean {
+    return !(this.response.status === '' && this.response.statusText === undefined);
   }
 
-  getLevelFromStatusCode() {
-    if (this.response.status === '' && this.response.statusText === undefined) {
-      return 'Empty';
-    }
-
-    if (this.response.status === '') {
-      return 'Error';
-    }
-
-    var status =
+  // Colour of the status pill: 2xx ok, 3xx warn, everything else (including no response) error
+  statusLevel(): 'ok' | 'warn' | 'error' {
+    const status =
       typeof this.response.status === 'number'
         ? this.response.status
         : parseInt(this.response.status, 10);
 
-    if (status >= 200 && status < 300) {
-      return 'Ok';
-    }
-
-    return 'Error';
+    if (status >= 200 && status < 300) return 'ok';
+    if (status >= 300 && status < 400) return 'warn';
+    return 'error';
   }
 
-  getErrorString(): string {
-    var alertString: string = '';
+  size(): string {
+    return formatBytes(this.response.sizeBytes);
+  }
 
-    this.response.validated?.errors.forEach((element) => {
-      alertString += element + '\n';
-    });
-
-    return alertString;
+  count(headers: { [header: string]: string } | undefined): number {
+    return Object.keys(headers ?? {}).length;
   }
 }

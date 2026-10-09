@@ -58,4 +58,15 @@ describe('ExecuteRestCallsService', () => {
     expect(sent.length).toBe(1);
     expect(sent[0].url).toBe('prod.example/v1/todos');
   });
+
+  it('reports how long the request took and how big the body was', async () => {
+    (window as any).ipc = {
+      invoke: () => Promise.resolve({ status: 200, body: { contentType: 'text/plain', body: new Uint8Array(42).buffer } })
+    };
+
+    const result = await service.executeTest(request('x.example'), undefined);
+
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    expect(result.sizeBytes).toBe(42);
+  });
 });
