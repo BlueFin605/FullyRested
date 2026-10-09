@@ -1,16 +1,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  CollectionConfig, RestAction, SecretStore,
-  executeRequest, resolveExecuteAction, validateResponse
+  CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
+  executeRequest, relativePath, validateResponse
 } from '@fullyrested/core';
-import { findActionFiles, loadAction, loadCollection } from './files';
+import { loadAction, loadTree } from './files';
 
 export interface RunOptions {
   collection: string;
   environment?: string;
   action?: string;
   run?: string;
+  folder?: string;
   all?: boolean;
 }
 
@@ -23,8 +24,7 @@ export interface TestResult {
 }
 
 interface TestCase {
-  action: RestAction;
-  runId?: string;
+  node: RequestNode | RunNode;
   name: string;
 }
 
@@ -43,11 +43,12 @@ function findEnvironmentId(config: CollectionConfig, name: string | undefined): 
 }
 
 // A request with runs is tested once per run; one without runs is tested as it is
-function casesFor(action: RestAction): TestCase[] {
-  if (action.runs.length == 0)
-    return [{ action, name: action.name }];
+function casesFor(request: RequestNode): TestCase[] {
+  const runs = request.runs();
+  if (runs.length == 0)
+    return [{ node: request, name: request.name }];
 
-  return action.runs.map(r => ({ action, runId: r.id, name: `${action.name} › ${r.name}` }));
+  return runs.map(r => ({ node: r, name: r.name }));
 }
 
 function resolveActionFile(file: string, collectionFolder: string): string {
@@ -58,32 +59,55 @@ function resolveActionFile(file: string, collectionFolder: string): string {
   return fs.existsSync(inCollection) ? inCollection : file;
 }
 
-async function selectCases(options: RunOptions, collectionFolder: string, store: SecretStore): Promise<TestCase[]> {
+// The tree's node for a request file; a file outside the collection folder inherits from the collection only
+async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
+  const full = path.resolve(resolveActionFile(file, collectionFolder));
+  const relative = relativePath(collectionFolder, full);
+  const found = relative == undefined ? undefined : root.find(relative);
+  if (found instanceof RequestNode)
+    return found;
+
+  return root.attach(await loadAction(full, store), undefined);
+}
+
+async function selectCases(options: RunOptions, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<TestCase[]> {
+  if (options.folder != undefined) {
+    if (options.action != undefined)
+      throw new UsageError('Give --folder or --action, not both');
+
+    const folder = root.find(options.folder.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, ''));
+    if (!(folder instanceof ContainerNode))
+      throw new UsageError(`Folder '${options.folder}' not found in the collection`);
+    return folder.requestNodes().flatMap(casesFor);
+  }
+
   if (options.action == undefined) {
     if (options.run != undefined)
       throw new UsageError('--run needs --action');
     if (!options.all)
-      throw new UsageError('Give --action <file> or --all');
+      throw new UsageError('Give --action <file>, --folder <path> or --all');
 
-    const cases: TestCase[] = [];
-    for (const file of findActionFiles(collectionFolder))
-      cases.push(...casesFor(await loadAction(file, store)));
-    return cases;
+    return root.requestNodes().flatMap(casesFor);
   }
 
-  const action = await loadAction(resolveActionFile(options.action, collectionFolder), store);
+  const request = await requestFor(options.action, root, collectionFolder, store);
   if (options.run != undefined) {
-    const run = action.runs.find(r => r.name == options.run || r.id == options.run);
+    const run = request.runs().find(r => r.run.name == options.run || r.run.id == options.run);
     if (run == undefined)
-      throw new UsageError(`Run '${options.run}' not found in '${action.name}'`);
-    return [{ action, runId: run.id, name: `${action.name} › ${run.name}` }];
+      throw new UsageError(`Run '${options.run}' not found in '${request.name}'`);
+    return [{ node: run, name: run.name }];
   }
 
-  return options.all ? casesFor(action) : [{ action, name: action.name }];
+  return options.all ? casesFor(request) : [{ node: request, name: request.name }];
 }
 
-async function runCase(test: TestCase, config: CollectionConfig, environmentId: string | undefined): Promise<TestResult> {
-  const request = resolveExecuteAction({ collection: config, environmentId, action: test.action, runId: test.runId }).replaceVariables();
+async function runCase(test: TestCase, environmentId: string | undefined): Promise<TestResult> {
+  let request;
+  try {
+    request = test.node.resolve({ environmentId }).replaceVariables();
+  } catch (error) {
+    return { name: test.name, status: 'error', ms: 0, passed: false, errors: [(error as Error).message] };
+  }
 
   const started = Date.now();
   const response = await executeRequest(request);
@@ -98,14 +122,15 @@ async function runCase(test: TestCase, config: CollectionConfig, environmentId: 
   return { name: test.name, status: response.status, ms, passed: validation == undefined || validation.valid, errors };
 }
 
-export async function runTests(options: RunOptions, store: SecretStore, onResult: (result: TestResult) => void = () => { }): Promise<TestResult[]> {
-  const config = await loadCollection(options.collection, store);
-  const environmentId = findEnvironmentId(config, options.environment);
-  const cases = await selectCases(options, path.dirname(path.resolve(options.collection)), store);
+export async function runTests(options: RunOptions, store: SecretStore, onResult: (result: TestResult) => void = () => { }, onWarning: (message: string) => void = () => { }): Promise<TestResult[]> {
+  const root = await loadTree(options.collection, store);
+  root.warnings.forEach(onWarning);
+  const environmentId = findEnvironmentId(root.config, options.environment);
+  const cases = await selectCases(options, root, path.dirname(path.resolve(options.collection)), store);
 
   const results: TestResult[] = [];
   for (const test of cases) {
-    const result = await runCase(test, config, environmentId);
+    const result = await runCase(test, environmentId);
     results.push(result);
     onResult(result);
   }
