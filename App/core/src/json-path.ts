@@ -1,4 +1,4 @@
-import { QueryError } from './query';
+import { QueryError } from './query-error';
 
 type Step = { key: string } | { index: number } | { wildcard: true };
 

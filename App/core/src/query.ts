@@ -1,13 +1,9 @@
 import { CaseRecord, RecordBody, RunRecord, toCaseOutcomeCounts } from './run-record';
 import { RunStore } from './run-store';
 import { jsonPath } from './json-path';
+import { QueryError } from './query-error';
 
-export class QueryError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'QueryError';
-  }
-}
+export { QueryError } from './query-error';
 
 export async function resolveRun(stores: RunStore[], runId?: string): Promise<RunRecord> {
   if (runId === undefined) {
@@ -135,7 +131,7 @@ function outlineOf(v: unknown, depth = 0): unknown {
   if (typeof v === 'object') {
     return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, outlineOf(x, depth + 1)]));
   }
-  if (typeof v === 'string') return `string "${v.slice(0, 30)}…"`;
+  if (typeof v === 'string') return v.length > 30 ? `string "${v.slice(0, 30)}…"` : `string "${v}"`;
   return `${typeof v} ${String(v)}`;
 }
 

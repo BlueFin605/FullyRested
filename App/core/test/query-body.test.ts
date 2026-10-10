@@ -45,6 +45,16 @@ describe('caseBody', () => {
       }
     });
   });
+  it('outlines short strings whole, without an ellipsis', () => {
+    const r = withBody(JSON.stringify({ short: 'abc', exact: 'b'.repeat(30) }));
+    expect(caseBody(r, 1, { outline: true }).content).toEqual({
+      short: 'string "abc"', exact: `string "${'b'.repeat(30)}"`
+    });
+  });
+  it('outlines a 31-char string as its first 30 chars plus ellipsis', () => {
+    const r = withBody(JSON.stringify({ long: 'c'.repeat(31) }));
+    expect(caseBody(r, 1, { outline: true }).content).toEqual({ long: `string "${'c'.repeat(30)}…"` });
+  });
   it('limits outline depth to 6', () => {
     const r = withBody(JSON.stringify({ a: { b: { c: { d: { e: { f: { g: 1 } } } } } } }));
     const c = caseBody(r, 1, { outline: true }).content as any;
@@ -60,6 +70,12 @@ describe('caseBody', () => {
     const b = caseBody(fixtureRun(), 1, { cap: 5 });
     expect(b).toMatchObject({ content: '{"id"', truncated: true });
     expect(caseBody(fixtureRun(), 1, { cap: 5, full: true })).toMatchObject({ truncated: false, content: '{"id":1,"name":"Rex"}' });
+  });
+  it('applies the default 32768 cap when no cap is given', () => {
+    const r = withBody('x'.repeat(40000));
+    const b = caseBody(r, 1);
+    expect(b).toMatchObject({ truncated: true });
+    expect(b.content).toHaveLength(32768);
   });
   it('truncates serialised json', () => {
     const b = caseBody(fixtureRun(), 1, { path: '$', cap: 6 });
