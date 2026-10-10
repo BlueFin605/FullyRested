@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
-  executeRequest, relativePath, validateResponse
+  basenameOf, executeRequest, joinPath, relativePath, validateResponse
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
 
@@ -59,15 +59,38 @@ function resolveActionFile(file: string, collectionFolder: string): string {
   return fs.existsSync(inCollection) ? inCollection : file;
 }
 
+// Windows and macOS file systems ignore case, so a path typed in another case still names the same file
+const caseInsensitive = process.platform == 'win32' || process.platform == 'darwin';
+
+// A collection-relative path spelt the way the tree spells it, as far as the tree has the folders and file it names
+function treePath(root: CollectionNode, relative: string): string {
+  if (!caseInsensitive)
+    return relative;
+
+  let container: ContainerNode = root;
+  const segments = relative.split('/').filter(p => p != '');
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i]!;
+    const child = container.children.find(c => basenameOf(c.path) == segment)
+      ?? container.children.find(c => basenameOf(c.path).toLowerCase() == segment.toLowerCase());
+    if (child == undefined)
+      return joinPath(container.path, ...segments.slice(i));
+    if (!(child instanceof ContainerNode))
+      return joinPath(child.path, ...segments.slice(i + 1));
+    container = child;
+  }
+  return container.path;
+}
+
 // The tree's node for a request file; a file outside the collection folder inherits from the collection only
 async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
   const full = path.resolve(resolveActionFile(file, collectionFolder));
-  const relative = relativePath(collectionFolder, full);
+  const typed = relativePath(collectionFolder, full);
+  const relative = typed == undefined ? undefined : treePath(root, typed);
   const found = relative == undefined ? undefined : root.find(relative);
   if (found instanceof RequestNode)
     return found;
 
-  // find() is case-sensitive and the file system may not be: keep the request under the folders its path names
   return root.attach(await loadAction(full, store), relative);
 }
 
@@ -82,7 +105,7 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     if (options.action != undefined)
       throw new UsageError('Give --folder or --action, not both');
 
-    const folder = root.find(folderPath(options.folder));
+    const folder = root.find(treePath(root, folderPath(options.folder)));
     if (!(folder instanceof ContainerNode))
       throw new UsageError(`Folder '${options.folder}' not found in the collection`);
     return folder.requestNodes().flatMap(casesFor);

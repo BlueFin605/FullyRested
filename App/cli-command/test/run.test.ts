@@ -168,6 +168,46 @@ describe('folders', () => {
     expect(lastHeaders['x-folder']).toBe('items');
   });
 
+  it('runs a named run from the tree, so it inherits its folder', async () => {
+    lastHeaders = {};
+    await runTests({ collection: collection(), action: 'items/runs.frreq', run: 'expects 404' }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+  });
+
+  it('inherits only from the collection for an action file outside the collection folder', async () => {
+    const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-outside-'));
+    try {
+      const file = path.join(elsewhere, 'loose.frreq');
+      fs.writeFileSync(file, JSON.stringify(request('r-loose', 'loose', '{{host}}/ok')));
+      lastHeaders = {};
+      const [result] = await runTests({ collection: collection(), action: file }, noKeychain);
+      expect(result).toMatchObject({ name: 'loose', status: 200, passed: true });
+      expect(lastHeaders['x-folder']).toBeUndefined();
+      expect(lastHeaders['x-key']).toBe('');
+    } finally {
+      fs.rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts backslashes in --folder', async () => {
+    const results = await runTests({ collection: collection(), folder: '.\\items\\' }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
+  });
+
+  it('refuses --folder together with --action', async () => {
+    await expect(runTests({ collection: collection(), folder: 'items', action: 'items/ok.frreq' }, noKeychain)).rejects.toThrow('Give --folder or --action, not both');
+  });
+
+  it('matches folder names ignoring case on a case-insensitive file system', async () => {
+    if (!fs.existsSync(path.join(folder, 'ITEMS')))
+      return;
+    lastHeaders = {};
+    await runTests({ collection: collection(), action: path.join(folder, 'ITEMS', 'ok.frreq') }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+    const results = await runTests({ collection: collection(), folder: 'ITEMS' }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
+  });
+
   it('rejects an unknown folder', async () => {
     await expect(runTests({ collection: collection(), folder: 'nope' }, noKeychain)).rejects.toThrow(UsageError);
   });
