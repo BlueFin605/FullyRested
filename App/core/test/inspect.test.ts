@@ -138,6 +138,17 @@ describe('showRequest', () => {
     expect(JSON.stringify(shown)).not.toContain('sekret-123');
   });
 
+  it('shows a secret encoded into a query parameter as its placeholder', async () => {
+    const req = JSON.parse(request);
+    // A literal secret value in a parameter is encoded by buildRequestUrl before showRequest sees it
+    req.parameters = [{ key: 'key', value: 'p@ss word', active: true, id: 'p1' }];
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req) })),
+      keychain({ 'fullyrested-collection-c1/apikey': 'p@ss word' }));
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(shown.url).toBe('https://example.com/items?key={{$secret:apikey}}');
+    expect(JSON.stringify(shown)).not.toContain('p@ss+word');
+  });
+
   it('shows a short secret as its placeholder', async () => {
     const req = JSON.parse(request);
     req.url = '{{host}}/items/{{$apikey}}';

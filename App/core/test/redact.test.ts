@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { redactCase, CaseRecord, SecretTable } from '../src';
+import { redactCase, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, prepareRequest } from '../src';
 
 const secret = (name: string, value: string, active = true): SecretTable => ({ $secret: name, $value: value, active, id: name });
 
@@ -10,6 +10,28 @@ const base = (over: Partial<CaseRecord['request']> = {}, response?: CaseRecord['
 });
 
 describe('redactCase', () => {
+  const post = (body: unknown, contentType: string) => prepareRequest(ExecuteRestAction.NewExecuteRestAction()
+    .setProtocol(HttpProtocol.https).setUrl('x.test/a').setVerb(RestTypeVerb.post).setBody({ contentType, body }));
+
+  it.each(['p@ss word', 'Pa$$w0rd!', 'a;b,c=d?e:f'])('replaces a secret %s in a query string built by buildRequestUrl', value => {
+    const url = buildRequestUrl('https://x.test/a', [{ key: 'k', value, active: true, id: 'p' }]);
+    const out = redactCase(base({ url }), [secret('pw', value)]);
+    expect(out.request.url).toBe('https://x.test/a?k={{$secret:pw}}');
+  });
+
+  it.each(['p@ss word', 'Pa$$w0rd!', "it's (~ok)"])('replaces a secret %s in a form body built by prepareRequest', value => {
+    const prepared = post([{ key: 'pw', value, active: true, id: 'f' }], 'application/x-www-form-urlencoded');
+    const out = redactCase(base({ body: { bytes: 1, text: prepared.body } }), [secret('pw', value)]);
+    expect(out.request.body?.text).toBe('pw={{$secret:pw}}');
+  });
+
+  it('replaces a JSON-escaped secret in a JSON body built by prepareRequest', () => {
+    const value = 'a"bc\\d';
+    const prepared = post({ pw: value }, 'application/json');
+    const out = redactCase(base({ body: { bytes: 1, text: prepared.body } }), [secret('pw', value)]);
+    expect(out.request.body?.text).toBe('{"pw":"{{$secret:pw}}"}');
+  });
+
   it('replaces a secret in the query string, raw and URI-encoded', () => {
     const out = redactCase(base({ url: 'https://x.test/a?k=p@ss word&e=p%40ss%20word' }), [secret('pw', 'p@ss word')]);
     expect(out.request.url).toBe('https://x.test/a?k={{$secret:pw}}&e={{$secret:pw}}');

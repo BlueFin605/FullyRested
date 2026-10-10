@@ -24,7 +24,8 @@ function encodeUriString(s: string): string {
         .replace(/%2C/gi, ',');
 }
 
-function encodeQuery(s: string): string {
+// How buildRequestUrl encodes a query key or value
+export function encodeQuery(s: string): string {
     return readable(encodeUriString(s).replace(/%3B/gi, ';'));
 }
 

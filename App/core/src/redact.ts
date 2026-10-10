@@ -1,5 +1,6 @@
 import { SecretTable } from './model';
 import { CaseRecord, RecordBody } from './run-record';
+import { encodeQuery } from './resolve';
 
 const MIN_SECRET_LENGTH = 4;
 
@@ -7,15 +8,26 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Returns a function replacing every active secret value (raw or URI-encoded) with its placeholder. */
+// Every form a value takes on the wire: raw, URI-encoded, as buildRequestUrl encodes a query value,
+// as a URLSearchParams form body encodes it, and escaped inside a JSON string
+function encodingsOf(value: string): string[] {
+  return [
+    value,
+    encodeURIComponent(value),
+    encodeQuery(value),
+    new URLSearchParams({ k: value }).toString().slice(2),
+    JSON.stringify(value).slice(1, -1),
+  ];
+}
+
+/** Returns a function replacing every active secret value (raw or in any wire encoding) with its placeholder. */
 export function secretReplacer(secrets: SecretTable[] | undefined, minLength: number = MIN_SECRET_LENGTH): (text: string) => string {
   const byValue = new Map<string, string>();
   for (const s of secrets ?? []) {
     if (!s.active || typeof s.$value !== 'string' || s.$value.length < Math.max(1, minLength)) continue;
     const placeholder = `{{$secret:${s.$secret}}}`;
-    if (!byValue.has(s.$value)) byValue.set(s.$value, placeholder);
-    const encoded = encodeURIComponent(s.$value);
-    if (encoded !== s.$value && !byValue.has(encoded)) byValue.set(encoded, placeholder);
+    for (const form of encodingsOf(s.$value))
+      if (!byValue.has(form)) byValue.set(form, placeholder);
   }
   if (byValue.size === 0) return text => text;
   // Longest first, in a single pass, so overlapping secrets are not half-replaced
