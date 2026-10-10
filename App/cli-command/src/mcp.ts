@@ -106,9 +106,12 @@ export function createServer(opts: McpOptions): McpServer {
   }, a => respond(async () => caseRequest(await servedRun(a.store, a.runId), a.case)));
 
   server.registerTool('case_response', {
-    description: 'Show the response a case received, without its body.',
-    inputSchema: { case: caseRef, runId, store }
-  }, a => respond(async () => caseResponse(await servedRun(a.store, a.runId), a.case)));
+    description: 'Show the response a case received, without its body. Only the useful headers are shown (headersOmitted counts the rest) unless headers is given.',
+    inputSchema: {
+      case: caseRef, runId, store,
+      headers: z.union([z.literal(true), z.array(z.string())]).optional().describe('true for every header, or a list of header names')
+    }
+  }, a => respond(async () => caseResponse(await servedRun(a.store, a.runId), a.case, { headers: a.headers })));
 
   server.registerTool('case_body', {
     description: 'Show the response body of a case (or the request body), optionally by JSON path, outline or range.',

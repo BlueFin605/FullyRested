@@ -93,6 +93,20 @@ describe('mcp server', () => {
     expect(result.selection).toBe(all.selection);
   });
 
+  it('case_response keeps only the useful headers unless asked for more', async () => {
+    const client = await connect();
+    await call(client, 'run', { collection: fx.collection, action: 'items/ok.frreq' });
+    const trimmed = (await call(client, 'case_response', { case: 'ok' })).json();
+    expect(trimmed.headers).toHaveProperty('content-type');
+    expect(trimmed.headers).not.toHaveProperty('date');
+    expect(trimmed.headersOmitted).toBeGreaterThan(0);
+    const all = (await call(client, 'case_response', { case: 'ok', headers: true })).json();
+    expect(all.headers).toHaveProperty('date');
+    expect(all).not.toHaveProperty('headersOmitted');
+    const named = (await call(client, 'case_response', { case: 'ok', headers: ['Date'] })).json();
+    expect(Object.keys(named.headers)).toEqual(['date']);
+  });
+
   it('run without a store writes no .fullyrested-runs in the working directory', async () => {
     const cwd = process.cwd();
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-cwd-'));

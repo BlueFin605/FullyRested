@@ -102,6 +102,32 @@ describe('runResult', () => {
   });
 });
 
+describe('caseResponse headers', () => {
+  const noisy = () => {
+    const run = fixtureRun();
+    run.cases[0]!.response!.headers = {
+      'content-type': 'application/json', 'set-cookie': 'a=1', 'content-security-policy': "default-src 'self'",
+      'Location': '/pets/1', 'x-amzn-requestid': 'abc', 'p3p': 'CP="nope"'
+    };
+    return run;
+  };
+  it('keeps only the useful headers by default and counts the rest', () => {
+    const res = caseResponse(noisy(), 1);
+    expect(res.headers).toEqual({ 'content-type': 'application/json', 'Location': '/pets/1', 'x-amzn-requestid': 'abc' });
+    expect(res.headersOmitted).toBe(3);
+  });
+  it('headers: true returns them all with no omitted count', () => {
+    const res = caseResponse(noisy(), 1, { headers: true });
+    expect(Object.keys(res.headers)).toHaveLength(6);
+    expect(res).not.toHaveProperty('headersOmitted');
+  });
+  it('a list of names returns just those, matched case-insensitively', () => {
+    const res = caseResponse(noisy(), 1, { headers: ['Set-Cookie', 'location'] });
+    expect(res.headers).toEqual({ 'set-cookie': 'a=1', 'Location': '/pets/1' });
+    expect(res.headersOmitted).toBe(4);
+  });
+});
+
 describe('caseRequest / caseResponse', () => {
   it('returns body metadata only', () => {
     const req = caseRequest(fixtureRun(), 1);

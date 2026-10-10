@@ -122,9 +122,11 @@ withQueryOptions(program.command('request').argument('<case>', 'case index or na
   }));
 
 withQueryOptions(program.command('response').argument('<case>', 'case index or name').argument('[runId]', 'run id (default: the latest)')
-  .description('Show the response a case received'))
-  .action(queryAction(async (ref: string, runId: string | undefined, options: QueryOptions) => {
-    const result = caseResponse(await resolveRun([openStore(options)], runId), ref);
+  .description('Show the response a case received')
+  .option('--headers <names>', 'show only these headers (comma-separated, any case)'))
+  .action(queryAction(async (ref: string, runId: string | undefined, options: QueryOptions & { headers?: string }) => {
+    const headers = options.headers === undefined ? true : options.headers.split(',').map(h => h.trim()).filter(h => h !== '');
+    const result = caseResponse(await resolveRun([openStore(options)], runId), ref, { headers });
     printResult(options, result, formatResponse(result));
   }));
 

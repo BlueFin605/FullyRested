@@ -124,16 +124,37 @@ export function caseRequest(r: RunRecord, ref: string | number) {
   return out;
 }
 
-export function caseResponse(r: RunRecord, ref: string | number) {
+// The response headers worth showing by default; cookies, CSP and the like are left out
+const USEFUL_HEADERS = new Set([
+  'content-type', 'content-length', 'content-encoding', 'location', 'cache-control', 'etag', 'last-modified',
+  'www-authenticate', 'retry-after', 'allow', 'x-request-id', 'x-correlation-id',
+  'x-amzn-requestid', 'x-amz-request-id', 'x-amzn-errortype', 'x-amz-apigw-id'
+]);
+
+export interface ResponseOptions {
+  /** true for every header, a list of names (any case) for just those; default: the useful ones */
+  headers?: true | string[];
+}
+
+function pickHeaders(all: Record<string, string>, want: ResponseOptions['headers']) {
+  if (want === true) return { headers: all, omitted: 0 };
+  const keep = want === undefined ? USEFUL_HEADERS : new Set(want.map(h => h.toLowerCase()));
+  const headers = Object.fromEntries(Object.entries(all).filter(([k]) => keep.has(k.toLowerCase())));
+  return { headers, omitted: Object.keys(all).length - Object.keys(headers).length };
+}
+
+export function caseResponse(r: RunRecord, ref: string | number, o: ResponseOptions = {}) {
   const c = findCase(r, ref);
   if (!c.response) throw new QueryError(`Case ${c.index} got no response: ${c.error ?? 'unknown error'}`);
+  const { headers, omitted } = pickHeaders(c.response.headers, o.headers);
   const out: {
     index: number; name: string; status: number; statusText: string; ms: number; headers: Record<string, string>;
-    body?: { contentType?: string; bytes: number };
+    headersOmitted?: number; body?: { contentType?: string; bytes: number };
   } = {
     index: c.index, name: c.name, status: c.response.status, statusText: c.response.statusText ?? '',
-    ms: c.ms, headers: c.response.headers
+    ms: c.ms, headers
   };
+  if (omitted > 0) out.headersOmitted = omitted;
   const body = bodyMeta(c.response.body);
   if (body) out.body = body;
   return out;

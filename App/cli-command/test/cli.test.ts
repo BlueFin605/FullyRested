@@ -203,6 +203,14 @@ describe('query commands', () => {
     expect(JSON.parse((await q(['response', 'ok', runId, '--json'])).out).status).toBe(200);
   });
 
+  it('response shows every header by default and only the named ones with --headers', async () => {
+    expect((await q(['response', '1'])).out).toMatch(/^date: /m);
+    const some = await q(['response', '1', '--headers', 'Content-Type,x-nothing']);
+    expect(some.out).toContain('content-type: text/plain');
+    expect(some.out).not.toMatch(/^date: /m);
+    expect(some.out).toMatch(/^-- \d+ more headers; use --headers <names> or leave it out for all$/m);
+  });
+
   it('body prints the content, honours --range, and rejects bad input', async () => {
     expect((await q(['body', 'ok'])).out).toBe('env=dev\n');
     expect((await q(['body', 'ok', '--range', '0:3'])).out).toBe('env\n');

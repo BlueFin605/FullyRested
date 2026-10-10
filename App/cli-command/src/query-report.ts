@@ -49,7 +49,8 @@ export function formatRequest(r: Request): string {
 }
 
 export function formatResponse(r: Response): string {
-  return [`${r.status} ${r.statusText} ${r.ms}ms`, ...headerLines(r.headers), bodyLine(r.body)].join('\n');
+  const omitted = r.headersOmitted ? [`-- ${r.headersOmitted} more headers; use --headers <names> or leave it out for all`] : [];
+  return [`${r.status} ${r.statusText} ${r.ms}ms`, ...headerLines(r.headers), ...omitted, bodyLine(r.body)].join('\n');
 }
 
 export function formatBody(b: BodyResult): string {
