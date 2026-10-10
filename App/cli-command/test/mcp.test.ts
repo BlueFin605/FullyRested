@@ -136,6 +136,31 @@ describe('mcp server', () => {
     expect(runs.json()).toEqual([]);
   });
 
+  it('refuses a run recorded with --include-secrets', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-unredacted-'));
+    try {
+      fs.mkdirSync(path.join(dir, '.fullyrested-runs'));
+      const record = {
+        runId: '20260101-000000-abcd', startedAt: '2026-01-01T00:00:00.000Z', collection: 'c', selection: '--all', redacted: false,
+        cases: [{ index: 1, name: 'ok', requestFile: 'f', outcome: 'pass', ms: 1,
+          request: { method: 'GET', url: 'https://x.test/?k=sk-test-secret', headers: {} },
+          response: { status: 200, headers: {}, body: { bytes: 14, text: 'sk-test-secret' } } }]
+      };
+      fs.writeFileSync(path.join(dir, '.fullyrested-runs', `${record.runId}.json`), JSON.stringify(record));
+      const client = await connect();
+      for (const [tool, args] of [
+        ['run_summary', {}], ['failures', { runId: record.runId }], ['case_request', { case: 1 }],
+        ['case_response', { case: 1 }], ['case_body', { case: 1 }]
+      ] as const) {
+        const result = await call(client, tool, { ...args, store: dir });
+        expect(result.isError, tool).toBe(true);
+        expect(result.text).toBe(`Run ${record.runId} was recorded with --include-secrets; it is not served over MCP`);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('a run id with path separators is not found and never reads a file outside .fullyrested-runs', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-decoy-'));
     try {

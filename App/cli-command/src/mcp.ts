@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  MemoryRunStore, QueryError, RunListing, RunStore, SecretStore,
+  MemoryRunStore, QueryError, RunListing, RunRecord, RunStore, SecretStore,
   caseBody, caseRequest, caseResponse, failures, resolveRun, summary
 } from '@fullyrested/core';
 import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
@@ -29,6 +29,14 @@ export function createServer(opts: McpOptions): McpServer {
   const storesFor = (dir?: string): RunStore[] => {
     const disk = fsStore(dir);
     return disk ? [memory, disk] : [memory];
+  };
+
+  // A record kept with --include-secrets holds secret values, so it is never served to an agent
+  const servedRun = async (dir: string | undefined, id: string | undefined): Promise<RunRecord> => {
+    const record = await resolveRun(storesFor(dir), id);
+    if (record.redacted !== true)
+      throw new QueryError(`Run ${record.runId} was recorded with --include-secrets; it is not served over MCP`);
+    return record;
   };
 
   // One text item holding JSON; known errors come back as isError results instead of protocol errors
@@ -88,22 +96,22 @@ export function createServer(opts: McpOptions): McpServer {
   server.registerTool('run_summary', {
     description: 'Show every case of a run with its outcome.',
     inputSchema: { runId, store }
-  }, a => respond(async () => summary(await resolveRun(storesFor(a.store), a.runId))));
+  }, a => respond(async () => summary(await servedRun(a.store, a.runId))));
 
   server.registerTool('failures', {
     description: 'Show the failing and errored cases of a run.',
     inputSchema: { runId, store }
-  }, a => respond(async () => failures(await resolveRun(storesFor(a.store), a.runId))));
+  }, a => respond(async () => failures(await servedRun(a.store, a.runId))));
 
   server.registerTool('case_request', {
     description: 'Show the request a case sent.',
     inputSchema: { case: caseRef, runId, store }
-  }, a => respond(async () => caseRequest(await resolveRun(storesFor(a.store), a.runId), a.case)));
+  }, a => respond(async () => caseRequest(await servedRun(a.store, a.runId), a.case)));
 
   server.registerTool('case_response', {
     description: 'Show the response a case received, without its body.',
     inputSchema: { case: caseRef, runId, store }
-  }, a => respond(async () => caseResponse(await resolveRun(storesFor(a.store), a.runId), a.case)));
+  }, a => respond(async () => caseResponse(await servedRun(a.store, a.runId), a.case)));
 
   server.registerTool('case_body', {
     description: 'Show the response body of a case (or the request body), optionally by JSON path, outline or range.',
@@ -115,7 +123,7 @@ export function createServer(opts: McpOptions): McpServer {
       range: z.object({ start: z.number().int().min(0), end: z.number().int().min(0) }).optional().describe('Character range of a text body'),
       full: z.boolean().optional().describe('Do not truncate')
     }
-  }, a => respond(async () => caseBody(await resolveRun(storesFor(a.store), a.runId), a.case, {
+  }, a => respond(async () => caseBody(await servedRun(a.store, a.runId), a.case, {
     request: a.request, path: a.path, outline: a.outline, full: a.full,
     range: a.range ? [a.range.start, a.range.end] : undefined
   })));
