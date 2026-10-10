@@ -57,6 +57,13 @@ export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): C
   };
   if (c.request.body) request.body = redactBody(c.request.body, replace);
   const out: CaseRecord = { ...c, request };
+  if (c.error !== undefined) out.error = replace(c.error);
+  if (c.validation) {
+    out.validation = {
+      ...c.validation,
+      checks: c.validation.checks.map(ch => ({ ...ch, errors: ch.errors.map(replace) })),
+    };
+  }
   if (c.response) {
     out.response = { ...c.response, headers: redactHeaders(c.response.headers, replace) };
     if (c.response.body) out.response.body = redactBody(c.response.body, replace);

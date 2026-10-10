@@ -78,4 +78,37 @@ describe('redactCase', () => {
     const out = redactCase(base({ url: 'https://x.test/?a=abcdXYZ1' }), [secret('short', 'abcd'), secret('long', 'abcdXYZ1')]);
     expect(out.request.url).toBe('https://x.test/?a={{$secret:long}}');
   });
+
+  it('treats regex-special characters in a secret literally', () => {
+    const v = 'a.b*c+(d)[e]|f$g^';
+    const out = redactCase(base({ url: `https://x.test/?a=${v}&b=aXb*c+(d)[e]|f$g^` }), [secret('rx', v)]);
+    expect(out.request.url).toBe('https://x.test/?a={{$secret:rx}}&b=aXb*c+(d)[e]|f$g^');
+  });
+
+  it('treats $& in a secret value literally', () => {
+    const out = redactCase(base({ url: 'https://x.test/?a=ab$&cd&b=abXXcd' }), [secret('d', 'ab$&cd')]);
+    expect(out.request.url).toBe('https://x.test/?a={{$secret:d}}&b=abXXcd');
+  });
+
+  it('redacts secrets in error and validation check errors', () => {
+    const rec: CaseRecord = {
+      ...base(),
+      outcome: 'error',
+      error: 'connect failed https://x.test/?k=abcd1234',
+      validation: {
+        valid: false,
+        checks: [
+          { check: 'body', passed: false, errors: ['expected abcd1234', 'other'] },
+          { check: 'status', passed: true, errors: [] },
+        ],
+      },
+    };
+    const out = redactCase(rec, [secret('key', 'abcd1234')]);
+    expect(out.error).toBe('connect failed https://x.test/?k={{$secret:key}}');
+    expect(out.validation?.checks[0].errors).toEqual(['expected {{$secret:key}}', 'other']);
+    expect(out.validation?.checks[1].errors).toEqual([]);
+    expect(out.validation?.valid).toBe(false);
+    expect(rec.error).toContain('abcd1234');
+    expect(rec.validation?.checks[0].errors[0]).toBe('expected abcd1234');
+  });
 });
