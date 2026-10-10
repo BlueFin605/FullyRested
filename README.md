@@ -149,6 +149,47 @@ when anything fails, and 2 for bad options.
 turned into `_`), then from the OS keychain the desktop app saves to. On CI,
 set the environment variables.
 
+## Using FullyRested from an AI agent
+
+`fullyrested mcp` serves the runner over MCP on stdio, so an agent can run a
+collection and look into the results without reading raw output. After
+`npm link` in `App/cli-command`, register it:
+
+```sh
+claude mcp add fullyrested -- fullyrested mcp [--store <dir>]
+```
+
+The tool flow is **run**, then **failures**, then the `case_*` tools:
+
+| Tool | Use |
+|---|---|
+| `tree`, `environments`, `show_request` | Look at a collection and how a request would be sent |
+| `run` | Send requests and get a summary (bodies are never included) |
+| `list_runs`, `run_summary`, `failures` | Find a run and see which cases failed, grouped by check |
+| `case_request`, `case_response`, `case_body` | Drill into one case. `case_body` takes `path`, `outline`, `range` and `full` so a large body is not dumped whole |
+
+The CLI has the same queries for a terminal or a script:
+
+| CLI | Same as |
+|---|---|
+| `run --record` | `run`, and also saves the run record |
+| `runs`, `summary`, `failures` | `list_runs`, `run_summary`, `failures` |
+| `request`, `response`, `body` | `case_request`, `case_response`, `case_body` |
+| `tree`, `envs`, `show` | `tree`, `environments`, `show_request` |
+
+Every query command takes `--json`. A case is named by its index, counted
+from 1 in the order the run sent it, or by its name.
+
+**Run records.** `run --record` and the MCP `run` tool save each run under
+`<store>/.fullyrested-runs`. `--store` defaults to the current directory. The
+MCP server keeps its runs in memory (the last 20) unless a store is given:
+`fullyrested mcp --store <dir>` or the `run` tool's `store` argument also
+writes them to disk. FullyRested never prunes
+that folder, and you decide whether to add it to `.gitignore`.
+
+**Secrets** are redacted in run records and in everything the agent sees.
+`--include-secrets` keeps them in a record, and exists on the CLI only.
+
 ## Project layout
 
 | Path | What |

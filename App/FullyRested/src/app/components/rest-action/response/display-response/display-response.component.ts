@@ -42,6 +42,12 @@ export class DisplayResponseComponent {
     return 'error';
   }
 
+  // Failed checks when the validation reports them, otherwise the number of errors
+  failedCount(): number {
+    const validated = this.response.validated;
+    return validated?.checks?.filter(c => !c.passed).length ?? validated?.errors.length ?? 0;
+  }
+
   size(): string {
     return formatBytes(this.response.sizeBytes);
   }

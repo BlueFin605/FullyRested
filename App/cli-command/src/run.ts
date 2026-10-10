@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
-  basenameOf, executeRequest, joinPath, relativePath, validateResponse
+  CaseRecord, RunRecord, basenameOf, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
+  redactCase, relativePath, validateResponse
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
 
@@ -30,16 +31,27 @@ interface TestCase {
 
 export class UsageError extends Error { }
 
-function findEnvironmentId(config: CollectionConfig, name: string | undefined): string | undefined {
+// A collection or request file that cannot be loaded is a usage problem (exit 2), not a crash
+export async function setup<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    // A programming error is a bug, not a usage problem
+    if (error instanceof UsageError || error instanceof TypeError || error instanceof ReferenceError) throw error;
+    throw new UsageError((error as Error).message);
+  }
+}
+
+export function findEnvironment(config: CollectionConfig, name: string | undefined): { id: string | undefined; name: string | undefined } {
   if (name == undefined)
-    return undefined;
+    return { id: undefined, name: config.environments.find(e => e.id == config.selectedEnvironmentId)?.name };
 
   const env = config.environments.find(e => e.name == name || e.id == name);
   if (env == undefined) {
     const known = config.environments.map(e => e.name).join(', ') || 'none';
     throw new UsageError(`Environment '${name}' not found (known: ${known})`);
   }
-  return env.id;
+  return { id: env.id, name: env.name };
 }
 
 // A request with runs is tested once per run; one without runs is tested as it is
@@ -83,7 +95,7 @@ function treePath(root: CollectionNode, relative: string): string {
 }
 
 // The tree's node for a request file; a file outside the collection folder inherits from the collection only
-async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
+export async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
   const full = path.resolve(resolveActionFile(file, collectionFolder));
   const typed = relativePath(collectionFolder, full);
   const relative = typed == undefined ? undefined : treePath(root, typed);
@@ -131,38 +143,97 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
   return options.all ? casesFor(request) : [{ node: request, name: request.name }];
 }
 
-async function runCase(test: TestCase, environmentId: string | undefined): Promise<TestResult> {
+function requestNodeOf(node: RequestNode | RunNode): RequestNode {
+  return node instanceof RunNode ? node.request : node;
+}
+
+async function runCase(test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean): Promise<CaseRecord> {
+  const base = {
+    index,
+    name: test.name,
+    requestFile: requestNodeOf(test.node).path,
+    ...(test.node instanceof RunNode ? { runName: test.node.run.name } : {})
+  };
+
   let request;
   try {
     request = test.node.resolve({ environmentId }).replaceVariables();
   } catch (error) {
-    return { name: test.name, status: 'error', ms: 0, passed: false, errors: [(error as Error).message] };
+    return buildCaseRecord({ ...base, ms: 0, error: (error as Error).message });
   }
 
+  const prepared = prepareRequest(request);
   const started = Date.now();
   const response = await executeRequest(request);
   const ms = Date.now() - started;
 
-  if (typeof response.status != 'number' || response.status < 0)
-    return { name: test.name, status: response.status, ms, passed: false, errors: [`No response: ${response.statusText ?? 'unknown error'}`] };
-
+  // A negative or string status means no response came back, so there is nothing to validate.
   // Without validation a request passes when any HTTP response comes back
-  const validation = validateResponse(request, response);
-  const errors = validation?.errors ?? [];
-  return { name: test.name, status: response.status, ms, passed: validation == undefined || validation.valid, errors };
+  const gotResponse = typeof response.status == 'number' && response.status >= 0;
+  const validation = gotResponse ? validateResponse(request, response) : undefined;
+  const built = buildCaseRecord({ ...base, ms, request: prepared, response, validation });
+  const record = includeSecrets ? built : redactCase(built, request.secrets);
+  if (!gotResponse)
+    noResponseStatus.set(record, response.status);
+  return record;
+}
+
+// The run's text output and --junit still show the network error status of a case with no response,
+// which the record leaves out
+const noResponseStatus = new WeakMap<CaseRecord, number | string>();
+
+function describeSelection(options: RunOptions): string {
+  if (options.folder != undefined)
+    return `--folder ${options.folder}`;
+  if (options.action != undefined)
+    return [`--action ${options.action}`, options.run != undefined ? `--run ${options.run}` : undefined, options.all ? '--all' : undefined]
+      .filter(p => p != undefined).join(' ');
+  return '--all';
+}
+
+export interface RunHooks {
+  onCase?(c: CaseRecord): void;
+  onWarning?(message: string): void;
+  includeSecrets?: boolean;
+}
+
+export async function runCollection(options: RunOptions, store: SecretStore, hooks: RunHooks = {}): Promise<RunRecord> {
+  const root = await setup(() => loadTree(options.collection, store));
+  root.warnings.forEach(w => hooks.onWarning?.(w));
+  const environment = findEnvironment(root.config, options.environment);
+  const cases = await setup(() => selectCases(options, root, path.dirname(path.resolve(options.collection)), store));
+  const includeSecrets = hooks.includeSecrets ?? false;
+
+  const record: RunRecord = {
+    runId: newRunId(),
+    startedAt: new Date().toISOString(),
+    collection: options.collection,
+    selection: describeSelection(options),
+    redacted: !includeSecrets,
+    cases: []
+  };
+  if (environment.name != undefined)
+    record.environment = environment.name;
+
+  for (const [i, test] of cases.entries()) {
+    const c = await runCase(test, i + 1, environment.id, includeSecrets); // case indexes are 1-based
+    record.cases.push(c);
+    hooks.onCase?.(c);
+  }
+  return record;
+}
+
+export function toTestResult(c: CaseRecord): TestResult {
+  return {
+    name: c.name,
+    status: c.response?.status ?? noResponseStatus.get(c) ?? 'error',
+    ms: c.ms,
+    passed: c.outcome == 'pass',
+    errors: c.error ? [c.error] : c.validation?.checks.flatMap(x => x.errors) ?? []
+  };
 }
 
 export async function runTests(options: RunOptions, store: SecretStore, onResult: (result: TestResult) => void = () => { }, onWarning: (message: string) => void = () => { }): Promise<TestResult[]> {
-  const root = await loadTree(options.collection, store);
-  root.warnings.forEach(onWarning);
-  const environmentId = findEnvironmentId(root.config, options.environment);
-  const cases = await selectCases(options, root, path.dirname(path.resolve(options.collection)), store);
-
-  const results: TestResult[] = [];
-  for (const test of cases) {
-    const result = await runCase(test, environmentId);
-    results.push(result);
-    onResult(result);
-  }
-  return results;
+  const record = await runCollection(options, store, { onCase: c => onResult(toTestResult(c)), onWarning });
+  return record.cases.map(toTestResult);
 }

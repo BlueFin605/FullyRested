@@ -1,81 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createServer, IncomingHttpHeaders, Server } from 'node:http';
-import { AddressInfo } from 'node:net';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { runTests, UsageError } from '../src/run';
+import { request, startFixture } from './fixture';
+import { runCollection, runTests, setup, UsageError } from '../src/run';
 import { formatResult, toJUnit } from '../src/report';
 import { createSecretStore, secretEnvironmentVariable } from '../src/secret-store';
-
-let server: Server;
+let fx: Awaited<ReturnType<typeof startFixture>>;
 let host = '';
-let lastHeaders: IncomingHttpHeaders = {};
-let lastUrl = '';
 let folder = '';
+const last = { get headers() { return fx.last.headers; }, set headers(v) { fx.last.headers = v; }, get url() { return fx.last.url; } };
 
 const noKeychain = createSecretStore({}, undefined);
 
-function validation(type: string, httpCode: number) {
-  return { type, httpCode, headers: [], body: 'None', jsonSchema: undefined };
-}
-
-function request(id: string, name: string, url: string, extra: object = {}) {
-  return {
-    id, name, verb: 'get', protocol: 'http', url,
-    headers: [{ key: 'x-key', value: '{{$apikey}}', active: true, id: 'h1' }],
-    parameters: [],
-    body: { contentType: 'none', body: undefined },
-    authentication: { authentication: 'inherit' },
-    runs: [],
-    validation: validation('ResponseCode', 200),
-    ...extra
-  };
-}
-
 beforeAll(async () => {
-  server = createServer((req, res) => {
-    lastHeaders = req.headers;
-    lastUrl = req.url ?? '';
-    const status = req.url?.startsWith('/missing') ? 404 : 200;
-    res.writeHead(status, { 'content-type': 'text/plain' });
-    res.end(`env=${new URL(req.url ?? '', 'http://x').searchParams.get('env')}`);
-  });
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  host = `127.0.0.1:${(server.address() as AddressInfo).port}`;
-
-  folder = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-cli-'));
-  fs.writeFileSync(path.join(folder, 'api.frcol'), JSON.stringify({
-    collectionGuid: 'col-1',
-    selectedEnvironmentId: 'dev',
-    collectionEnvironment: { name: 'system.settings', variables: [{ variable: 'host', value: host, active: true, id: '1' }], secrets: [{ $secret: 'apikey', active: true, id: 's' }], auth: { authentication: 'none' } },
-    environments: [
-      { name: 'Dev', id: 'dev', variables: [{ variable: 'env', value: 'dev', active: true, id: '2' }], secrets: [], auth: { authentication: 'inherit' } },
-      { name: 'Prod', id: 'prod', variables: [{ variable: 'env', value: 'prod', active: true, id: '3' }], secrets: [], auth: { authentication: 'inherit' } }
-    ]
-  }));
-  fs.mkdirSync(path.join(folder, 'items'));
-  fs.writeFileSync(path.join(folder, 'items', 'folder.frfolder'), JSON.stringify({
-    folderId: 'items-folder', variables: [], secrets: [], auth: { authentication: 'inherit' },
-    headers: [{ key: 'x-folder', value: 'items', active: true, id: 'f' }]
-  }));
-  fs.writeFileSync(path.join(folder, 'items', 'ok.frreq'), JSON.stringify(request('r-ok', 'ok', '{{host}}/ok', {
-    parameters: [{ key: 'env', value: '{{env}}', active: true, id: 'p' }]
-  })));
-  fs.writeFileSync(path.join(folder, 'items', 'runs.frreq'), JSON.stringify(request('r-runs', 'runs', '{{host}}/missing', {
-    runs: [
-      { id: 'run-404', name: 'expects 404', parameters: [], headers: [], variables: [], secrets: [], authentication: { authentication: 'inherit' }, validation: validation('ResponseCode', 404) },
-      { id: 'run-inherit', name: 'inherits 200', parameters: [], headers: [], variables: [], secrets: [], authentication: { authentication: 'inherit' }, validation: validation('Inherit', 0) }
-    ]
-  })));
-  fs.writeFileSync(path.join(folder, 'old.reasyreq'), JSON.stringify(request('r-old', 'old', '{{host}}/ok', { validation: undefined })));
-  fs.writeFileSync(path.join(folder, 'down.frreq'), JSON.stringify(request('r-down', 'down', '127.0.0.1:1/nothing', { validation: undefined })));
+  fx = await startFixture();
+  host = fx.host;
+  folder = fx.folder;
 });
 
-afterAll(async () => {
-  await new Promise<void>(resolve => server.close(() => resolve()));
-  fs.rmSync(folder, { recursive: true, force: true });
-});
+afterAll(() => fx.stop());
 
 const collection = () => path.join(folder, 'api.frcol');
 
@@ -83,12 +27,12 @@ describe('runTests', () => {
   it('runs one request with the selected environment', async () => {
     const [result] = await runTests({ collection: collection(), action: path.join(folder, 'items', 'ok.frreq') }, noKeychain);
     expect(result).toMatchObject({ name: 'ok', status: 200, passed: true, errors: [] });
-    expect(lastUrl).toBe('/ok?env=dev');
+    expect(last.url).toBe('/ok?env=dev');
   });
 
   it('switches environment by name and finds the action relative to the collection', async () => {
     await runTests({ collection: collection(), environment: 'Prod', action: 'items/ok.frreq' }, noKeychain);
-    expect(lastUrl).toBe('/ok?env=prod');
+    expect(last.url).toBe('/ok?env=prod');
   });
 
   it('runs one named run and its own validation', async () => {
@@ -114,13 +58,13 @@ describe('runTests', () => {
   it('reads secrets from FULLYRESTED_SECRET_<name>', async () => {
     const store = createSecretStore({ [secretEnvironmentVariable('apikey')]: 'from-env' }, undefined);
     await runTests({ collection: collection(), action: path.join(folder, 'items', 'ok.frreq') }, store);
-    expect(lastHeaders['x-key']).toBe('from-env');
+    expect(last.headers['x-key']).toBe('from-env');
   });
 
   it('falls back to the keychain when the variable is not set', async () => {
     const keychain = { getPassword: async (service: string, account: string) => `${service}/${account}` };
     await runTests({ collection: collection(), action: path.join(folder, 'items', 'ok.frreq') }, createSecretStore({}, keychain));
-    expect(lastHeaders['x-key']).toBe('fullyrested-collection-col-1/apikey');
+    expect(last.headers['x-key']).toBe('fullyrested-collection-col-1/apikey');
   });
 
   it('rejects bad option combinations', async () => {
@@ -128,6 +72,62 @@ describe('runTests', () => {
     await expect(runTests({ collection: collection(), run: 'x', all: true }, noKeychain)).rejects.toThrow(/--run needs --action/);
     await expect(runTests({ collection: collection(), environment: 'Nope', all: true }, noKeychain)).rejects.toThrow(/Nope.*Dev, Prod/);
     await expect(runTests({ collection: collection(), action: 'items/runs.frreq', run: 'nope' }, noKeychain)).rejects.toThrow(/nope/);
+  });
+});
+
+describe('runCollection', () => {
+  const ok = () => path.join(folder, 'items', 'ok.frreq');
+
+  it('records the request, response and run metadata, with the secret redacted', async () => {
+    const store = createSecretStore({ [secretEnvironmentVariable('apikey')]: 'from-env-key' }, undefined);
+    const record = await runCollection({ collection: collection(), action: ok() }, store);
+    expect(record).toMatchObject({ collection: collection(), environment: 'Dev', redacted: true });
+    expect(record.runId).toBeTruthy();
+    expect(new Date(record.startedAt).toString()).not.toBe('Invalid Date');
+    expect(record.selection).toBe(`--action ${ok()}`);
+    const [c] = record.cases;
+    expect(c).toMatchObject({ index: 1, name: 'ok', requestFile: 'items/ok.frreq', outcome: 'pass' });
+    expect(c!.request.url).toBe(`http://${host}/ok?env=dev`);
+    expect(c!.request.headers['x-key']).toBe('{{$secret:apikey}}');
+    expect(c!.response!.status).toBe(200);
+    expect(c!.response!.body!.text).toBe('env=dev');
+  });
+
+  it('keeps the secret in clear with includeSecrets', async () => {
+    const store = createSecretStore({ [secretEnvironmentVariable('apikey')]: 'from-env-key' }, undefined);
+    const record = await runCollection({ collection: collection(), action: ok() }, store, { includeSecrets: true });
+    expect(record.redacted).toBe(false);
+    expect(record.cases[0]!.request.headers['x-key']).toBe('from-env-key');
+  });
+
+  it('names the run and reports each case through onCase', async () => {
+    const seen: string[] = [];
+    const record = await runCollection({ collection: collection(), action: 'items/runs.frreq', run: 'expects 404' }, noKeychain, { onCase: c => seen.push(c.name) });
+    expect(seen).toEqual(['runs › expects 404']);
+    expect(record.cases[0]).toMatchObject({ runName: 'expects 404', requestFile: 'items/runs.frreq', outcome: 'pass' });
+    expect(record.selection).toBe('--action items/runs.frreq --run expects 404');
+  });
+
+  it('records a network failure on a checked request with no response and no validation', async () => {
+    const file = path.join(folder, 'down-checked.frreq');
+    fs.writeFileSync(file, JSON.stringify(request('r-down-checked', 'down checked', '127.0.0.1:1/nothing')));
+    try {
+      const record = await runCollection({ collection: collection(), action: 'down-checked.frreq' }, noKeychain);
+      expect(record.cases[0]).toMatchObject({ outcome: 'error', error: 'No response: ECONNREFUSED' });
+      expect(record.cases[0]!.response).toBeUndefined();
+      expect(record.cases[0]!.validation).toBeUndefined();
+      const [result] = await runTests({ collection: collection(), action: 'down-checked.frreq' }, noKeychain);
+      expect(result).toMatchObject({ status: -4, passed: false, errors: ['No response: ECONNREFUSED'] });
+    } finally {
+      fs.rmSync(file);
+    }
+  });
+
+  it('records a network failure as an error outcome', async () => {
+    const record = await runCollection({ collection: collection(), action: 'down.frreq', environment: 'Prod' }, noKeychain);
+    expect(record.environment).toBe('Prod');
+    expect(record.cases[0]).toMatchObject({ outcome: 'error' });
+    expect(record.cases[0]!.error).toContain('No response');
   });
 });
 
@@ -147,7 +147,7 @@ describe('toJUnit', () => {
 describe('folders', () => {
   it('sends headers inherited from the request\'s folder', async () => {
     await runTests({ collection: collection(), action: path.join(folder, 'items', 'ok.frreq') }, noKeychain);
-    expect(lastHeaders['x-folder']).toBe('items');
+    expect(last.headers['x-folder']).toBe('items');
   });
 
   it('runs every request under --folder', async () => {
@@ -165,13 +165,13 @@ describe('folders', () => {
     if (!fs.existsSync(path.join(folder, 'items', 'OK.FRREQ')))
       return;
     await runTests({ collection: collection(), action: path.join(folder, 'items', 'OK.FRREQ') }, noKeychain);
-    expect(lastHeaders['x-folder']).toBe('items');
+    expect(last.headers['x-folder']).toBe('items');
   });
 
   it('runs a named run from the tree, so it inherits its folder', async () => {
-    lastHeaders = {};
+    last.headers = {};
     await runTests({ collection: collection(), action: 'items/runs.frreq', run: 'expects 404' }, noKeychain);
-    expect(lastHeaders['x-folder']).toBe('items');
+    expect(last.headers['x-folder']).toBe('items');
   });
 
   it('inherits only from the collection for an action file outside the collection folder', async () => {
@@ -179,11 +179,11 @@ describe('folders', () => {
     try {
       const file = path.join(elsewhere, 'loose.frreq');
       fs.writeFileSync(file, JSON.stringify(request('r-loose', 'loose', '{{host}}/ok')));
-      lastHeaders = {};
+      last.headers = {};
       const [result] = await runTests({ collection: collection(), action: file }, noKeychain);
       expect(result).toMatchObject({ name: 'loose', status: 200, passed: true });
-      expect(lastHeaders['x-folder']).toBeUndefined();
-      expect(lastHeaders['x-key']).toBe('');
+      expect(last.headers['x-folder']).toBeUndefined();
+      expect(last.headers['x-key']).toBe('');
     } finally {
       fs.rmSync(elsewhere, { recursive: true, force: true });
     }
@@ -201,9 +201,9 @@ describe('folders', () => {
   it('matches folder names ignoring case on a case-insensitive file system', async () => {
     if (!fs.existsSync(path.join(folder, 'ITEMS')))
       return;
-    lastHeaders = {};
+    last.headers = {};
     await runTests({ collection: collection(), action: path.join(folder, 'ITEMS', 'ok.frreq') }, noKeychain);
-    expect(lastHeaders['x-folder']).toBe('items');
+    expect(last.headers['x-folder']).toBe('items');
     const results = await runTests({ collection: collection(), folder: 'ITEMS' }, noKeychain);
     expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
   });
@@ -239,6 +239,16 @@ describe('folders', () => {
       expect(warnings).toHaveLength(1);
     } finally {
       fs.rmSync(warned, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('setup', () => {
+  it('turns a load failure into a UsageError but rethrows programming errors', async () => {
+    await expect(setup(async () => { throw new Error('no such file'); })).rejects.toThrow(UsageError);
+    for (const error of [new TypeError('boom'), new ReferenceError('nope')]) {
+      const thrown = await setup(async () => { throw error; }).catch(e => e);
+      expect(thrown).toBe(error);
     }
   });
 });
