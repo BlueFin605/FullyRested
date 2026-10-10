@@ -44,7 +44,43 @@ describe('validateResponse', () => {
 
   it('fails on a status code mismatch', () => {
     expect(validateResponse(actionWith({ httpCode: 201 }), response(200, '{}')))
-      .toEqual({ information: [], errors: ["Http response code does not match '201'"], valid: false });
+      .toEqual({
+        information: [], errors: ["Http response code does not match '201'"], valid: false,
+        checks: [{ check: 'status', passed: false, errors: ["Http response code does not match '201'"] }]
+      });
+  });
+
+  describe('reports every check', () => {
+    const headers = [{ key: 'X-Test', value: 'yes', active: true, id: '1' }];
+    const full = { type: ValidationType.HeadersBody, body: ValidationTypeBody.JsonSchema, jsonSchema: { schema }, headers };
+
+    it('collects status, body and header failures in order', () => {
+      const result = validateResponse(actionWith({ ...full, httpCode: 201 }), response(200, '{"id":"1","title":"x"}', { 'x-test': 'no' }));
+      expect(result?.valid).toBe(false);
+      expect(result?.checks?.map(c => [c.check, c.passed])).toEqual([['status', false], ['body', false], ['headers', false]]);
+      expect(result?.errors).toEqual([
+        "Http response code does not match '201'",
+        '/id must be integer',
+        'incorrect header key[X-Test] value[yes]'
+      ]);
+    });
+
+    it('fails only the status check when body and headers are fine', () => {
+      const result = validateResponse(actionWith({ ...full, httpCode: 201 }), response(200, '{"id":1,"title":"x"}', { 'x-test': 'yes' }));
+      expect(result?.valid).toBe(false);
+      expect(result?.checks?.map(c => [c.check, c.passed])).toEqual([['status', false], ['body', true], ['headers', true]]);
+    });
+
+    it('still runs headers when the body is not JSON', () => {
+      const result = validateResponse(actionWith(full), response(200, '<html/>', { 'x-test': 'no' }));
+      expect(result?.checks?.[1]).toEqual({ check: 'body', passed: false, errors: ['Response body is not valid JSON'] });
+      expect(result?.checks?.[2].check).toBe('headers');
+      expect(result?.checks?.[2].passed).toBe(false);
+    });
+
+    it('reports only the status check for ResponseCode validation', () => {
+      expect(validateResponse(actionWith({}), response(200, '{}'))?.checks).toEqual([{ check: 'status', passed: true, errors: [] }]);
+    });
   });
 
   it('passes a matching status code', () => {

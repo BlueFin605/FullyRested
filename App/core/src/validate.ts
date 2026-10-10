@@ -1,6 +1,6 @@
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
-import { ResponseValidation, RestActionValidation, ValidationType, ValidationTypeBody } from './model';
+import { ResponseValidation, RestActionValidation, ValidationCheck, ValidationType, ValidationTypeBody } from './model';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { substituteDeep } from './substitution';
 import { bodyToString } from './content-type';
@@ -15,20 +15,23 @@ export function validateResponse(action: IExecuteRestAction, response: RestActio
 
   const validation = substituteDeep(action.validation, action.variables, action.secrets);
 
-  if (validation.httpCode != response.status)
-    return invalid([`Http response code does not match '${validation.httpCode}'`]);
+  // Every check runs so the report lists all failures, not just the first
+  const checks: ValidationCheck[] = [];
+  const statusOk = validation.httpCode == response.status;
+  checks.push({ check: 'status', passed: statusOk, errors: statusOk ? [] : [`Http response code does not match '${validation.httpCode}'`] });
 
   // ValidationType.HeadersBody contains both 'Headers' and 'Body'
   if (validation.type.includes(ValidationType.Body)) {
     const body = validateBody(validation, response);
-    if (!body.valid)
-      return body;
+    checks.push({ check: 'body', passed: body.valid, errors: body.errors });
   }
 
-  if (validation.type.includes(ValidationType.Headers))
-    return validateHeaders(validation, response);
+  if (validation.type.includes(ValidationType.Headers)) {
+    const headers = validateHeaders(validation, response);
+    checks.push({ check: 'headers', passed: headers.valid, errors: headers.errors });
+  }
 
-  return valid();
+  return { information: [], errors: checks.flatMap(c => c.errors), valid: checks.every(c => c.passed), checks };
 }
 
 export function validateBody(validation: RestActionValidation, response: RestActionResult): ResponseValidation {

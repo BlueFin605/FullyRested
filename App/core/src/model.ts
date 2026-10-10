@@ -312,8 +312,11 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     generateGUID(): string;
   }
 
+export interface ValidationCheck { check: 'status' | 'body' | 'headers'; passed: boolean; errors: string[] }
+
 export interface ResponseValidation {
   information: string[];
   errors: string[];
   valid: boolean;
+  checks?: ValidationCheck[];
 }
