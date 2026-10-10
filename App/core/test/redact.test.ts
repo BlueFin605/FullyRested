@@ -78,6 +78,21 @@ describe('redactCase', () => {
     expect(out.response?.headers['x-amz-security-token']).toBe('***');
   });
 
+  it('masks the sent Basic credentials, bearer token and security token wherever a response echoes them', () => {
+    const rec = base(
+      { headers: { Authorization: 'Basic dXNlcjpwYXNzd29yZA==', 'X-Amz-Security-Token': 'FwoGZXIvYXdzEJr' } },
+      { status: 200, headers: { 'x-echo': 'Basic dXNlcjpwYXNzd29yZA==' },
+        body: { bytes: 1, text: '{"auth":"dXNlcjpwYXNzd29yZA==","tok":"FwoGZXIvYXdzEJr"}' } },
+    );
+    const out = redactCase(rec, undefined);
+    expect(out.response?.headers['x-echo']).toBe('Basic ***');
+    expect(out.response?.body?.text).toBe('{"auth":"***","tok":"***"}');
+
+    const bearer = redactCase(base({ headers: { authorization: 'Bearer abc.def.ghi' } },
+      { status: 200, headers: {}, body: { bytes: 1, text: 'token=abc.def.ghi' } }), []);
+    expect(bearer.response?.body?.text).toBe('token=***');
+  });
+
   it('masks SigV4 keeping only the access key id', () => {
     const out = redactCase(base({ headers: {
       Authorization: 'AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/20260101/us-east-1/s3/aws4_request, SignedHeaders=host, Signature=deadbeef',

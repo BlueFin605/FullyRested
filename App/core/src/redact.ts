@@ -20,15 +20,20 @@ function encodingsOf(value: string): string[] {
   ];
 }
 
-/** Returns a function replacing every active secret value (raw or in any wire encoding) with its placeholder. */
-export function secretReplacer(secrets: SecretTable[] | undefined, minLength: number = MIN_SECRET_LENGTH): (text: string) => string {
+/**
+ * Returns a function replacing every active secret value (raw or in any wire encoding) with its placeholder,
+ * and every masked value (a sent credential that is not itself a secret) with ***.
+ */
+export function secretReplacer(secrets: SecretTable[] | undefined, minLength: number = MIN_SECRET_LENGTH, masked: string[] = []): (text: string) => string {
   const byValue = new Map<string, string>();
-  for (const s of secrets ?? []) {
-    if (!s.active || typeof s.$value !== 'string' || s.$value.length < Math.max(1, minLength)) continue;
-    const placeholder = `{{$secret:${s.$secret}}}`;
-    for (const form of encodingsOf(s.$value))
-      if (!byValue.has(form)) byValue.set(form, placeholder);
-  }
+  const add = (value: string, replacement: string) => {
+    if (value.length < Math.max(1, minLength)) return;
+    for (const form of encodingsOf(value))
+      if (!byValue.has(form)) byValue.set(form, replacement);
+  };
+  for (const s of secrets ?? [])
+    if (s.active && typeof s.$value === 'string') add(s.$value, `{{$secret:${s.$secret}}}`);
+  for (const value of masked) add(value, '***');
   if (byValue.size === 0) return text => text;
   // Longest first, in a single pass, so overlapping secrets are not half-replaced
   // and a placeholder is never re-scanned.
@@ -60,8 +65,23 @@ function redactBody(body: RecordBody | undefined, replace: (t: string) => string
   return { ...body, text: replace(body.text) };
 }
 
+// The credential part of each Authorization and X-Amz-Security-Token header sent: a Basic header's
+// base64(user:password) or a bearer token never appears as a secret value, but a response can echo it
+function sentCredentials(headers: Record<string, string>): string[] {
+  const out: string[] = [];
+  for (const [name, value] of Object.entries(headers)) {
+    const lower = name.toLowerCase();
+    if (lower === 'x-amz-security-token') out.push(value);
+    else if (lower === 'authorization') {
+      const scheme = /^(Basic|Bearer)\s+(.+)$/i.exec(value.trim());
+      if (scheme) out.push(scheme[2]!);
+    }
+  }
+  return out;
+}
+
 export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): CaseRecord {
-  const replace = secretReplacer(secrets);
+  const replace = secretReplacer(secrets, MIN_SECRET_LENGTH, sentCredentials(c.request.headers));
   const request: CaseRecord['request'] = {
     ...c.request,
     url: replace(c.request.url),
