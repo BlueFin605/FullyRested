@@ -11,3 +11,4 @@ export * from './resolve';
 export * from './paths';
 export * from './scope';
 export * from './tree';
+export * from './run-record';
