@@ -108,7 +108,7 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
     const resolved = node.resolve({ environmentId }).replaceVariables();
     const eff = node.effectiveSettings({ environmentId });
     const request = node instanceof RunNode ? node.request : node;
-    const replace = secretReplacer(eff.secrets.map((s: EffectiveValue<SecretTable>) => s.value));
+    const replace = secretReplacer(eff.secrets.map((s: EffectiveValue<SecretTable>) => s.value), 1);
     const auth: EffectiveValue<AuthenticationDetails> | undefined = eff.auth;
     return {
       name: node.name,
@@ -121,6 +121,7 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
       validation: redactDeep(resolved.validation, replace),
     };
   } catch (e) {
+    if (e instanceof TypeError || e instanceof ReferenceError) throw e;
     throw new QueryError((e as Error).message);
   }
 }

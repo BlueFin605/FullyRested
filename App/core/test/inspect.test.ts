@@ -107,6 +107,39 @@ describe('showRequest', () => {
     expect(reqHeaders.find(h => h.source === 'request:get item')!.overridden).toBe(true);
   });
 
+  it('shows a secret substituted into the url or a query param as its placeholder', async () => {
+    const req = JSON.parse(request);
+    req.url = '{{host}}/items?key={{$apikey}}';
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req) })), store);
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(shown.url).toContain('{{$secret:apikey}}');
+    expect(JSON.stringify(shown)).not.toContain('sekret-123');
+  });
+
+  it('shows a short secret as its placeholder', async () => {
+    const req = JSON.parse(request);
+    req.url = '{{host}}/items/{{$apikey}}';
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req) })),
+      keychain({ 'fullyrested-collection-c1/apikey': 'ab' }));
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(shown.url).toBe('https://example.com/items/{{$secret:apikey}}');
+  });
+
+  it('redacts a secret substituted into the validation config', async () => {
+    const req = JSON.parse(request);
+    req.validation = { type: 'Headers', httpCode: 200, body: 'None', headers: [{ key: 'x-echo', value: '{{$apikey}}', active: true, id: 'vh' }] };
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req) })), store);
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(JSON.stringify(shown.validation)).toContain('{{$secret:apikey}}');
+    expect(JSON.stringify(shown)).not.toContain('sekret-123');
+  });
+
+  it('does not wrap programming errors in QueryError', () => {
+    const broken = { name: 'x', resolve() { throw new TypeError('boom'); } } as unknown as RequestNode;
+    expect(() => showRequest(broken)).toThrow(TypeError);
+    expect(() => showRequest(broken)).not.toThrow(QueryError);
+  });
+
   it('wraps resolve failures in QueryError', async () => {
     const root = await loadCollectionTree('api.frcol', memory(files({ 'items/folder.frfolder': '{oops' })), store);
     expect(() => showRequest(root.find('items/get.frreq') as RequestNode)).toThrow(QueryError);

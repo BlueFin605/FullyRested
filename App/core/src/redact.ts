@@ -8,10 +8,10 @@ function escapeRegExp(s: string): string {
 }
 
 /** Returns a function replacing every active secret value (raw or URI-encoded) with its placeholder. */
-export function secretReplacer(secrets: SecretTable[] | undefined): (text: string) => string {
+export function secretReplacer(secrets: SecretTable[] | undefined, minLength: number = MIN_SECRET_LENGTH): (text: string) => string {
   const byValue = new Map<string, string>();
   for (const s of secrets ?? []) {
-    if (!s.active || typeof s.$value !== 'string' || s.$value.length < MIN_SECRET_LENGTH) continue;
+    if (!s.active || typeof s.$value !== 'string' || s.$value.length < Math.max(1, minLength)) continue;
     const placeholder = `{{$secret:${s.$secret}}}`;
     if (!byValue.has(s.$value)) byValue.set(s.$value, placeholder);
     const encoded = encodeURIComponent(s.$value);
