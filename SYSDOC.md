@@ -18,6 +18,7 @@ flowchart TB
     subgraph FrontEnds["Front ends"]
         UI["Angular UI<br/>App/FullyRested/src"]
         CLI["CLI<br/>App/cli-command"]
+        MCP["MCP server<br/>fullyrested mcp"]
     end
     subgraph Hosts["Hosts: files, keychain, dialogs"]
         Main["Electron main process<br/>App/FullyRested/main.js"]
@@ -32,8 +33,11 @@ flowchart TB
     UI -->|"imports source"| Core
     Main -->|"requires dist"| Core
     CLI -->|"requires dist"| Core
+    MCP -->|"requires dist"| Core
     CLI --> CliHost
+    MCP --> CliHost
     CliHost --> Files
+    CliHost --> Runs[".fullyrested-runs<br/>run records"]
     CliHost --> Keychain
     Main --> Files
     Main --> Keychain
@@ -41,9 +45,9 @@ flowchart TB
 
 | Layer | Where | Job |
 |---|---|---|
-| Front ends | `App/FullyRested/src` (Angular), `App/cli-command` | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host supplies `FsCollectionSource`. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
-| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
+| Front ends | `App/FullyRested/src` (Angular), `App/cli-command` (CLI commands, plus the MCP server in `mcp.ts`, which shares the CLI host and the same pipeline) | Collect input and show results. Should hold no request logic of their own |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`, `run-store.ts`, `inspect.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host supplies `FsCollectionSource`. The CLI host reads collections, writes run records (`FsRunStore`, in `.fullyrested-runs`), and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
+| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore`. For AI use: `run-record.ts` (the run record), `redact.ts` (`redactCase`, `secretReplacer`), `run-store.ts` (`RunStore`, `MemoryRunStore`), `query.ts` (summary, failures and case queries, with `json-path.ts` and `query-error.ts`) and `inspect.ts` (tree, environments and show-request views) |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
@@ -64,6 +68,7 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Substitute variables and secrets | core `replaceVariables` / `substituteDeep` |
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
+| Record and query | core `run-record.ts` builds a redacted run record; a `RunStore` keeps it (`FsRunStore` on disk in the CLI, `MemoryRunStore` in the MCP server); `query.ts` answers summary, failures and per-case questions for both the CLI commands and the MCP tools |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
 ## Where the plan lives
@@ -74,6 +79,9 @@ secrets hygiene, the CLI runner, the stack upgrade and cleanup. Home's
 `configuration/fullyrested/config.json` maps this repo to that initiative.
 The `feature/collection-hierarchy` branch maps to the **Collection Hierarchy**
 initiative (`78286444-4af7-4e63-9929-1a63a8b641c7`); `active` stays UI Refresh.
+The `feature/ai-interface` branch maps to the **AI First** initiative
+(`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
+`docs/superpowers/specs/2026-10-11-ai-interface-design.md`.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it
@@ -93,6 +101,7 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
 | Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
 | Test the CLI (vitest) | `App/cli-command`: `npm test` |
+| Serve the MCP server | `App/cli-command`: `fullyrested mcp [--store <dir>]` (or `node dist/index.js mcp`). Stdout carries the protocol, so warnings go to stderr. Registration and tools are in the README |
 
 Runtime state: the app keeps its open tabs and recent collections in
 `current_state.json` in Electron's userData folder, and the request files
