@@ -17,7 +17,26 @@ function encodingsOf(value: string): string[] {
     encodeQuery(value),
     new URLSearchParams({ k: value }).toString().slice(2),
     JSON.stringify(value).slice(1, -1),
+    ...urlParserEncodings(value),
   ];
+}
+
+// How a URL parser (Node, when it sends the request) re-encodes a value in the query and in the path,
+// which is what an echo server reports back. A '#' would end the URL, so such values are skipped.
+// A form is kept only if it decodes back to the value: a parser that cut the value short ('?' ends a
+// path) or normalised it ('..', '\') would otherwise register a fragment and over-redact
+function urlParserEncodings(value: string): string[] {
+  if (value.includes('#')) return [];
+  const forms: string[] = [];
+  const keep = (encode: () => string) => {
+    try {
+      const form = encode();
+      if (decodeURIComponent(form) === value) forms.push(form);
+    } catch { /* not encodable */ }
+  };
+  keep(() => new URL('http://h/?k=' + value).search.slice(3));
+  keep(() => new URL('http://h/' + value).pathname.slice(1));
+  return forms;
 }
 
 /**

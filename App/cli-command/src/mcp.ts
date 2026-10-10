@@ -35,7 +35,7 @@ export function createServer(opts: McpOptions): McpServer {
   const servedRun = async (dir: string | undefined, id: string | undefined): Promise<RunRecord> => {
     const record = await resolveRun(storesFor(dir), id);
     if (record.redacted !== true)
-      throw new QueryError(`Run ${record.runId} was recorded with --include-secrets; it is not served over MCP`);
+      throw new QueryError(`Run ${record.runId} is not marked as redacted (recorded with --include-secrets?); it is not served over MCP`);
     return record;
   };
 

@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { redactCase, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, prepareRequest } from '../src';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createServer, Server } from 'node:http';
+import { AddressInfo } from 'node:net';
+import { redactCase, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, executeRequest, prepareRequest } from '../src';
 
 const secret = (name: string, value: string, active = true): SecretTable => ({ $secret: name, $value: value, active, id: name });
 
@@ -152,5 +154,35 @@ describe('redactCase', () => {
     expect(out.validation?.valid).toBe(false);
     expect(rec.error).toContain('abcd1234');
     expect(rec.validation?.checks[0].errors[0]).toBe('expected abcd1234');
+  });
+});
+
+describe('redactCase with an echo server', () => {
+  let server: Server;
+  let host = '';
+  beforeAll(async () => {
+    server = createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end(req.url); });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    host = `127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+  afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
+
+  it.each(['Pa$$ w0rd!(x)', `a"b<c>'d{e}`])('redacts a secret %s in the URL as the server reports it', async value => {
+    const action = ExecuteRestAction.NewExecuteRestAction().setProtocol(HttpProtocol.http).setUrl(`${host}/p/${value}?q=${value}`);
+    const result = await executeRequest(action);
+    const echoed = new TextDecoder().decode(result.body!.body);
+    expect(echoed).not.toContain(value);
+    const out = redactCase(base({}, { status: 200, headers: {}, body: { bytes: 1, text: echoed } }), [secret('pw', value)]);
+    expect(out.response?.body?.text).toBe('/p/{{$secret:pw}}?q={{$secret:pw}}');
+  });
+
+  it('does not register a fragment of a value the URL parser cuts short or normalises', () => {
+    const out = redactCase(base({ url: 'https://x.test/abcd/b/zz' }), [secret('q', 'abcd?xyz'), secret('d', 'a/../b/zz')]);
+    expect(out.request.url).toBe('https://x.test/abcd/b/zz');
+  });
+
+  it('skips values containing # without throwing', () => {
+    const out = redactCase(base({ url: 'https://x.test/?a=ab#cd' }), [secret('h', 'ab#cd')]);
+    expect(out.request.url).toBe('https://x.test/?a={{$secret:h}}');
   });
 });

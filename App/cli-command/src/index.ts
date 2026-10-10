@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { QueryError, caseBody, caseRequest, caseResponse, failures, resolveRun, summary } from '@fullyrested/core';
+import { QueryError, caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, toTestResult } from './run';
 import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
@@ -96,7 +96,7 @@ const withQueryOptions = (c: Command) => c
 
 withQueryOptions(program.command('runs').description('List recorded runs, newest first'))
   .action(queryAction(async (options: QueryOptions) => {
-    const runs = await openStore(options).list();
+    const runs = await listRuns([openStore(options)]);
     printResult(options, runs, formatRuns(runs));
   }));
 

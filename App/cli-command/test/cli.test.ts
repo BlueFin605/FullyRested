@@ -153,6 +153,22 @@ describe('query commands', () => {
     expect(JSON.parse((await q(['runs', '--json'])).out)[0].runId).toBe(runId);
   });
 
+  it('runs breaks a same-second run id tie on startedAt, like the latest run', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-tie-'));
+    try {
+      fs.mkdirSync(runsFolder(dir));
+      const save = (runId: string, startedAt: string) => fs.writeFileSync(path.join(runsFolder(dir), `${runId}.json`),
+        JSON.stringify({ runId, startedAt, collection: 'c', selection: '--all', redacted: true, cases: [] }));
+      save('20261011-100000-ffff', '2026-10-11T10:00:00.100Z');
+      save('20261011-100000-0000', '2026-10-11T10:00:00.900Z');
+      const runs = JSON.parse((await fullyrested(['runs', '--json', '--store', dir])).out);
+      expect(runs.map((r: { runId: string }) => r.runId)).toEqual(['20261011-100000-0000', '20261011-100000-ffff']);
+      expect(JSON.parse((await fullyrested(['summary', '--json', '--store', dir])).out).runId).toBe('20261011-100000-0000');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('summary shows a header and a line per case', async () => {
     const r = await q(['summary']);
     expect(r.out).toContain(runId);

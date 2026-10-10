@@ -36,7 +36,9 @@ export async function setup<T>(load: () => Promise<T>): Promise<T> {
   try {
     return await load();
   } catch (error) {
-    throw error instanceof UsageError ? error : new UsageError((error as Error).message);
+    // A programming error is a bug, not a usage problem
+    if (error instanceof UsageError || error instanceof TypeError || error instanceof ReferenceError) throw error;
+    throw new UsageError((error as Error).message);
   }
 }
 

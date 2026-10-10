@@ -154,7 +154,7 @@ describe('mcp server', () => {
       ] as const) {
         const result = await call(client, tool, { ...args, store: dir });
         expect(result.isError, tool).toBe(true);
-        expect(result.text).toBe(`Run ${record.runId} was recorded with --include-secrets; it is not served over MCP`);
+        expect(result.text).toBe(`Run ${record.runId} is not marked as redacted (recorded with --include-secrets?); it is not served over MCP`);
       }
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });

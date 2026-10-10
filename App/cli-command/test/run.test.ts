@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { request, startFixture } from './fixture';
-import { runCollection, runTests, UsageError } from '../src/run';
+import { runCollection, runTests, setup, UsageError } from '../src/run';
 import { formatResult, toJUnit } from '../src/report';
 import { createSecretStore, secretEnvironmentVariable } from '../src/secret-store';
 let fx: Awaited<ReturnType<typeof startFixture>>;
@@ -239,6 +239,16 @@ describe('folders', () => {
       expect(warnings).toHaveLength(1);
     } finally {
       fs.rmSync(warned, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('setup', () => {
+  it('turns a load failure into a UsageError but rethrows programming errors', async () => {
+    await expect(setup(async () => { throw new Error('no such file'); })).rejects.toThrow(UsageError);
+    for (const error of [new TypeError('boom'), new ReferenceError('nope')]) {
+      const thrown = await setup(async () => { throw error; }).catch(e => e);
+      expect(thrown).toBe(error);
     }
   });
 });
