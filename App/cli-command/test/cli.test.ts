@@ -131,3 +131,96 @@ describe('fullyrested run', () => {
     expect(fs.readFileSync(file, 'utf8')).toContain('<testcase');
   });
 });
+
+describe('query commands', () => {
+  let store = '';
+  let runId = '';
+
+  beforeAll(async () => {
+    store = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-query-'));
+    await fullyrested(['run', '-c', fx.collection, '-f', 'items', '--all', '--record', '--store', store]);
+    runId = fs.readdirSync(runsFolder(store))[0]!.replace('.json', '');
+  });
+
+  afterAll(() => fs.rmSync(store, { recursive: true, force: true }));
+
+  const q = (args: string[]) => fullyrested([...args, '--store', store]);
+
+  it('runs lists the recorded run, and --json parses', async () => {
+    const r = await q(['runs']);
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(new RegExp(String.raw`^${runId}  \S+  \d+ passed, \d+ failed, \d+ errored  `));
+    expect(JSON.parse((await q(['runs', '--json'])).out)[0].runId).toBe(runId);
+  });
+
+  it('summary shows a header and a line per case', async () => {
+    const r = await q(['summary']);
+    expect(r.out).toContain(runId);
+    expect(r.out).toMatch(/^ {2}0 PASS 200 \d+ms ok$/m);
+    expect(JSON.parse((await q(['summary', runId, '--json'])).out).runId).toBe(runId);
+  });
+
+  it('failures says none, or lists the failing case', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-fail-'));
+    try {
+      await fullyrested(['run', '-c', fx.collection, '-a', 'down.frreq', '--record', '--store', dir]);
+      const r = await fullyrested(['failures', '--store', dir]);
+      expect(r.out).toMatch(/^ {2}0 ERROR - down\n {4}\S/);
+      expect(JSON.parse((await fullyrested(['failures', '--json', '--store', dir])).out).count).toBe(1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    expect((await q(['failures', '--json'])).out).toContain('"count"');
+  });
+
+  it('request and response print the exchange', async () => {
+    const req = await q(['request', 'ok']);
+    expect(req.out).toMatch(/^GET http:\/\/127\.0\.0\.1:\d+\/ok\?env=dev\n/);
+    const res = await q(['response', '0']);
+    expect(res.out).toMatch(/^200 OK \d+ms\n/);
+    expect(res.out).toContain('content-type: text/plain');
+    expect(res.out).toMatch(/body: text\/plain, \d+ bytes$/m);
+    expect(JSON.parse((await q(['response', 'ok', runId, '--json'])).out).status).toBe(200);
+  });
+
+  it('body prints the content, honours --range, and rejects bad input', async () => {
+    expect((await q(['body', 'ok'])).out).toBe('env=dev\n');
+    expect((await q(['body', 'ok', '--range', '0:3'])).out).toBe('env\n');
+    for (const bad of ['a:b', '-1:3', '1.5:2']) {
+      const r = await q(['body', 'ok', '--range', bad]);
+      expect(r.code).toBe(2);
+      expect(r.err).toMatch(/^error: /);
+    }
+    const notJson = await q(['body', 'ok', '--outline']);
+    expect(notJson.code).toBe(2);
+    expect(notJson.err).toContain('Body is not JSON');
+    expect((await q(['body', 'ok', '--request'])).code).toBe(2);
+  });
+
+  it('an unknown case exits 2 and lists the cases', async () => {
+    const r = await q(['request', 'nope']);
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/^error: Case 'nope' not found\. The run has \d+ cases: 0 ok/);
+  });
+
+  it('an unknown run id exits 2', async () => {
+    const r = await q(['summary', 'nope']);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("Run 'nope' not found");
+  });
+
+  it('an empty store says no runs, and other commands ask for a run first', async () => {
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-empty-'));
+    try {
+      const runs = await fullyrested(['runs', '--store', empty]);
+      expect(runs.code).toBe(0);
+      expect(runs.out).toBe('no runs\n');
+      expect((await fullyrested(['runs', '--json', '--store', empty])).out).toBe('[]\n');
+      const s = await fullyrested(['summary', '--store', empty]);
+      expect(s.code).toBe(2);
+      expect(s.err).toBe('error: No runs recorded yet. Use run first.\n');
+    } finally {
+      fs.rmSync(empty, { recursive: true, force: true });
+    }
+  });
+});
