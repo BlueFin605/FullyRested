@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REConstants, CreateEmptyAction, ExecuteRestAction, HttpProtocol, RestTypeVerb, ValidationType } from '../src';
+import { REConstants, CreateEmptyAction, CreateEmptyRestActionRun, ExecuteRestAction, HttpProtocol, RestTypeVerb, ValidationType } from '../src';
 
 describe('model defaults', () => {
   it('creates an empty GET https action that inherits authentication', () => {
@@ -8,6 +8,12 @@ describe('model defaults', () => {
     expect(action.protocol).toBe(HttpProtocol.https);
     expect(action.authentication.authentication).toBe('inherit');
     expect(action.runs).toEqual([]);
+  });
+
+  it('creates an empty run that inherits authentication', () => {
+    const run = CreateEmptyRestActionRun({ generateGUID: () => 'r1' }, ValidationType.Inherit);
+    expect(run.id).toBe('r1');
+    expect(run.authentication.authentication).toBe('inherit');
   });
 
   it('builds an ExecuteRestAction immutably', () => {

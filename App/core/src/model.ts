@@ -304,7 +304,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
              headers: [], 
              variables: [], 
              secrets: [], 
-             authentication: CreateEmptyAuthenticationDetails('none'), 
+             authentication: CreateEmptyAuthenticationDetails('inherit'), 
              validation: CreateEmptyRestActionValidation(valType) };
   }
   
