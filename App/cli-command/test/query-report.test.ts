@@ -15,9 +15,9 @@ describe('query-report', () => {
   it('formats summary rows', () => {
     const out = formatSummary({
       runId: 'r1', startedAt: 't', environment: 'Dev', selection: 'all', passed: 1, failed: 0, errored: 1,
-      cases: [{ index: 0, name: 'ok', outcome: 'pass', status: 200, ms: 5 }, { index: 1, name: 'down', outcome: 'error', ms: 2 }]
+      cases: [{ index: 1, name: 'ok', outcome: 'pass', status: 200, ms: 5 }, { index: 2, name: 'down', outcome: 'error', ms: 2 }]
     } as never);
-    expect(out.split('\n')).toEqual(['r1  t  1 passed, 0 failed, 1 errored  all', '  0 PASS 200 5ms ok', '  1 ERROR - 2ms down']);
+    expect(out.split('\n')).toEqual(['r1  t  1 passed, 0 failed, 1 errored  all', '  1 PASS 200 5ms ok', '  2 ERROR - 2ms down']);
   });
 
   it('formats failures with checks or the error, and none', () => {

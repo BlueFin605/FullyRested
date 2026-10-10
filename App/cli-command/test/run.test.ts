@@ -86,7 +86,7 @@ describe('runCollection', () => {
     expect(new Date(record.startedAt).toString()).not.toBe('Invalid Date');
     expect(record.selection).toBe(`--action ${ok()}`);
     const [c] = record.cases;
-    expect(c).toMatchObject({ index: 0, name: 'ok', requestFile: 'items/ok.frreq', outcome: 'pass' });
+    expect(c).toMatchObject({ index: 1, name: 'ok', requestFile: 'items/ok.frreq', outcome: 'pass' });
     expect(c!.request.url).toBe(`http://${host}/ok?env=dev`);
     expect(c!.request.headers['x-key']).toBe('{{$secret:apikey}}');
     expect(c!.response!.status).toBe(200);

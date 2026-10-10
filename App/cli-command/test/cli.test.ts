@@ -156,7 +156,7 @@ describe('query commands', () => {
   it('summary shows a header and a line per case', async () => {
     const r = await q(['summary']);
     expect(r.out).toContain(runId);
-    expect(r.out).toMatch(/^ {2}0 PASS 200 \d+ms ok$/m);
+    expect(r.out).toMatch(/^ {2}1 PASS 200 \d+ms ok$/m);
     expect(JSON.parse((await q(['summary', runId, '--json'])).out).runId).toBe(runId);
   });
 
@@ -165,7 +165,7 @@ describe('query commands', () => {
     try {
       await fullyrested(['run', '-c', fx.collection, '-a', 'down.frreq', '--record', '--store', dir]);
       const r = await fullyrested(['failures', '--store', dir]);
-      expect(r.out).toMatch(/^ {2}0 ERROR - down\n {4}\S/);
+      expect(r.out).toMatch(/^ {2}1 ERROR - down\n {4}\S/);
       expect(JSON.parse((await fullyrested(['failures', '--json', '--store', dir])).out).count).toBe(1);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -176,7 +176,7 @@ describe('query commands', () => {
   it('request and response print the exchange', async () => {
     const req = await q(['request', 'ok']);
     expect(req.out).toMatch(/^GET http:\/\/127\.0\.0\.1:\d+\/ok\?env=dev\n/);
-    const res = await q(['response', '0']);
+    const res = await q(['response', '1']);
     expect(res.out).toMatch(/^200 OK \d+ms\n/);
     expect(res.out).toContain('content-type: text/plain');
     expect(res.out).toMatch(/body: text\/plain, \d+ bytes$/m);
@@ -200,7 +200,7 @@ describe('query commands', () => {
   it('an unknown case exits 2 and lists the cases', async () => {
     const r = await q(['request', 'nope']);
     expect(r.code).toBe(2);
-    expect(r.err).toMatch(/^error: Case 'nope' not found\. The run has \d+ cases: 0 ok/);
+    expect(r.err).toMatch(/^error: Case 'nope' not found\. The run has \d+ cases: 1 ok/);
   });
 
   it('an unknown run id exits 2', async () => {

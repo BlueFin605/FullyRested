@@ -196,7 +196,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
     record.environment = environment.name;
 
   for (const [i, test] of cases.entries()) {
-    const c = await runCase(test, i, environment.id, includeSecrets);
+    const c = await runCase(test, i + 1, environment.id, includeSecrets); // case indexes are 1-based
     record.cases.push(c);
     hooks.onCase?.(c);
   }
