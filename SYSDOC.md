@@ -42,7 +42,7 @@ flowchart TB
 | Layer | Where | Job |
 |---|---|---|
 | Front ends | `App/FullyRested/src` (Angular), `App/cli-command` | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC; the CLI host supplies `FsCollectionSource`. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host supplies `FsCollectionSource`. The CLI host only reads, and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
 | Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore` |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
@@ -89,12 +89,15 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Run the desktop app | `App/FullyRested`: `npm run electron` (builds core, runs `ng build`, starts Electron) |
 | UI only, in a browser | `App/FullyRested`: `ng serve`. With no Electron IPC, the repository and execute services return built-in mock data |
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |
+| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
 | Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
 | Test the CLI (vitest) | `App/cli-command`: `npm test` |
 
 Runtime state: the app keeps its open tabs and recent collections in
-`current_state.json` in Electron's userData folder. Secrets are stored under
+`current_state.json` in Electron's userData folder, and the request files
+saved outside a collection (allowed through the IPC guard) in
+`trusted_requests.json` beside it. Secrets are stored under
 the keychain services `fullyrested-collection-<collectionGuid>` and
 `fullyrested-request-<requestId>`; folder secrets use
 `fullyrested-folder-<folderId>`.

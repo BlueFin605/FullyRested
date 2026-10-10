@@ -3,7 +3,8 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } = require('elec
 const path = require('node:path')
 const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
-const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, REConstants, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
+const { CollectionAccess } = require('./collection-access');
+const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
 if (require('electron-squirrel-startup')) app.quit();
@@ -18,6 +19,7 @@ const keychain = {
 };
 
 let win;
+let access;
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -61,6 +63,7 @@ const appMenu = () => Menu.buildFromTemplate([
 ]);
 
 app.whenReady().then(() => {
+    access = new CollectionAccess(path.join(app.getPath("userData"), "trusted_requests.json"), openTabFiles);
     Menu.setApplicationMenu(appMenu())
     createWindow()
 
@@ -81,16 +84,18 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle("listDir", (event, request) => {
-        return fs.readdirSync(collectionPath(request), { withFileTypes: true }).map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
+        return fs.readdirSync(access.collectionPath(request.root, request.path), { withFileTypes: true }).map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
     });
 
     ipcMain.handle("readText", (event, request) => {
-        return fs.readFileSync(collectionPath(request), 'utf8');
+        var file = access.collectionPath(request.root, request.path);
+        var text = fs.readFileSync(file, 'utf8');
+        access.noteRead(file, text);
+        return text;
     });
 
     ipcMain.handle("getSecret", (event, request) => {
-        if (!String(request.service).startsWith('fullyrested-'))
-            throw new Error('Not a FullyRested secret');
+        access.checkSecret(request.service, request.account);
         return keychain.get(request.service, request.account);
     });
 
@@ -131,18 +136,19 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
 
-// A collection-relative path ('/' separated) as a real path; refuses anything that climbs out of the collection folder
-function collectionPath(request) {
-    var base = path.resolve(request.root);
-    var full = path.resolve(base, ...request.path.split('/').filter(p => p != ''));
-    if (full != base && !full.startsWith(base + path.sep))
-        throw new Error(`${request.path} is outside the collection folder`);
-    return full;
+// The request files of the tabs left open last time: trusted once, when there is no trusted list yet
+function openTabFiles() {
+    try {
+        return (readState().sessions ?? []).flatMap(s => (s.actions ?? []).map(a => a.fullFilename));
+    } catch {
+        return [];
+    }
 }
 
 async function saveFolder(request) {
+    var file = access.checkFolderSave(request.folderPath, request.config?.folderId);
     var sanitised = await storeSecrets(request.config, keychain, secretServiceForFolder(request.config.folderId));
-    fs.writeFileSync(path.join(request.folderPath, REConstants.FolderSettingsFile), JSON.stringify(sanitised, null, 4));
+    fs.writeFileSync(file, JSON.stringify(sanitised, null, 4));
 }
 
 function saveState(request) {
@@ -167,6 +173,7 @@ function readState() {
 }
 
 async function loadRequest(fullFilename) {
+    fullFilename = access.checkRequest(fullFilename);
     try {
         var request = JSON.parse(fs.readFileSync(fullFilename));
         return await loadSecrets(request, keychain, secretServiceForRequest(request.id));
@@ -201,6 +208,7 @@ async function loadCollection() {
 
 async function loadCollectionFromFile(filename, name, path) {
     try {
+        access.checkCollectionToOpen(filename);
         var data = await new Promise((accept, reject) => {
             fs.readFile(filename, (err, data) => {
                 if (err)
@@ -211,6 +219,7 @@ async function loadCollectionFromFile(filename, name, path) {
         });
 
         var parsed = JSON.parse(data);
+        access.openCollection(filename, parsed);
         var collectionConfig = await loadSecrets(parsed, keychain, secretServiceForCollection(parsed.collectionGuid));
         win.webContents.send("loadCollectionResponse", { config: collectionConfig, filename: filename, name: name, path: path });
     }
@@ -220,9 +229,15 @@ async function loadCollectionFromFile(filename, name, path) {
 }
 
 async function saveCollection(request) {
-    var sanitised = await storeSecrets(request.config, keychain, secretServiceForCollection(request.config.collectionGuid));
-    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4));
+    var filename = access.checkCollectionToSave(request.filename);
+    await writeCollection(filename, request.config);
     win.webContents.send("loadCollectionResponse", request);
+}
+
+async function writeCollection(filename, config) {
+    var sanitised = await storeSecrets(config, keychain, secretServiceForCollection(config.collectionGuid));
+    fs.writeFileSync(filename, JSON.stringify(sanitised, null, 4));
+    access.openCollection(filename, config);
 }
 
 async function saveCollectionAs(request) {
@@ -234,7 +249,8 @@ async function saveCollectionAs(request) {
     request.filename = userChosenPath
     request.path = path.dirname(request.filename);
     request.name = path.basename(request.filename);
-    await saveCollection(request);
+    await writeCollection(request.filename, request.config);
+    win.webContents.send("loadCollectionResponse", request);
 }
 
 async function saveAsRequest(request) {
@@ -244,6 +260,7 @@ async function saveAsRequest(request) {
     }
     var sanitised = await storeSecrets(request, keychain, secretServiceForRequest(request.id));
     fs.writeFileSync(userChosenPath, JSON.stringify(sanitised, null, 4));
+    access.trustRequest(userChosenPath);
     if (request.name.startsWith("<unnamed")) {
         var basename = path.basename(userChosenPath);
         request.name = basename.substring(0, basename.length - path.extname(basename).length);
@@ -252,7 +269,8 @@ async function saveAsRequest(request) {
 }
 
 async function saveRequest(request) {
+    var filename = access.checkRequest(request.fullFilename);
     var sanitised = await storeSecrets(request.action, keychain, secretServiceForRequest(request.action.id));
-    fs.writeFileSync(request.fullFilename, JSON.stringify(sanitised, null, 4));
+    fs.writeFileSync(filename, JSON.stringify(sanitised, null, 4));
     win.webContents.send("savedAsCompleted", { id: request.action.id, fullFilename: request.fullFilename, name: request.action.name });
 }

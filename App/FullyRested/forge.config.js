@@ -14,6 +14,7 @@ module.exports = {
       /^\/dist\/(?!fullyrested($|\/))/,
       /^\/tsconfig.*\.json$/,
       /^\/karma\.conf\.js$/,
+      /^\/main-tests($|\/)/,
     ],
   },
   rebuildConfig: {},
