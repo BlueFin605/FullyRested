@@ -53,6 +53,8 @@ describe('query-report', () => {
     expect(truncationNotice(body({}))).toBeUndefined();
     expect(truncationNotice(body({ truncated: true, bytes: 100, content: 'abc' })))
       .toBe('-- truncated at 3 of 100 bytes; use --path, --outline, --range or --full');
+    expect(truncationNotice(body({ truncated: true, bytes: 100, content: 'é€' })))
+      .toBe('-- truncated at 5 of 100 bytes; use --path, --outline, --range or --full');
   });
 
   it('parses ranges strictly', () => {

@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  MemoryRunStore, QueryError, RunListing, RunRecord, RunStore, SecretStore,
-  caseBody, caseRequest, caseResponse, failures, resolveRun, summary
+  MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore,
+  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary
 } from '@fullyrested/core';
 import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
@@ -86,12 +86,7 @@ export function createServer(opts: McpOptions): McpServer {
   server.registerTool('list_runs', {
     description: 'List recorded runs, newest first.',
     inputSchema: { store }
-  }, ({ store: dir }) => respond(async () => {
-    const byId = new Map<string, RunListing>();
-    for (const s of storesFor(dir))
-      for (const l of await s.list()) if (!byId.has(l.runId)) byId.set(l.runId, l);
-    return [...byId.values()].sort((a, b) => (a.runId < b.runId ? 1 : a.runId > b.runId ? -1 : 0));
-  }));
+  }, ({ store: dir }) => respond(() => listRuns(storesFor(dir))));
 
   server.registerTool('run_summary', {
     description: 'Show every case of a run with its outcome.',

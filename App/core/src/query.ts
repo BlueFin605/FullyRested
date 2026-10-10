@@ -1,15 +1,30 @@
 import { CaseRecord, RecordBody, RunRecord, toCaseOutcomeCounts } from './run-record';
-import { RunStore } from './run-store';
+import { RunListing, RunStore } from './run-store';
 import { jsonPath } from './json-path';
 import { QueryError } from './query-error';
 
 export { QueryError } from './query-error';
 
+// Newest first. Run ids order by the second they started; startedAt (ms) breaks a same-second tie
+function newestFirst(a: RunListing, b: RunListing): number {
+  const second = (l: RunListing) => l.runId.slice(0, 15);
+  if (second(a) !== second(b)) return second(a) < second(b) ? 1 : -1;
+  if (a.startedAt !== b.startedAt) return a.startedAt < b.startedAt ? 1 : -1;
+  return a.runId < b.runId ? 1 : a.runId > b.runId ? -1 : 0;
+}
+
+/** Every run in the stores, newest first; a run in more than one store is listed once, from the first. */
+export async function listRuns(stores: RunStore[]): Promise<RunListing[]> {
+  const byId = new Map<string, RunListing>();
+  for (const store of stores)
+    for (const listing of await store.list()) if (!byId.has(listing.runId)) byId.set(listing.runId, listing);
+  return [...byId.values()].sort(newestFirst);
+}
+
 export async function resolveRun(stores: RunStore[], runId?: string): Promise<RunRecord> {
   if (runId === undefined) {
-    const listings = (await Promise.all(stores.map(s => s.list()))).flat();
-    if (listings.length === 0) throw new QueryError('No runs recorded yet. Use run first.');
-    const newest = listings.reduce((a, b) => (b.runId > a.runId ? b : a));
+    const [newest] = await listRuns(stores);
+    if (newest === undefined) throw new QueryError('No runs recorded yet. Use run first.');
     for (const store of stores) {
       const found = await store.load(newest.runId);
       if (found) return found;
@@ -20,8 +35,7 @@ export async function resolveRun(stores: RunStore[], runId?: string): Promise<Ru
     const found = await store.load(runId);
     if (found) return found;
   }
-  const ids = [...new Set((await Promise.all(stores.map(s => s.list()))).flat().map(l => l.runId))]
-    .sort().reverse().slice(0, 5);
+  const ids = (await listRuns(stores)).slice(0, 5).map(l => l.runId);
   throw new QueryError(`Run '${runId}' not found. Recent runs: ${ids.join(', ')}`);
 }
 
@@ -170,6 +184,7 @@ export function caseBody(r: RunRecord, ref: string | number, o: BodyOptions = {}
   let truncated = false;
   if (!o.full && serialised.length > cap) {
     content = serialised.slice(0, cap);
+    encoding = 'text'; // a cut-off JSON value is no longer JSON
     truncated = true;
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryRunStore, QueryError, resolveRun, findCase, summary, failures, caseRequest, caseResponse } from '../src';
+import { MemoryRunStore, QueryError, listRuns, resolveRun, findCase, summary, failures, caseRequest, caseResponse } from '../src';
 import { fixtureRun } from './fixtures/run-record';
 
 describe('resolveRun', () => {
@@ -9,6 +9,13 @@ describe('resolveRun', () => {
     await b.save(fixtureRun('20261011-110000-bbbb'));
     await a.save(fixtureRun('20261011-090000-cccc'));
     expect((await resolveRun([a, b])).runId).toBe('20261011-110000-bbbb');
+  });
+
+  it('breaks a same-second run id tie on startedAt', async () => {
+    const a = new MemoryRunStore(); const b = new MemoryRunStore();
+    await a.save({ ...fixtureRun('20261011-100000-ffff'), startedAt: '2026-10-11T10:00:00.100Z' });
+    await b.save({ ...fixtureRun('20261011-100000-0000'), startedAt: '2026-10-11T10:00:00.900Z' });
+    expect((await resolveRun([a, b])).runId).toBe('20261011-100000-0000');
   });
 
   it('errors when nothing is recorded', async () => {
@@ -29,6 +36,17 @@ describe('resolveRun', () => {
     expect(err.message).toContain("Run 'nope' not found. Recent runs: ");
     expect(err.message).toContain('20261011-100006-aaaa');
     expect(err.message).not.toContain('20261011-100001-aaaa');
+  });
+});
+
+describe('listRuns', () => {
+  it('merges stores, drops duplicates and lists newest first', async () => {
+    const a = new MemoryRunStore(); const b = new MemoryRunStore();
+    await a.save(fixtureRun('20261011-100000-aaaa'));
+    await b.save(fixtureRun('20261011-100000-aaaa'));
+    await b.save(fixtureRun('20261011-110000-bbbb'));
+    await a.save({ ...fixtureRun('20261011-110000-0000'), startedAt: '2026-10-11T11:00:00.500Z' });
+    expect((await listRuns([a, b])).map(l => l.runId)).toEqual(['20261011-110000-0000', '20261011-110000-bbbb', '20261011-100000-aaaa']);
   });
 });
 

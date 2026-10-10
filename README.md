@@ -177,12 +177,14 @@ The CLI has the same queries for a terminal or a script:
 | `request`, `response`, `body` | `case_request`, `case_response`, `case_body` |
 | `tree`, `envs`, `show` | `tree`, `environments`, `show_request` |
 
-Every query command takes `--json`.
+Every query command takes `--json`. A case is named by its index, counted
+from 1 in the order the run sent it, or by its name.
 
 **Run records.** `run --record` and the MCP `run` tool save each run under
 `<store>/.fullyrested-runs`. `--store` defaults to the current directory. The
-MCP server keeps the last 20 runs in memory and writes to disk only when
-`--store` (or a tool's `store` argument) is given. FullyRested never prunes
+MCP server keeps its runs in memory (the last 20) unless a store is given:
+`fullyrested mcp --store <dir>` or the `run` tool's `store` argument also
+writes them to disk. FullyRested never prunes
 that folder, and you decide whether to add it to `.gitignore`.
 
 **Secrets** are redacted in run records and in everything the agent sees.

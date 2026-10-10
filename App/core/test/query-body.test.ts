@@ -79,6 +79,6 @@ describe('caseBody', () => {
   });
   it('truncates serialised json', () => {
     const b = caseBody(fixtureRun(), 1, { path: '$', cap: 6 });
-    expect(b).toMatchObject({ encoding: 'json', truncated: true, content: '[{"id"' });
+    expect(b).toMatchObject({ encoding: 'text', truncated: true, content: '[{"id"' });
   });
 });

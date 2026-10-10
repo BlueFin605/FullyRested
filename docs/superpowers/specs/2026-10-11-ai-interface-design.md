@@ -150,8 +150,9 @@ whatever earlier cases did.
 ## Commands and tools
 
 The CLI and MCP use the same names and arguments. CLI commands print
-human-readable text, or JSON with `--json`. MCP tools return JSON. Every CLI
-command takes `--store <dir>`.
+human-readable text, or JSON with `--json`. MCP tools return JSON. `run` and every
+query command take `--store <dir>`; the inspect commands (`tree`, `envs`,
+`show`) read no run records and take no `--store`.
 
 ### Inspect (read-only, no network)
 
@@ -238,8 +239,7 @@ The MCP tool descriptions are short and give the intended flow:
 - **mcp:** an in-process client/server pair over the SDK's in-memory
   transport, covering run → failures → case_body, memory-only (no files
   written) and `store` writing to disk. `include-secrets` is not exposed.
-- **app:** the response components still show the validation errors;
-  `ng lint` and the eslint checks pass.
+- **app:** the response components still show the validation errors.
 
 ## Future work
 

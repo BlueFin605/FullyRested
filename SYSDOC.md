@@ -68,7 +68,7 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Substitute variables and secrets | core `replaceVariables` / `substituteDeep` |
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
-| Record and query | core `run-record.ts` builds a redacted run record; a `RunStore` keeps it (`FsRunStore` on disk in the CLI, `MemoryRunStore` in the MCP server); `query.ts` answers summary, failures and per-case questions for both the CLI commands and the MCP tools |
+| Record and query | core `run-record.ts` builds the run record, its cases numbered from 1; core `redact.ts` (`redactCase`) redacts each case, called from the CLI's `run.ts` unless `--include-secrets` is given; a `RunStore` keeps it (`FsRunStore` on disk in the CLI, `MemoryRunStore` in the MCP server); `query.ts` answers summary, failures and per-case questions for both the CLI commands and the MCP tools |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
 ## Where the plan lives

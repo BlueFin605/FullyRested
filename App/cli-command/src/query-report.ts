@@ -59,7 +59,7 @@ export function formatBody(b: BodyResult): string {
 
 export function truncationNotice(b: BodyResult): string | undefined {
   return b.truncated
-    ? `-- truncated at ${String(b.content).length} of ${b.bytes} bytes; use --path, --outline, --range or --full`
+    ? `-- truncated at ${new TextEncoder().encode(String(b.content)).length} of ${b.bytes} bytes; use --path, --outline, --range or --full`
     : undefined;
 }
 
