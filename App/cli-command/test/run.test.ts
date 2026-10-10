@@ -4,7 +4,7 @@ import { AddressInfo } from 'node:net';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { runTests, UsageError } from '../src/run';
+import { runCollection, runTests, UsageError } from '../src/run';
 import { formatResult, toJUnit } from '../src/report';
 import { createSecretStore, secretEnvironmentVariable } from '../src/secret-store';
 
@@ -128,6 +128,47 @@ describe('runTests', () => {
     await expect(runTests({ collection: collection(), run: 'x', all: true }, noKeychain)).rejects.toThrow(/--run needs --action/);
     await expect(runTests({ collection: collection(), environment: 'Nope', all: true }, noKeychain)).rejects.toThrow(/Nope.*Dev, Prod/);
     await expect(runTests({ collection: collection(), action: 'items/runs.frreq', run: 'nope' }, noKeychain)).rejects.toThrow(/nope/);
+  });
+});
+
+describe('runCollection', () => {
+  const ok = () => path.join(folder, 'items', 'ok.frreq');
+
+  it('records the request, response and run metadata, with the secret redacted', async () => {
+    const store = createSecretStore({ [secretEnvironmentVariable('apikey')]: 'from-env-key' }, undefined);
+    const record = await runCollection({ collection: collection(), action: ok() }, store);
+    expect(record).toMatchObject({ collection: collection(), environment: 'Dev', redacted: true });
+    expect(record.runId).toBeTruthy();
+    expect(new Date(record.startedAt).toString()).not.toBe('Invalid Date');
+    expect(record.selection).toBe(`--action ${ok()}`);
+    const [c] = record.cases;
+    expect(c).toMatchObject({ index: 0, name: 'ok', requestFile: 'items/ok.frreq', outcome: 'pass' });
+    expect(c!.request.url).toBe(`http://${host}/ok?env=dev`);
+    expect(c!.request.headers['x-key']).toBe('{{$secret:apikey}}');
+    expect(c!.response!.status).toBe(200);
+    expect(c!.response!.body!.text).toBe('env=dev');
+  });
+
+  it('keeps the secret in clear with includeSecrets', async () => {
+    const store = createSecretStore({ [secretEnvironmentVariable('apikey')]: 'from-env-key' }, undefined);
+    const record = await runCollection({ collection: collection(), action: ok() }, store, { includeSecrets: true });
+    expect(record.redacted).toBe(false);
+    expect(record.cases[0]!.request.headers['x-key']).toBe('from-env-key');
+  });
+
+  it('names the run and reports each case through onCase', async () => {
+    const seen: string[] = [];
+    const record = await runCollection({ collection: collection(), action: 'items/runs.frreq', run: 'expects 404' }, noKeychain, { onCase: c => seen.push(c.name) });
+    expect(seen).toEqual(['runs › expects 404']);
+    expect(record.cases[0]).toMatchObject({ runName: 'expects 404', requestFile: 'items/runs.frreq', outcome: 'pass' });
+    expect(record.selection).toBe('--action items/runs.frreq --run expects 404');
+  });
+
+  it('records a network failure as an error outcome', async () => {
+    const record = await runCollection({ collection: collection(), action: 'down.frreq', environment: 'Prod' }, noKeychain);
+    expect(record.environment).toBe('Prod');
+    expect(record.cases[0]).toMatchObject({ outcome: 'error' });
+    expect(record.cases[0]!.error).toContain('No response');
   });
 });
 
