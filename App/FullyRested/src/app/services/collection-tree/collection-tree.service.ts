@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import {
-  Collection, CollectionConfig, CollectionNode, FolderNode, RequestNode, RestAction, RunNode,
+  Collection, CollectionConfig, CollectionNode, FolderConfig, FolderNode, RequestNode, RestAction, RunNode,
   loadCollectionTree, normaliseCollectionConfig, relativePath,
 } from '@fullyrested/core';
 import { ActionRepositoryService } from '../action-repository/action-repository.service';
@@ -16,6 +16,8 @@ export class CollectionTreeService {
   private collection: Collection | undefined;
   // a newer load supersedes an older one still in flight
   private loadToken = 0;
+  // each folder's settings as they were read from disk, to tell unsaved edits from what is on disk
+  private loaded = new WeakMap<FolderNode, string>();
 
   constructor(private repo: ActionRepositoryService) {
     repo.collections.subscribe((c) => this.onCollection(c));
@@ -70,18 +72,26 @@ export class CollectionTreeService {
 
     if (token !== this.loadToken) return;
 
-    // unsaved folder edits live on the old nodes: an unrelated reload (saving a request) must not drop them.
+    // unsaved folder edits live on the old nodes: an unrelated reload (saving a request) must not drop them,
+    // but a folder nobody edited takes what is on disk now (a git pull, an editor).
     // tree.value is cleared when the collection file changes, so this only ever carries within one collection.
     const previous = this.tree.value;
-    if (previous != undefined)
-      for (const folder of root.folderNodes()) {
-        const old = previous.find(folder.path);
-        if (old instanceof FolderNode && old.loadError == undefined && folder.path !== options?.refreshed) folder.config = old.config;
-      }
+    for (const folder of root.folderNodes()) {
+      this.loaded.set(folder, snapshot(folder.config));
+      const old = previous?.find(folder.path);
+      if (old instanceof FolderNode && old.loadError == undefined && folder.path !== options?.refreshed && this.isEdited(old))
+        folder.config = old.config;
+    }
 
     // the settings panes edit the collection's own config object; settings edits may have swapped it mid-load
     root.config = this.collection!.config;
     this.tree.next(root);
+  }
+
+  // A folder whose settings differ from what was read for it
+  isEdited(folder: FolderNode): boolean {
+    const read = this.loaded.get(folder);
+    return read == undefined || read !== snapshot(folder.config);
   }
 
   // The node an open tab sends: wraps the tab's live action, under the folder its file is in
@@ -94,3 +104,6 @@ export class CollectionTreeService {
     return runId ? request.run(runId) : request;
   }
 }
+
+// The app gives a folder without an id one when its settings are opened; that alone is not an edit
+const snapshot = (config: FolderConfig) => JSON.stringify({ ...config, folderId: '' });

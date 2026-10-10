@@ -55,6 +55,9 @@ describe('OpenActionsComponent folder settings', () => {
     component.onTreeChange();
     expect(component.selectedFolder).toBeUndefined();
     expect(component.folderSettingsVisible()).toBeFalse();
+    // back to the open requests, not a blank workspace
+    expect(component.selectedTab.selectedType).toBe('');
+    expect(component.actionsVisible()).toBeTrue();
   });
 
   it('keeps the message when saving fails', async () => {
@@ -64,7 +67,32 @@ describe('OpenActionsComponent folder settings', () => {
 
     await component.saveFolderSettings();
 
-    expect(component.folderSaveError).toBe('disk full');
+    expect(component.folderSaveError).toBe('Could not save: disk full');
+    expect((component as any).trees.reload).not.toHaveBeenCalled();
+  });
+
+  it('says the save worked when only the reload after it fails', async () => {
+    const { component } = setup();
+    component.openFolderSettings(folderHostPath);
+    (component as any).trees.reload.and.rejectWith(new Error('folder gone'));
+
+    await component.saveFolderSettings();
+
+    expect((component as any).repo.saveFolder).toHaveBeenCalled();
+    expect(component.folderSaveError).toBe('Saved, but the collection could not be reloaded: folder gone');
+  });
+
+  it('falls back to an empty environment for a headers key naming an unknown environment', () => {
+    const { component } = setup();
+    const config = (component as any).collection.config;
+    config.environments = [{ ...config.collectionEnvironment, id: 'env1', name: 'Prod', headers: [] }];
+
+    component.openSystem({ type: 'system', subtype: 'headers', key: 'system.settings.environments.gone.headers' } as any);
+
+    expect(component.headersVisible()).toBeTrue();
+    expect(component.selectedEnvironment).not.toBe(config.collectionEnvironment);
+    expect(component.selectedEnvironment).not.toBe(config.environments[0]);
+    expect(component.selectedEnvironment.headers).toEqual([]);
   });
 
   it('opens the pane from the folderSettings command', async () => {

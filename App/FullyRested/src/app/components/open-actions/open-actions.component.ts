@@ -558,10 +558,16 @@ export class OpenActionsComponent implements OnInit {
     this.selectedTab = { selectedType: 'folder', selectedSubType: 'settings', selectedKey: fullPath, runkey: undefined };
   }
 
-  // Every reload makes new nodes: keep an open folder pane on the live one, and hide it if the folder is gone
+  // Every reload makes new nodes: keep an open folder pane on the live one. If the folder is gone,
+  // go back to the open requests rather than leaving an empty workspace.
   onTreeChange() {
     if (this.selectedTab.selectedType != 'folder' || this.selectedFolderPath == '') return;
     this.selectedFolder = this.findFolder(this.selectedFolderPath);
+    if (this.selectedFolder != undefined) return;
+
+    this.selectedFolderPath = '';
+    this.folderSaveError = '';
+    this.selectedTab = { selectedType: '', selectedSubType: '', selectedKey: '', runkey: undefined };
   }
 
   folderSettingsVisible(): boolean {
@@ -572,11 +578,17 @@ export class OpenActionsComponent implements OnInit {
     if (this.selectedFolder == undefined) return;
     try {
       await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
+    } catch (error) {
+      this.folderSaveError = `Could not save: ${(error as Error)?.message ?? String(error)}`;
+      return;
+    }
+
+    this.folderSaveError = '';
+    try {
       const refreshed = this.collection ? relativePath(this.collection.path, this.selectedFolderPath) : undefined;
       await this.trees.reload({ refreshed });
-      this.folderSaveError = '';
     } catch (error) {
-      this.folderSaveError = (error as Error)?.message ?? String(error);
+      this.folderSaveError = `Saved, but the collection could not be reloaded: ${(error as Error)?.message ?? String(error)}`;
     }
   }
 

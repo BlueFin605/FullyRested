@@ -300,7 +300,7 @@
             </p>
           }
           @if (folderSaveError) {
-            <p class="pane-error">Could not save: {{ folderSaveError }}</p>
+            <p class="pane-error">{{ folderSaveError }}</p>
           }
           <h3>Variables</h3>
           <app-settings-manage-variables [(variables)]="selectedFolder.config.variables"></app-settings-manage-variables>

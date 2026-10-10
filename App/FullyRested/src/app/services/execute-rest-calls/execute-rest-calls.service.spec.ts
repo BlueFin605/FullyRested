@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import {
   CollectionConfig, CollectionNode, CreateEmptyAction, CreateEmptyEnvironment, CreateEmptyFolderConfig, FolderNode,
-  IExecuteRestAction, normaliseCollectionConfig,
+  CreateEmptyRestActionValidation, IExecuteRestAction, ValidationType, normaliseCollectionConfig,
 } from '@fullyrested/core';
 
 import { ExecuteRestCallsService } from './execute-rest-calls.service';
@@ -85,5 +85,33 @@ describe('ExecuteRestCallsService', () => {
     expect(sent[0][0]).toBe('testRest');
     expect(sent[0][1].headers['x-folder']).toBe('yes');
     expect(result.status).toBe(200);
+  });
+
+  it('checks the response against the request validation', async () => {
+    (window as any).ipc = { invoke: async () => ({ status: 404, statusText: 'Not Found', headers: {}, headersSent: {}, body: undefined, validated: undefined }) };
+    const node = rootNode().attach({ ...CreateEmptyAction(), url: 'x.example', validation: { ...CreateEmptyRestActionValidation(ValidationType.ResponseCode), httpCode: 200 } }, 'a.frreq');
+
+    const result = await service.executeNode(node);
+
+    expect(result.validated).toBeDefined();
+    expect(result.validated!.valid).toBeFalse();
+    expect(result.validated!.errors.join(' ')).toContain('200');
+  });
+
+  it('rejects without sending when the request cannot be resolved', async () => {
+    const invoke = jasmine.createSpy('invoke');
+    (window as any).ipc = { invoke };
+    const tree = rootNode();
+    const folder = new FolderNode(tree, 'f', CreateEmptyFolderConfig('f'), true);
+    folder.loadError = { file: 'f/folder.frfolder', message: 'bad json' };
+    tree.children.push(folder);
+
+    await expectAsync(service.executeNode(tree.attach(CreateEmptyAction(), 'f/a.frreq'))).toBeRejectedWithError(/f\/folder\.frfolder is invalid/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the main process fails to send', async () => {
+    (window as any).ipc = { invoke: () => Promise.reject(new Error('ipc down')) };
+    await expectAsync(service.executeNode(nodeFor('x.example'))).toBeRejectedWithError('ipc down');
   });
 });
