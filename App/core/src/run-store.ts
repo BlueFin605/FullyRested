@@ -28,7 +28,7 @@ export function listingOf(r: RunRecord): RunListing {
 }
 
 // UTC 'YYYYMMDD-HHMMSS-xxxx'; lexical order matches time order.
-export function newRunId(now = new Date(), random = () => Math.random().toString(16).slice(2, 6)): string {
+export function newRunId(now = new Date(), random = () => Math.random().toString(16).slice(2, 6).padEnd(4, '0')): string {
   const p = (n: number, width = 2) => String(n).padStart(width, '0');
   const date = `${now.getUTCFullYear()}${p(now.getUTCMonth() + 1)}${p(now.getUTCDate())}`;
   const time = `${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
