@@ -31,7 +31,7 @@ interface TestCase {
 
 export class UsageError extends Error { }
 
-function findEnvironment(config: CollectionConfig, name: string | undefined): { id: string | undefined; name: string | undefined } {
+export function findEnvironment(config: CollectionConfig, name: string | undefined): { id: string | undefined; name: string | undefined } {
   if (name == undefined)
     return { id: undefined, name: config.environments.find(e => e.id == config.selectedEnvironmentId)?.name };
 
@@ -84,7 +84,7 @@ function treePath(root: CollectionNode, relative: string): string {
 }
 
 // The tree's node for a request file; a file outside the collection folder inherits from the collection only
-async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
+export async function requestFor(file: string, root: CollectionNode, collectionFolder: string, store: SecretStore): Promise<RequestNode> {
   const full = path.resolve(resolveActionFile(file, collectionFolder));
   const typed = relativePath(collectionFolder, full);
   const relative = typed == undefined ? undefined : treePath(root, typed);

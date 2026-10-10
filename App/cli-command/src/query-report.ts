@@ -1,4 +1,4 @@
-import { BodyResult, RunListing, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EnvironmentsView, RunListing, ShownRequest, TreeNodeView, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -69,4 +69,37 @@ export function truncationNotice(b: BodyResult): string | undefined {
 export function parseRange(text: string): [number, number] | undefined {
   const m = /^(\d+):(\d+)$/.exec(text);
   return m ? [Number(m[1]), Number(m[2])] : undefined;
+}
+
+function treeLines(nodes: TreeNodeView[], depth: number): string[] {
+  const pad = '  '.repeat(depth);
+  return nodes.flatMap(n => {
+    if (n.type === 'folder') return [`${pad}${n.name}/`, ...treeLines(n.children, depth + 1)];
+    if (n.type === 'error') return [`${pad}! ${n.file}: ${n.message}`];
+    const validation = n.validation ? `  [${n.validation}]` : '';
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...n.runs.map(r => `${pad}  › ${r.name}`)];
+  });
+}
+
+export function formatTree(t: TreeView): string {
+  return [`${t.collection}/`, ...treeLines(t.children, 1)].join('\n');
+}
+
+const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');
+
+export function formatEnvironments(v: EnvironmentsView): string {
+  const rows = v.environments.map(e => `${e.name === v.selected ? '*' : ' '} ${e.name}  vars: ${list(e.variables)}  secrets: ${list(e.secrets)}`);
+  return [...rows, `  collection  vars: ${list(v.collection.variables)}  secrets: ${list(v.collection.secrets)}`].join('\n');
+}
+
+export function formatShown(r: ShownRequest): string {
+  const tag = (source: string, overridden: boolean) => `(${source}${overridden ? ', overridden' : ''})`;
+  const lines = [`${r.method.toUpperCase()} ${r.url}`];
+  const section = (title: string, rows: string[]) => { if (rows.length > 0) lines.push('', title, ...rows.map(x => `  ${x}`)); };
+  section('headers', r.headers.map(h => `${h.key} = ${h.value}   ${tag(h.source, h.overridden)}`));
+  section('variables', r.variables.map(v => `${v.variable} = ${v.value}   ${tag(v.source, v.overridden)}`));
+  section('secrets', r.secrets.map(s => `${s.name}   ${tag(s.source, s.overridden)}`));
+  if (r.auth) section('auth', [`${r.auth.type}   (${r.auth.source})`]);
+  if (r.validation !== undefined && r.validation !== null) section('validation', JSON.stringify(r.validation, null, 2).split('\n'));
+  return lines.join('\n');
 }

@@ -2,11 +2,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { QueryError, caseBody, caseRequest, caseResponse, failures, resolveRun, summary } from '@fullyrested/core';
-import { RunOptions, UsageError, runCollection, toTestResult } from './run';
+import { QueryError, caseBody, environmentsView, showRequest, treeView, caseRequest, caseResponse, failures, resolveRun, summary } from '@fullyrested/core';
+import { RunOptions, UsageError, findEnvironment, requestFor, runCollection, toTestResult } from './run';
+import { loadTree } from './files';
 import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
-import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary as formatQuerySummary, parseRange, truncationNotice } from './query-report';
+import { formatBody, formatEnvironments, formatShown, formatTree, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary as formatQuerySummary, parseRange, truncationNotice } from './query-report';
 import { createSecretStore, secretEnvironmentVariable } from './secret-store';
 
 const program = new Command();
@@ -145,6 +146,46 @@ withQueryOptions(program.command('body').argument('<case>', 'case index or name'
     printResult(options, result, formatBody(result));
     const notice = truncationNotice(result);
     if (notice) console.error(notice);
+  }));
+
+interface InspectOptions { collection: string; json?: boolean }
+
+const withInspectOptions = (c: Command) => c
+  .requiredOption('-c, --collection <file>', 'collection file (.frcol)')
+  .option('--json', 'print the result as JSON');
+
+withInspectOptions(program.command('tree').description('List the folders, requests and runs of a collection'))
+  .action(queryAction(async (options: InspectOptions) => {
+    const root = await loadTree(options.collection, createSecretStore());
+    const view = treeView(root);
+    view.warnings.forEach(w => console.warn(`warning: ${w}`));
+    printResult(options, view, formatTree(view));
+  }));
+
+withInspectOptions(program.command('envs').description('List the environments of a collection (names only)'))
+  .action(queryAction(async (options: InspectOptions) => {
+    const root = await loadTree(options.collection, createSecretStore());
+    const view = environmentsView(root.config);
+    printResult(options, view, formatEnvironments(view));
+  }));
+
+withInspectOptions(program.command('show').description('Show a request as it would be sent, with where each setting comes from (secrets stay redacted)')
+  .requiredOption('-a, --action <file>', 'request file (.frreq)')
+  .option('-r, --run <name>', 'one run of the request, by name or id')
+  .option('-e, --environment <name>', 'environment name or id (default: the collection selected one)'))
+  .action(queryAction(async (options: InspectOptions & { action: string; run?: string; environment?: string }) => {
+    const store = createSecretStore();
+    const root = await loadTree(options.collection, store);
+    root.warnings.forEach(w => console.warn(`warning: ${w}`));
+    const request = await requestFor(options.action, root, path.dirname(path.resolve(options.collection)), store);
+    let node: Parameters<typeof showRequest>[0] = request;
+    if (options.run !== undefined) {
+      const run = request.runs().find(r => r.run.name === options.run || r.run.id === options.run);
+      if (!run) throw new UsageError(`Run '${options.run}' not found in '${request.name}'`);
+      node = run;
+    }
+    const result = showRequest(node, findEnvironment(root.config, options.environment).id);
+    printResult(options, result, formatShown(result));
   }));
 
 program.parseAsync(process.argv);

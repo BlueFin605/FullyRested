@@ -224,3 +224,41 @@ describe('query commands', () => {
     }
   });
 });
+
+describe('inspect commands', () => {
+  it('tree lists the items folder and its request', async () => {
+    const r = await fullyrested(['tree', '-c', fx.collection]);
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/^ {2}items\/$/m);
+    expect(r.out).toMatch(/^ {4}ok {2}GET \{\{host\}\}\/ok {2}\[ResponseCode\]$/m);
+    expect(r.out).toContain('› expects 404');
+    expect(JSON.parse((await fullyrested(['tree', '-c', fx.collection, '--json'])).out).collection).toBe('api');
+  });
+
+  it('envs marks the selected environment', async () => {
+    const r = await fullyrested(['envs', '-c', fx.collection]);
+    expect(r.out).toContain('* Dev  vars: env  secrets: -');
+    expect(r.out).toMatch(/^ {2}Prod /m);
+    expect(r.out).toMatch(/^ {2}collection {2}vars: host {2}secrets: apikey$/m);
+  });
+
+  it('show reports sources and never prints the secret value', async () => {
+    const r = await fullyrested(['show', '-c', fx.collection, '-a', 'items/ok.frreq']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain(`GET http://${fx.host}/ok`);
+    expect(r.out).toContain('x-folder = items   (folder:items)');
+    expect(r.out).toContain('x-key = {{$secret:apikey}}');
+    expect(r.out).not.toContain('cli-secret-value');
+    const json = await fullyrested(['show', '-c', fx.collection, '-a', 'items/ok.frreq', '--json']);
+    expect(json.out).not.toContain('cli-secret-value');
+  });
+
+  it('show picks a run and an environment, and exits 2 for an unknown run', async () => {
+    const r = await fullyrested(['show', '-c', fx.collection, '-a', 'items/runs.frreq', '-r', 'expects 404', '-e', 'Prod']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('env = prod');
+    const bad = await fullyrested(['show', '-c', fx.collection, '-a', 'items/runs.frreq', '-r', 'nope']);
+    expect(bad.code).toBe(2);
+    expect(bad.err).toMatch(/^error: /);
+  });
+});

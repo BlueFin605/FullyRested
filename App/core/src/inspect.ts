@@ -109,13 +109,16 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
     const eff = node.effectiveSettings({ environmentId });
     const request = node instanceof RunNode ? node.request : node;
     const replace = secretReplacer(eff.secrets.map((s: EffectiveValue<SecretTable>) => s.value), 1);
+    // A raw {{$name}} reference to one of the effective secrets reads as {{$secret:name}}
+    const secretNames = new Set(eff.secrets.map(s => s.value.$secret));
+    const label = (text: string) => replace(text.replace(/\{\{\$([^{}]+)\}\}/g, (ref, name: string) => secretNames.has(name) ? `{{$secret:${name}}}` : ref));
     const auth: EffectiveValue<AuthenticationDetails> | undefined = eff.auth;
     return {
       name: node.name,
       method: request.action.verb,
       url: replace(`${resolved.protocol}://${resolved.url}`),
-      headers: eff.headers.map(h => ({ key: h.value.key, value: replace(h.value.value), source: sourceOf(h.source), overridden: h.overridden })),
-      variables: eff.variables.map(v => ({ variable: v.value.variable, value: replace(v.value.value), source: sourceOf(v.source), overridden: v.overridden })),
+      headers: eff.headers.map(h => ({ key: h.value.key, value: label(h.value.value), source: sourceOf(h.source), overridden: h.overridden })),
+      variables: eff.variables.map(v => ({ variable: v.value.variable, value: label(v.value.value), source: sourceOf(v.source), overridden: v.overridden })),
       secrets: eff.secrets.map(s => ({ name: s.value.$secret, source: sourceOf(s.source), overridden: s.overridden })),
       auth: auth ? { type: auth.value.authentication, source: sourceOf(auth.source) } : undefined,
       validation: redactDeep(resolved.validation, replace),

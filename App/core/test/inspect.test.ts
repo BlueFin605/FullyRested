@@ -90,6 +90,18 @@ describe('showRequest', () => {
     expect(JSON.stringify(shown)).not.toContain('sekret-123');
   });
 
+  it('shows a {{$name}} secret reference in a header or variable as {{$secret:name}}', async () => {
+    const req = JSON.parse(request);
+    req.headers = [{ key: 'x-key', value: 'Bearer {{$apikey}}', active: true, id: 'h1' }, { key: 'x-other', value: '{{$unknown}}', active: true, id: 'h2' }];
+    const withVar = JSON.parse(collection);
+    withVar.collectionEnvironment.variables.push({ variable: 'token', value: '{{$apikey}}', active: true, id: 't' });
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req), 'api.frcol': JSON.stringify(withVar) })), store);
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(shown.headers.find(h => h.key === 'x-key')!.value).toBe('Bearer {{$secret:apikey}}');
+    expect(shown.headers.find(h => h.key === 'x-other')!.value).toBe('{{$unknown}}');
+    expect(shown.variables.find(v => v.variable === 'token')!.value).toBe('{{$secret:apikey}}');
+  });
+
   it('redacts a secret value that appears in a variable value', async () => {
     const withVar = JSON.parse(collection);
     withVar.collectionEnvironment.variables.push({ variable: 'leak', value: 'sekret-123', active: true, id: 'l' });
