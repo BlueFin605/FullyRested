@@ -51,6 +51,11 @@ describe('redactCase', () => {
     expect(out.response?.body?.bytes).toBe(20);
   });
 
+  it('redacts a secret echoed in the response statusText', () => {
+    const rec = base({}, { status: -99, statusText: 'getaddrinfo failed for abcd1234.test', headers: {} });
+    expect(redactCase(rec, [secret('key', 'abcd1234')]).response?.statusText).toBe('getaddrinfo failed for {{$secret:key}}.test');
+  });
+
   it('leaves base64 bodies alone', () => {
     const rec = base({}, { status: 200, headers: {}, body: { bytes: 4, base64: 'abcd1234' } });
     expect(redactCase(rec, [secret('key', 'abcd1234')]).response?.body?.base64).toBe('abcd1234');

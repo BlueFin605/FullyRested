@@ -78,6 +78,7 @@ export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): C
   }
   if (c.response) {
     out.response = { ...c.response, headers: redactHeaders(c.response.headers, replace) };
+    if (c.response.statusText !== undefined) out.response.statusText = replace(c.response.statusText);
     if (c.response.body) out.response.body = redactBody(c.response.body, replace);
   }
   return out;
