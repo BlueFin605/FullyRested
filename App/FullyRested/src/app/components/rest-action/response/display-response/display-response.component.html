@@ -14,7 +14,7 @@
       @if (response.validated) {
         <span class="fr-pill" [attr.data-level]="response.validated.valid ? 'ok' : 'error'">
           <mat-icon>{{ response.validated.valid ? "check_circle" : "error" }}</mat-icon>
-          {{ response.validated.valid ? "Valid" : response.validated.errors.length + " failed" }}
+          {{ response.validated.valid ? "Valid" : failedCount() + " failed" }}
         </span>
       }
     }
@@ -43,8 +43,19 @@
   } @else {
     @if (response.validated && !response.validated.valid) {
       <ul class="validation-errors">
-        @for (error of response.validated.errors; track $index) {
-          <li><mat-icon>error_outline</mat-icon>{{ error }}</li>
+        @if (response.validated.checks) {
+          @for (check of response.validated.checks; track check.check) {
+            @if (!check.passed) {
+              <li class="check-label">{{ check.check }}</li>
+              @for (error of check.errors; track $index) {
+                <li class="error"><mat-icon>error_outline</mat-icon>{{ error }}</li>
+              }
+            }
+          }
+        } @else {
+          @for (error of response.validated.errors; track $index) {
+            <li class="error"><mat-icon>error_outline</mat-icon>{{ error }}</li>
+          }
         }
       </ul>
     }

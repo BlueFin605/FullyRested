@@ -77,7 +77,16 @@ export function mockRestResult(action: IExecuteRestAction): Promise<RestActionRe
     //   a.closest("[data-ved]"))?D(f)||"":"";f=f||"";if(a.hasAttribute("jsname"))a=a.getAttribute("jsname");else{var C;a=null==(C=a.closest("[jsname]"))?void 0:C.getAttribute("jsname")}google.log("rcm","&ei="+c+"&ved="+f+"&jsname="+(a||""))}}else F=a,E=[c]}window.document.addEventListener("DOMContentLoaded",function(){document.body.addEventListener("click",G)});}).call(this);</script></body></html>`)
     // },
 
-    validated: {information: [], errors: [], valid: true}
+    validated: {
+      information: [],
+      valid: false,
+      errors: ["Status 200 is not the expected 404", "Body: $.id expected number, got string", "Body: $.name is required"],
+      checks: [
+        { check: 'status', passed: false, errors: ["Status 200 is not the expected 404"] },
+        { check: 'body', passed: false, errors: ["Body: $.id expected number, got string", "Body: $.name is required"] },
+        { check: 'headers', passed: true, errors: [] },
+      ],
+    }
   };
 
   return new Promise((resolve, reject) => { resolve(mockjson); });
