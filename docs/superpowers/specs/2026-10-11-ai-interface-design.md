@@ -189,7 +189,7 @@ size first and fetches the body only when it needs it. `case_body`:
 - `--path`: a JSONPath subset (dot keys, `[n]`, `[*]`) on JSON bodies;
 - `--outline`: the JSON's shape (keys, types, array lengths, short sample
   values) instead of its content;
-- `--range a:b`: a byte range of a text body;
+- `--range a:b`: a character range of a text body;
 - returns at most 32 KB unless `--full` is given. A truncated result says so
   and gives the full size.
 
