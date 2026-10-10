@@ -12,4 +12,5 @@ export * from './paths';
 export * from './scope';
 export * from './tree';
 export * from './run-record';
+export * from './run-store';
 export * from './redact';
