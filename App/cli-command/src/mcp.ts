@@ -64,13 +64,15 @@ export function createServer(opts: McpOptions): McpServer {
   }, args => respond(() => inspectRequest(args, opts.secrets, warn)));
 
   server.registerTool('run', {
-    description: 'Send requests of a collection. Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body.',
+    description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body.',
     inputSchema: {
       collection: z.string(), environment: z.string().optional(), action: z.string().optional(),
       run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
     }
   }, ({ store: dir, ...options }) => respond(async () => {
-    const record = await runCollection(options, opts.secrets, { onWarning: warn, includeSecrets: false });
+    // Unlike the CLI, no selection means the whole collection, so an agent's first call is not wasted
+    const selected = options.action !== undefined || options.folder !== undefined || options.all !== undefined;
+    const record = await runCollection(selected ? options : { ...options, all: true }, opts.secrets, { onWarning: warn, includeSecrets: false });
     await memory.save(record);
     const disk = fsStore(dir);
     if (disk) {

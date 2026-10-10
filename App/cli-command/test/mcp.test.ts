@@ -83,6 +83,16 @@ describe('mcp server', () => {
     expect(down.error).toMatch(/^No response/);
   });
 
+  it('run with no action, folder or all runs the whole collection', async () => {
+    const client = await connect();
+    const bare = await call(client, 'run', { collection: fx.collection });
+    expect(bare.isError).toBe(false);
+    const all = (await call(client, 'run', { collection: fx.collection, all: true })).json();
+    const result = bare.json();
+    expect(result.passed + result.failed + result.errored).toBe(all.passed + all.failed + all.errored);
+    expect(result.selection).toBe(all.selection);
+  });
+
   it('run without a store writes no .fullyrested-runs in the working directory', async () => {
     const cwd = process.cwd();
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-cwd-'));
