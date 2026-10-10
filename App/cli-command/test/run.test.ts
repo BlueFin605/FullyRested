@@ -108,6 +108,21 @@ describe('runCollection', () => {
     expect(record.selection).toBe('--action items/runs.frreq --run expects 404');
   });
 
+  it('records a network failure on a checked request with no response and no validation', async () => {
+    const file = path.join(folder, 'down-checked.frreq');
+    fs.writeFileSync(file, JSON.stringify(request('r-down-checked', 'down checked', '127.0.0.1:1/nothing')));
+    try {
+      const record = await runCollection({ collection: collection(), action: 'down-checked.frreq' }, noKeychain);
+      expect(record.cases[0]).toMatchObject({ outcome: 'error', error: 'No response: ECONNREFUSED' });
+      expect(record.cases[0]!.response).toBeUndefined();
+      expect(record.cases[0]!.validation).toBeUndefined();
+      const [result] = await runTests({ collection: collection(), action: 'down-checked.frreq' }, noKeychain);
+      expect(result).toMatchObject({ status: -4, passed: false, errors: ['No response: ECONNREFUSED'] });
+    } finally {
+      fs.rmSync(file);
+    }
+  });
+
   it('records a network failure as an error outcome', async () => {
     const record = await runCollection({ collection: collection(), action: 'down.frreq', environment: 'Prod' }, noKeychain);
     expect(record.environment).toBe('Prod');

@@ -167,6 +167,10 @@ describe('query commands', () => {
       const r = await fullyrested(['failures', '--store', dir]);
       expect(r.out).toMatch(/^ {2}1 ERROR - down\n {4}\S/);
       expect(JSON.parse((await fullyrested(['failures', '--json', '--store', dir])).out).count).toBe(1);
+      const res = await fullyrested(['response', '1', '--store', dir]);
+      expect(res.code).toBe(2);
+      expect(res.err).toMatch(/^error: Case 1 got no response: No response: /);
+      expect(JSON.parse((await fullyrested(['summary', '--json', '--store', dir])).out).cases[0].status).toBeUndefined();
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

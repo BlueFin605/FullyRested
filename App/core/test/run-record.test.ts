@@ -39,12 +39,13 @@ describe('buildCaseRecord', () => {
     const r = buildCaseRecord({ ...base, request: req, response: res({ status: -1, statusText: 'ECONNREFUSED', body: undefined }) });
     expect(r.outcome).toBe('error');
     expect(r.error).toBe('No response: ECONNREFUSED');
-    expect(r.response?.status).toBe(-1);
+    expect(r.response).toBeUndefined();
   });
   it('treats a string status as an error', () => {
     const r = buildCaseRecord({ ...base, request: req, response: res({ status: 'ERR_X', statusText: 'boom' }) });
     expect(r.outcome).toBe('error');
     expect(r.error).toBe('No response: boom');
+    expect(r.response).toBeUndefined();
   });
   it('resolve error: no request, outcome error', () => {
     const r = buildCaseRecord({ ...base, error: 'bad var' });

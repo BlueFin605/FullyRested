@@ -156,11 +156,20 @@ async function runCase(test: TestCase, index: number, environmentId: string | un
   const response = await executeRequest(request);
   const ms = Date.now() - started;
 
+  // A negative or string status means no response came back, so there is nothing to validate.
   // Without validation a request passes when any HTTP response comes back
-  const validation = validateResponse(request, response);
-  const record = buildCaseRecord({ ...base, ms, request: prepared, response, validation });
-  return includeSecrets ? record : redactCase(record, request.secrets);
+  const gotResponse = typeof response.status == 'number' && response.status >= 0;
+  const validation = gotResponse ? validateResponse(request, response) : undefined;
+  const built = buildCaseRecord({ ...base, ms, request: prepared, response, validation });
+  const record = includeSecrets ? built : redactCase(built, request.secrets);
+  if (!gotResponse)
+    noResponseStatus.set(record, response.status);
+  return record;
 }
+
+// The run's text output and --junit still show the network error status of a case with no response,
+// which the record leaves out
+const noResponseStatus = new WeakMap<CaseRecord, number | string>();
 
 function describeSelection(options: RunOptions): string {
   if (options.folder != undefined)
@@ -206,7 +215,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
 export function toTestResult(c: CaseRecord): TestResult {
   return {
     name: c.name,
-    status: c.response?.status ?? 'error',
+    status: c.response?.status ?? noResponseStatus.get(c) ?? 'error',
     ms: c.ms,
     passed: c.outcome == 'pass',
     errors: c.error ? [c.error] : c.validation?.checks.flatMap(x => x.errors) ?? []

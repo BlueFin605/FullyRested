@@ -31,6 +31,15 @@ describe('query-report', () => {
     expect(out.split('\n')).toEqual(['  1 FAIL 404 a', '    [ResponseCode] expected 200', '  2 ERROR - b', '    boom']);
   });
 
+  it('formats a case error before its failed checks', () => {
+    const out = formatFailures({
+      runId: 'r', count: 1, cases: [
+        { index: 1, name: 'a', outcome: 'error', error: 'No response: ECONNREFUSED', failedChecks: [{ check: 'ResponseCode', errors: ['expected 200'] }] }
+      ]
+    });
+    expect(out.split('\n')).toEqual(['  1 ERROR - a', '    No response: ECONNREFUSED', '    [ResponseCode] expected 200']);
+  });
+
   it('formats request and response', () => {
     expect(formatRequest({ index: 0, name: 'n', method: 'GET', url: 'http://x', headers: { a: 'b' } }))
       .toBe('GET http://x\na: b\nno body');

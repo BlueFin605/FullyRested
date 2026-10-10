@@ -29,12 +29,9 @@ export function formatFailures(f: Failures): string {
   const lines: string[] = [];
   for (const c of f.cases) {
     lines.push(caseLine(c));
-    if (c.failedChecks.length > 0) {
-      for (const k of c.failedChecks)
-        for (const e of k.errors) lines.push(`    [${k.check}] ${e}`);
-    } else if (c.error !== undefined) {
-      lines.push(`    ${c.error}`);
-    }
+    if (c.error !== undefined) lines.push(`    ${c.error}`);
+    for (const k of c.failedChecks)
+      for (const e of k.errors) lines.push(`    [${k.check}] ${e}`);
   }
   return lines.join('\n');
 }

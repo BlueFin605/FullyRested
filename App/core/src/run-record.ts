@@ -75,7 +75,9 @@ function responseBody(result: RestActionResult): RecordBody | undefined {
 
 export function buildCaseRecord(input: CaseInput): CaseRecord {
   const { response, request, validation } = input;
-  const noResponse = response !== undefined && (typeof response.status === 'string' || response.status < 0);
+  // A negative or string status means no HTTP response came back
+  const status = typeof response?.status === 'number' && response.status >= 0 ? response.status : undefined;
+  const noResponse = response !== undefined && status === undefined;
 
   const sent = response && Object.keys(response.headersSent ?? {}).length > 0 ? response.headersSent : request?.headers ?? {};
   const record: CaseRecord = {
@@ -90,8 +92,8 @@ export function buildCaseRecord(input: CaseInput): CaseRecord {
   const reqBody = request ? requestBody(request) : undefined;
   if (reqBody) record.request.body = reqBody;
 
-  if (response) {
-    record.response = { status: response.status as number, headers: { ...response.headers } };
+  if (response && status !== undefined) {
+    record.response = { status, headers: { ...response.headers } };
     if (response.statusText !== undefined) record.response.statusText = response.statusText;
     const body = responseBody(response);
     if (body) record.response.body = body;
