@@ -105,6 +105,12 @@ describe('loadCollectionTree', () => {
         expect((root.find('z.frreq') as RequestNode).resolve().headers).toEqual({});
     });
 
+    it('loads request files whatever the case of their extension', async () => {
+        const root = await loadCollectionTree('api.frcol', memory(files({ 'b/UPPER.FRREQ': request('ru', 'upper'), 'Legacy.ReasyReq': request('rl', 'legacy') })), store);
+        expect(root.requestNodes().map(r => r.path)).toContain('b/UPPER.FRREQ');
+        expect((root.find('Legacy.ReasyReq') as RequestNode).action.name).toBe('legacy');
+    });
+
     it('throws when the collection file cannot be read', async () => {
         await expect(loadCollectionTree('missing.frcol', memory(files()), store)).rejects.toThrow('ENOENT missing.frcol');
     });

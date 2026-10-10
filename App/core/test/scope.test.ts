@@ -198,6 +198,17 @@ describe('effectiveSettings', () => {
         expect(sent).toEqual(request.resolve().headers);
         expect(effective.auth?.source).toEqual({ kind: 'folder', name: 'outer' });
     });
+
+    it('marks variables and secrets a nearer level sets as overridden', () => {
+        const effective = build().request.run('r1').effectiveSettings();
+        const hosts = effective.variables.filter(x => x.value.variable == 'host');
+        expect(hosts.map(x => [x.source.kind, x.source.name, x.overridden])).toEqual([
+            ['run', 'one', false], ['folder', 'outer/inner', true], ['folder', 'outer', true], ['environment', 'Dev', true], ['collection', 'api', true]
+        ]);
+        expect(effective.variables.find(x => x.value.variable == 'who')?.overridden).toBe(false);
+        const keys = effective.secrets.filter(x => x.value.$secret == 'key');
+        expect(keys.map(x => [x.source.kind, x.overridden])).toEqual([['run', false], ['collection', true]]);
+    });
 });
 
 describe('load errors', () => {
@@ -206,6 +217,22 @@ describe('load errors', () => {
         outer.loadError = { file: 'outer/folder.frfolder', message: 'bad json' };
         expect(() => request.resolve()).toThrow("Cannot resolve 'req': outer/folder.frfolder is invalid: bad json");
         expect(() => top.resolve()).not.toThrow();
+    });
+
+    it('refuses to resolve a request whose own file is broken, and its runs', () => {
+        const { request } = build();
+        request.loadError = { file: 'outer/inner/req.frreq', message: 'not a JSON object' };
+        expect(() => request.resolve()).toThrow("Cannot resolve 'req': outer/inner/req.frreq is invalid: not a JSON object");
+        expect(() => request.run('r1').resolve()).toThrow("Cannot resolve 'req › one': outer/inner/req.frreq is invalid: not a JSON object");
+        expect(() => request.effectiveSettings()).toThrow(/is invalid/);
+    });
+
+    it('refuses to resolve a request attached under a broken folder', () => {
+        const { root, inner } = build();
+        inner.loadError = { file: 'outer/inner/folder.frfolder', message: 'bad json' };
+        const attached = root.attach({ ...CreateEmptyAction(), name: 'tab' }, 'outer/inner/tab.frreq');
+        expect(attached.parent).toBe(inner);
+        expect(() => attached.resolve()).toThrow("Cannot resolve 'tab': outer/inner/folder.frfolder is invalid: bad json");
     });
 });
 
