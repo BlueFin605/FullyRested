@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { spawn } from 'node:child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { startFixture } from './fixture';
@@ -124,5 +125,50 @@ describe('mcp server', () => {
   it('a missing collection is an error result, not a crash', async () => {
     const result = await call(await connect(), 'tree', { collection: path.join(fx.folder, 'nope.frcol') });
     expect(result.isError).toBe(true);
+  });
+
+  it('the run tool with a missing collection is an error and the server keeps answering', async () => {
+    const client = await connect();
+    const bad = await call(client, 'run', { collection: path.join(fx.folder, 'nope.frcol'), all: true });
+    expect(bad.isError).toBe(true);
+    const runs = await call(client, 'list_runs', {});
+    expect(runs.isError).toBe(false);
+    expect(runs.json()).toEqual([]);
+  });
+
+  it('a run id with path separators is not found and never reads a file outside .fullyrested-runs', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-decoy-'));
+    try {
+      fs.mkdirSync(path.join(dir, '.fullyrested-runs'));
+      fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify({ runId: 'x', startedAt: 'now', selection: 'decoy', redacted: true, cases: [] }));
+      const result = await call(await connect(), 'run_summary', { runId: '../x', store: path.join(dir, '.fullyrested-runs', '..') });
+      expect(result.isError).toBe(true);
+      expect(result.text).toMatch(/not found/);
+      expect(result.text).not.toContain('decoy');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('fullyrested mcp over stdio', () => {
+  it('writes only JSON-RPC messages to stdout', async () => {
+    const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+    const child = spawn(process.execPath, [cli, 'mcp'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', d => { out += d; });
+    child.stderr.on('data', () => { });
+    const send = (m: object) => child.stdin.write(JSON.stringify(m) + '\n');
+    send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } });
+    send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    send({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    const started = Date.now();
+    while (!out.includes('"id":2') && Date.now() - started < 10000)
+      await new Promise(r => setTimeout(r, 50));
+    child.kill();
+    const lines = out.split('\n').filter(l => l.trim() !== '');
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of lines)
+      expect(JSON.parse(line).jsonrpc).toBe('2.0');
   });
 });
