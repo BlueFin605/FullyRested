@@ -42,10 +42,11 @@ async function loadEntries(container: ContainerNode, dir: string, entries: DirEn
     const folders = entries.filter(e => e.isDirectory && !e.name.startsWith('.') && e.name != 'node_modules').sort(byName);
     const requests = entries.filter(e => !e.isDirectory && ACTION_FILE_EXTENSIONS.includes(extensionOf(e.name))).sort(byName);
 
-    for (const entry of folders)
-        container.children.push(await loadFolder(container, joinPath(dir, entry.name), loader));
-    for (const entry of requests)
-        container.children.push(await loadRequest(container, joinPath(dir, entry.name), loader));
+    // read concurrently (each read is a round trip to the host), added in the order the explorer shows them
+    container.children.push(...await Promise.all([
+        ...folders.map(entry => loadFolder(container, joinPath(dir, entry.name), loader)),
+        ...requests.map(entry => loadRequest(container, joinPath(dir, entry.name), loader))
+    ]));
 }
 
 async function loadFolder(parent: ContainerNode, path: string, loader: Loader): Promise<FolderNode> {

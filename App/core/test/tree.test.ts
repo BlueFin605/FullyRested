@@ -111,6 +111,25 @@ describe('loadCollectionTree', () => {
         expect((root.find('Legacy.ReasyReq') as RequestNode).action.name).toBe('legacy');
     });
 
+    it('reads sibling folders and requests concurrently, keeping their order', async () => {
+        const source = memory(files());
+        let inFlight = 0, most = 0;
+        const slow = <T>(work: () => Promise<T>) => async () => {
+            inFlight++;
+            most = Math.max(most, inFlight);
+            await new Promise(resolve => setTimeout(resolve, 5));
+            try { return await work(); } finally { inFlight--; }
+        };
+        const counted: CollectionSource = {
+            listDir: dir => slow(() => source.listDir(dir))(),
+            readText: file => slow(() => source.readText(file))()
+        };
+        const root = await loadCollectionTree('api.frcol', counted, store);
+        expect(most).toBeGreaterThan(1);
+        expect(root.children.map(c => c.path)).toEqual(['a', 'b', 'z.frreq']);
+        expect(root.requestNodes().map(r => r.path)).toEqual(['a/old.reasyreq', 'b/inner/two.frreq', 'b/one.frreq', 'z.frreq']);
+    });
+
     it('throws when the collection file cannot be read', async () => {
         await expect(loadCollectionTree('missing.frcol', memory(files()), store)).rejects.toThrow('ENOENT missing.frcol');
     });
