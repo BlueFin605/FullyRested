@@ -8,14 +8,16 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
-import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
-  ACTION_FILE_EXTENSIONS,
   Collection,
+  CollectionNode,
   CurrentState,
-  TraversedDrectory,
+  FolderNode,
+  RequestNode,
   RestAction,
-  File,
+  basenameOf,
+  hostPath,
 } from '@fullyrested/core';
 
 export interface SelectedTreeItem {
@@ -39,6 +41,7 @@ const COMMANDS: { [name: string]: { label: string; icon: string } } = {
   deleteRun: { label: 'Delete run', icon: 'delete' },
   createEnvironment: { label: 'New environment', icon: 'add' },
   deleteEnvironment: { label: 'Delete environment', icon: 'delete' },
+  folderSettings: { label: 'Folder settings', icon: 'tune' },
 };
 
 // One row of the explorer tree. value holds what the row is (type, subtype, key, menu actions, ...)
@@ -74,19 +77,22 @@ export class TreeviewItem {
 export class CollectionExplorerComponent implements OnInit {
   _collection: Collection | undefined;
 
+  private root: CollectionNode | undefined;
+  private _state: CurrentState | undefined;
+
   @Input()
-  state: CurrentState | undefined;
+  set state(state: CurrentState | undefined) {
+    this._state = state;
+    this.rebuild();
+  }
+  get state(): CurrentState | undefined {
+    return this._state;
+  }
 
   @Input()
   set collection(collection: Collection | undefined) {
-    if (collection == undefined) {
-      this._collection = collection;
-      this.items = [];
-      return;
-    }
-
     this._collection = collection;
-    if (this.state != undefined) this.rebuildTree(collection, this.state);
+    this.rebuild();
   }
 
   @Output()
@@ -110,39 +116,34 @@ export class CollectionExplorerComponent implements OnInit {
   @Output()
   selectedChange = new EventEmitter<string>();
 
-  constructor(private repo: ActionRepositoryService) {}
+  constructor(private trees: CollectionTreeService) {
+    this.trees.tree.subscribe((root) => {
+      this.root = root;
+      this.rebuild();
+    });
+  }
 
   ngOnInit(): void {}
 
-  async rebuildTree(
-    collection: Collection,
-    state: CurrentState,
-  ): Promise<boolean> {
-    var dir = await this.repo.traverseDirectory(
-      collection.path,
-      ACTION_FILE_EXTENSIONS,
-    );
-    this.items = [await this.buildTreeview(dir, collection.name, state)];
-    this.expandTree(this.items);
-    return true;
+  refresh() {
+    this.rebuild();
   }
 
-  private async buildTreeview(
-    traverse: TraversedDrectory,
-    name: string,
-    state: CurrentState,
-  ): Promise<TreeviewItem> {
-    var children = [
-      this.systemSettings(),
-      await this.convertDirToTreeviewItem(traverse, state),
-    ];
+  private rebuild() {
+    if (this.root == undefined || this._collection == undefined || this._state == undefined) {
+      this.items = [];
+      return;
+    }
 
-    return new TreeviewItem({
-      text: name,
-      value: { type: 'dir', key: '__root_dir__' },
-      children: children,
-      collapsed: true,
-    });
+    this.items = [
+      new TreeviewItem({
+        text: this._collection.name,
+        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message },
+        children: [this.systemSettings(), ...this.root.children.map((c) => this.convertNode(c, this._state!))],
+        collapsed: true,
+      }),
+    ];
+    this.expandTree(this.items);
   }
 
   private systemSettings(): TreeviewItem {
@@ -163,6 +164,11 @@ export class CollectionExplorerComponent implements OnInit {
           subtype: 'authentication',
           key: 'system.settings.authentication',
         },
+        collapsed: false,
+      }),
+      new TreeviewItem({
+        text: 'Headers',
+        value: { type: 'system', subtype: 'headers', key: 'system.settings.headers' },
         collapsed: false,
       }),
       new TreeviewItem({
@@ -233,77 +239,58 @@ export class CollectionExplorerComponent implements OnInit {
             },
             collapsed: false,
           }),
+          new TreeviewItem({
+            text: 'Headers',
+            value: { type: 'system', subtype: 'headers', key: `system.settings.environments.${e.id}.headers` },
+            collapsed: false,
+          }),
         ],
         collapsed: false,
       });
     });
   }
 
-  private async convertDirToTreeviewItem(
-    traverse: TraversedDrectory,
-    state: CurrentState,
-  ): Promise<TreeviewItem> {
-    var children = await Promise.all(
-      traverse.subdirs.map(async (s) =>
-        this.convertDirToTreeviewItem(s, state),
-      ),
-    );
+  private convertNode(node: FolderNode | RequestNode, state: CurrentState): TreeviewItem {
+    const key = hostPath(this._collection!.path, node.path);
+    if (node instanceof FolderNode)
+      return new TreeviewItem({
+        text: node.name,
+        value: {
+          type: 'dir',
+          subtype: 'folder',
+          key,
+          hasSettings: node.hasSettingsFile,
+          error: node.loadError?.message,
+          actions: ['folderSettings'],
+        },
+        children: node.children.map((c) => this.convertNode(c, state)),
+        collapsed: true,
+      });
 
-    var runChildren = await Promise.all(
-      traverse.files.map(async (f) => {
-        const action = await this.LoadAction(f, state);
-        return new TreeviewItem({
-          text: f.name,
-          value: {
-            type: 'file',
-            key: f.fullPath,
-            verb: action.verb,
-            actions: ['createRun'],
-          },
-          children: this.BuildRunChildren(f, action),
-        });
-      }),
-    );
-
-    children = children.concat(runChildren);
-
+    const action = this.openCopy(key, state) ?? node.action;
     return new TreeviewItem({
-      text: traverse.dir.name,
-      value: { type: 'dir', key: traverse.dir.fullPath },
-      children: await children,
+      text: basenameOf(node.path),
+      value: { type: 'file', key, verb: action.verb, error: node.loadError?.message, actions: ['createRun'] },
+      children: this.buildRunChildren(key, action),
       collapsed: true,
     });
   }
 
-  private BuildRunChildren(f: File, action: RestAction): TreeviewItem[] {
-    var children: TreeviewItem[] = action.runs.map(
+  private buildRunChildren(actionFile: string, action: RestAction): TreeviewItem[] {
+    return action.runs.map(
       (r) =>
         new TreeviewItem({
           text: r.name,
-          value: {
-            type: 'run',
-            subtype: 'definition',
-            key: r.id,
-            actionFile: f.fullPath,
-            actions: ['deleteRun'],
-          },
+          value: { type: 'run', subtype: 'definition', key: r.id, actionFile, actions: ['deleteRun'] },
           children: [],
         }),
     );
-
-    return children;
   }
 
-  async LoadAction(f: File, state: CurrentState): Promise<RestAction> {
-    var recent = state.sessions.find(
-      (s) => s.collectionGuid == this._collection?.config.collectionGuid,
-    );
-    if (recent != undefined) {
-      var action = recent.actions.find((a) => a.fullFilename == f.fullPath);
-      if (action != undefined) return action.action;
-    }
-
-    return this.repo.loadRequest(f.fullPath);
+  // The open tab's copy of a request, which may have unsaved changes
+  private openCopy(fullFilename: string, state: CurrentState): RestAction | undefined {
+    const session = state.sessions.find((s) => s.collectionGuid == this._collection?.config.collectionGuid);
+    return session?.actions.find((a) => a.fullFilename == fullFilename)?.action;
   }
 
   private expandTree(items: TreeviewItem[] | undefined): boolean {
@@ -345,7 +332,7 @@ export class CollectionExplorerComponent implements OnInit {
     if (this.openRun(true, $event) == true) return;
 
     // A plain folder has nothing to show, so a click opens or closes it
-    if ($event.value.type == 'dir' && $event.value.subtype == undefined && $event.children)
+    if ($event.value.subtype == 'folder' && $event.children)
       this.toggle($event);
 
     this.openSystem.emit({
@@ -454,6 +441,8 @@ export class CollectionExplorerComponent implements OnInit {
         return 'key';
       case 'authentication':
         return 'lock';
+      case 'headers':
+        return 'view_list';
       default:
         return 'settings';
     }

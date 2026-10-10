@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Collection, applyEnvironment } from '@fullyrested/core';
-import { ExecuteRestAction } from '@fullyrested/core';
-import type { RestActionResult, IExecuteRestAction } from '@fullyrested/core';
+import { RequestNode, RunNode, validateResponse } from '@fullyrested/core';
+import type { RestActionResult } from '@fullyrested/core';
 import { mockRestResult } from '../mocks/mock-rest-result';
 
 
@@ -25,16 +24,19 @@ export class ExecuteRestCallsService {
     return (<any>window).ipc;
   }
 
-  async executeTest(action: ExecuteRestAction, collection: Collection | undefined): Promise<TimedActionResult> {
-    var replaced: IExecuteRestAction = applyEnvironment(action, collection?.config).replaceVariables();
+  // Resolves the node through its folders, environment and collection, sends it and checks the response:
+  // the same steps the CLI runs
+  async executeNode(node: RequestNode | RunNode, environmentId?: string): Promise<TimedActionResult> {
+    const request = node.resolve({ environmentId }).replaceVariables();
 
     const started = performance.now();
     const response: RestActionResult = this.getIpcRenderer() == undefined
-      ? await mockRestResult(replaced)
-      : await this.getIpcRenderer().invoke('testRest', replaced);
+      ? await mockRestResult(request)
+      : await this.getIpcRenderer().invoke('testRest', request);
 
     return {
       ...response,
+      validated: validateResponse(request, response),
       durationMs: Math.round(performance.now() - started),
       sizeBytes: response.body?.body?.byteLength,
     };

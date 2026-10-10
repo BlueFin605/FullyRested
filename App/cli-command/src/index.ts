@@ -20,14 +20,15 @@ program
   .option('-e, --environment <name>', 'environment name or id (default: the collection\'s selected one)')
   .option('-a, --action <file>', 'request file (.frreq); relative paths also resolve from the collection folder')
   .option('-r, --run <name>', 'one run of the request, by name or id')
-  .option('--all', 'every run of --action, or every request in the collection folder')
+  .option('-f, --folder <path>', 'every request under a folder of the collection (path relative to the collection file)')
+  .option('--all', 'every run of --action, or every request in the collection')
   .option('--junit <file>', 'also write a JUnit XML report')
   .addHelpText('after', `
 Secrets come from environment variables first, then the OS keychain the
 desktop app uses. A secret named "api key" is read from ${secretEnvironmentVariable('api key')}.`)
   .action(async (options: RunOptions & { junit?: string }) => {
     try {
-      const results = await runTests(options, createSecretStore(), r => console.log(formatResult(r)));
+      const results = await runTests(options, createSecretStore(), r => console.log(formatResult(r)), w => console.warn(`warning: ${w}`));
       console.log(formatSummary(results));
 
       if (options.junit)

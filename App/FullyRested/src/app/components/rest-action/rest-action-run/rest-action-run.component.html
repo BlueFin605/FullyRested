@@ -5,8 +5,13 @@
     [(run)]="run"
     (runChange)="onRunChange($event)"
     (nameChange)="onNameChange($event)"
-    (execute)="executeAction($event)"
+    (execute)="executeAction()"
   ></app-edit-request-run>
+  <app-inherited-settings
+    splitFirst
+    [node]="inheritedNode"
+    [environmentId]="collection?.config?.selectedEnvironmentId"
+  ></app-inherited-settings>
   <app-display-response
     splitSecond
     [response]="response"

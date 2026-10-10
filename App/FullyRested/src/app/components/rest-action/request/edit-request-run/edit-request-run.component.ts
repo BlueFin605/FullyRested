@@ -25,10 +25,8 @@ import {
   CreateEmptyRestActionRun,
   CreateEmptyCollection,
   buildRequestUrl,
-  resolveRequest,
 } from '@fullyrested/core';
 import { SystemSupportService } from 'src/app/services/system-support/system-support.service';
-import { ExecuteRestAction } from '@fullyrested/core';
 import { InheritedRow } from '../../../key-value-table/key-value-table.component';
 import { activeCount, authLabel } from '../request-labels';
 
@@ -72,7 +70,7 @@ export class EditRequestRunComponent implements OnInit {
   nameChange = new EventEmitter<string>();
 
   @Output()
-  execute = new EventEmitter<ExecuteRestAction>();
+  execute = new EventEmitter<void>();
 
   @Input()
   collection: Collection = CreateEmptyCollection(this.systemSupport);
@@ -134,6 +132,6 @@ export class EditRequestRunComponent implements OnInit {
   }
 
   async test() {
-    this.execute.emit(resolveRequest(this.action, this._run));
+    this.execute.emit();
   }
 }

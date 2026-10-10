@@ -49,6 +49,7 @@ import { SettingsManageAuthenticationNoneComponent } from './components/settings
 import { SettingsManageAuthenticationInheritComponent } from './components/settings/settings-manage-authentication-inherit/settings-manage-authentication-inherit.component';
 import { SettingsManageAuthenticationBasicAuthComponent } from './components/settings/settings-manage-authentication-basic-auth/settings-manage-authentication-basic-auth.component';
 import { SettingsManageAuthenticationBearerTokenComponent } from './components/settings/settings-manage-authentication-bearer-token/settings-manage-authentication-bearer-token.component';
+import { InheritedSettingsComponent } from './components/rest-action/inherited-settings/inherited-settings.component';
 import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
 import { EditRequestRunComponent } from './components/rest-action/request/edit-request-run/edit-request-run.component';
 import { EditRequestValidationComponent } from './components/rest-action/request/edit-request-validation/edit-request-validation.component';
@@ -56,6 +57,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
 @NgModule({
   declarations: [
     CodeEditorComponent,
+    InheritedSettingsComponent,
     KeyValueTableComponent,
     CommandPaletteComponent,
     SplitterDirective,

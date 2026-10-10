@@ -17,6 +17,8 @@ import {
   Environment,
   AuthenticationDetails,
   ValidationType,
+  FolderNode,
+  relativePath,
 } from '@fullyrested/core';
 import {
   CreateEmptyEnvironment,
@@ -38,6 +40,7 @@ import { ShortcutCommand, ShortcutsService } from 'src/app/services/shortcuts/sh
 import { RestActionComponent } from '../rest-action/rest-action/rest-action.component';
 import { PaletteItem } from '../command-palette/command-palette.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -77,6 +80,10 @@ export class OpenActionsComponent implements OnInit {
     CollectionExplorerComponent | undefined;
   @ViewChildren(RestActionComponent) restActions!: QueryList<RestActionComponent>;
 
+  selectedFolder: FolderNode | undefined;
+  selectedFolderPath = '';
+  folderSaveError = '';
+
   paletteOpen = false;
   paletteItems: PaletteItem[] = [];
 
@@ -84,6 +91,7 @@ export class OpenActionsComponent implements OnInit {
     private repo: ActionRepositoryService,
     private appRef: ApplicationRef,
     private systemSupport: SystemSupportService,
+    private trees: CollectionTreeService,
     public layout: LayoutService,
     public theme: ThemeService,
     shortcuts: ShortcutsService,
@@ -113,6 +121,8 @@ export class OpenActionsComponent implements OnInit {
         this.tabs.realignInkBar(); // re-align the bottom border of the tab
       });
     });
+
+    this.trees.tree.pipe(takeUntilDestroyed()).subscribe(() => this.onTreeChange());
 
     this.repo.savedAs.subscribe((a) => {
       if (a == undefined) return;
@@ -149,11 +159,8 @@ export class OpenActionsComponent implements OnInit {
   }
 
   private rebuildTree() {
-    setTimeout(async () => {
-      if (this.collection) {
-        await this.collectionExplorer?.rebuildTree(this.collection, this.state);
-      }
-    });
+    // redraw so the explorer picks up the open tabs' unsaved changes
+    setTimeout(() => this.collectionExplorer?.refresh());
   }
 
   public currentSession(): LocalRestSession {
@@ -370,6 +377,11 @@ export class OpenActionsComponent implements OnInit {
             selected.key.endsWith(`${e.id}.authentication`),
           ) ?? CreateEmptyEnvironment();
       }
+    } else if (selected.type == 'system' && selected.subtype == 'headers') {
+      this.selectedEnvironment =
+        selected.key == 'system.settings.headers'
+          ? (this.collection?.config?.collectionEnvironment ?? CreateEmptyEnvironment())
+          : (this.collection?.config?.environments?.find((e) => selected.key.endsWith(`${e.id}.headers`)) ?? CreateEmptyEnvironment());
     } else if (
       selected.type == 'dir' &&
       selected.subtype == 'system.settings.environments'
@@ -406,6 +418,7 @@ export class OpenActionsComponent implements OnInit {
       name: 'unnamed',
       id: this.systemSupport.generateGUID(),
       variables: [{ variable: '', value: '', active: true, id: 'a' }],
+      headers: [],
       secrets: [
         {
           $secret: '',
@@ -477,6 +490,8 @@ export class OpenActionsComponent implements OnInit {
 
     if (this.selectedTab.selectedType == 'system') return false;
 
+    if (this.selectedTab.selectedType == 'folder') return false;
+
     return true;
   }
 
@@ -488,6 +503,10 @@ export class OpenActionsComponent implements OnInit {
       return true;
 
     return false;
+  }
+
+  headersVisible(): boolean {
+    return this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'headers';
   }
 
   authenticationVisible(): boolean {
@@ -518,6 +537,59 @@ export class OpenActionsComponent implements OnInit {
       return true;
 
     return false;
+  }
+
+  private findFolder(fullPath: string): FolderNode | undefined {
+    const relative = this.collection ? relativePath(this.collection.path, fullPath) : undefined;
+    const node = relative == undefined ? undefined : this.trees.tree.value?.find(relative);
+    if (!(node instanceof FolderNode)) return undefined;
+
+    if (node.config.folderId == '') node.config.folderId = this.systemSupport.generateGUID();
+    return node;
+  }
+
+  openFolderSettings(fullPath: string) {
+    const node = this.findFolder(fullPath);
+    if (node == undefined) return;
+
+    if (fullPath != this.selectedFolderPath) this.folderSaveError = '';
+    this.selectedFolder = node;
+    this.selectedFolderPath = fullPath;
+    this.selectedTab = { selectedType: 'folder', selectedSubType: 'settings', selectedKey: fullPath, runkey: undefined };
+  }
+
+  // Every reload makes new nodes: keep an open folder pane on the live one. If the folder is gone,
+  // go back to the open requests rather than leaving an empty workspace.
+  onTreeChange() {
+    if (this.selectedTab.selectedType != 'folder' || this.selectedFolderPath == '') return;
+    this.selectedFolder = this.findFolder(this.selectedFolderPath);
+    if (this.selectedFolder != undefined) return;
+
+    this.selectedFolderPath = '';
+    this.folderSaveError = '';
+    this.selectedTab = { selectedType: '', selectedSubType: '', selectedKey: '', runkey: undefined };
+  }
+
+  folderSettingsVisible(): boolean {
+    return this.selectedTab.selectedType == 'folder' && this.selectedFolder != undefined;
+  }
+
+  async saveFolderSettings() {
+    if (this.selectedFolder == undefined) return;
+    try {
+      await this.repo.saveFolder(this.selectedFolderPath, this.selectedFolder.config);
+    } catch (error) {
+      this.folderSaveError = `Could not save: ${(error as Error)?.message ?? String(error)}`;
+      return;
+    }
+
+    this.folderSaveError = '';
+    try {
+      const refreshed = this.collection ? relativePath(this.collection.path, this.selectedFolderPath) : undefined;
+      await this.trees.reload({ refreshed });
+    } catch (error) {
+      this.folderSaveError = `Saved, but the collection could not be reloaded: ${(error as Error)?.message ?? String(error)}`;
+    }
   }
 
   environmentChange(env: Environment) {
@@ -679,6 +751,9 @@ export class OpenActionsComponent implements OnInit {
     };
 
     switch (command.name) {
+      case 'folderSettings':
+        this.openFolderSettings(command.item.key);
+        break;
       case 'createEnvironment':
         this.createEnvironment();
         break;

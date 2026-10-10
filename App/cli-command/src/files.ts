@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  ACTION_FILE_EXTENSIONS, CollectionConfig, RestAction, SecretStore,
-  loadSecrets, normaliseAction, normaliseCollectionConfig, secretServiceForCollection, secretServiceForRequest
+  CollectionNode, CollectionSource, DirEntry, RestAction, SecretStore,
+  hostPath, loadCollectionTree, loadSecrets, normaliseAction, secretServiceForRequest
 } from '@fullyrested/core';
 
 function readJson<T>(file: string): T {
@@ -13,28 +13,30 @@ function readJson<T>(file: string): T {
   }
 }
 
-export async function loadCollection(file: string, store: SecretStore): Promise<CollectionConfig> {
-  const config = normaliseCollectionConfig(readJson<CollectionConfig>(file));
-  return loadSecrets(config, store, secretServiceForCollection(config.collectionGuid));
+// The collection folder on disk, for core's tree loader
+export class FsCollectionSource implements CollectionSource {
+  constructor(private readonly folder: string) { }
+
+  async listDir(dir: string): Promise<DirEntry[]> {
+    return fs.readdirSync(hostPath(this.folder, dir), { withFileTypes: true })
+      .map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
+  }
+
+  async readText(file: string): Promise<string> {
+    return fs.readFileSync(hostPath(this.folder, file), 'utf8');
+  }
+}
+
+export async function loadTree(collectionFile: string, store: SecretStore): Promise<CollectionNode> {
+  const full = path.resolve(collectionFile);
+  try {
+    return await loadCollectionTree(path.basename(full), new FsCollectionSource(path.dirname(full)), store);
+  } catch (error) {
+    throw new Error(`Cannot read ${collectionFile}: ${(error as Error).message}`);
+  }
 }
 
 export async function loadAction(file: string, store: SecretStore): Promise<RestAction> {
   const action = normaliseAction(readJson<RestAction>(file));
   return loadSecrets(action, store, secretServiceForRequest(action.id));
-}
-
-// Every request file under the collection's folder, in a stable order
-export function findActionFiles(folder: string): string[] {
-  const found: string[] = [];
-  const visit = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name != 'node_modules')
-        visit(full);
-      else if (entry.isFile() && ACTION_FILE_EXTENSIONS.includes(path.extname(entry.name).toLowerCase()))
-        found.push(full);
-    }
-  };
-  visit(folder);
-  return found;
 }

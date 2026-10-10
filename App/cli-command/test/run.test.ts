@@ -55,6 +55,10 @@ beforeAll(async () => {
     ]
   }));
   fs.mkdirSync(path.join(folder, 'items'));
+  fs.writeFileSync(path.join(folder, 'items', 'folder.frfolder'), JSON.stringify({
+    folderId: 'items-folder', variables: [], secrets: [], auth: { authentication: 'inherit' },
+    headers: [{ key: 'x-folder', value: 'items', active: true, id: 'f' }]
+  }));
   fs.writeFileSync(path.join(folder, 'items', 'ok.frreq'), JSON.stringify(request('r-ok', 'ok', '{{host}}/ok', {
     parameters: [{ key: 'env', value: '{{env}}', active: true, id: 'p' }]
   })));
@@ -101,10 +105,10 @@ describe('runTests', () => {
 
   it('--all runs every request in the folder, each run separately, old extensions included', async () => {
     const results = await runTests({ collection: collection(), all: true }, noKeychain);
-    expect(results.map(r => r.name)).toEqual(['down', 'ok', 'runs › expects 404', 'runs › inherits 200', 'old']);
-    expect(results.map(r => r.passed)).toEqual([false, true, true, false, true]);
-    expect(results[0]!.status).toBeLessThan(0);
-    expect(results[0]!.errors[0]).toContain('No response');
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200', 'down', 'old']);
+    expect(results.map(r => r.passed)).toEqual([true, true, false, false, true]);
+    expect(results[3]!.status).toBeLessThan(0);
+    expect(results[3]!.errors[0]).toContain('No response');
   });
 
   it('reads secrets from FULLYRESTED_SECRET_<name>', async () => {
@@ -137,5 +141,104 @@ describe('toJUnit', () => {
     expect(report).toContain('<testcase classname="api.frcol" name="ok" time="0.012" />');
     expect(report).toContain('name="a &lt;b&gt; &amp; &quot;c&quot;"');
     expect(report).toContain('<failure message="code doesn&apos;t match">status 500\ncode doesn&apos;t match</failure>');
+  });
+});
+
+describe('folders', () => {
+  it('sends headers inherited from the request\'s folder', async () => {
+    await runTests({ collection: collection(), action: path.join(folder, 'items', 'ok.frreq') }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+  });
+
+  it('runs every request under --folder', async () => {
+    const results = await runTests({ collection: collection(), folder: 'items' }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
+  });
+
+  it.each(['.', './', '.\\'])('treats --folder %s as the whole collection', async (dot) => {
+    const results = await runTests({ collection: collection(), folder: dot }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200', 'down', 'old']);
+  });
+
+  it('keeps folder headers when the file name differs in case from the tree', async () => {
+    // only meaningful on a case-insensitive file system
+    if (!fs.existsSync(path.join(folder, 'items', 'OK.FRREQ')))
+      return;
+    await runTests({ collection: collection(), action: path.join(folder, 'items', 'OK.FRREQ') }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+  });
+
+  it('runs a named run from the tree, so it inherits its folder', async () => {
+    lastHeaders = {};
+    await runTests({ collection: collection(), action: 'items/runs.frreq', run: 'expects 404' }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+  });
+
+  it('inherits only from the collection for an action file outside the collection folder', async () => {
+    const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-outside-'));
+    try {
+      const file = path.join(elsewhere, 'loose.frreq');
+      fs.writeFileSync(file, JSON.stringify(request('r-loose', 'loose', '{{host}}/ok')));
+      lastHeaders = {};
+      const [result] = await runTests({ collection: collection(), action: file }, noKeychain);
+      expect(result).toMatchObject({ name: 'loose', status: 200, passed: true });
+      expect(lastHeaders['x-folder']).toBeUndefined();
+      expect(lastHeaders['x-key']).toBe('');
+    } finally {
+      fs.rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts backslashes in --folder', async () => {
+    const results = await runTests({ collection: collection(), folder: '.\\items\\' }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
+  });
+
+  it('refuses --folder together with --action', async () => {
+    await expect(runTests({ collection: collection(), folder: 'items', action: 'items/ok.frreq' }, noKeychain)).rejects.toThrow('Give --folder or --action, not both');
+  });
+
+  it('matches folder names ignoring case on a case-insensitive file system', async () => {
+    if (!fs.existsSync(path.join(folder, 'ITEMS')))
+      return;
+    lastHeaders = {};
+    await runTests({ collection: collection(), action: path.join(folder, 'ITEMS', 'ok.frreq') }, noKeychain);
+    expect(lastHeaders['x-folder']).toBe('items');
+    const results = await runTests({ collection: collection(), folder: 'ITEMS' }, noKeychain);
+    expect(results.map(r => r.name)).toEqual(['ok', 'runs › expects 404', 'runs › inherits 200']);
+  });
+
+  it('rejects an unknown folder', async () => {
+    await expect(runTests({ collection: collection(), folder: 'nope' }, noKeychain)).rejects.toThrow(UsageError);
+  });
+
+  it('reports requests under a broken folder file as failures and carries on', async () => {
+    const broken = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-broken-'));
+    try {
+      fs.copyFileSync(collection(), path.join(broken, 'api.frcol'));
+      fs.mkdirSync(path.join(broken, 'bad'));
+      fs.writeFileSync(path.join(broken, 'bad', 'folder.frfolder'), '{oops');
+      fs.writeFileSync(path.join(broken, 'bad', 'b.frreq'), JSON.stringify(request('r-b', 'b', '{{host}}/ok')));
+      fs.writeFileSync(path.join(broken, 'good.frreq'), JSON.stringify(request('r-g', 'good', '{{host}}/ok')));
+
+      const results = await runTests({ collection: path.join(broken, 'api.frcol'), all: true }, noKeychain);
+      expect(results.map(r => [r.name, r.passed])).toEqual([['b', false], ['good', true]]);
+      expect(results[0]!.errors[0]).toMatch(/bad\/folder\.frfolder is invalid/);
+    } finally {
+      fs.rmSync(broken, { recursive: true, force: true });
+    }
+  });
+
+  it('passes on warnings', async () => {
+    const warned = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-warn-'));
+    try {
+      fs.copyFileSync(collection(), path.join(warned, 'api.frcol'));
+      fs.writeFileSync(path.join(warned, 'folder.frfolder'), '{}');
+      const warnings: string[] = [];
+      await runTests({ collection: path.join(warned, 'api.frcol'), all: true }, noKeychain, () => { }, w => warnings.push(w));
+      expect(warnings).toHaveLength(1);
+    } finally {
+      fs.rmSync(warned, { recursive: true, force: true });
+    }
   });
 });

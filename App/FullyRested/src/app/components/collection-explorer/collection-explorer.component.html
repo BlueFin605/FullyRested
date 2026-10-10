@@ -31,6 +31,12 @@
       }
     }
     <span class="label">{{ item.text }}</span>
+    @if (item.value.hasSettings) {
+      <mat-icon class="marker" matTooltip="Has folder settings">tune</mat-icon>
+    }
+    @if (item.value.error) {
+      <mat-icon class="marker error" [matTooltip]="item.value.error">error</mat-icon>
+    }
   </div>
 </ng-template>
 

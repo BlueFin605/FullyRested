@@ -1,0 +1,11 @@
+:host { display: block; flex-shrink: 0; }
+.inherited { border-top: 1px solid var(--fr-border, rgba(127, 127, 127, 0.3)); font-size: 12px; max-height: 40vh; overflow: auto; }
+.inherited-bar { display: flex; align-items: center; gap: 4px; width: 100%; padding: 4px 8px; border: 0; background: none; color: inherit; cursor: pointer; font: inherit; }
+.inherited-bar mat-icon { font-size: 18px; width: 18px; height: 18px; }
+table { width: 100%; border-collapse: collapse; }
+td { padding: 2px 8px; }
+.kind, .from { opacity: 0.7; white-space: nowrap; }
+.value { font-family: var(--fr-mono, monospace); word-break: break-all; }
+.overridden { opacity: 0.45; text-decoration: line-through; }
+.inherited-error { color: var(--mat-sys-error, #d32f2f); padding: 4px 8px; }
+.inherited-empty { opacity: 0.6; padding: 4px 8px; }

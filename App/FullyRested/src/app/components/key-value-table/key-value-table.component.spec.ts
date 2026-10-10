@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { AppModule } from 'src/app/app.module';
 
 import { KeyValueTableComponent } from './key-value-table.component';
@@ -29,7 +29,26 @@ describe('KeyValueTableComponent', () => {
     expect(element.querySelectorAll('.kv-row:not(.kv-head):not(.kv-new)').length).toBe(1);
   });
 
-  it('disables and deletes rows', () => {
+  it('keeps fast typing in one row when keys arrive before the caret moves to it', fakeAsync(() => {
+    const { fixture, emitted, element } = create({ rows: [] });
+    const add = element.querySelector('.kv-new .kv-key') as HTMLInputElement;
+
+    // each keystroke lands in the add row until the refocus runs
+    for (const key of 'abc') {
+      type(add, add.value + key);
+      fixture.detectChanges();
+    }
+    tick();
+    fixture.detectChanges();
+
+    expect(emitted.at(-1)).toEqual([jasmine.objectContaining({ key: 'abc', value: '', active: true })]);
+    const rowKeys = element.querySelectorAll('.kv-row:not(.kv-head):not(.kv-new) .kv-key');
+    expect(rowKeys.length).toBe(1);
+    expect(document.activeElement).toBe(rowKeys[0]);
+    expect(add.value).toBe('');
+  }));
+
+    it('disables and deletes rows', () => {
     const rows = [{ key: 'a', value: '1', active: true, id: '1' }, { key: 'b', value: '2', active: true, id: '2' }];
     const { fixture, emitted, element } = create({ rows });
 

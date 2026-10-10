@@ -1,0 +1,9 @@
+{
+    "folderId": "cdf03fa6-700d-47cf-a66c-b899f5c8c8c7",
+    "variables": [],
+    "secrets": [],
+    "auth": { "authentication": "inherit" },
+    "headers": [
+        { "key": "accept-language", "value": "en-NZ", "active": true, "id": "1" }
+    ]
+}

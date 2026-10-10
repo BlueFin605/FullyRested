@@ -8,7 +8,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { EditRequestRunComponent } from '../request/edit-request-run/edit-request-run.component';
-import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
+import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
   Collection,
   RestAction,
@@ -23,7 +23,6 @@ import {
   ExecuteRestCallsService,
   TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action-run',
@@ -54,6 +53,10 @@ export class RestActionRunComponent implements OnInit {
   @Input()
   collection: Collection | undefined;
 
+  // the tab's file: places the run under its folders
+  @Input()
+  fullFilename = '';
+
   @Output()
   nameChange = new EventEmitter<string>();
 
@@ -63,7 +66,7 @@ export class RestActionRunComponent implements OnInit {
   constructor(
     private era: ExecuteRestCallsService,
     private repository: ActionRepositoryService,
-    public validateResponse: ValidateResponseService,
+    private trees: CollectionTreeService,
     private systemSupport: SystemSupportService,
   ) {}
 
@@ -79,21 +82,36 @@ export class RestActionRunComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
+  private inheritedCache: { key: unknown[]; node: ReturnType<CollectionTreeService['nodeFor']> } | undefined;
+
+  // Evaluated every change-detection pass, so it returns the same node until an input changes (a new
+  // object each pass trips NG0100). A deleted run makes nodeFor throw, so show nothing.
+  get inheritedNode() {
+    const key = [this.action, this.fullFilename, this._runId, this.trees.tree.value, this.collection];
+    if (this.inheritedCache && this.inheritedCache.key.every((k, i) => k === key[i])) return this.inheritedCache.node;
+    try {
+      const node = this.trees.nodeFor(this.action, this.fullFilename, this._runId as string);
+      this.inheritedCache = { key, node };
+      return node;
+    } catch {
+      this.inheritedCache = undefined;
+      return undefined;
+    }
+  }
+
   onNameChange(name: string) {
     this.nameChange.emit(name);
   }
 
-  async executeAction(action: ExecuteRestAction) {
+  async executeAction() {
     if (this.sending) return;
     this.sending = true;
     try {
-      const response = await this.era.executeTest(action, this.collection);
-      response.validated = await this.validateResponse.validateResponse(
-        action,
-        response,
-        this.collection,
-      );
-      this.response = response;
+      const node = this.trees.nodeFor(this.action, this.fullFilename, this._runId as string);
+      this.response = await this.era.executeNode(node, this.collection?.config.selectedEnvironmentId);
+    } catch (error) {
+      // a broken folder or collection file refuses to resolve: show why instead of sending without it
+      this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
     } finally {
       this.sending = false;
     }

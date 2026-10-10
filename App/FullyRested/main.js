@@ -3,7 +3,8 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } = require('elec
 const path = require('node:path')
 const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
-const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
+const { CollectionAccess } = require('./collection-access');
+const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
 if (require('electron-squirrel-startup')) app.quit();
@@ -18,6 +19,7 @@ const keychain = {
 };
 
 let win;
+let access;
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -61,6 +63,7 @@ const appMenu = () => Menu.buildFromTemplate([
 ]);
 
 app.whenReady().then(() => {
+    access = new CollectionAccess(path.join(app.getPath("userData"), "trusted_requests.json"), openTabFiles);
     Menu.setApplicationMenu(appMenu())
     createWindow()
 
@@ -80,8 +83,24 @@ app.whenReady().then(() => {
         return loadRequest(request);
     });
 
-    ipcMain.handle("traverseDirectory", (event, request) => {
-        return traverseDirectory(request);
+    ipcMain.handle("listDir", (event, request) => {
+        return fs.readdirSync(access.collectionPath(request.root, request.path), { withFileTypes: true }).map(e => ({ name: e.name, isDirectory: e.isDirectory() }));
+    });
+
+    ipcMain.handle("readText", (event, request) => {
+        var file = access.collectionPath(request.root, request.path);
+        var text = fs.readFileSync(file, 'utf8');
+        access.noteRead(file, text);
+        return text;
+    });
+
+    ipcMain.handle("getSecret", (event, request) => {
+        access.checkSecret(request.service, request.account);
+        return keychain.get(request.service, request.account);
+    });
+
+    ipcMain.handle("saveFolder", (event, request) => {
+        return saveFolder(request);
     });
 
     ipcMain.on("loadCollection", (event, request) => {
@@ -117,6 +136,21 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
 
+// The request files of the tabs left open last time: trusted once, when there is no trusted list yet
+function openTabFiles() {
+    try {
+        return (readState().sessions ?? []).flatMap(s => (s.actions ?? []).map(a => a.fullFilename));
+    } catch {
+        return [];
+    }
+}
+
+async function saveFolder(request) {
+    var file = access.checkFolderSave(request.folderPath, request.config?.folderId);
+    var sanitised = await storeSecrets(request.config, keychain, secretServiceForFolder(request.config.folderId));
+    fs.writeFileSync(file, JSON.stringify(sanitised, null, 4));
+}
+
 function saveState(request) {
     // https://stackoverflow.com/questions/30465034/where-to-store-user-settings-in-electron-atom-shell-application
     //    Just curious but what's the advantage of electron-json-storage vs just 
@@ -139,6 +173,7 @@ function readState() {
 }
 
 async function loadRequest(fullFilename) {
+    fullFilename = access.checkRequest(fullFilename);
     try {
         var request = JSON.parse(fs.readFileSync(fullFilename));
         return await loadSecrets(request, keychain, secretServiceForRequest(request.id));
@@ -154,36 +189,6 @@ async function loadRequest(fullFilename) {
 
 function buildStateFilename() {
     return path.join(app.getPath("userData"), "current_state.json");
-}
-
-function traverseDirectory(request) {
-
-    // var path = app.getPath("userData");
-    //var path = `/Users/deanmitchell/Projects/FullyRested/App/FullyRested/src`;
-    var tree = { dir: { name: 'src', path: request.pathname, fullPath: request.pathname }, subdirs: [], files: [] };
-    if (request.pathname == '')
-        return tree;
-
-    walkSync(request.pathname, request.filter, tree);
-    // var json = JSON.stringify(tree);
-    return tree;
-}
-
-function walkSync(dir, filter, tree) {
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-        if (file.isDirectory()) {
-            var fullPath = path.join(dir, file.name);
-            var node = { dir: file, subdirs: [], files: [] };
-            node.dir.fullPath = fullPath;
-            tree.subdirs.push(node);
-            walkSync(fullPath, filter, tree.subdirs[tree.subdirs.length - 1]);
-        } else
-            if (file.isFile() && filter.some(f => file.name.endsWith(f))) {
-                file.fullPath = path.join(dir, file.name);
-                tree.files.push(file);
-            }
-    }
 }
 
 async function loadCollection() {
@@ -203,6 +208,7 @@ async function loadCollection() {
 
 async function loadCollectionFromFile(filename, name, path) {
     try {
+        access.checkCollectionToOpen(filename);
         var data = await new Promise((accept, reject) => {
             fs.readFile(filename, (err, data) => {
                 if (err)
@@ -213,6 +219,7 @@ async function loadCollectionFromFile(filename, name, path) {
         });
 
         var parsed = JSON.parse(data);
+        access.openCollection(filename, parsed);
         var collectionConfig = await loadSecrets(parsed, keychain, secretServiceForCollection(parsed.collectionGuid));
         win.webContents.send("loadCollectionResponse", { config: collectionConfig, filename: filename, name: name, path: path });
     }
@@ -222,9 +229,15 @@ async function loadCollectionFromFile(filename, name, path) {
 }
 
 async function saveCollection(request) {
-    var sanitised = await storeSecrets(request.config, keychain, secretServiceForCollection(request.config.collectionGuid));
-    fs.writeFileSync(request.filename, JSON.stringify(sanitised, null, 4));
+    var filename = access.checkCollectionToSave(request.filename);
+    await writeCollection(filename, request.config);
     win.webContents.send("loadCollectionResponse", request);
+}
+
+async function writeCollection(filename, config) {
+    var sanitised = await storeSecrets(config, keychain, secretServiceForCollection(config.collectionGuid));
+    fs.writeFileSync(filename, JSON.stringify(sanitised, null, 4));
+    access.openCollection(filename, config);
 }
 
 async function saveCollectionAs(request) {
@@ -236,7 +249,8 @@ async function saveCollectionAs(request) {
     request.filename = userChosenPath
     request.path = path.dirname(request.filename);
     request.name = path.basename(request.filename);
-    await saveCollection(request);
+    await writeCollection(request.filename, request.config);
+    win.webContents.send("loadCollectionResponse", request);
 }
 
 async function saveAsRequest(request) {
@@ -246,6 +260,7 @@ async function saveAsRequest(request) {
     }
     var sanitised = await storeSecrets(request, keychain, secretServiceForRequest(request.id));
     fs.writeFileSync(userChosenPath, JSON.stringify(sanitised, null, 4));
+    access.trustRequest(userChosenPath);
     if (request.name.startsWith("<unnamed")) {
         var basename = path.basename(userChosenPath);
         request.name = basename.substring(0, basename.length - path.extname(basename).length);
@@ -254,7 +269,8 @@ async function saveAsRequest(request) {
 }
 
 async function saveRequest(request) {
+    var filename = access.checkRequest(request.fullFilename);
     var sanitised = await storeSecrets(request.action, keychain, secretServiceForRequest(request.action.id));
-    fs.writeFileSync(request.fullFilename, JSON.stringify(sanitised, null, 4));
+    fs.writeFileSync(filename, JSON.stringify(sanitised, null, 4));
     win.webContents.send("savedAsCompleted", { id: request.action.id, fullFilename: request.fullFilename, name: request.action.name });
 }

@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { EditRequestComponent } from '../request/edit-request/edit-request.component';
 import { RestActionRunComponent } from '../rest-action-run/rest-action-run.component';
-import { ValidateResponseService } from 'src/app/services/validate-response/validate-response.service';
+import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { CreateEmptyAction } from '@fullyrested/core';
 import { RestAction, Collection } from '@fullyrested/core';
@@ -18,7 +18,6 @@ import {
   ExecuteRestCallsService,
   TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
-import { ExecuteRestAction } from '@fullyrested/core';
 
 @Component({
   selector: 'app-rest-action',
@@ -73,13 +72,30 @@ export class RestActionComponent implements OnInit {
   constructor(
     private era: ExecuteRestCallsService,
     private repository: ActionRepositoryService,
-    public validateResponse: ValidateResponseService,
+    private trees: CollectionTreeService,
   ) {}
 
   @ViewChild(EditRequestComponent) requestEditor: EditRequestComponent | undefined;
   @ViewChild(RestActionRunComponent) runView: RestActionRunComponent | undefined;
 
   ngOnInit(): void {}
+
+  private inheritedCache: { key: unknown[]; node: ReturnType<CollectionTreeService['nodeFor']> } | undefined;
+
+  // Evaluated every change-detection pass, so it returns the same node until an input changes (a new
+  // object each pass trips NG0100). A tab mid-switch may not resolve yet, so swallow that.
+  get inheritedNode() {
+    const key = [this._action, this._fullFilename, this.runId, this.trees.tree.value, this.collection];
+    if (this.inheritedCache && this.inheritedCache.key.every((k, i) => k === key[i])) return this.inheritedCache.node;
+    try {
+      const node = this.trees.nodeFor(this._action, this._fullFilename);
+      this.inheritedCache = { key, node };
+      return node;
+    } catch {
+      this.inheritedCache = undefined;
+      return undefined;
+    }
+  }
 
   get actionId(): string {
     return this._action.id;
@@ -95,17 +111,15 @@ export class RestActionComponent implements OnInit {
     this.requestEditor?.focusUrl();
   }
 
-  async executeAction(action: ExecuteRestAction) {
+  async executeAction() {
     if (this.sending) return;
     this.sending = true;
     try {
-      const response = await this.era.executeTest(action, this.collection);
-      response.validated = await this.validateResponse.validateResponse(
-        action,
-        response,
-        this.collection,
-      );
-      this.response = response;
+      const node = this.trees.nodeFor(this._action, this._fullFilename);
+      this.response = await this.era.executeNode(node, this.collection?.config.selectedEnvironmentId);
+    } catch (error) {
+      // a broken folder or collection file refuses to resolve: show why instead of sending without it
+      this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
     } finally {
       this.sending = false;
     }

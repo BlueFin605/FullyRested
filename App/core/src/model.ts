@@ -2,7 +2,8 @@ export const REConstants = {
     CollectionExtension: ".frcol",
     ActionExtension: ".frreq",
     LegacyCollectionExtension: ".reasycol",
-    LegacyActionExtension: ".reasyreq"
+    LegacyActionExtension: ".reasyreq",
+    FolderSettingsFile: "folder.frfolder"
 };
 
 // Extensions to accept when opening files: new first, then the old Rest Easy ones
@@ -163,12 +164,22 @@ export interface CurrentState {
     recentCollections: RecentFile[];
 }
 
-export interface Environment {
-    name: string;
-    id: string;
+// What every level of the hierarchy can set for the requests below it
+export interface ScopeSettings {
     variables: VariableTable[];
     secrets: SecretTable[];
     auth: AuthenticationDetails;
+    headers: HeaderTable[];
+}
+
+export interface Environment extends ScopeSettings {
+    name: string;
+    id: string;
+}
+
+// folder.frfolder: the settings a folder gives the folders and requests inside it
+export interface FolderConfig extends ScopeSettings {
+    folderId: string;
 }
 
 export interface CollectionConfig {
@@ -183,24 +194,6 @@ export interface Collection {
     filename: string;
     name: string;
     path: string;
-}
-
-export interface TraversedDrectory {
-    dir: Dir;
-    subdirs: TraversedDrectory[];
-    files: File[];
-}
-
-export interface Dir {
-    name: string;
-    path: string;
-    fullPath: string;
-}
-
-export interface File {
-    name: string;
-    path: string;
-    fullPath: string;
 }
 
 export interface SavedAsCompleted {
@@ -240,7 +233,18 @@ export function CreateEmptyLocalAction(): LocalRestAction {
       id: '',
       variables: [],
       secrets: [],
-      auth: CreateEmptyAuthenticationDetails('inherit')
+      auth: CreateEmptyAuthenticationDetails('inherit'),
+      headers: []
+    };
+  }
+
+  export function CreateEmptyFolderConfig(folderId: string): FolderConfig {
+    return {
+      folderId,
+      variables: [],
+      secrets: [],
+      auth: CreateEmptyAuthenticationDetails('inherit'),
+      headers: []
     };
   }
   
@@ -300,7 +304,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
              headers: [], 
              variables: [], 
              secrets: [], 
-             authentication: CreateEmptyAuthenticationDetails('none'), 
+             authentication: CreateEmptyAuthenticationDetails('inherit'), 
              validation: CreateEmptyRestActionValidation(valType) };
   }
   
