@@ -1,5 +1,6 @@
 import { CaseRecord, RecordBody, RunRecord, toCaseOutcomeCounts } from './run-record';
 import { RunStore } from './run-store';
+import { jsonPath } from './json-path';
 
 export class QueryError extends Error {
   constructor(message: string) {
@@ -110,5 +111,73 @@ export function caseResponse(r: RunRecord, ref: string | number) {
   };
   const body = bodyMeta(c.response.body);
   if (body) out.body = body;
+  return out;
+}
+
+export interface BodyOptions {
+  request?: boolean; path?: string; outline?: boolean; range?: [number, number]; full?: boolean; cap?: number;
+}
+
+export interface BodyResult {
+  index: number; name: string; side: 'request' | 'response'; contentType?: string; bytes: number;
+  encoding: 'text' | 'base64' | 'json'; truncated: boolean; content: string | unknown;
+}
+
+const DEFAULT_BODY_CAP = 32768;
+const OUTLINE_MAX_DEPTH = 6;
+
+function outlineOf(v: unknown, depth = 0): unknown {
+  if (depth >= OUTLINE_MAX_DEPTH) return '…';
+  if (Array.isArray(v)) {
+    return v.length === 0 ? { $array: 0 } : { $array: v.length, item: outlineOf(v[0], depth + 1) };
+  }
+  if (v === null) return 'null';
+  if (typeof v === 'object') {
+    return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, outlineOf(x, depth + 1)]));
+  }
+  if (typeof v === 'string') return `string "${v.slice(0, 30)}…"`;
+  return `${typeof v} ${String(v)}`;
+}
+
+export function caseBody(r: RunRecord, ref: string | number, o: BodyOptions = {}): BodyResult {
+  const c = findCase(r, ref);
+  const side = o.request ? 'request' : 'response';
+  const body = o.request ? c.request.body : c.response?.body;
+  if (!body) throw new QueryError(`Case ${c.index} has no ${side} body`);
+
+  let encoding: BodyResult['encoding'];
+  let content: unknown;
+  if (o.path !== undefined || o.outline) {
+    let parsed: unknown;
+    try {
+      if (body.text === undefined) throw new Error('no text');
+      parsed = JSON.parse(body.text);
+    } catch {
+      throw new QueryError('Body is not JSON');
+    }
+    encoding = 'json';
+    content = o.path !== undefined ? jsonPath(parsed, o.path) : outlineOf(parsed);
+  } else if (o.range) {
+    if (body.text === undefined) throw new QueryError('Range needs a text body');
+    encoding = 'text';
+    content = body.text.slice(o.range[0], o.range[1]);
+  } else if (body.text !== undefined) {
+    encoding = 'text';
+    content = body.text;
+  } else {
+    encoding = 'base64';
+    content = body.base64 ?? '';
+  }
+
+  const cap = o.cap ?? DEFAULT_BODY_CAP;
+  const serialised = encoding === 'json' ? JSON.stringify(content) : (content as string);
+  let truncated = false;
+  if (!o.full && serialised.length > cap) {
+    content = serialised.slice(0, cap);
+    truncated = true;
+  }
+
+  const out: BodyResult = { index: c.index, name: c.name, side, bytes: body.bytes, encoding, truncated, content };
+  if (body.contentType !== undefined) out.contentType = body.contentType;
   return out;
 }
