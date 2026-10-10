@@ -148,6 +148,15 @@ withQueryOptions(program.command('body').argument('<case>', 'case index or name'
     if (notice) console.error(notice);
   }));
 
+// A collection or request file that cannot be loaded is a usage problem (exit 2), not a crash
+async function setup<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    throw error instanceof UsageError ? error : new UsageError((error as Error).message);
+  }
+}
+
 interface InspectOptions { collection: string; json?: boolean }
 
 const withInspectOptions = (c: Command) => c
@@ -156,7 +165,7 @@ const withInspectOptions = (c: Command) => c
 
 withInspectOptions(program.command('tree').description('List the folders, requests and runs of a collection'))
   .action(queryAction(async (options: InspectOptions) => {
-    const root = await loadTree(options.collection, createSecretStore());
+    const root = await setup(() => loadTree(options.collection, createSecretStore()));
     const view = treeView(root);
     view.warnings.forEach(w => console.warn(`warning: ${w}`));
     printResult(options, view, formatTree(view));
@@ -164,7 +173,7 @@ withInspectOptions(program.command('tree').description('List the folders, reques
 
 withInspectOptions(program.command('envs').description('List the environments of a collection (names only)'))
   .action(queryAction(async (options: InspectOptions) => {
-    const root = await loadTree(options.collection, createSecretStore());
+    const root = await setup(() => loadTree(options.collection, createSecretStore()));
     const view = environmentsView(root.config);
     printResult(options, view, formatEnvironments(view));
   }));
@@ -175,9 +184,9 @@ withInspectOptions(program.command('show').description('Show a request as it wou
   .option('-e, --environment <name>', 'environment name or id (default: the collection selected one)'))
   .action(queryAction(async (options: InspectOptions & { action: string; run?: string; environment?: string }) => {
     const store = createSecretStore();
-    const root = await loadTree(options.collection, store);
+    const root = await setup(() => loadTree(options.collection, store));
     root.warnings.forEach(w => console.warn(`warning: ${w}`));
-    const request = await requestFor(options.action, root, path.dirname(path.resolve(options.collection)), store);
+    const request = await setup(() => requestFor(options.action, root, path.dirname(path.resolve(options.collection)), store));
     let node: Parameters<typeof showRequest>[0] = request;
     if (options.run !== undefined) {
       const run = request.runs().find(r => r.run.name === options.run || r.run.id === options.run);

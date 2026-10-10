@@ -262,3 +262,18 @@ describe('inspect commands', () => {
     expect(bad.err).toMatch(/^error: /);
   });
 });
+
+describe('inspect commands setup failures', () => {
+  const missingCollection = path.join(os.tmpdir(), 'fullyrested-no-such', 'x.frcol');
+  it.each([
+    ['tree, missing collection', ['tree', '-c', missingCollection]],
+    ['envs, missing collection', ['envs', '-c', missingCollection]],
+    ['show, missing collection', ['show', '-c', missingCollection, '-a', 'items/ok.frreq']],
+    ['show, missing request file', ['show', '-c', 'COLLECTION', '-a', 'items/nope.frreq']],
+    ['show, unknown environment', ['show', '-c', 'COLLECTION', '-a', 'items/ok.frreq', '-e', 'Nowhere']]
+  ])('%s exits 2 with an error line', async (_name, args) => {
+    const r = await fullyrested(args.map(a => a === 'COLLECTION' ? fx.collection : a));
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/^error: /);
+  });
+});

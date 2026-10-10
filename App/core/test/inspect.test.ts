@@ -102,6 +102,16 @@ describe('showRequest', () => {
     expect(shown.variables.find(v => v.variable === 'token')!.value).toBe('{{$secret:apikey}}');
   });
 
+  it.each(['key', 'secret', 'a', '1'])('keeps the placeholder intact when the secret value is %s', async value => {
+    const req = JSON.parse(request);
+    req.headers = [{ key: 'x-key', value: '{{$apikey}}', active: true, id: 'h1' }, { key: 'x-raw', value, active: true, id: 'h2' }];
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/get.frreq': JSON.stringify(req) })),
+      keychain({ 'fullyrested-collection-c1/apikey': value }));
+    const shown = showRequest(root.find('items/get.frreq') as RequestNode);
+    expect(shown.headers.find(h => h.key === 'x-key')!.value).toBe('{{$secret:apikey}}');
+    expect(shown.headers.find(h => h.key === 'x-raw')!.value).toBe('{{$secret:apikey}}');
+  });
+
   it('redacts a secret value that appears in a variable value', async () => {
     const withVar = JSON.parse(collection);
     withVar.collectionEnvironment.variables.push({ variable: 'leak', value: 'sekret-123', active: true, id: 'l' });

@@ -110,8 +110,16 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
     const request = node instanceof RunNode ? node.request : node;
     const replace = secretReplacer(eff.secrets.map((s: EffectiveValue<SecretTable>) => s.value), 1);
     // A raw {{$name}} reference to one of the effective secrets reads as {{$secret:name}}
-    const secretNames = new Set(eff.secrets.map(s => s.value.$secret));
-    const label = (text: string) => replace(text.replace(/\{\{\$([^{}]+)\}\}/g, (ref, name: string) => secretNames.has(name) ? `{{$secret:${name}}}` : ref));
+    // Each is swapped for a sentinel first so redaction cannot match inside the placeholder text
+    const secretNames = [...new Set(eff.secrets.map(s => s.value.$secret))];
+    const sentinel = (i: number) => `\u0000${String.fromCharCode(0xE000 + i)}\u0000`;
+    const label = (text: string) => {
+      const marked = text.replace(/\{\{\$([^{}]+)\}\}/g, (ref, name: string) => {
+        const i = secretNames.indexOf(name);
+        return i < 0 ? ref : sentinel(i);
+      });
+      return secretNames.reduce((out, name, i) => out.split(sentinel(i)).join(`{{$secret:${name}}}`), replace(marked));
+    };
     const auth: EffectiveValue<AuthenticationDetails> | undefined = eff.auth;
     return {
       name: node.name,
