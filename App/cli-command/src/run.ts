@@ -31,6 +31,15 @@ interface TestCase {
 
 export class UsageError extends Error { }
 
+// A collection or request file that cannot be loaded is a usage problem (exit 2), not a crash
+export async function setup<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    throw error instanceof UsageError ? error : new UsageError((error as Error).message);
+  }
+}
+
 export function findEnvironment(config: CollectionConfig, name: string | undefined): { id: string | undefined; name: string | undefined } {
   if (name == undefined)
     return { id: undefined, name: config.environments.find(e => e.id == config.selectedEnvironmentId)?.name };
@@ -187,10 +196,10 @@ export interface RunHooks {
 }
 
 export async function runCollection(options: RunOptions, store: SecretStore, hooks: RunHooks = {}): Promise<RunRecord> {
-  const root = await loadTree(options.collection, store);
+  const root = await setup(() => loadTree(options.collection, store));
   root.warnings.forEach(w => hooks.onWarning?.(w));
   const environment = findEnvironment(root.config, options.environment);
-  const cases = await selectCases(options, root, path.dirname(path.resolve(options.collection)), store);
+  const cases = await setup(() => selectCases(options, root, path.dirname(path.resolve(options.collection)), store));
   const includeSecrets = hooks.includeSecrets ?? false;
 
   const record: RunRecord = {

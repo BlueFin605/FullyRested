@@ -267,9 +267,11 @@ describe('inspect commands', () => {
   });
 });
 
-describe('inspect commands setup failures', () => {
+describe('setup failures', () => {
   const missingCollection = path.join(os.tmpdir(), 'fullyrested-no-such', 'x.frcol');
   it.each([
+    ['run, missing collection', ['run', '-c', missingCollection, '--all']],
+    ['run, missing request file', ['run', '-c', 'COLLECTION', '-a', 'items/nope.frreq']],
     ['tree, missing collection', ['tree', '-c', missingCollection]],
     ['envs, missing collection', ['envs', '-c', missingCollection]],
     ['show, missing collection', ['show', '-c', missingCollection, '-a', 'items/ok.frreq']],

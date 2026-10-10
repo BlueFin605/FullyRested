@@ -1,16 +1,7 @@
 import * as path from 'path';
 import { SecretStore, environmentsView, showRequest, treeView } from '@fullyrested/core';
-import { UsageError, findEnvironment, requestFor } from './run';
+import { UsageError, findEnvironment, requestFor, setup } from './run';
 import { loadTree } from './files';
-
-// A collection or request file that cannot be loaded is a usage problem (exit 2), not a crash
-export async function setup<T>(load: () => Promise<T>): Promise<T> {
-  try {
-    return await load();
-  } catch (error) {
-    throw error instanceof UsageError ? error : new UsageError((error as Error).message);
-  }
-}
 
 export async function inspectTree(collection: string, store: SecretStore, onWarning: (m: string) => void) {
   const root = await setup(() => loadTree(collection, store));
