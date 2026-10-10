@@ -16,3 +16,4 @@ export * from './run-store';
 export * from './redact';
 export * from './query';
 export * from './json-path';
+export * from './inspect';

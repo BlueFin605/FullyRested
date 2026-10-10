@@ -8,7 +8,7 @@ function escapeRegExp(s: string): string {
 }
 
 /** Returns a function replacing every active secret value (raw or URI-encoded) with its placeholder. */
-function buildReplacer(secrets: SecretTable[] | undefined): (text: string) => string {
+export function secretReplacer(secrets: SecretTable[] | undefined): (text: string) => string {
   const byValue = new Map<string, string>();
   for (const s of secrets ?? []) {
     if (!s.active || typeof s.$value !== 'string' || s.$value.length < MIN_SECRET_LENGTH) continue;
@@ -49,7 +49,7 @@ function redactBody(body: RecordBody | undefined, replace: (t: string) => string
 }
 
 export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): CaseRecord {
-  const replace = buildReplacer(secrets);
+  const replace = secretReplacer(secrets);
   const request: CaseRecord['request'] = {
     ...c.request,
     url: replace(c.request.url),
