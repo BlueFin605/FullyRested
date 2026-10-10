@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryRunStore, QueryError, listRuns, resolveRun, findCase, summary, failures, caseRequest, caseResponse } from '../src';
+import { MemoryRunStore, QueryError, listRuns, resolveRun, findCase, summary, failures, runResult, caseRequest, caseResponse } from '../src';
 import { fixtureRun } from './fixtures/run-record';
 
 describe('resolveRun', () => {
@@ -84,6 +84,47 @@ describe('failures', () => {
       { index: 2, name: 'Get Pet', outcome: 'fail', status: 200, failedChecks: [{ check: 'body', errors: ['name must be string'] }] },
       { index: 3, name: 'Delete Pet', outcome: 'error', error: 'No response: ECONNREFUSED', failedChecks: [] }
     ]);
+  });
+});
+
+describe('runResult', () => {
+  it('gives the counts and only the cases that did not pass, in the failures row shape', () => {
+    const r = runResult(fixtureRun());
+    expect(r).toEqual({
+      runId: '20261011-100000-aaaa', startedAt: '2026-10-11T10:00:00.000Z', environment: 'dev', selection: 'all',
+      passed: 1, failed: 1, errored: 1, problems: failures(fixtureRun()).cases
+    });
+  });
+  it('has an empty problems list when everything passes', () => {
+    const run = fixtureRun();
+    const allPass = { ...run, cases: [run.cases[0]!] };
+    expect(runResult(allPass)).toMatchObject({ passed: 1, failed: 0, errored: 0, problems: [] });
+  });
+});
+
+describe('caseResponse headers', () => {
+  const noisy = () => {
+    const run = fixtureRun();
+    run.cases[0]!.response!.headers = {
+      'content-type': 'application/json', 'set-cookie': 'a=1', 'content-security-policy': "default-src 'self'",
+      'Location': '/pets/1', 'x-amzn-requestid': 'abc', 'p3p': 'CP="nope"'
+    };
+    return run;
+  };
+  it('keeps only the useful headers by default and counts the rest', () => {
+    const res = caseResponse(noisy(), 1);
+    expect(res.headers).toEqual({ 'content-type': 'application/json', 'Location': '/pets/1', 'x-amzn-requestid': 'abc' });
+    expect(res.headersOmitted).toBe(3);
+  });
+  it('headers: true returns them all with no omitted count', () => {
+    const res = caseResponse(noisy(), 1, { headers: true });
+    expect(Object.keys(res.headers)).toHaveLength(6);
+    expect(res).not.toHaveProperty('headersOmitted');
+  });
+  it('a list of names returns just those, matched case-insensitively', () => {
+    const res = caseResponse(noisy(), 1, { headers: ['Set-Cookie', 'location'] });
+    expect(res.headers).toEqual({ 'set-cookie': 'a=1', 'Location': '/pets/1' });
+    expect(res.headersOmitted).toBe(4);
   });
 });
 

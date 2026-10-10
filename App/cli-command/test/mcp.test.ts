@@ -60,7 +60,7 @@ describe('mcp server', () => {
     expect(JSON.stringify(summary)).not.toContain('sk-test-secret');
     const failed = (await call(client, 'failures', {})).json();
     expect(JSON.stringify(failed)).toContain('down');
-    const index = summary.cases.find((c: { name: string }) => c.name === 'ok').index;
+    const index = (await call(client, 'run_summary', {})).json().cases.find((c: { name: string }) => c.name === 'ok').index;
     const body = await call(client, 'case_body', { case: index, runId: summary.runId });
     expect(body.isError).toBe(false);
     expect(body.text).toContain('env=dev');
@@ -69,6 +69,52 @@ describe('mcp server', () => {
     expect((await call(client, 'case_response', { case: 'ok' })).isError).toBe(false);
     expect((await call(client, 'run_summary', {})).json().runId).toBe(summary.runId);
     expect(JSON.stringify((await call(client, 'list_runs', {})).json())).toContain(summary.runId);
+  });
+
+  it('run returns the counts and only the cases that did not pass', async () => {
+    const client = await connect();
+    const result = (await call(client, 'run', { collection: fx.collection, all: true })).json();
+    expect(result).not.toHaveProperty('cases');
+    expect(result.passed).toBeGreaterThan(0);
+    expect(result.problems.length).toBe(result.failed + result.errored);
+    expect(result.problems.every((c: { outcome: string }) => c.outcome !== 'pass')).toBe(true);
+    const down = result.problems.find((c: { name: string }) => c.name === 'down');
+    expect(down).toMatchObject({ outcome: 'error', failedChecks: [] });
+    expect(down.error).toMatch(/^No response/);
+  });
+
+  it('run with no action, folder or all runs the whole collection', async () => {
+    const client = await connect();
+    const bare = await call(client, 'run', { collection: fx.collection });
+    expect(bare.isError).toBe(false);
+    const all = (await call(client, 'run', { collection: fx.collection, all: true })).json();
+    const result = bare.json();
+    expect(result.passed + result.failed + result.errored).toBe(all.passed + all.failed + all.errored);
+    expect(result.selection).toBe(all.selection);
+  });
+
+  it('case_response keeps only the useful headers unless asked for more', async () => {
+    const client = await connect();
+    await call(client, 'run', { collection: fx.collection, action: 'items/ok.frreq' });
+    const trimmed = (await call(client, 'case_response', { case: 'ok' })).json();
+    expect(trimmed.headers).toHaveProperty('content-type');
+    expect(trimmed.headers).not.toHaveProperty('date');
+    expect(trimmed.headersOmitted).toBeGreaterThan(0);
+    const all = (await call(client, 'case_response', { case: 'ok', headers: true })).json();
+    expect(all.headers).toHaveProperty('date');
+    expect(all).not.toHaveProperty('headersOmitted');
+    const named = (await call(client, 'case_response', { case: 'ok', headers: ['Date'] })).json();
+    expect(Object.keys(named.headers)).toEqual(['date']);
+  });
+
+  it('tree can show one folder and an unknown folder is an error', async () => {
+    const client = await connect();
+    const items = (await call(client, 'tree', { collection: fx.collection, folder: 'items' })).json();
+    expect(items.folder).toBe('items');
+    expect(items.children.every((c: { path: string }) => c.path.startsWith('items/'))).toBe(true);
+    const bad = await call(client, 'tree', { collection: fx.collection, folder: 'nope' });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain("Folder 'nope' not found");
   });
 
   it('run without a store writes no .fullyrested-runs in the working directory', async () => {

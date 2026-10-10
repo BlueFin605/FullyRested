@@ -62,6 +62,24 @@ describe('treeView', () => {
     const req = items.children.find((c: any) => c.type === 'request');
     expect(req).toMatchObject({ name: 'get item', method: 'get', url: '{{host}}/items', runs: [{ name: 'happy', validation: 'ResponseCode' }] });
   });
+
+  it('leaves out empty runs and warnings', async () => {
+    const noRuns = JSON.stringify({ ...JSON.parse(request), id: 'r2', name: 'list items', runs: [] });
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'items/list.frreq': noRuns })), store);
+    const view = treeView(root);
+    expect(view).not.toHaveProperty('warnings');
+    const list = (view.children[0] as any).children.find((c: any) => c.name === 'list items');
+    expect(list).not.toHaveProperty('runs');
+  });
+
+  it('shows only one folder when asked', async () => {
+    const root = await loadCollectionTree('api.frcol', memory(files({ 'other/x.frreq': request, 'items/sub/y.frreq': request })), store);
+    const view = treeView(root, 'items/sub');
+    expect(view).toMatchObject({ collection: 'api', folder: 'items/sub' });
+    expect(view.children.map((c: any) => c.path)).toEqual(['items/sub/y.frreq']);
+    expect(() => treeView(root, 'nope')).toThrow(QueryError);
+    expect(() => treeView(root, 'nope')).toThrow("Folder 'nope' not found. Folders: items, items/sub, other");
+  });
 });
 
 describe('environmentsView', () => {

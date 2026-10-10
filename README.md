@@ -159,14 +159,14 @@ collection and look into the results without reading raw output. After
 claude mcp add fullyrested -- fullyrested mcp [--store <dir>]
 ```
 
-The tool flow is **run**, then **failures**, then the `case_*` tools:
+The tool flow is **run**, then the `case_*` tools for any case that needs a closer look:
 
 | Tool | Use |
 |---|---|
-| `tree`, `environments`, `show_request` | Look at a collection and how a request would be sent |
-| `run` | Send requests and get a summary (bodies are never included) |
-| `list_runs`, `run_summary`, `failures` | Find a run and see which cases failed, grouped by check |
-| `case_request`, `case_response`, `case_body` | Drill into one case. `case_body` takes `path`, `outline`, `range` and `full` so a large body is not dumped whole |
+| `tree`, `environments`, `show_request` | Look at a collection (or one folder of it, with `folder`) and how a request would be sent. Not needed before `run` |
+| `run` | Send requests (the whole collection unless `action` or `folder` is given) and get the counts plus only the cases that did not pass, with their failed checks (bodies are never included) |
+| `list_runs`, `run_summary`, `failures` | Find an earlier run, list every case, or see which cases failed, grouped by check |
+| `case_request`, `case_response`, `case_body` | Drill into one case. `case_body` takes `path`, `outline`, `range` and `full` so a large body is not dumped whole. `case_response` shows only the useful headers unless `headers` is `true` or a list of names |
 
 The CLI has the same queries for a terminal or a script:
 
@@ -174,8 +174,8 @@ The CLI has the same queries for a terminal or a script:
 |---|---|
 | `run --record` | `run`, and also saves the run record |
 | `runs`, `summary`, `failures` | `list_runs`, `run_summary`, `failures` |
-| `request`, `response`, `body` | `case_request`, `case_response`, `case_body` |
-| `tree`, `envs`, `show` | `tree`, `environments`, `show_request` |
+| `request`, `response`, `body` | `case_request`, `case_response`, `case_body` (`response` shows every header unless `--headers <names>` is given) |
+| `tree`, `envs`, `show` | `tree`, `environments`, `show_request` (`tree --folder <path>` for one folder) |
 
 Every query command takes `--json`. A case is named by its index, counted
 from 1 in the order the run sent it, or by its name.

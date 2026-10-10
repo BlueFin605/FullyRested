@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore,
-  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary
+  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, runResult, summary
 } from '@fullyrested/core';
 import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
@@ -49,9 +49,12 @@ export function createServer(opts: McpOptions): McpServer {
   };
 
   server.registerTool('tree', {
-    description: 'List the folders, requests and runs of a collection.',
-    inputSchema: { collection: z.string().describe('Path to the .frcol file') }
-  }, ({ collection }) => respond(() => inspectTree(collection, opts.secrets, warn)));
+    description: 'List the folders, requests and runs of a collection, or of one folder in it. Not needed before run.',
+    inputSchema: {
+      collection: z.string().describe('Path to the .frcol file'),
+      folder: z.string().optional().describe('Show only this folder (a path inside the collection)')
+    }
+  }, ({ collection, folder }) => respond(() => inspectTree(collection, opts.secrets, warn, folder)));
 
   server.registerTool('environments', {
     description: 'List the environments of a collection (names only).',
@@ -64,13 +67,15 @@ export function createServer(opts: McpOptions): McpServer {
   }, args => respond(() => inspectRequest(args, opts.secrets, warn)));
 
   server.registerTool('run', {
-    description: 'Send requests of a collection and return the run summary. Then call failures, and case_* to drill in. Bodies are only returned by case_body.',
+    description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body.',
     inputSchema: {
       collection: z.string(), environment: z.string().optional(), action: z.string().optional(),
       run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
     }
   }, ({ store: dir, ...options }) => respond(async () => {
-    const record = await runCollection(options, opts.secrets, { onWarning: warn, includeSecrets: false });
+    // Unlike the CLI, no selection means the whole collection, so an agent's first call is not wasted
+    const selected = options.action !== undefined || options.folder !== undefined || options.all !== undefined;
+    const record = await runCollection(selected ? options : { ...options, all: true }, opts.secrets, { onWarning: warn, includeSecrets: false });
     await memory.save(record);
     const disk = fsStore(dir);
     if (disk) {
@@ -80,7 +85,7 @@ export function createServer(opts: McpOptions): McpServer {
         warn(`could not record run: ${(error as Error).message}`);
       }
     }
-    return summary(record);
+    return runResult(record);
   }));
 
   server.registerTool('list_runs', {
@@ -89,12 +94,12 @@ export function createServer(opts: McpOptions): McpServer {
   }, ({ store: dir }) => respond(() => listRuns(storesFor(dir))));
 
   server.registerTool('run_summary', {
-    description: 'Show every case of a run with its outcome.',
+    description: 'Show every case of a run with its outcome (run already returns the cases that did not pass).',
     inputSchema: { runId, store }
   }, a => respond(async () => summary(await servedRun(a.store, a.runId))));
 
   server.registerTool('failures', {
-    description: 'Show the failing and errored cases of a run.',
+    description: 'Show the failing and errored cases of an earlier run (run already returns these for the run it sends).',
     inputSchema: { runId, store }
   }, a => respond(async () => failures(await servedRun(a.store, a.runId))));
 
@@ -104,9 +109,12 @@ export function createServer(opts: McpOptions): McpServer {
   }, a => respond(async () => caseRequest(await servedRun(a.store, a.runId), a.case)));
 
   server.registerTool('case_response', {
-    description: 'Show the response a case received, without its body.',
-    inputSchema: { case: caseRef, runId, store }
-  }, a => respond(async () => caseResponse(await servedRun(a.store, a.runId), a.case)));
+    description: 'Show the response a case received, without its body. Only the useful headers are shown (headersOmitted counts the rest) unless headers is given.',
+    inputSchema: {
+      case: caseRef, runId, store,
+      headers: z.union([z.literal(true), z.array(z.string())]).optional().describe('true for every header, or a list of header names')
+    }
+  }, a => respond(async () => caseResponse(await servedRun(a.store, a.runId), a.case, { headers: a.headers })));
 
   server.registerTool('case_body', {
     description: 'Show the response body of a case (or the request body), optionally by JSON path, outline or range.',
