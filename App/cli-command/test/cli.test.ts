@@ -211,6 +211,13 @@ describe('query commands', () => {
     expect(some.out).toMatch(/^-- \d+ more headers; use --headers <names> or leave it out for all$/m);
   });
 
+  it('tree --folder shows only that folder', async () => {
+    const r = await fullyrested(['tree', '-c', fx.collection, '--folder', 'items']);
+    expect(r.code).toBe(0);
+    expect(r.out.split('\n')[0]).toMatch(/\/items\/$/);
+    expect(r.out).not.toContain('down');
+  });
+
   it('body prints the content, honours --range, and rejects bad input', async () => {
     expect((await q(['body', 'ok'])).out).toBe('env=dev\n');
     expect((await q(['body', 'ok', '--range', '0:3'])).out).toBe('env\n');

@@ -21,7 +21,7 @@ export interface TreeRequest {
   method: string;
   url: string;
   validation: string | undefined;
-  runs: TreeRun[];
+  runs?: TreeRun[];
 }
 
 export interface TreeFolder {
@@ -35,7 +35,8 @@ export type TreeNodeView = TreeFolder | TreeRequest | TreeError;
 
 export interface TreeView {
   collection: string;
-  warnings: string[];
+  folder?: string;
+  warnings?: string[];
   children: TreeNodeView[];
 }
 
@@ -52,16 +53,44 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
     }
     if (child.loadError) return [toError(child.loadError)];
     const action = child.action;
-    return [{
+    const view: TreeRequest = {
       type: 'request', name: child.name, path: child.path,
       method: action.verb, url: action.url, validation: action.validation?.type,
-      runs: child.runs().map(r => ({ name: r.run.name, validation: r.run.validation?.type })),
-    }];
+    };
+    const runs = child.runs().map(r => ({ name: r.run.name, validation: r.run.validation?.type }));
+    if (runs.length > 0) view.runs = runs;
+    return [view];
   });
 }
 
-export function treeView(root: CollectionNode): TreeView {
-  return { collection: root.name, warnings: root.warnings, children: childrenOf(root) };
+function folderPaths(nodes: TreeNodeView[]): string[] {
+  return nodes.flatMap(n => n.type === 'folder' ? [n.path, ...folderPaths(n.children)] : []);
+}
+
+function findFolder(nodes: TreeNodeView[], path: string): TreeFolder | undefined {
+  for (const n of nodes) {
+    if (n.type !== 'folder') continue;
+    if (n.path === path) return n;
+    const inner = findFolder(n.children, path);
+    if (inner) return inner;
+  }
+  return undefined;
+}
+
+/** The collection's tree, or only the folder at `folder` (a path inside the collection). Empty lists are left out. */
+export function treeView(root: CollectionNode, folder?: string): TreeView {
+  let children = childrenOf(root);
+  const view: TreeView = { collection: root.name, children };
+  if (folder !== undefined) {
+    const wanted = folder.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const found = findFolder(children, wanted);
+    if (!found) throw new QueryError(`Folder '${folder}' not found. Folders: ${folderPaths(children).join(', ')}`);
+    children = found.children;
+    view.folder = found.path;
+    view.children = children;
+  }
+  if (root.warnings.length > 0) view.warnings = root.warnings;
+  return view;
 }
 
 export interface EnvironmentsView {

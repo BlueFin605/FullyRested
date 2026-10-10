@@ -157,9 +157,10 @@ const withInspectOptions = (c: Command) => c
   .requiredOption('-c, --collection <file>', 'collection file (.frcol)')
   .option('--json', 'print the result as JSON');
 
-withInspectOptions(program.command('tree').description('List the folders, requests and runs of a collection'))
-  .action(queryAction(async (options: InspectOptions) => {
-    const view = await inspectTree(options.collection, createSecretStore(), w => console.warn(`warning: ${w}`));
+withInspectOptions(program.command('tree').description('List the folders, requests and runs of a collection')
+  .option('--folder <path>', 'show only this folder'))
+  .action(queryAction(async (options: InspectOptions & { folder?: string }) => {
+    const view = await inspectTree(options.collection, createSecretStore(), w => console.warn(`warning: ${w}`), options.folder);
     printResult(options, view, formatTree(view));
   }));
 

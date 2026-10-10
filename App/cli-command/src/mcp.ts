@@ -49,9 +49,12 @@ export function createServer(opts: McpOptions): McpServer {
   };
 
   server.registerTool('tree', {
-    description: 'List the folders, requests and runs of a collection.',
-    inputSchema: { collection: z.string().describe('Path to the .frcol file') }
-  }, ({ collection }) => respond(() => inspectTree(collection, opts.secrets, warn)));
+    description: 'List the folders, requests and runs of a collection, or of one folder in it. Not needed before run.',
+    inputSchema: {
+      collection: z.string().describe('Path to the .frcol file'),
+      folder: z.string().optional().describe('Show only this folder (a path inside the collection)')
+    }
+  }, ({ collection, folder }) => respond(() => inspectTree(collection, opts.secrets, warn, folder)));
 
   server.registerTool('environments', {
     description: 'List the environments of a collection (names only).',

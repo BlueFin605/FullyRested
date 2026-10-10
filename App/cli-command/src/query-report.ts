@@ -75,12 +75,13 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
     if (n.type === 'folder') return [`${pad}${n.name}/`, ...treeLines(n.children, depth + 1)];
     if (n.type === 'error') return [`${pad}! ${n.file}: ${n.message}`];
     const validation = n.validation ? `  [${n.validation}]` : '';
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...n.runs.map(r => `${pad}  › ${r.name}`)];
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(r => `${pad}  › ${r.name}`)];
   });
 }
 
 export function formatTree(t: TreeView): string {
-  return [`${t.collection}/`, ...treeLines(t.children, 1)].join('\n');
+  const top = t.folder === undefined ? `${t.collection}/` : `${t.collection}/${t.folder}/`;
+  return [top, ...treeLines(t.children, 1)].join('\n');
 }
 
 const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');

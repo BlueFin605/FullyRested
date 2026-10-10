@@ -107,6 +107,16 @@ describe('mcp server', () => {
     expect(Object.keys(named.headers)).toEqual(['date']);
   });
 
+  it('tree can show one folder and an unknown folder is an error', async () => {
+    const client = await connect();
+    const items = (await call(client, 'tree', { collection: fx.collection, folder: 'items' })).json();
+    expect(items.folder).toBe('items');
+    expect(items.children.every((c: { path: string }) => c.path.startsWith('items/'))).toBe(true);
+    const bad = await call(client, 'tree', { collection: fx.collection, folder: 'nope' });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain("Folder 'nope' not found");
+  });
+
   it('run without a store writes no .fullyrested-runs in the working directory', async () => {
     const cwd = process.cwd();
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-cwd-'));

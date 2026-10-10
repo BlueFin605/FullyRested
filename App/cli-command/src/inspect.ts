@@ -3,10 +3,10 @@ import { SecretStore, environmentsView, showRequest, treeView } from '@fullyrest
 import { UsageError, findEnvironment, requestFor, setup } from './run';
 import { loadTree } from './files';
 
-export async function inspectTree(collection: string, store: SecretStore, onWarning: (m: string) => void) {
+export async function inspectTree(collection: string, store: SecretStore, onWarning: (m: string) => void, folder?: string) {
   const root = await setup(() => loadTree(collection, store));
-  const view = treeView(root);
-  view.warnings.forEach(onWarning);
+  const view = treeView(root, folder);
+  view.warnings?.forEach(onWarning);
   return view;
 }
 
