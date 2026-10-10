@@ -78,23 +78,38 @@ export function summary(r: RunRecord) {
   };
 }
 
+export interface ProblemRow {
+  index: number; name: string; outcome: CaseRecord['outcome']; status?: number; error?: string;
+  failedChecks: { check: string; errors: string[] }[];
+}
+
+// A case that did not pass, with only its failed checks
+function problemRow(c: CaseRecord): ProblemRow {
+  const row: ProblemRow = {
+    index: c.index, name: c.name, outcome: c.outcome,
+    failedChecks: (c.validation?.checks ?? []).filter(k => !k.passed).map(k => ({ check: k.check, errors: k.errors }))
+  };
+  if (c.response) row.status = c.response.status;
+  if (c.error !== undefined) row.error = c.error;
+  return row;
+}
+
+const problems = (r: RunRecord): ProblemRow[] => r.cases.filter(c => c.outcome !== 'pass').map(problemRow);
+
 export function failures(r: RunRecord) {
-  const bad = r.cases.filter(c => c.outcome !== 'pass');
+  const cases = problems(r);
+  return { runId: r.runId, count: cases.length, cases };
+}
+
+/** What a run returns to an agent: the counts plus only the cases that did not pass. */
+export function runResult(r: RunRecord) {
   return {
     runId: r.runId,
-    count: bad.length,
-    cases: bad.map(c => {
-      const row: {
-        index: number; name: string; outcome: CaseRecord['outcome']; status?: number; error?: string;
-        failedChecks: { check: string; errors: string[] }[];
-      } = {
-        index: c.index, name: c.name, outcome: c.outcome,
-        failedChecks: (c.validation?.checks ?? []).filter(k => !k.passed).map(k => ({ check: k.check, errors: k.errors }))
-      };
-      if (c.response) row.status = c.response.status;
-      if (c.error !== undefined) row.error = c.error;
-      return row;
-    })
+    startedAt: r.startedAt,
+    environment: r.environment,
+    selection: r.selection,
+    ...toCaseOutcomeCounts(r.cases),
+    problems: problems(r)
   };
 }
 

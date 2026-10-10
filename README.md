@@ -159,13 +159,13 @@ collection and look into the results without reading raw output. After
 claude mcp add fullyrested -- fullyrested mcp [--store <dir>]
 ```
 
-The tool flow is **run**, then **failures**, then the `case_*` tools:
+The tool flow is **run**, then the `case_*` tools for any case that needs a closer look:
 
 | Tool | Use |
 |---|---|
 | `tree`, `environments`, `show_request` | Look at a collection and how a request would be sent |
-| `run` | Send requests and get a summary (bodies are never included) |
-| `list_runs`, `run_summary`, `failures` | Find a run and see which cases failed, grouped by check |
+| `run` | Send requests and get the counts plus only the cases that did not pass, with their failed checks (bodies are never included) |
+| `list_runs`, `run_summary`, `failures` | Find an earlier run, list every case, or see which cases failed, grouped by check |
 | `case_request`, `case_response`, `case_body` | Drill into one case. `case_body` takes `path`, `outline`, `range` and `full` so a large body is not dumped whole |
 
 The CLI has the same queries for a terminal or a script:

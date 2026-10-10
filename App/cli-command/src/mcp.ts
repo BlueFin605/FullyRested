@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore,
-  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary
+  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, runResult, summary
 } from '@fullyrested/core';
 import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
@@ -64,7 +64,7 @@ export function createServer(opts: McpOptions): McpServer {
   }, args => respond(() => inspectRequest(args, opts.secrets, warn)));
 
   server.registerTool('run', {
-    description: 'Send requests of a collection and return the run summary. Then call failures, and case_* to drill in. Bodies are only returned by case_body.',
+    description: 'Send requests of a collection. Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body.',
     inputSchema: {
       collection: z.string(), environment: z.string().optional(), action: z.string().optional(),
       run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
@@ -80,7 +80,7 @@ export function createServer(opts: McpOptions): McpServer {
         warn(`could not record run: ${(error as Error).message}`);
       }
     }
-    return summary(record);
+    return runResult(record);
   }));
 
   server.registerTool('list_runs', {
@@ -89,12 +89,12 @@ export function createServer(opts: McpOptions): McpServer {
   }, ({ store: dir }) => respond(() => listRuns(storesFor(dir))));
 
   server.registerTool('run_summary', {
-    description: 'Show every case of a run with its outcome.',
+    description: 'Show every case of a run with its outcome (run already returns the cases that did not pass).',
     inputSchema: { runId, store }
   }, a => respond(async () => summary(await servedRun(a.store, a.runId))));
 
   server.registerTool('failures', {
-    description: 'Show the failing and errored cases of a run.',
+    description: 'Show the failing and errored cases of an earlier run (run already returns these for the run it sends).',
     inputSchema: { runId, store }
   }, a => respond(async () => failures(await servedRun(a.store, a.runId))));
 

@@ -60,7 +60,7 @@ describe('mcp server', () => {
     expect(JSON.stringify(summary)).not.toContain('sk-test-secret');
     const failed = (await call(client, 'failures', {})).json();
     expect(JSON.stringify(failed)).toContain('down');
-    const index = summary.cases.find((c: { name: string }) => c.name === 'ok').index;
+    const index = (await call(client, 'run_summary', {})).json().cases.find((c: { name: string }) => c.name === 'ok').index;
     const body = await call(client, 'case_body', { case: index, runId: summary.runId });
     expect(body.isError).toBe(false);
     expect(body.text).toContain('env=dev');
@@ -69,6 +69,18 @@ describe('mcp server', () => {
     expect((await call(client, 'case_response', { case: 'ok' })).isError).toBe(false);
     expect((await call(client, 'run_summary', {})).json().runId).toBe(summary.runId);
     expect(JSON.stringify((await call(client, 'list_runs', {})).json())).toContain(summary.runId);
+  });
+
+  it('run returns the counts and only the cases that did not pass', async () => {
+    const client = await connect();
+    const result = (await call(client, 'run', { collection: fx.collection, all: true })).json();
+    expect(result).not.toHaveProperty('cases');
+    expect(result.passed).toBeGreaterThan(0);
+    expect(result.problems.length).toBe(result.failed + result.errored);
+    expect(result.problems.every((c: { outcome: string }) => c.outcome !== 'pass')).toBe(true);
+    const down = result.problems.find((c: { name: string }) => c.name === 'down');
+    expect(down).toMatchObject({ outcome: 'error', failedChecks: [] });
+    expect(down.error).toMatch(/^No response/);
   });
 
   it('run without a store writes no .fullyrested-runs in the working directory', async () => {
