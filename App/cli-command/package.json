@@ -21,8 +21,10 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@fullyrested/core": "file:../core",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@napi-rs/keyring": "^2.1.0",
-    "commander": "^11.1.0"
+    "commander": "^11.1.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",

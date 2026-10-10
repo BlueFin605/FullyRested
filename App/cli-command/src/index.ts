@@ -2,12 +2,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { QueryError, caseBody, environmentsView, showRequest, treeView, caseRequest, caseResponse, failures, resolveRun, summary } from '@fullyrested/core';
-import { RunOptions, UsageError, findEnvironment, requestFor, runCollection, toTestResult } from './run';
-import { loadTree } from './files';
+import { QueryError, caseBody, caseRequest, caseResponse, failures, resolveRun, summary } from '@fullyrested/core';
+import { RunOptions, UsageError, runCollection, toTestResult } from './run';
 import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
 import { formatBody, formatEnvironments, formatShown, formatTree, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary as formatQuerySummary, parseRange, truncationNotice } from './query-report';
+import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
+import { startMcp } from './mcp';
 import { createSecretStore, secretEnvironmentVariable } from './secret-store';
 
 const program = new Command();
@@ -148,15 +149,6 @@ withQueryOptions(program.command('body').argument('<case>', 'case index or name'
     if (notice) console.error(notice);
   }));
 
-// A collection or request file that cannot be loaded is a usage problem (exit 2), not a crash
-async function setup<T>(load: () => Promise<T>): Promise<T> {
-  try {
-    return await load();
-  } catch (error) {
-    throw error instanceof UsageError ? error : new UsageError((error as Error).message);
-  }
-}
-
 interface InspectOptions { collection: string; json?: boolean }
 
 const withInspectOptions = (c: Command) => c
@@ -165,16 +157,13 @@ const withInspectOptions = (c: Command) => c
 
 withInspectOptions(program.command('tree').description('List the folders, requests and runs of a collection'))
   .action(queryAction(async (options: InspectOptions) => {
-    const root = await setup(() => loadTree(options.collection, createSecretStore()));
-    const view = treeView(root);
-    view.warnings.forEach(w => console.warn(`warning: ${w}`));
+    const view = await inspectTree(options.collection, createSecretStore(), w => console.warn(`warning: ${w}`));
     printResult(options, view, formatTree(view));
   }));
 
 withInspectOptions(program.command('envs').description('List the environments of a collection (names only)'))
   .action(queryAction(async (options: InspectOptions) => {
-    const root = await setup(() => loadTree(options.collection, createSecretStore()));
-    const view = environmentsView(root.config);
+    const view = await inspectEnvironments(options.collection, createSecretStore());
     printResult(options, view, formatEnvironments(view));
   }));
 
@@ -183,18 +172,20 @@ withInspectOptions(program.command('show').description('Show a request as it wou
   .option('-r, --run <name>', 'one run of the request, by name or id')
   .option('-e, --environment <name>', 'environment name or id (default: the collection selected one)'))
   .action(queryAction(async (options: InspectOptions & { action: string; run?: string; environment?: string }) => {
-    const store = createSecretStore();
-    const root = await setup(() => loadTree(options.collection, store));
-    root.warnings.forEach(w => console.warn(`warning: ${w}`));
-    const request = await setup(() => requestFor(options.action, root, path.dirname(path.resolve(options.collection)), store));
-    let node: Parameters<typeof showRequest>[0] = request;
-    if (options.run !== undefined) {
-      const run = request.runs().find(r => r.run.name === options.run || r.run.id === options.run);
-      if (!run) throw new UsageError(`Run '${options.run}' not found in '${request.name}'`);
-      node = run;
-    }
-    const result = showRequest(node, findEnvironment(root.config, options.environment).id);
+    const result = await inspectRequest(options, createSecretStore(), w => console.warn(`warning: ${w}`));
     printResult(options, result, formatShown(result));
   }));
+
+program.command('mcp')
+  .description('Serve inspect, run and query tools over MCP on stdio (stdout carries the protocol)')
+  .option('--store <dir>', 'folder holding .fullyrested-runs, read and written by default')
+  .action(async (options: { store?: string }) => {
+    try {
+      await startMcp({ defaultStore: options.store, secrets: createSecretStore() });
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
 
 program.parseAsync(process.argv);
