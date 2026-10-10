@@ -81,4 +81,41 @@ describe('FsRunStore', () => {
 
     await expect(store.load('bad')).rejects.toThrow(/Run file .*bad\.json is corrupt/);
   });
+
+  it('throws from load for a file that parses but is not an object', async () => {
+    const store = new FsRunStore(dir);
+    fs.mkdirSync(path.join(dir, RUNS_FOLDER));
+    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'nul.json'), 'null');
+
+    await expect(store.load('nul')).rejects.toThrow(/Run file .*nul\.json is corrupt/);
+  });
+
+  it('returns undefined for a traversal id instead of reading outside the runs folder', async () => {
+    const store = new FsRunStore(dir);
+    fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify(record('../x')));
+
+    expect(await store.load('../x')).toBeUndefined();
+  });
+
+  it('returns undefined for a backslash traversal id', async () => {
+    const store = new FsRunStore(dir);
+    fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify(record('..\\x')));
+
+    expect(await store.load('..\\x')).toBeUndefined();
+  });
+
+  it('returns undefined for an absolute path id', async () => {
+    const store = new FsRunStore(dir);
+    const abs = path.join(dir, 'abs');
+    fs.writeFileSync(`${abs}.json`, JSON.stringify(record(abs)));
+
+    expect(await store.load(abs)).toBeUndefined();
+  });
+
+  it('throws from save for an invalid run id', async () => {
+    const store = new FsRunStore(dir);
+
+    await expect(store.save(record('../x'))).rejects.toThrow("Invalid run id '../x'");
+    expect(fs.existsSync(path.join(dir, 'x.json'))).toBe(false);
+  });
 });

@@ -4,6 +4,9 @@ import { RunListing, RunRecord, RunStore, listingOf } from '@fullyrested/core';
 
 export const RUNS_FOLDER = '.fullyrested-runs';
 
+// Run ids become file names, so only plain id characters are allowed (no separators or dots)
+const VALID_RUN_ID = /^[A-Za-z0-9_-]+$/;
+
 // Run records as JSON files in <dir>/.fullyrested-runs, one file per run
 export class FsRunStore implements RunStore {
   private readonly folder: string;
@@ -18,18 +21,22 @@ export class FsRunStore implements RunStore {
 
   private parse(file: string): RunRecord {
     try {
-      return JSON.parse(fs.readFileSync(file, 'utf8')) as RunRecord;
+      const value: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (typeof value !== 'object' || value === null) throw new Error('not a JSON object');
+      return value as RunRecord;
     } catch (error) {
       throw new Error(`Run file ${file} is corrupt: ${(error as Error).message}`);
     }
   }
 
   async save(record: RunRecord): Promise<void> {
+    if (!VALID_RUN_ID.test(record.runId)) throw new Error(`Invalid run id '${record.runId}'`);
     fs.mkdirSync(this.folder, { recursive: true });
     fs.writeFileSync(this.fileOf(record.runId), JSON.stringify(record, null, 2));
   }
 
   async load(runId: string): Promise<RunRecord | undefined> {
+    if (!VALID_RUN_ID.test(runId)) return undefined;
     const file = this.fileOf(runId);
     if (!fs.existsSync(file)) return undefined;
     return this.parse(file);
