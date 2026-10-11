@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
+import * as readline from 'readline';
+import { Writable } from 'stream';
 import { Command } from 'commander';
 import { QueryError, caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary } from '@fullyrested/core';
-import { RunOptions, UsageError, runCollection, toTestResult } from './run';
+import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
+import { loadTree } from './files';
 import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
 import { formatBody, formatEnvironments, formatShown, formatTree, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary as formatQuerySummary, parseRange, truncationNotice } from './query-report';
 import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
 import { startMcp } from './mcp';
-import { createSecretStore, secretEnvironmentVariable } from './secret-store';
+import { createSecretStore, createSecretWriter, secretEnvironmentVariable, secretServiceForScope, stripTrailingNewline } from './secret-store';
 
 const program = new Command();
 
@@ -188,6 +191,78 @@ program.command('mcp')
     } catch (error) {
       console.error(`error: ${(error as Error).message}`);
       process.exitCode = 1;
+    }
+  });
+
+// No --value: a TTY prompts without echoing keystrokes; a pipe is read to EOF with exactly one
+// trailing newline stripped, so `echo -n value | fullyrested secret set ...` works in a script
+// and a value that itself contains a newline is read whole rather than cut at the first one.
+function readSecretValue(): Promise<string> {
+  return process.stdin.isTTY ? promptHidden('Secret value: ') : readPipedValue();
+}
+
+function readPipedValue(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    process.stdin.on('data', chunk => chunks.push(chunk));
+    process.stdin.on('end', () => resolve(stripTrailingNewline(Buffer.concat(chunks).toString('utf8'))));
+    process.stdin.on('error', reject);
+  });
+}
+
+// readline echoes each typed keystroke by writing it back to `output`; muting that stream after
+// writing the prompt ourselves hides the secret as it is typed without hiding the prompt itself.
+function promptHidden(prompt: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let muted = false;
+    const mutedOutput = new Writable({
+      write(chunk, _encoding, callback) {
+        if (!muted) process.stdout.write(chunk);
+        callback();
+      }
+    });
+    // historySize: 0 so readline never keeps the typed value in its in-memory recall buffer.
+    const rl = readline.createInterface({ input: process.stdin, output: mutedOutput, terminal: true, historySize: 0 });
+    rl.on('error', reject);
+    process.stdout.write(prompt);
+    muted = true;
+    rl.question('', answer => {
+      muted = false;
+      rl.close();
+      process.stdout.write('\n');
+      resolve(answer);
+    });
+  });
+}
+
+const secret = program.command('secret').description('Secret values in the OS keychain');
+
+secret.command('set')
+  .description(
+    "Store a secret value in the OS keychain for a scope. Does not add the {$secret} reference to the " +
+    "document -- use 'fullyrested edit add-secret-ref' for that. The CLI itself never reads this value back."
+  )
+  .requiredOption('-c, --collection <file>', 'collection file (.frcol)')
+  .requiredOption('--scope <locator>', 'collection | env:<name> | folder:<path> | request:<path> | run:<path>#<run name>')
+  .requiredOption('--name <name>', 'the secret name, as used in {{$name}}')
+  .option('--value <value>', 'the secret value (default: read from stdin -- a TTY prompts without echo, a pipe is read whole)')
+  .action(async (options: { collection: string; scope: string; name: string; value?: string }) => {
+    try {
+      const service = await setup(async () => {
+        const root = await loadTree(options.collection, createSecretStore());
+        return secretServiceForScope(root, options.scope);
+      });
+
+      const value = options.value ?? await readSecretValue();
+      await createSecretWriter().set(service, options.name, value);
+
+      console.log(`Stored secret '${options.name}' for ${options.scope}`);
+      console.log('(the reference itself is added with: fullyrested edit add-secret-ref …)');
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      // A single check, not queryAction's two-type one: setup() above has already turned any
+      // core QueryError into a UsageError, so UsageError is the only usage case left to catch.
+      process.exitCode = error instanceof UsageError ? 2 : 1;
     }
   });
 
