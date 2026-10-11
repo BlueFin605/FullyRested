@@ -64,6 +64,18 @@ export function validateHeaders(validation: RestActionValidation, response: Rest
   return errors.length == 0 ? valid() : invalid(errors);
 }
 
+// Every schema is treated as JSON Schema draft 2020-12; its $schema keyword is ignored, because
+// Ajv throws on an unrecognised $schema meta-schema URI (e.g. the draft-07 URI most schema-
+// authoring tools emit by default). Stripped here, inside compileSchema, rather than by each
+// caller, so every caller gets the same treatment for free.
+function stripSchemaKeyword(schema: object): object {
+  if (schema === null || Array.isArray(schema) || typeof schema !== 'object')
+    return schema;
+
+  const { $schema: _ignored, ...rest } = schema as { [key: string]: unknown };
+  return rest;
+}
+
 // The one Ajv instance builder for the whole package: draft 2020-12, every error collected rather
 // than just the first, formats (date, uuid, ...) recognised. Shared by validateJson and by
 // authoring.ts's setValidation, which compiles a caller-given schema before it is ever saved, so
@@ -71,21 +83,15 @@ export function validateHeaders(validation: RestActionValidation, response: Rest
 export function compileSchema(schema: object) {
   const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
-  return ajv.compile(schema);
+  return ajv.compile(stripSchemaKeyword(schema));
 }
 
-// Every schema is treated as JSON Schema draft 2020-12; its $schema keyword is ignored
 export function validateJson(instance: unknown, schemaText: string): ResponseValidation {
   let schema: unknown;
   try {
     schema = JSON.parse(schemaText);
   } catch {
     return invalid(['JSON schema is not valid JSON']);
-  }
-
-  if (schema !== null && typeof schema === 'object' && !Array.isArray(schema)) {
-    const { $schema: _ignored, ...rest } = schema as { [key: string]: unknown };
-    schema = rest;
   }
 
   let check;

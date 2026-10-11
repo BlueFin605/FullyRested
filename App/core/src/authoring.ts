@@ -7,7 +7,7 @@ import {
     ValidationType, ValidationTypeBody, VariableTable, guidGenerator
 } from './model';
 import {
-    normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig, normaliseValidation
+    normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
 } from './normalise';
 import { basenameOf, dirnameOf, extensionOf } from './paths';
 import { QueryError } from './query-error';
@@ -745,9 +745,10 @@ function parseJsonSchema(text: string): RestActionValidationJsonSchema {
     return { schema: text };
 }
 
-// Sets the validation of a request or run. Starts from what is already there, run through
-// normaliseValidation so an older file missing fields does not crash, and applies only the fields
-// given: setting httpCode alone leaves an existing schema untouched. type and body are matched
+// Sets the validation of a request or run. Starts from what is already there — already
+// normalised, since scopeTarget runs the whole document through normaliseAction/normaliseRun
+// before apply() is called — and applies only the fields given: setting httpCode alone leaves an
+// existing schema untouched. type and body are matched
 // case-insensitively against ValidationType and ValidationTypeBody; jsonSchema given with no body
 // implies body: 'JsonSchema', and body: 'None' clears jsonSchema to undefined — both so an agent
 // cannot leave a half-configured check (a schema nothing checks against, or a body check with no
@@ -759,7 +760,7 @@ export async function setValidation(ctx: AuthoringContext, scope: string, fields
     const jsonSchema = fields.jsonSchema == undefined ? undefined : parseJsonSchema(fields.jsonSchema);
 
     return editScope(ctx, 'set_validation', scope, VALIDATION_LOCATORS, target => {
-        const before = normaliseValidation(JSON.parse(JSON.stringify(requestSettings(target).validation)));
+        const before = JSON.parse(JSON.stringify(requestSettings(target).validation));
         const validation = JSON.parse(JSON.stringify(before)) as RestActionValidation;
 
         if (type != undefined)

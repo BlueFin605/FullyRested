@@ -49,6 +49,31 @@ describe('setValidation', () => {
     expect(validation.jsonSchema).toEqual({ schema });
   });
 
+  it('accepts and stores a schema carrying a draft-07 $schema line, the same as validateJson does at send time', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const draft07Schema = JSON.stringify({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object', required: ['id'], properties: { id: { type: 'integer' } }
+    });
+
+    const result = await setValidation(ctxFor(sink), 'request:users/get.frreq', { jsonSchema: draft07Schema });
+
+    expect(result.changed).toBe(true);
+    const validation = written(sink, 'users/get.frreq').validation;
+    expect(validation.jsonSchema).toEqual({ schema: draft07Schema });
+  });
+
+  it("setting jsonSchema together with body: 'None' in one call: the explicit body: 'None' wins and clears the schema", async () => {
+    const sink = new MemoryCollectionSink(filesWithSchema);
+    const otherSchema = JSON.stringify({ type: 'object', required: ['name'] });
+    const result = await setValidation(ctxFor(sink), 'run:users/get.frreq#not found', { jsonSchema: otherSchema, body: 'None' });
+
+    expect(result.changed).toBe(true);
+    const validation = written(sink, 'users/get.frreq').runs[0].validation;
+    expect(validation.body).toBe('None');
+    expect(validation.jsonSchema).toBeUndefined();
+  });
+
   it("setting body: 'None' clears jsonSchema to undefined", async () => {
     const sink = new MemoryCollectionSink(filesWithSchema);
     const result = await setValidation(ctxFor(sink), 'run:users/get.frreq#not found', { body: 'None' });
@@ -82,8 +107,10 @@ describe('setValidation', () => {
 
     await expect(setValidation(ctxFor(sink), 'request:users/get.frreq', { jsonSchema: badSchema }))
       .rejects.toThrow(QueryError);
+    // Pins a distinctive fragment of Ajv's own compiler message, not just the wrapper text
+    // ("jsonSchema does not compile: ...") that would still pass even if Ajv's detail were dropped.
     await expect(setValidation(ctxFor(sink), 'request:users/get.frreq', { jsonSchema: badSchema }))
-      .rejects.toThrow(/schema/i);
+      .rejects.toThrow(/data\/type must be equal to one of the allowed values/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 
