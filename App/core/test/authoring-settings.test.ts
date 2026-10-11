@@ -127,6 +127,15 @@ describe('removeSetting', () => {
     expect(sink.files.get('users/get.frreq')).toBe(before);
   });
 
+  it('removes a parameter from a request', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setParam(ctxFor(sink), 'request:users/get.frreq', 'page', '2');
+
+    const result = await removeSetting(ctxFor(sink), 'request:users/get.frreq', 'param', 'PAGE');
+    expect(result.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').parameters).toEqual([]);
+  });
+
   it('removes a variable from the collection environment', async () => {
     const seeded = {
       ...files,
