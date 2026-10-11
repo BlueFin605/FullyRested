@@ -1,4 +1,5 @@
 import { CollectionSink } from './collection-sink';
+import { inferSchema } from './infer';
 import { sourceOf } from './inspect';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
@@ -11,7 +12,9 @@ import {
     normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
 } from './normalise';
 import { basenameOf, dirnameOf, extensionOf, joinPath } from './paths';
+import { findCase, resolveRun } from './query';
 import { QueryError } from './query-error';
+import { RunStore } from './run-store';
 import {
     SecretStore, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets
 } from './secrets';
@@ -1173,4 +1176,68 @@ export async function setValidationHeader(
 
         return `Set validation header '${name}' on ${scope}`;
     });
+}
+
+// Turns an inferred schema into the "...and ..." clause of validationFromCase's success message.
+function describeSchema(schema: Record<string, unknown>): string {
+    if (schema['type'] === 'object') {
+        const count = Object.keys((schema['properties'] as object | undefined) ?? {}).length;
+        return `a JSON body of ${count} propert${count === 1 ? 'y' : 'ies'}`;
+    }
+    if (schema['type'] === 'array')
+        return 'a JSON array body';
+    return `a JSON body of type ${schema['type']}`;
+}
+
+const SET_VALIDATION_HINT = 'use set_validation to set it by hand instead';
+
+// Learns a validation from one recorded case of a run: the HTTP status it got back, plus a JSON
+// Schema inferred (inferSchema, infer.ts) from its response body. This is the only authoring verb
+// that reads the run store - `stores` is supplied by the host, exactly as the query functions
+// (resolveRun, findCase, both reused unchanged from query.ts) already take it, so core still owns
+// no storage.
+//
+// `type` depends on whether the TARGET already has validation headers of its own (HeadersBody) or
+// not (Body) - read here via resolveTarget (the same read editScope does for every other verb)
+// rather than from the recorded case, since setValidation's ValidationFields has no "whatever the
+// headers already imply" option. The actual write goes through setValidation so its Ajv compile
+// check still runs over the inferred schema; this function only decides what fields to give it.
+export async function validationFromCase(
+    ctx: AuthoringContext, stores: RunStore[], scope: string, caseRef: string | number, runId?: string
+): Promise<EditResult> {
+    const { target } = await resolveTarget(ctx, 'validation_from_case', scope, VALIDATION_LOCATORS);
+    const hasOwnHeaders = requestSettings(target).validation.headers.length > 0;
+
+    const run = await resolveRun(stores, runId);
+    const c = findCase(run, caseRef);
+
+    if (c.outcome === 'error')
+        throw new QueryError(`case ${c.index} errored (no response to learn from): ${c.error}; ${SET_VALIDATION_HINT}.`);
+    if (!c.response)
+        throw new QueryError(`case ${c.index} got no response to learn from; ${SET_VALIDATION_HINT}.`);
+
+    const body = c.response.body;
+    const contentType = body?.contentType ?? 'none';
+    let parsed: unknown;
+    try {
+        if (body?.text === undefined)
+            throw new Error('no text');
+        parsed = JSON.parse(body.text);
+    } catch {
+        throw new QueryError(`case ${c.index}'s response body is not JSON (content-type ${contentType}); ${SET_VALIDATION_HINT}.`);
+    }
+
+    const schema = inferSchema(parsed) as Record<string, unknown>;
+    const type = hasOwnHeaders ? ValidationType.HeadersBody : ValidationType.Body;
+
+    const result = await setValidation(ctx, scope, {
+        type,
+        httpCode: c.response.status,
+        body: ValidationTypeBody.JsonSchema,
+        jsonSchema: JSON.stringify(schema, null, 2)
+    });
+
+    const message =
+        `Set validation on ${scope} from run ${run.runId} case ${c.index}: expect ${c.response.status} and ${describeSchema(schema)}`;
+    return { ...result, message };
 }
