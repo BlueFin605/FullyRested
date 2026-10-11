@@ -2,24 +2,40 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 import { FsCollectionSink } from '../src/files';
 
 let dir: string;
 beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frsink-')); });
 afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
-// Symlink creation needs privileges on some Windows setups; a junction needs none, so it is tried next.
-// When neither is available the test skips rather than fails.
-function trySymlink(target: string, link: string): boolean {
+// Symlink creation needs privileges on some Windows setups; a junction needs none there, and symlinks work
+// on POSIX, so on no supported platform should both fail. A failure is therefore a real one: it is reported
+// rather than swallowed, because a silently skipped security test passes while proving nothing.
+function makeLink(target: string, link: string): void {
+  const failures: string[] = [];
   for (const type of ['dir', 'junction'] as const) {
     try {
       fs.symlinkSync(target, link, type);
-      return true;
-    } catch {
-      // try the next kind of link
+      return;
+    } catch (error) {
+      failures.push(`${type}: ${(error as Error).message}`);
     }
   }
-  return false;
+  throw new Error(`Cannot link ${link} -> ${target}; ${failures.join('; ')}`);
+}
+
+// Windows can mark a single NTFS folder case-sensitive, which lets the case-sensitivity test run for real
+// here and not only on POSIX CI. It needs the WSL optional component, so a failure is expected and simply
+// leaves the folder case-insensitive; the caller handles both.
+function makeCaseSensitive(folder: string): void {
+  if (process.platform != 'win32')
+    return;
+  try {
+    execFileSync('fsutil', ['file', 'setCaseSensitiveInfo', folder, 'enable'], { stdio: 'ignore' });
+  } catch {
+    // not available: the test falls back to its case-insensitive expectations
+  }
 }
 
 describe('FsCollectionSink', () => {
@@ -51,8 +67,7 @@ describe('FsCollectionSink', () => {
   it('refuses a symlinked directory that points out of the folder', async () => {
     const away = fs.mkdtempSync(path.join(os.tmpdir(), 'fraway-'));
     try {
-      if (!trySymlink(away, path.join(dir, 'link')))
-        return;
+      makeLink(away, path.join(dir, 'link'));
       const sink = new FsCollectionSink(dir);
       await expect(sink.writeText('link/escaped.frreq', '{}')).rejects.toThrow(/outside/);
       expect(fs.existsSync(path.join(away, 'escaped.frreq'))).toBe(false);
@@ -96,12 +111,70 @@ describe('FsCollectionSink', () => {
     }
   });
 
+  it('refuses a sibling folder whose name differs from the collection folder only in case', async () => {
+    // A case-insensitive filesystem makes <dir>/coll and <dir>/COLL one folder, so the escape cannot be
+    // staged there and the assertion is that the (genuinely inside) write still works. Where the two names
+    // are two folders — Linux and macOS CI, or an NTFS folder with the case-sensitive attribute set, which
+    // is attempted below so Windows gets the real test too — the write must be refused.
+    const coll = path.join(dir, 'coll');
+    const other = path.join(dir, 'COLL');
+    makeCaseSensitive(dir);
+    fs.mkdirSync(coll, { recursive: true });
+    const oneFolder = fs.existsSync(other);
+    if (!oneFolder)
+      fs.mkdirSync(other, { recursive: true });
+
+    const sink = new FsCollectionSink(coll);
+    if (oneFolder) {
+      await sink.writeText(path.join(other, 'inside.frreq'), '{}');
+      expect(fs.readFileSync(path.join(coll, 'inside.frreq'), 'utf8')).toBe('{}');
+    } else {
+      await expect(sink.writeText(path.join(other, 'escaped.frreq'), '{}')).rejects.toThrow(/outside/);
+      await expect(sink.writeText('../COLL/escaped.frreq', '{}')).rejects.toThrow(/outside/);
+      await expect(sink.mkdir(path.join(other, 'escaped'))).rejects.toThrow(/outside/);
+      await expect(sink.remove(path.join(other, 'escaped.frreq'))).rejects.toThrow(/outside/);
+      expect(fs.readdirSync(other)).toEqual([]);
+    }
+  });
+
+  it('reports a dangling symlink inside the folder as existing rather than refusing it', async () => {
+    makeLink(path.join(dir, 'gone'), path.join(dir, 'dead.frreq'));
+    const sink = new FsCollectionSink(dir);
+    // core checks exists() for name collisions: a dead link is a name that collides, not an escape
+    expect(await sink.exists('dead.frreq')).toBe(true);
+    expect(await sink.exists('alive.frreq')).toBe(false);
+    // writing or removing it is still refused: there is no real path to confine
+    await expect(sink.writeText('dead.frreq', '{}')).rejects.toThrow(/outside/);
+  });
+
+  it('refuses a dangling symlink outside the folder even when only its existence is asked', async () => {
+    const away = fs.mkdtempSync(path.join(os.tmpdir(), 'fraway-'));
+    try {
+      makeLink(path.join(away, 'gone'), path.join(away, 'dead.frreq'));
+      const sink = new FsCollectionSink(dir);
+      await expect(sink.exists(path.join(away, 'dead.frreq'))).rejects.toThrow(/outside/);
+    } finally {
+      fs.rmSync(away, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to write or remove the collection folder itself with the standard wording', async () => {
+    const sink = new FsCollectionSink(dir);
+    for (const self of ['', '.', './', path.resolve(dir)]) {
+      await expect(sink.writeText(self, '{}')).rejects.toThrow(/outside the collection folder/);
+      await expect(sink.remove(self)).rejects.toThrow(/outside the collection folder/);
+    }
+    // mkdir of the folder itself names something inside it, so it is a harmless no-op rather than a refusal
+    await sink.mkdir('');
+    expect(fs.existsSync(dir)).toBe(true);
+    expect(fs.readdirSync(dir)).toEqual([]);
+  });
+
   it('refuses writing through a symlinked directory several levels below an existing one', async () => {
     const away = fs.mkdtempSync(path.join(os.tmpdir(), 'fraway-'));
     try {
       fs.mkdirSync(path.join(dir, 'real'), { recursive: true });
-      if (!trySymlink(away, path.join(dir, 'real', 'out')))
-        return;
+      makeLink(away, path.join(dir, 'real', 'out'));
       const sink = new FsCollectionSink(dir);
       await expect(sink.writeText('real/out/x/y/escaped.frreq', '{}')).rejects.toThrow(/outside/);
       await expect(sink.mkdir('real/out/x/y')).rejects.toThrow(/outside/);
@@ -116,8 +189,7 @@ describe('FsCollectionSink', () => {
     const away = fs.mkdtempSync(path.join(os.tmpdir(), 'fraway-'));
     const gone = path.join(away, 'gone');
     try {
-      if (!trySymlink(gone, path.join(dir, 'dangling')))
-        return;
+      makeLink(gone, path.join(dir, 'dangling'));
       const sink = new FsCollectionSink(dir);
       await expect(sink.writeText('dangling/escaped.frreq', '{}')).rejects.toThrow(/outside/);
       await expect(sink.writeText('dangling', '{}')).rejects.toThrow(/outside/);
@@ -147,8 +219,7 @@ describe('FsCollectionSink', () => {
     const inner = path.join(dir, 'inner');
     fs.mkdirSync(inner, { recursive: true });
     const alias = path.join(dir, 'alias');
-    if (!trySymlink(inner, alias))
-      return;
+    makeLink(inner, alias);
     const sink = new FsCollectionSink(alias);
     await sink.writeText('users/get.frreq', '{}');
     expect(fs.readFileSync(path.join(inner, 'users', 'get.frreq'), 'utf8')).toBe('{}');
