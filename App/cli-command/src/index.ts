@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { Writable } from 'stream';
+import { Readable, Writable } from 'stream';
 import { Command } from 'commander';
 import { QueryError, caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, summary } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
@@ -212,24 +212,32 @@ function readPipedValue(): Promise<string> {
 
 // readline echoes each typed keystroke by writing it back to `output`; muting that stream after
 // writing the prompt ourselves hides the secret as it is typed without hiding the prompt itself.
-function promptHidden(prompt: string): Promise<string> {
+// input/output default to the real TTY streams but take injected ones in tests, so the no-echo
+// behaviour -- the most security-relevant part of this command -- can be verified directly rather
+// than only read.
+export function promptHidden(prompt: string, input: Readable = process.stdin, output: Writable = process.stdout): Promise<string> {
   return new Promise((resolve, reject) => {
     let muted = false;
     const mutedOutput = new Writable({
       write(chunk, _encoding, callback) {
-        if (!muted) process.stdout.write(chunk);
+        if (!muted) output.write(chunk);
         callback();
       }
     });
     // historySize: 0 so readline never keeps the typed value in its in-memory recall buffer.
-    const rl = readline.createInterface({ input: process.stdin, output: mutedOutput, terminal: true, historySize: 0 });
-    rl.on('error', reject);
-    process.stdout.write(prompt);
+    const rl = readline.createInterface({ input, output: mutedOutput, terminal: true, historySize: 0 });
+    // Close the interface on error too: otherwise stdin is left in raw mode and the interface
+    // stays open, and the process can hang after the error is printed.
+    rl.on('error', error => {
+      rl.close();
+      reject(error);
+    });
+    output.write(prompt);
     muted = true;
     rl.question('', answer => {
       muted = false;
       rl.close();
-      process.stdout.write('\n');
+      output.write('\n');
       resolve(answer);
     });
   });
@@ -237,10 +245,18 @@ function promptHidden(prompt: string): Promise<string> {
 
 const secret = program.command('secret').description('Secret values in the OS keychain');
 
+// Exported so the exact wording can be asserted directly in a test, without running the CLI or
+// touching any keychain.
+export function formatSecretSetSuccess(name: string, scope: string): string {
+  return `Stored secret '${name}' for ${scope}\n` +
+    '(the reference itself is added with: fullyrested edit add-secret-ref …)';
+}
+
 secret.command('set')
   .description(
     "Store a secret value in the OS keychain for a scope. Does not add the {$secret} reference to the " +
-    "document -- use 'fullyrested edit add-secret-ref' for that. The CLI itself never reads this value back."
+    "document -- use 'fullyrested edit add-secret-ref' for that. The CLI reads this value back only to use " +
+    "it (e.g. substituting it into a request with 'run') -- it never prints it."
   )
   .requiredOption('-c, --collection <file>', 'collection file (.frcol)')
   .requiredOption('--scope <locator>', 'collection | env:<name> | folder:<path> | request:<path> | run:<path>#<run name>')
@@ -254,10 +270,12 @@ secret.command('set')
       });
 
       const value = options.value ?? await readSecretValue();
+      if (value === '')
+        throw new UsageError('Secret value must not be empty.');
+
       await createSecretWriter().set(service, options.name, value);
 
-      console.log(`Stored secret '${options.name}' for ${options.scope}`);
-      console.log('(the reference itself is added with: fullyrested edit add-secret-ref …)');
+      console.log(formatSecretSetSuccess(options.name, options.scope));
     } catch (error) {
       console.error(`error: ${(error as Error).message}`);
       // A single check, not queryAction's two-type one: setup() above has already turned any
@@ -266,4 +284,7 @@ secret.command('set')
     }
   });
 
-program.parseAsync(process.argv);
+// Guarded so a test can import this module's exported helpers (promptHidden, formatSecretSetSuccess)
+// without the import itself running the CLI against the test runner's own argv.
+if (require.main == module)
+  program.parseAsync(process.argv);

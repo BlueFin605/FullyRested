@@ -71,12 +71,15 @@ function loadWritableKeychain(): WritableKeychain | undefined {
 // createSecretStore() above -- never a delegate to it and never built by making that one
 // writable -- so every existing caller keeps a store whose set() still throws.
 //
-// Split from createSecretWriter() below so a test can force the no-keychain branch directly:
-// `keychain` there defaults to loadWritableKeychain(), and JS applies that default on an
-// explicit undefined argument exactly as it does on an omitted one, so a test cannot reach
-// "no keychain" that way on a machine where @napi-rs/keyring actually loads (as it does here).
-// Calling this one directly with undefined has no such default to collapse into.
-export function secretWriterFor(keychain: WritableKeychain | undefined): SecretStore {
+// `keychain` is a rest parameter rather than a plain optional parameter so a test can force the
+// no-keychain branch by calling createSecretWriter(undefined) explicitly: a plain default
+// parameter collapses an explicit undefined argument into the default exactly like an omitted
+// one, so that branch would be unreachable on a machine where @napi-rs/keyring actually loads
+// (as it does here). `args.length` tells an omitted argument from an explicit undefined apart,
+// so the lazy loadWritableKeychain() default only runs when the caller truly passed nothing.
+export function createSecretWriter(...args: [WritableKeychain?]): SecretStore {
+  const keychain = args.length ? args[0] : loadWritableKeychain();
+
   return {
     async get(service: string, account: string): Promise<string | null> {
       if (keychain == undefined)
@@ -105,12 +108,6 @@ export function secretWriterFor(keychain: WritableKeychain | undefined): SecretS
   };
 }
 
-// The public factory: with no keychain given, loads @napi-rs/keyring's AsyncEntry the same
-// lazy way loadKeychain() does.
-export function createSecretWriter(keychain: WritableKeychain | undefined = loadWritableKeychain()): SecretStore {
-  return secretWriterFor(keychain);
-}
-
 // Resolves a `secret set --scope` locator to the keychain service name the authoring verbs use
 // for it -- the same resolution editScope/secretServiceFor apply in core/src/authoring.ts:
 // collection and env: -> the collection's service; folder: -> the folder's; request: and run: ->
@@ -120,11 +117,16 @@ export function secretServiceForScope(root: CollectionNode, scope: string): stri
   const resolved = resolveLocator(root, locator);
 
   // Only a folder: locator can be new: the folder has no folderId until add-secret-ref creates
-  // folder.frfolder for it, so there is nothing yet to key the keychain entry on.
+  // folder.frfolder for it, so there is nothing yet to key the keychain entry on. A folder whose
+  // folder.frfolder already exists but was hand-written with no folderId yet is the same case --
+  // tree.ts skips loading secrets for it for the same reason -- so it gets the same message.
+  const noFolderIdYet = new UsageError(
+    `Folder '${locator.path}' has no secret reference yet. Add one first with: fullyrested edit add-secret-ref`
+  );
   if (resolved.isNew)
-    throw new UsageError(
-      `Folder '${locator.path}' has no secret reference yet. Add one first with: fullyrested edit add-secret-ref`
-    );
+    throw noFolderIdYet;
+  if (resolved.document == 'folder' && (resolved.node as FolderNode).config.folderId == '')
+    throw noFolderIdYet;
 
   switch (resolved.document) {
     case 'collection':

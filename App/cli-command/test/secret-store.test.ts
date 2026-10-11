@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { execFile } from 'node:child_process';
+import { Readable, Writable } from 'node:stream';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -8,8 +9,9 @@ import { startFixture } from './fixture';
 import { loadTree } from '../src/files';
 import {
   WritableKeychain, createSecretStore, createSecretWriter, secretEnvironmentVariable, secretServiceForScope,
-  secretWriterFor, stripTrailingNewline
+  stripTrailingNewline
 } from '../src/secret-store';
+import { formatSecretSetSuccess, promptHidden } from '../src/index';
 import { UsageError } from '../src/run';
 
 // Stands in for @napi-rs/keyring: a map of service -> account -> value, so a test can see
@@ -84,6 +86,22 @@ describe('secretServiceForScope', () => {
     expect(() => secretServiceForScope(root, 'folder:empty')).toThrow(UsageError);
     expect(() => secretServiceForScope(root, 'folder:empty')).toThrow(/fullyrested edit add-secret-ref/);
   });
+
+  // A folder.frfolder that exists but was hand-written with no folderId yet (tree.ts:70
+  // contemplates exactly this) has nothing to key an entry on either -- same message as isNew,
+  // rather than silently writing under 'fullyrested-folder-' where add-secret-ref would never
+  // look for it.
+  it('a folder: scope whose folder.frfolder has no folderId yet is the same UsageError', async () => {
+    fs.mkdirSync(path.join(fx.folder, 'blank'));
+    fs.writeFileSync(path.join(fx.folder, 'blank', 'folder.frfolder'), JSON.stringify({
+      folderId: '', variables: [], secrets: [], auth: { authentication: 'inherit' }, headers: []
+    }));
+
+    const root = await loadTree(fx.collection, createSecretStore());
+
+    expect(() => secretServiceForScope(root, 'folder:blank')).toThrow(UsageError);
+    expect(() => secretServiceForScope(root, 'folder:blank')).toThrow(/fullyrested edit add-secret-ref/);
+  });
 });
 
 describe('createSecretStore', () => {
@@ -97,16 +115,19 @@ describe('createSecretStore', () => {
 describe('createSecretWriter', () => {
   // Step 1, case 3: with no keychain, the error names the environment-variable alternative --
   // the only place left to put a secret on a headless machine -- and never a generic "not found".
-  // Uses secretWriterFor directly (see its comment in secret-store.ts): createSecretWriter's own
-  // default would auto-load the real keychain here, since @napi-rs/keyring actually works on
-  // this machine, so passing it undefined would not reliably exercise the no-keychain branch.
+  // Passes undefined explicitly (see createSecretWriter's comment in secret-store.ts): calling
+  // createSecretWriter() with no argument at all would auto-load the real keychain here, since
+  // @napi-rs/keyring actually works on this machine, so that would not reliably exercise the
+  // no-keychain branch. This is also, deterministically and on every machine, the "no-keychain
+  // message" half of what the old end-to-end CLI test below could only assert on a machine
+  // without a working keychain.
   it('with no keychain available, set names FULLYRESTED_SECRET_<NAME> as the alternative', async () => {
-    const writer = secretWriterFor(undefined);
+    const writer = createSecretWriter(undefined);
     await expect(writer.set('service', 'api key', 'value')).rejects.toThrow(secretEnvironmentVariable('api key'));
   });
 
   it('get returns null with no keychain available, rather than throwing', async () => {
-    const writer = secretWriterFor(undefined);
+    const writer = createSecretWriter(undefined);
     await expect(writer.get('service', 'name')).resolves.toBeNull();
   });
 
@@ -153,49 +174,99 @@ describe('stripTrailingNewline', () => {
   });
 });
 
-// Runs the built CLI exactly as cli.test.ts does, so this exercises the real `secret set` command.
-const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+// Finding 1: this is the most security-relevant branch of `secret set` -- it must never echo a
+// typed character back to the screen -- and before this test it was verified only by reading the
+// code, because it hardcoded process.stdin/process.stdout. Injecting in-memory streams lets this
+// assert the no-echo behaviour directly instead.
+describe('promptHidden', () => {
+  function recordingOutput() {
+    const chunks: string[] = [];
+    const stream = new Writable({
+      write(chunk, _encoding, callback) {
+        chunks.push(chunk.toString());
+        callback();
+      }
+    });
+    return { stream, written: () => chunks.join('') };
+  }
 
-function fullyrested(args: string[], cwd: string): Promise<{ code: number; out: string; err: string }> {
-  return new Promise(resolve => {
-    execFile(process.execPath, [cli, ...args], { cwd, encoding: 'utf8' }, (error, out, err) =>
-      resolve({ code: error ? (error as { code?: number }).code ?? 1 : 0, out, err }));
+  // A plain Readable, not a real TTY -- terminal: true makes readline treat it as one regardless,
+  // which is what lets this run outside an actual terminal at all.
+  function typedInput(): Readable {
+    return new Readable({ read() {} });
+  }
+
+  it('writes the prompt to output but never the typed characters', async () => {
+    const input = typedInput();
+    const { stream: output, written } = recordingOutput();
+
+    const answer = promptHidden('Secret value: ', input, output);
+    input.push('hunter2-the-value');
+    input.push('\r');
+
+    await expect(answer).resolves.toBe('hunter2-the-value');
+    expect(written()).toContain('Secret value: ');
+    expect(written()).not.toContain('hunter2-the-value');
   });
-}
 
+  it('closes the readline interface on an input error, instead of leaving it open', async () => {
+    const input = typedInput();
+    const { stream: output } = recordingOutput();
+
+    const answer = promptHidden('Secret value: ', input, output);
+    input.emit('error', new Error('boom'));
+
+    await expect(answer).rejects.toThrow('boom');
+  });
+});
+
+describe('formatSecretSetSuccess', () => {
+  // The exact wording `secret set` prints on success, asserted directly and deterministically --
+  // no process spawn, no keychain, real or fake.
+  it('names the secret and the scope, and points at add-secret-ref for the reference', () => {
+    expect(formatSecretSetSuccess('apikey', 'collection')).toBe(
+      "Stored secret 'apikey' for collection\n(the reference itself is added with: fullyrested edit add-secret-ref …)"
+    );
+  });
+});
+
+// Runs the built CLI exactly as cli.test.ts does, so this exercises the real `secret set` command
+// end to end -- but only on a path that fails in setup(), before createSecretWriter() is ever
+// called, so it can never reach a real keychain (write or otherwise). The success wording and the
+// no-keychain message are asserted deterministically instead, above and in the createSecretWriter
+// tests, against a fake keychain -- see their comments for why an end-to-end assertion of either
+// can't be made to behave the same way on every machine without one.
 describe('fullyrested secret set', () => {
-  const written: { service: string; account: string }[] = [];
+  const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
 
-  // Best-effort cleanup: on a machine with a real working keychain, a successful run above
-  // actually wrote this entry to it. Remove it so the test leaves nothing behind.
-  afterAll(async () => {
-    if (written.length == 0) return;
-    try {
-      const { AsyncEntry } = require('@napi-rs/keyring') as typeof import('@napi-rs/keyring');
-      for (const { service, account } of written)
-        await new AsyncEntry(service, account).deletePassword();
-    } catch {
-      // no keychain to clean up from -- nothing was actually written
-    }
-  });
+  function fullyrested(args: string[], cwd: string): Promise<{ code: number; out: string; err: string }> {
+    return new Promise(resolve => {
+      execFile(process.execPath, [cli, ...args], { cwd, encoding: 'utf8' }, (error, out, err) =>
+        resolve({ code: error ? (error as { code?: number }).code ?? 1 : 0, out, err }));
+    });
+  }
 
-  // Step 1, case 4: whatever happens (a real keychain write, or none being available), the
-  // value given with --value must never appear in stdout or stderr.
-  it('never prints the value, on success or on failure', async () => {
+  it('never prints the value, on a failure that never reaches the keychain', async () => {
     const value = 'cli-secret-super-value-xyz';
-    const r = await fullyrested(['secret', 'set', '-c', fx.collection, '--scope', 'collection', '--name', 'apikey', '--value', value], fx.folder);
+    const r = await fullyrested(
+      ['secret', 'set', '-c', fx.collection, '--scope', 'folder:does-not-exist', '--name', 'apikey', '--value', value],
+      fx.folder
+    );
 
+    expect(r.code).toBe(2);
     expect(r.out).not.toContain(value);
     expect(r.err).not.toContain(value);
+    expect(r.err).toContain("Folder 'does-not-exist' not found");
+  });
 
-    if (r.code === 0) {
-      written.push({ service: secretServiceForCollection('col-1'), account: 'apikey' });
-      expect(r.out).toBe("Stored secret 'apikey' for collection\n(the reference itself is added with: fullyrested edit add-secret-ref …)\n");
-      expect(r.err).toBe('');
-    } else {
-      // No working keychain on this machine (e.g. headless CI): the command still exits
-      // cleanly, naming the environment-variable alternative instead of the secret value.
-      expect(r.err).toContain(secretEnvironmentVariable('apikey'));
-    }
+  // Step 7: an empty value (closed-but-empty stdin, or --value '') must not be stored silently.
+  it('refuses an empty --value with a UsageError, without ever calling the keychain', async () => {
+    const r = await fullyrested(
+      ['secret', 'set', '-c', fx.collection, '--scope', 'collection', '--name', 'apikey', '--value', ''],
+      fx.folder
+    );
+
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('Secret value must not be empty');
   });
 });
