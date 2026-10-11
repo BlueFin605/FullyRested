@@ -1,11 +1,13 @@
 import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
-    CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
+    AuthenticationDetails, CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
     CreateEmptyRestActionRun, Environment, FolderConfig, HeaderTable, HttpProtocol, ParamTable, REConstants, RestAction,
     RestActionRun, RestTypeVerb, SecretTable, ValidationType, VariableTable, guidGenerator
 } from './model';
-import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
+import {
+    normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
+} from './normalise';
 import { basenameOf, dirnameOf, extensionOf } from './paths';
 import { QueryError } from './query-error';
 import {
@@ -418,6 +420,103 @@ export async function addSecretRef(ctx: AuthoringContext, scope: string, name: s
         secrets.push({ $secret: name, active: true, id: ctx.guid.generateGUID() } as SecretTable);
         return `Added secret reference '${name}' on ${scope}`;
     }, NO_REQUEST_SECRET_HINT);
+}
+
+// The authentication types the app's editor offers and applyAuthentication() understands. Stored
+// lower-case (see settings-manage-authentication.component.html and auth.ts); `type` is matched
+// without regard to case, so a caller may also write them the way the sub-objects of
+// AuthenticationDetails are named ('basicAuth', 'bearerToken', 'awsSig').
+const AUTH_TYPES = ['inherit', 'none', 'basicauth', 'bearertoken', 'awssig'];
+
+// The non-secret fields of each authentication type. The secret-bearing ones — basicAuth.password,
+// awsSig.secretKey and awsSig.sessionToken — are deliberately absent; see setAuth.
+export interface AuthFields {
+    userName?: string;                        // basicauth
+    token?: string;                           // bearertoken
+    accessKey?: string;                       // awssig (the key id, not the secret)
+    awsRegion?: string;
+    serviceName?: string;
+    signUrl?: boolean;
+}
+
+// Auth sits on a different property depending on the document: ScopeSettings — a collection
+// environment, or a folder's folder.frfolder — calls it `auth`, while RestAction and RestActionRun
+// both call it `authentication` (model.ts). Read the target's `document` rather than guessing.
+function readAuth(target: ScopeTarget): AuthenticationDetails {
+    const auth = target.document == 'request' ? target.settings.authentication : target.settings.auth;
+    return normaliseAuthentication(auth, 'inherit');
+}
+
+function writeAuth(target: ScopeTarget, auth: AuthenticationDetails): void {
+    if (target.document == 'request')
+        target.settings.authentication = auth;
+    else
+        target.settings.auth = auth;
+}
+
+// Applies the given fields into the sub-object of the chosen type only. A field belonging to one
+// of the other types is ignored rather than refused, so a caller switching type can pass the same
+// field bag each time; the blocks of the other types are left exactly as the document had them.
+// `inherit` and `none` take no fields at all.
+function applyAuthFields(auth: AuthenticationDetails, type: string, fields: AuthFields): void {
+    switch (type) {
+        case 'basicauth':
+            if (fields.userName != undefined)
+                auth.basicAuth.userName = fields.userName;
+            return;
+        case 'bearertoken':
+            if (fields.token != undefined)
+                auth.bearerToken.token = fields.token;
+            return;
+        case 'awssig':
+            if (fields.accessKey != undefined)
+                auth.awsSig.accessKey = fields.accessKey;
+            if (fields.awsRegion != undefined)
+                auth.awsSig.awsRegion = fields.awsRegion;
+            if (fields.serviceName != undefined)
+                auth.awsSig.serviceName = fields.serviceName;
+            if (fields.signUrl != undefined)
+                auth.awsSig.signUrl = fields.signUrl;
+            return;
+    }
+}
+
+// Sets the authentication of any level of the hierarchy. Starts from what is already there, so
+// switching type keeps the blocks of the other types as they were, which is what the app's editor
+// does; fields that belong to a type other than the one asked for are ignored, not refused.
+//
+// Secrets are references, never values. A secret-backed credential is stored as the text
+// `{{$name}}` in the field itself — substitution.ts resolves `{{$name}}` against the scope's
+// `secrets` array at send time — and the named entry is put there by addSecretRef, which writes
+// `{ $secret: name }` with no `$value`. So the complete, agent-safe way to wire up a password,
+// an AWS secret key or a session token is: addSecretRef(scope, name) to declare it, then have a
+// person set the value with the CLI's `secret set`. The fields that hold those three credentials
+// are not in AuthFields at all, so this verb can never carry a secret value, and storeSecrets()
+// finds nothing to move into the keychain on the way out.
+// (`{{$secret:name}}` is only the display form inspect.ts and redact.ts print; it is not what a
+// document holds and would not substitute.)
+export async function setAuth(
+    ctx: AuthoringContext, scope: string, type: string, fields: AuthFields = {}
+): Promise<EditResult> {
+    const authentication = AUTH_TYPES.find(t => t == type.toLowerCase());
+    if (authentication == undefined)
+        throw new QueryError(`Unknown authentication type '${type}' (have ${AUTH_TYPES.join(', ')})`);
+
+    return editScope(ctx, 'set_auth', scope, ALL_LOCATORS, target => {
+        const before = readAuth(target);
+        const auth = JSON.parse(JSON.stringify(before)) as AuthenticationDetails;
+
+        auth.authentication = authentication;
+        applyAuthFields(auth, authentication, fields);
+
+        // Both sides come out of the same normalise + copy path, so their keys are in the same
+        // order and comparing the JSON is a deep equality check.
+        if (JSON.stringify(auth) == JSON.stringify(before))
+            return '';
+
+        writeAuth(target, auth);
+        return `Set auth '${authentication}' on ${scope}`;
+    });
 }
 
 // Removes one setting of the given kind. An absent name is not an error: it reports no change,
