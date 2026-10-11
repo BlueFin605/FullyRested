@@ -60,7 +60,7 @@ describe('treeView', () => {
     expect(items).toMatchObject({ type: 'folder', name: 'items', path: 'items' });
     expect(items.children.find((c: any) => c.type === 'error')).toMatchObject({ file: 'items/bad.frreq' });
     const req = items.children.find((c: any) => c.type === 'request');
-    expect(req).toMatchObject({ name: 'get item', method: 'get', url: '{{host}}/items', runs: [{ name: 'happy', validation: 'ResponseCode' }] });
+    expect(req).toMatchObject({ name: 'get item', method: 'get', url: '{{host}}/items', runs: [{ name: 'happy', validation: { type: 'ResponseCode', schema: false } }] });
   });
 
   it('leaves out empty runs and warnings', async () => {
@@ -79,6 +79,71 @@ describe('treeView', () => {
     expect(view.children.map((c: any) => c.path)).toEqual(['items/sub/y.frreq']);
     expect(() => treeView(root, 'nope')).toThrow(QueryError);
     expect(() => treeView(root, 'nope')).toThrow("Folder 'nope' not found. Folders: items, items/sub, other");
+  });
+});
+
+describe('treeView validation marker', () => {
+  // One folder, five requests, each isolating one case from the ticket's fixture:
+  // - a: a request with ResponseCode (no body check, so schema is always false)
+  // - b: a run with Body and a real schema -> schema: true, no incomplete
+  // - c: a run with Body and jsonSchema undefined -> schema: false, incomplete: true
+  // - c2: a run with Body and jsonSchema.schema == '' -> same as c (empty is empty either way)
+  // - d: a run with Inherit under a request with Body (a real schema) -> effective: 'Body'
+  // - e: a request with Inherit under nothing -> effective: 'None'
+  const req = (body: object) => JSON.stringify({
+    id: 'id', name: 'n', verb: 'get', protocol: 'https', url: '{{host}}/x', parameters: [], headers: [], ...body
+  });
+  const files = {
+    'api.frcol': collection,
+    'a.frreq': req({ validation: { type: 'ResponseCode', httpCode: 200, headers: [], body: 'None' } }),
+    'b.frreq': req({
+      runs: [{ id: 'u', name: 'r', variables: [], secrets: [], authentication: { authentication: 'inherit' }, parameters: [], headers: [],
+        validation: { type: 'Body', httpCode: 200, headers: [], body: 'JsonSchema', jsonSchema: { schema: '{"type":"object"}' } } }]
+    }),
+    'c.frreq': req({
+      runs: [{ id: 'u', name: 'r', variables: [], secrets: [], authentication: { authentication: 'inherit' }, parameters: [], headers: [],
+        validation: { type: 'Body', httpCode: 200, headers: [], body: 'JsonSchema' } }]
+    }),
+    'c2.frreq': req({
+      runs: [{ id: 'u', name: 'r', variables: [], secrets: [], authentication: { authentication: 'inherit' }, parameters: [], headers: [],
+        validation: { type: 'Body', httpCode: 200, headers: [], body: 'JsonSchema', jsonSchema: { schema: '' } } }]
+    }),
+    'd.frreq': req({
+      validation: { type: 'Body', httpCode: 200, headers: [], body: 'JsonSchema', jsonSchema: { schema: '{"type":"object"}' } },
+      runs: [{ id: 'u', name: 'r', variables: [], secrets: [], authentication: { authentication: 'inherit' }, parameters: [], headers: [],
+        validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' } }]
+    }),
+    'e.frreq': req({ validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' } }),
+  };
+  const byPath = async (path: string) => {
+    const root = await loadCollectionTree('api.frcol', memory(files), store);
+    return (treeView(root).children as any[]).find(c => c.path === path);
+  };
+
+  it('ResponseCode: no body check, so schema is false and there is no effective', async () => {
+    expect((await byPath('a.frreq')).validation).toEqual({ type: 'ResponseCode', schema: false });
+  });
+
+  it('Body with a real schema: schema true, no incomplete', async () => {
+    expect((await byPath('b.frreq')).runs[0].validation).toEqual({ type: 'Body', schema: true });
+  });
+
+  it('Body with jsonSchema undefined: schema false, incomplete true', async () => {
+    expect((await byPath('c.frreq')).runs[0].validation).toEqual({ type: 'Body', schema: false, incomplete: true });
+  });
+
+  it('Body with jsonSchema.schema == "": same as undefined, incomplete true', async () => {
+    expect((await byPath('c2.frreq')).runs[0].validation).toEqual({ type: 'Body', schema: false, incomplete: true });
+  });
+
+  it('a run with Inherit under a request with Body (real schema): effective Body, schema carried through', async () => {
+    const d = await byPath('d.frreq');
+    expect(d.validation).toEqual({ type: 'Body', schema: true });
+    expect(d.runs[0].validation).toEqual({ type: 'Inherit', effective: 'Body', schema: true });
+  });
+
+  it('a request with Inherit under nothing: effective None', async () => {
+    expect((await byPath('e.frreq')).validation).toEqual({ type: 'Inherit', effective: 'None', schema: false });
   });
 });
 

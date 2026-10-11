@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { BodyResult } from '@fullyrested/core';
-import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary, parseRange, truncationNotice } from '../src/query-report';
+import { BodyResult, TreeRequest, TreeValidation, TreeView } from '@fullyrested/core';
+import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary, formatTree, parseRange, truncationNotice } from '../src/query-report';
 
 const body = (o: Partial<BodyResult>): BodyResult =>
   ({ index: 0, name: 'n', side: 'response', bytes: 10, encoding: 'text', truncated: false, content: 'x', ...o });
+
+const request = (validation: TreeValidation | undefined): TreeRequest =>
+  ({ type: 'request', name: 'req', path: 'req.frreq', method: 'get', url: '/x', validation });
+const tree = (validation: TreeValidation | undefined): TreeView =>
+  ({ collection: 'api', children: [request(validation)] });
 
 describe('query-report', () => {
   it('formats runs, with a message when empty', () => {
@@ -60,5 +65,35 @@ describe('query-report', () => {
   it('parses ranges strictly', () => {
     expect(parseRange('0:10')).toEqual([0, 10]);
     for (const bad of ['a:b', '1.5:3', '-1:3', '3', '1:2:3', ':']) expect(parseRange(bad)).toBeUndefined();
+  });
+});
+
+describe('formatTree validation marker', () => {
+  it('shows nothing for a row with no validation', () => {
+    expect(formatTree(tree(undefined))).toBe('api/\n  req  GET /x');
+  });
+
+  it('shows the bare type when it checks no body', () => {
+    expect(formatTree(tree({ type: 'ResponseCode', schema: false }))).toBe('api/\n  req  GET /x  [ResponseCode]');
+  });
+
+  it('flags a real schema', () => {
+    expect(formatTree(tree({ type: 'Body', schema: true }))).toBe('api/\n  req  GET /x  [Body(schema)]');
+  });
+
+  it('flags a declared body check with an empty schema', () => {
+    expect(formatTree(tree({ type: 'Body', schema: false, incomplete: true }))).toBe('api/\n  req  GET /x  [Body(no schema!)]');
+  });
+
+  it('shows what an Inherit row resolves to', () => {
+    expect(formatTree(tree({ type: 'Inherit', effective: 'Body', schema: true }))).toBe('api/\n  req  GET /x  [Inherit→Body]');
+  });
+
+  it('shows a run row\'s own marker too', () => {
+    const view: TreeView = {
+      collection: 'api',
+      children: [{ ...request({ type: 'None', schema: false }), runs: [{ name: 'happy', validation: { type: 'Body', schema: false, incomplete: true } }] }]
+    };
+    expect(formatTree(view)).toBe('api/\n  req  GET /x  [None]\n    › happy  [Body(no schema!)]');
   });
 });

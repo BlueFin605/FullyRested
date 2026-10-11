@@ -1,4 +1,4 @@
-import { AuthenticationDetails, CollectionConfig, SecretTable } from './model';
+import { AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestActionValidation, SecretTable, ValidationType } from './model';
 import { QueryError } from './query-error';
 import { secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
@@ -9,9 +9,28 @@ export interface TreeError {
   message: string;
 }
 
+// A request's or run's validation marker, sharper than the bare ValidationType:
+//
+// - effective resolves ValidationType.Inherit exactly as scope.ts's toExecute() resolves it for
+//   a run: a run whose own type is Inherit takes its request's type. Only RestAction and
+//   RestActionRun carry a validation setting -- folders and the collection do not -- so there is
+//   nothing above a request to inherit from; a request whose own type is Inherit (or a run whose
+//   request is also Inherit) therefore resolves to 'None'. effective is only present when type
+//   is 'Inherit'.
+// - schema/incomplete describe whichever validation is actually in force (own, or inherited): a
+//   Body/HeadersBody check with a non-empty jsonSchema.schema sets schema true; one with an empty
+//   or absent schema sets schema false and incomplete true, since it is declared but checks
+//   nothing. Both are false/absent for a type that does not check a body at all.
+export interface TreeValidation {
+  type: string;
+  effective?: string;
+  schema: boolean;
+  incomplete?: true;
+}
+
 export interface TreeRun {
   name: string;
-  validation: string | undefined;
+  validation: TreeValidation | undefined;
 }
 
 export interface TreeRequest {
@@ -20,7 +39,7 @@ export interface TreeRequest {
   path: string;
   method: string;
   url: string;
-  validation: string | undefined;
+  validation: TreeValidation | undefined;
   runs?: TreeRun[];
 }
 
@@ -42,6 +61,28 @@ export interface TreeView {
 
 const toError = (e: LoadError): TreeError => ({ type: 'error', file: e.file, message: e.message });
 
+const checksBody = (type: string) => type === ValidationType.Body || type === ValidationType.HeadersBody;
+const hasSchema = (v: RestActionValidation) => (v.jsonSchema?.schema ?? '').length > 0;
+
+// Mirrors scope.ts's toExecute(): a validation whose own type is Inherit takes the one above it
+// (undefined above a request, since nothing above a request sets validation); that, in turn,
+// resolves to None if it is still Inherit with nothing further above.
+function resolveValidation(own: RestActionValidation, above: RestActionValidation | undefined): RestActionValidation {
+  if (own.type !== ValidationType.Inherit) return own;
+  if (above !== undefined && above.type !== ValidationType.Inherit) return above;
+  return CreateEmptyRestActionValidation(undefined);
+}
+
+function toTreeValidation(own: RestActionValidation | undefined, above?: RestActionValidation): TreeValidation | undefined {
+  if (own == undefined) return undefined;
+  const resolved = resolveValidation(own, above);
+  const schema = checksBody(resolved.type) && hasSchema(resolved);
+  const view: TreeValidation = { type: own.type, schema };
+  if (checksBody(resolved.type) && !schema) view.incomplete = true;
+  if (own.type === ValidationType.Inherit) view.effective = resolved.type;
+  return view;
+}
+
 function childrenOf(container: ContainerNode): TreeNodeView[] {
   return container.children.flatMap((child): TreeNodeView[] => {
     if (child instanceof FolderNode) {
@@ -55,9 +96,9 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
     const action = child.action;
     const view: TreeRequest = {
       type: 'request', name: child.name, path: child.path,
-      method: action.verb, url: action.url, validation: action.validation?.type,
+      method: action.verb, url: action.url, validation: toTreeValidation(action.validation),
     };
-    const runs = child.runs().map(r => ({ name: r.run.name, validation: r.run.validation?.type }));
+    const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
     return [view];
   });

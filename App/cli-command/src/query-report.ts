@@ -1,4 +1,4 @@
-import { BodyResult, EnvironmentsView, RunListing, ShownRequest, TreeNodeView, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EnvironmentsView, RunListing, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -69,13 +69,26 @@ export function parseRange(text: string): [number, number] | undefined {
   return m ? [Number(m[1]), Number(m[2])] : undefined;
 }
 
+// One short marker per row: the bare type; type(schema) / type(no schema!) when it checks a body;
+// or Inherit→<effective> when the row's own type is Inherit (the resolved type's own schema
+// completeness is in the TreeValidation data for a programmatic reader, but left out of this
+// one-line marker to keep an inherited row to a single arrow rather than two nested annotations).
+function validationMarker(v: TreeValidation): string {
+  if (v.type === 'Inherit') return `Inherit→${v.effective}`;
+  if (v.incomplete) return `${v.type}(no schema!)`;
+  if (v.schema) return `${v.type}(schema)`;
+  return v.type;
+}
+
 function treeLines(nodes: TreeNodeView[], depth: number): string[] {
   const pad = '  '.repeat(depth);
   return nodes.flatMap(n => {
     if (n.type === 'folder') return [`${pad}${n.name}/`, ...treeLines(n.children, depth + 1)];
     if (n.type === 'error') return [`${pad}! ${n.file}: ${n.message}`];
-    const validation = n.validation ? `  [${n.validation}]` : '';
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(r => `${pad}  › ${r.name}`)];
+    const validation = n.validation ? `  [${validationMarker(n.validation)}]` : '';
+    const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
+      `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(runLine)];
   });
 }
 
