@@ -127,6 +127,39 @@ describe('removeSetting', () => {
     expect(sink.files.get('users/get.frreq')).toBe(before);
   });
 
+  it('removes a variable from the collection environment', async () => {
+    const seeded = {
+      ...files,
+      'api.frcol': JSON.stringify({
+        collectionGuid: 'c1', selectedEnvironmentId: 'e1', environments: [{ name: 'Production', id: 'e1' }],
+        collectionEnvironment: { name: 'system.settings', id: '', variables: [{ variable: 'host', value: 'x', active: true, id: 'v1' }] }
+      })
+    };
+    const sink = new MemoryCollectionSink(seeded);
+
+    const result = await removeSetting(ctxFor(sink), 'collection', 'variable', 'host');
+    expect(result.changed).toBe(true);
+    expect(written(sink, 'api.frcol').collectionEnvironment.variables).toEqual([]);
+  });
+
+  it('removes a secret reference from a folder', async () => {
+    const seeded = {
+      ...files,
+      'users/folder.frfolder': JSON.stringify({ folderId: 'f1', secrets: [{ $secret: 'token', active: true, id: 's1' }] })
+    };
+    const sink = new MemoryCollectionSink(seeded);
+
+    const result = await removeSetting(ctxFor(sink), 'folder:users', 'secret', 'token');
+    expect(result.changed).toBe(true);
+    expect(written(sink, 'users/folder.frfolder').secrets).toEqual([]);
+  });
+
+  it('refuses a request locator for a variable, which has nowhere to live on a request', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(removeSetting(ctxFor(sink), 'request:users/get.frreq', 'variable', 'host'))
+      .rejects.toThrow(/accepts collection, env:, folder:, run:/);
+  });
+
   it('removes a validation header from a run', async () => {
     const seeded = {
       ...files,
