@@ -95,6 +95,15 @@ describe('setAuth', () => {
     expect(sink.files.get('api.frcol')).toBe(files['api.frcol']);
   });
 
+  it('rejects a missing type with a QueryError rather than throwing on toLowerCase', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'collection', undefined as unknown as string))
+      .rejects.toThrow(QueryError);
+    await expect(setAuth(ctxFor(sink), 'collection', undefined as unknown as string))
+      .rejects.toThrow(/Unknown authentication type 'undefined'.*inherit, none, basicauth, bearertoken, awssig/);
+    expect(sink.files.get('api.frcol')).toBe(files['api.frcol']);
+  });
+
   it('reports no change, and writes nothing, when the auth is already what was asked for', async () => {
     const sink = new MemoryCollectionSink(files);
     await setAuth(ctxFor(sink), 'request:users/get.frreq', 'basicauth', { userName: 'api' });

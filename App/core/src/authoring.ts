@@ -492,12 +492,16 @@ function applyAuthFields(auth: AuthenticationDetails, type: string, fields: Auth
 // an AWS secret key or a session token is: addSecretRef(scope, name) to declare it, then have a
 // person set the value with the CLI's `secret set`. The fields that hold those three credentials
 // are not in AuthFields at all, so this verb can never carry a secret value, and storeSecrets()
-// finds nothing to move into the keychain on the way out.
+// finds nothing to move into the keychain on the way out. `name` must be `[0-9a-zA-Z]` only —
+// that is all the substitution regex (substitution.ts) matches inside `{{...}}`, so anything else
+// is written but never resolves.
 // (`{{$secret:name}}` is only the display form inspect.ts and redact.ts print; it is not what a
 // document holds and would not substitute.)
 export async function setAuth(
     ctx: AuthoringContext, scope: string, type: string, fields: AuthFields = {}
 ): Promise<EditResult> {
+    if (typeof type != 'string')
+        throw new QueryError(`Unknown authentication type '${type}' (have ${AUTH_TYPES.join(', ')})`);
     const authentication = AUTH_TYPES.find(t => t == type.toLowerCase());
     if (authentication == undefined)
         throw new QueryError(`Unknown authentication type '${type}' (have ${AUTH_TYPES.join(', ')})`);
