@@ -1,9 +1,9 @@
 import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
-    AuthenticationDetails, CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
-    CreateEmptyRestActionRun, Environment, FolderConfig, HeaderTable, HttpProtocol, ParamTable, REConstants, RestAction,
-    RestActionRun, RestTypeVerb, SecretTable, ValidationType, VariableTable, guidGenerator
+    AuthenticationDetails, CollectionConfig, CreateEmptyAction, CreateEmptyActionBody, CreateEmptyCollectionConfig, CreateEmptyEnvironment,
+    CreateEmptyFolderConfig, CreateEmptyRestActionRun, Environment, FolderConfig, FORM_CONTENT_TYPE, FormField, HeaderTable, HttpProtocol,
+    ParamTable, REConstants, RestAction, RestActionRun, RestTypeVerb, SecretTable, ValidationType, VariableTable, guidGenerator
 } from './model';
 import {
     normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
@@ -246,6 +246,19 @@ export async function newFolder(ctx: AuthoringContext, path: string): Promise<Ed
     return { file: path, scope: path, changed: true, message: `Created folder ${path}` };
 }
 
+// Splits a leading http:// or https:// off a url into { protocol, url }. A scheme-less url
+// (including one holding a {{var}}) comes back with protocol undefined and the url untouched.
+// Shared by newRequest and setUrl so the rule cannot drift between them: execute.ts:66 and
+// inspect.ts:156 both rebuild `${protocol}://${url}`, so leaving a scheme inside url would
+// double it up when the request fires or is displayed.
+function splitScheme(url: string): { protocol: HttpProtocol | undefined; url: string } {
+    if (url.startsWith('https://'))
+        return { protocol: HttpProtocol.https, url: url.slice('https://'.length) };
+    if (url.startsWith('http://'))
+        return { protocol: HttpProtocol.http, url: url.slice('http://'.length) };
+    return { protocol: undefined, url };
+}
+
 // Creates a new .frreq at path. method is matched case-insensitively against RestTypeVerb; url is
 // stored verbatim, except a leading http:// or https:// is stripped off into protocol (the app's
 // own editor does the same split, and execute()/inspect() rebuild `${protocol}://${url}` when
@@ -265,14 +278,10 @@ export async function newRequest(ctx: AuthoringContext, path: string, method: st
     action.id = ctx.guid.generateGUID();
     action.name = basenameOf(path).slice(0, -extensionOf(path).length);
     action.verb = verb;
-    if (url.startsWith('https://')) {
-        action.protocol = HttpProtocol.https;
-        url = url.slice('https://'.length);
-    } else if (url.startsWith('http://')) {
-        action.protocol = HttpProtocol.http;
-        url = url.slice('http://'.length);
-    }
-    action.url = url;
+    const split = splitScheme(url);
+    if (split.protocol != undefined)
+        action.protocol = split.protocol;
+    action.url = split.url;
 
     const dir = dirnameOf(path);
     if (!(await ctx.sink.exists(dir)))
@@ -305,6 +314,15 @@ function requestSettings(target: ScopeTarget): RestAction | RestActionRun {
     if (target.document != 'request')
         throw new Error('wrong target');
     return target.settings;
+}
+
+// Both members of the 'request' half of ScopeTarget carry `action: RestAction` — the plain
+// request and the run alike — so this is safe even though editScope's guard is what actually
+// keeps a run from reaching the request-only verbs below (set_url/set_method/set_body).
+function requestAction(target: ScopeTarget): RestAction {
+    if (target.document != 'request')
+        throw new Error('wrong target');
+    return target.action;
 }
 
 function scopeSettings(target: ScopeTarget): Environment | FolderConfig | RestActionRun {
@@ -580,4 +598,102 @@ export async function newRun(ctx: AuthoringContext, request: string, name: strin
 
         return `Added run '${name}'`;
     });
+}
+
+// --- request field verbs ------------------------------------------------------------------------
+
+// These three verbs take request: only. A run overrides a request's variables, secrets, headers,
+// parameters, auth and validation (see RestActionRun in model.ts) — it has no url, method or body
+// of its own — so each verb says exactly that rather than leaving the caller to guess where the
+// field it asked for actually lives.
+const runOverrideHint = (field: string): string =>
+    `a run overrides variables, secrets, headers, parameters, auth and validation, not the ${field}`;
+
+// Sets the url of a request. Stored verbatim (it may hold `{{var}}` placeholders); a leading
+// http:// or https:// is split off into protocol instead, matching newRequest (see splitScheme).
+// A scheme-less url keeps whatever protocol the request already had.
+export async function setUrl(ctx: AuthoringContext, scope: string, url: string): Promise<EditResult> {
+    return editScope(ctx, 'set_url', scope, ['request'], target => {
+        const action = requestAction(target);
+        const split = splitScheme(url);
+
+        const protocolChanged = split.protocol != undefined && action.protocol != split.protocol;
+        if (action.url == split.url && !protocolChanged)
+            return '';
+
+        if (split.protocol != undefined)
+            action.protocol = split.protocol;
+        action.url = split.url;
+        return `Set url '${split.url}' on ${scope}`;
+    }, runOverrideHint('url'));
+}
+
+// Sets the method of a request. Matched case-insensitively against RestTypeVerb, same as
+// newRequest, and rejected the same way when it does not match one of the six values.
+export async function setMethod(ctx: AuthoringContext, scope: string, method: string): Promise<EditResult> {
+    return editScope(ctx, 'set_method', scope, ['request'], target => {
+        const action = requestAction(target);
+
+        const verbs = Object.values(RestTypeVerb);
+        const verb = verbs.find(v => v.toLowerCase() == method.toLowerCase());
+        if (verb == undefined)
+            throw new QueryError(`Unknown method '${method}' (have ${verbs.join(', ')})`);
+
+        if (action.verb == verb)
+            return '';
+
+        action.verb = verb;
+        return `Set method '${verb}' on ${scope}`;
+    }, runOverrideHint('method'));
+}
+
+// Sets the body of a request. 'none' clears it and ignores any content given; the form content
+// type (FORM_CONTENT_TYPE) takes content.fields and stores them as FormField[], keeping the id of
+// any field whose name matches one already there (same idea as upsertNamed, but over the whole
+// table at once since a body replaces its fields wholesale rather than upserting one at a time);
+// every other content type takes content.text and stores it verbatim. Giving fields to a type that
+// takes text, or text to the form type, is a QueryError naming what that content type actually wants.
+export async function setBody(
+    ctx: AuthoringContext, scope: string, contentType: string, content?: { text?: string; fields?: { name: string; value: string }[] }
+): Promise<EditResult> {
+    if (typeof contentType != 'string' || contentType == '')
+        throw new QueryError('set_body needs a content type');
+
+    return editScope(ctx, 'set_body', scope, ['request'], target => {
+        const action = requestAction(target);
+
+        if (contentType == 'none') {
+            if (action.body.contentType == 'none')
+                return '';
+            action.body = CreateEmptyActionBody();
+            return `Cleared the body on ${scope}`;
+        }
+
+        if (contentType == FORM_CONTENT_TYPE) {
+            if (content?.text != undefined)
+                throw new QueryError(`Content type '${contentType}' takes fields, not text`);
+
+            const existing = Array.isArray(action.body.body) ? action.body.body as FormField[] : [];
+            const fields: FormField[] = (content?.fields ?? []).map(field => {
+                const match = existing.find(e => e.key == field.name);
+                return { key: field.name, value: field.value, active: true, id: match?.id ?? ctx.guid.generateGUID() };
+            });
+
+            if (action.body.contentType == contentType && JSON.stringify(existing) == JSON.stringify(fields))
+                return '';
+
+            action.body = { contentType, body: fields };
+            return `Set form body on ${scope}`;
+        }
+
+        if (content?.fields != undefined)
+            throw new QueryError(`Content type '${contentType}' takes text, not fields`);
+
+        const text = content?.text ?? '';
+        if (action.body.contentType == contentType && action.body.body == text)
+            return '';
+
+        action.body = { contentType, body: text };
+        return `Set body on ${scope}`;
+    }, runOverrideHint('body'));
 }
