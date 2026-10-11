@@ -9,7 +9,7 @@ import {
 import {
     normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
 } from './normalise';
-import { basenameOf, dirnameOf, extensionOf } from './paths';
+import { basenameOf, dirnameOf, extensionOf, joinPath } from './paths';
 import { QueryError } from './query-error';
 import {
     SecretStore, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets
@@ -135,8 +135,30 @@ function secretServiceFor(target: ScopeTarget): string {
     }
 }
 
-// The one write path every authoring verb goes through: resolve the locator, read the document
-// it names raw, normalise it, let apply() mutate it, move any secret values into the store, write.
+// The read half of editScope, without the write back: resolve the locator against the loaded
+// tree, read the document it names raw, and compute the typed target. editScope builds the write
+// on top of this; rename's request: case uses it directly, since it writes the result to a
+// different file than the one it read (a locator-move, not an in-place edit).
+async function resolveTarget(
+    ctx: AuthoringContext,
+    verb: string,
+    scope: string,
+    allowed: LocatorKind[],
+    mismatchHint?: string
+): Promise<{ resolved: ResolvedScope; doc: unknown; target: ScopeTarget }> {
+    const locator = parseLocator(scope);
+    requireAllowed(verb, locator, allowed, mismatchHint);
+
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+
+    const doc = await readDocument(ctx, resolved);
+    const target = scopeTarget(resolved, doc);
+    return { resolved, doc, target };
+}
+
+// The one write path every in-place authoring verb goes through: resolve the locator (see
+// resolveTarget), let apply() mutate the document, move any secret values into the store, write.
 // apply() returns the one-line message for the edit it made, or '' when there was nothing to do.
 // `verb` is the name of the calling verb (e.g. 'set_url'); it only appears in error messages.
 // `mismatchHint` replaces the locator-forms tail of the wrong-locator message, for a verb that
@@ -149,14 +171,7 @@ export async function editScope(
     apply: (target: ScopeTarget, resolved: ResolvedScope) => string,
     mismatchHint?: string
 ): Promise<EditResult> {
-    const locator = parseLocator(scope);
-    requireAllowed(verb, locator, allowed, mismatchHint);
-
-    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
-    const resolved = resolveLocator(root, locator);
-
-    const doc = await readDocument(ctx, resolved);
-    const target = scopeTarget(resolved, doc);
+    const { resolved, doc, target } = await resolveTarget(ctx, verb, scope, allowed, mismatchHint);
 
     const message = apply(target, resolved);
     if (message == '')
@@ -600,6 +615,163 @@ export async function newRun(ctx: AuthoringContext, request: string, name: strin
 
         return `Added run '${name}'`;
     });
+}
+
+// --- rename --------------------------------------------------------------------------------------
+
+// Every kind rename accepts except the collection itself: renaming api.frcol has no settings to
+// carry, just the file, so it is a move, not a rename.
+const RENAME_LOCATORS: LocatorKind[] = ['environment', 'folder', 'request', 'run'];
+const RENAME_COLLECTION_HINT = 'the collection file itself is renamed with move, not rename';
+
+// request: and folder: take a bare name, not a path; a path belongs to move.
+function requireBareName(verb: string, newName: string): void {
+    if (newName.includes('/') || newName.includes('\\'))
+        throw new QueryError(`${verb} needs a bare name, not a path (given '${newName}'); use move to change where it lives`);
+}
+
+// Renames an environment, run, request file or folder directory.
+//
+// env: and run: are in-place edits and go through editScope like every other settings verb.
+// request: and folder: move a file or directory — editScope cannot express that, since it always
+// writes back to the file it read — so they resolve the locator themselves and do the file work
+// directly, reusing loadCollectionTree + resolveLocator (via resolveTarget for request:, which
+// also needs the parsed document; folder: does not and calls them directly) rather than
+// duplicating what those already check: existence, a node with a loadError, what exists.
+export async function rename(ctx: AuthoringContext, scope: string, newName: string): Promise<EditResult> {
+    const locator = parseLocator(scope);
+    requireAllowed('rename', locator, RENAME_LOCATORS, locator.kind == 'collection' ? RENAME_COLLECTION_HINT : undefined);
+
+    switch (locator.kind) {
+        case 'environment':
+            return renameEnvironment(ctx, scope, newName);
+        case 'run':
+            return renameRun(ctx, scope, newName);
+        case 'request':
+            return renameRequestFile(ctx, scope, newName);
+        case 'folder':
+            return renameFolderDir(ctx, locator, scope, newName);
+        case 'collection':
+            // unreachable: requireAllowed above has already thrown for 'collection'
+            throw new Error('wrong target');
+    }
+}
+
+function renameEnvironment(ctx: AuthoringContext, scope: string, newName: string): Promise<EditResult> {
+    return editScope(ctx, 'rename', scope, ['environment'], target => {
+        if (target.document != 'collection')
+            throw new Error('wrong target');
+
+        const environment = target.settings;
+        if (environment.name == newName)
+            return '';
+
+        const clash = target.config.environments.find(e => e.name == newName && e.id != environment.id);
+        if (clash != undefined) {
+            const names = target.config.environments.map(e => e.name).join(', ');
+            throw new QueryError(`Environment '${newName}' already exists (have ${names})`);
+        }
+
+        const oldName = environment.name;
+        environment.name = newName;
+        return `Renamed environment '${oldName}' to '${newName}'`;
+    });
+}
+
+function renameRun(ctx: AuthoringContext, scope: string, newName: string): Promise<EditResult> {
+    return editScope(ctx, 'rename', scope, ['run'], target => {
+        if (target.document != 'request' || !('run' in target))
+            throw new Error('wrong target');
+
+        if (target.run.name == newName)
+            return '';
+
+        const clash = target.action.runs.find(r => r.name == newName && r.id != target.run.id);
+        if (clash != undefined) {
+            const names = target.action.runs.map(r => r.name).join(', ');
+            throw new QueryError(`Run '${newName}' already exists (have ${names})`);
+        }
+
+        const oldName = target.run.name;
+        target.run.name = newName;
+        return `Renamed run '${oldName}' to '${newName}'`;
+    });
+}
+
+// request: renames the file within its own directory. .frreq is appended to newName when it has
+// no extension already. action.name follows the file only when it still equalled the OLD file's
+// stem — a request the caller named explicitly keeps that name across the rename.
+async function renameRequestFile(ctx: AuthoringContext, scope: string, newName: string): Promise<EditResult> {
+    requireBareName('rename', newName);
+
+    const { resolved, doc, target } = await resolveTarget(ctx, 'rename', scope, ['request']);
+    if (target.document != 'request')
+        throw new Error('wrong target');
+
+    const oldPath = resolved.file;
+    const oldBase = basenameOf(oldPath);
+    const oldStem = oldBase.slice(0, oldBase.length - extensionOf(oldBase).length);
+
+    const newBase = extensionOf(newName) == REConstants.ActionExtension ? newName : `${newName}${REConstants.ActionExtension}`;
+    const newPath = joinPath(dirnameOf(oldPath), newBase);
+
+    if (newPath == oldPath)
+        return { file: oldPath, scope, changed: false, message: `${scope} is already in the asked-for state` };
+    if (await ctx.sink.exists(newPath))
+        throw new QueryError(`${newPath} already exists`);
+
+    const newStem = newBase.slice(0, newBase.length - extensionOf(newBase).length);
+    if (target.action.name == oldStem)
+        target.action.name = newStem;
+
+    // Whatever the name change above needed is already in shape; normalise again anyway so a
+    // half-formed document never reaches disk, matching editScope's own write path.
+    normaliseDocument(resolved, doc);
+
+    await writeDocument(ctx, newPath, doc);
+    await ctx.sink.remove(oldPath);
+    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
+}
+
+// Every file at or below dir, depth first — there is no recursive list on CollectionSource.
+async function filesBeneath(source: CollectionSource, dir: string): Promise<string[]> {
+    const entries = await source.listDir(dir);
+    const files: string[] = [];
+    for (const entry of entries) {
+        const path = joinPath(dir, entry.name);
+        if (entry.isDirectory)
+            files.push(...await filesBeneath(source, path));
+        else
+            files.push(path);
+    }
+    return files;
+}
+
+// folder: renames the directory within its parent. The folder's own settings (including its
+// folderId, so its keychain entries keep working) are never read as a typed document — they, and
+// everything else under the old path, are copied across as raw text: mkdir the new path, writeText
+// every file beneath the old one (read through ctx.source, which sees secrets as references, never
+// values), then remove the old path.
+async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: string, newName: string): Promise<EditResult> {
+    requireBareName('rename', newName);
+
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+    const oldPath = resolved.node!.path;
+    const newPath = joinPath(dirnameOf(oldPath), newName);
+
+    if (newPath == oldPath)
+        return { file: oldPath, scope, changed: false, message: `${scope} is already in the asked-for state` };
+    if (await ctx.sink.exists(newPath))
+        throw new QueryError(`${newPath} already exists`);
+
+    const files = await filesBeneath(ctx.source, oldPath);
+    await ctx.sink.mkdir(newPath);
+    for (const file of files)
+        await ctx.sink.writeText(newPath + file.slice(oldPath.length), await ctx.source.readText(file));
+    await ctx.sink.remove(oldPath);
+
+    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
 }
 
 // --- request field verbs ------------------------------------------------------------------------
