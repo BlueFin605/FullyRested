@@ -238,7 +238,9 @@ export async function newFolder(ctx: AuthoringContext, path: string): Promise<Ed
 }
 
 // Creates a new .frreq at path. method is matched case-insensitively against RestTypeVerb; url is
-// stored verbatim, and a leading http:// or https:// also sets protocol (the scheme stays in url).
+// stored verbatim, except a leading http:// or https:// is stripped off into protocol (the app's
+// own editor does the same split, and execute()/inspect() rebuild `${protocol}://${url}` when
+// firing or displaying the request, so leaving the scheme in url would double it up).
 export async function newRequest(ctx: AuthoringContext, path: string, method: string, url: string): Promise<EditResult> {
     if (extensionOf(path) != REConstants.ActionExtension)
         throw new QueryError(`new_request needs a name ending in ${REConstants.ActionExtension} (given ${path})`);
@@ -254,10 +256,13 @@ export async function newRequest(ctx: AuthoringContext, path: string, method: st
     action.id = ctx.guid.generateGUID();
     action.name = basenameOf(path).slice(0, -extensionOf(path).length);
     action.verb = verb;
-    if (url.startsWith('https://'))
+    if (url.startsWith('https://')) {
         action.protocol = HttpProtocol.https;
-    else if (url.startsWith('http://'))
+        url = url.slice('https://'.length);
+    } else if (url.startsWith('http://')) {
         action.protocol = HttpProtocol.http;
+        url = url.slice('http://'.length);
+    }
     action.url = url;
 
     const dir = dirnameOf(path);

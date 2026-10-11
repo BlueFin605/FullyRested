@@ -17,16 +17,30 @@ describe('newFolder / newRequest', () => {
     await expect(newFolder(ctxFor(sink), 'users/admin')).rejects.toThrow(/already exists/);
   });
 
-  it('newRequest writes a normalised request named after its file', async () => {
+  it('newRequest writes a normalised request named after its file, with the scheme split off into protocol', async () => {
     const sink = new MemoryCollectionSink(base);
     const result = await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'https://example.com/users');
     expect(result.file).toBe('users/get.frreq');
     const action = JSON.parse(sink.files.get('users/get.frreq')!);
-    expect(action).toMatchObject({ name: 'get', verb: 'get', protocol: 'https', url: 'https://example.com/users' });
+    expect(action).toMatchObject({ name: 'get', verb: 'get', protocol: 'https', url: 'example.com/users' });
     expect(action.id).toBeTruthy();
     expect(action.headers).toEqual([]);
     expect(action.runs).toEqual([]);
     expect(action.validation.type).toBe('None');
+  });
+
+  it('newRequest stores a scheme-less url verbatim, keeping the default protocol', async () => {
+    const sink = new MemoryCollectionSink(base);
+    await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'example.com/users');
+    const action = JSON.parse(sink.files.get('users/get.frreq')!);
+    expect(action).toMatchObject({ protocol: 'https', url: 'example.com/users' });
+  });
+
+  it('newRequest leaves a {{var}} placeholder in the url untouched', async () => {
+    const sink = new MemoryCollectionSink(base);
+    await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'https://{{host}}/users');
+    const action = JSON.parse(sink.files.get('users/get.frreq')!);
+    expect(action).toMatchObject({ protocol: 'https', url: '{{host}}/users' });
   });
 
   it('newRequest refuses a bad extension, an unknown verb and an existing file', async () => {
