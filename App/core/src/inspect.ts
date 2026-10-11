@@ -122,7 +122,7 @@ export interface ShownRequest {
   validation: unknown;
 }
 
-const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
+export const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
 
 function redactDeep<T>(value: T, replace: (s: string) => string): T {
   if (typeof value === 'string') return replace(value) as T;

@@ -1,4 +1,5 @@
 import { CollectionSink } from './collection-sink';
+import { sourceOf } from './inspect';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
     AuthenticationDetails, CollectionConfig, CreateEmptyAction, CreateEmptyActionBody, CreateEmptyCollectionConfig, CreateEmptyEnvironment,
@@ -780,11 +781,12 @@ async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
 // concern, not a verb here), and env:/run: have no file of their own to move.
 const MOVE_LOCATORS: LocatorKind[] = ['request', 'folder'];
 
-// The chain-above name a verb like show_request would print for the folder at `dir`: its path, or
-// 'the collection' at the root. Matches sourceOf() in inspect.ts and FolderNode.layers() in
-// scope.ts, where a folder layer's source name is its path, not its basename.
-function inheritsFrom(dir: string): string {
-    return dir == '' ? 'the collection' : dir;
+// The chain-above name a verb like show_request would print for the folder at `dir`: 'folder:<path>',
+// or 'collection:<name>' at the root, using the collection name of the already-loaded tree. Reuses
+// sourceOf() from inspect.ts (the same formatting show_request's source column uses) rather than
+// recreating its 'kind:name' shape here, so the two can never drift apart.
+function inheritsFrom(root: { name: string }, dir: string): string {
+    return dir == '' ? sourceOf({ kind: 'collection', name: root.name }) : sourceOf({ kind: 'folder', name: dir });
 }
 
 // Moves a request file or folder directory to a new collection-relative path.
@@ -837,8 +839,8 @@ async function moveRequestFile(ctx: AuthoringContext, locator: Locator, scope: s
     await ctx.sink.writeText(newPath, await ctx.source.readText(oldPath));
     await ctx.sink.remove(oldPath);
 
-    const oldChain = inheritsFrom(dirnameOf(oldPath));
-    const newChain = inheritsFrom(dirnameOf(newPath));
+    const oldChain = inheritsFrom(root, dirnameOf(oldPath));
+    const newChain = inheritsFrom(root, dirnameOf(newPath));
     const inheritance = oldChain == newChain ? '' : `; it now inherits from ${newChain} instead of ${oldChain}`;
 
     return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}${inheritance}` };

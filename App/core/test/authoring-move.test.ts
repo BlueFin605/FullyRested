@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { move } from '../src/authoring';
+import { showRequest } from '../src/inspect';
 import { QueryError } from '../src/query-error';
+import { RequestNode } from '../src/scope';
+import { loadCollectionTree } from '../src/tree';
 import { files } from './fixtures/collection';
 
 let n = 0;
@@ -25,22 +28,54 @@ describe('move', () => {
       expect(action.runs).toEqual([{ id: 'n1', name: 'not found' }]);
     });
 
-    it('names the old and new inheritance in the message', async () => {
+    it('names the old and new inheritance in the message, using show_request\'s scope vocabulary', async () => {
       const sink = new MemoryCollectionSink(files);
       const result = await move(ctxFor(sink), 'request:users/get.frreq', 'orders/get.frreq');
-      expect(result.message).toBe('Moved users/get.frreq to orders/get.frreq; it now inherits from orders instead of users');
+      expect(result.message).toBe('Moved users/get.frreq to orders/get.frreq; it now inherits from folder:orders instead of folder:users');
     });
 
-    it("names 'the collection' when the destination has no folder", async () => {
+    it("names the collection root (collection:<name>) when the destination has no folder", async () => {
       const sink = new MemoryCollectionSink(files);
       const result = await move(ctxFor(sink), 'request:users/get.frreq', 'get.frreq');
-      expect(result.message).toBe('Moved users/get.frreq to get.frreq; it now inherits from the collection instead of users');
+      expect(result.message).toBe('Moved users/get.frreq to get.frreq; it now inherits from collection:api instead of folder:users');
     });
 
-    it("names 'the collection' as the source when the request started at the collection root", async () => {
+    it('names the collection root (collection:<name>) as the source when the request started at the collection root', async () => {
       const sink = new MemoryCollectionSink({ ...files, 'top.frreq': JSON.stringify({ id: 'r4', name: 'top', verb: 'get', url: 'https://x/t', runs: [] }) });
       const result = await move(ctxFor(sink), 'request:top.frreq', 'orders/top.frreq');
-      expect(result.message).toBe('Moved top.frreq to orders/top.frreq; it now inherits from orders instead of the collection');
+      expect(result.message).toBe('Moved top.frreq to orders/top.frreq; it now inherits from folder:orders instead of collection:api');
+    });
+
+    it('names each chain exactly as show_request would report it as the source of an inherited value', async () => {
+      // Pins the consistency the string format alone cannot: whatever scope name move's message
+      // uses for a request's parent, show_request must report the exact same string as the source
+      // of a value the request inherits from that scope. Covers both a folder parent and the
+      // collection root, each via a header only that scope sets.
+      const sink = new MemoryCollectionSink({
+        'api.frcol': JSON.stringify({
+          collectionGuid: 'c1', environments: [{ name: 'Production', id: 'e1' }], selectedEnvironmentId: 'e1',
+          collectionEnvironment: { name: 'system.settings', variables: [], secrets: [], auth: { authentication: 'none' },
+            headers: [{ key: 'x-root', value: 'r', active: true, id: 'ch1' }] }
+        }),
+        'users/get.frreq': JSON.stringify({ id: 'r1', name: 'Get user', verb: 'get', url: 'https://x/u', runs: [] }),
+        'orders/folder.frfolder': JSON.stringify({
+          folderId: 'f9', variables: [], secrets: [], auth: { authentication: 'inherit' },
+          headers: [{ key: 'x-orders', value: 'o', active: true, id: 'h1' }]
+        })
+      });
+
+      const toFolder = await move(ctxFor(sink), 'request:users/get.frreq', 'orders/get.frreq');
+      const afterFolderMove = await loadCollectionTree('api.frcol', sink, secrets);
+      const inFolder = afterFolderMove.find('orders/get.frreq') as RequestNode;
+      const folderHeaderSource = showRequest(inFolder).headers.find(h => h.key === 'x-orders')!.source;
+      expect(toFolder.message).toContain(folderHeaderSource); // the new chain, e.g. 'folder:orders'
+
+      const toRoot = await move(ctxFor(sink), 'request:orders/get.frreq', 'get.frreq');
+      const afterRootMove = await loadCollectionTree('api.frcol', sink, secrets);
+      const atRoot = afterRootMove.find('get.frreq') as RequestNode;
+      const collectionHeaderSource = showRequest(atRoot).headers.find(h => h.key === 'x-root')!.source;
+      expect(toRoot.message).toContain(collectionHeaderSource); // the new chain, e.g. 'collection:api'
+      expect(toRoot.message).toContain(folderHeaderSource); // the old chain it moved out of
     });
 
     it('says nothing about inheritance when the folder does not change', async () => {
@@ -64,6 +99,16 @@ describe('move', () => {
       await expect(move(ctxFor(sink), 'request:users/get.frreq', 'orders/get.txt')).rejects.toThrow(/\.frreq/);
       expect(await sink.exists('users/get.frreq')).toBe(true);
       expect(await sink.exists('orders/get.txt')).toBe(false);
+    });
+
+    it('no-ops when newPath is the same as the current path', async () => {
+      const sink = new MemoryCollectionSink(files);
+      const before = JSON.stringify(Object.fromEntries(sink.files));
+
+      const result = await move(ctxFor(sink), 'request:users/get.frreq', 'users/get.frreq');
+
+      expect(result).toMatchObject({ file: 'users/get.frreq', changed: false });
+      expect(JSON.stringify(Object.fromEntries(sink.files))).toBe(before);
     });
   });
 
@@ -119,6 +164,16 @@ describe('move', () => {
       expect(await sink.exists('users2/sub/get.frreq')).toBe(true);
       expect(await sink.exists('users2/sub/folder.frfolder')).toBe(true);
       expect(await sink.exists('users')).toBe(false);
+    });
+
+    it('no-ops when newPath is the same as the current path', async () => {
+      const sink = new MemoryCollectionSink(files);
+      const before = JSON.stringify(Object.fromEntries(sink.files));
+
+      const result = await move(ctxFor(sink), 'folder:users', 'users');
+
+      expect(result).toMatchObject({ file: 'users', changed: false });
+      expect(JSON.stringify(Object.fromEntries(sink.files))).toBe(before);
     });
   });
 
