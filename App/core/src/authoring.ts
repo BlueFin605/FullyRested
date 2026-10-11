@@ -1,11 +1,11 @@
 import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
-    CollectionConfig, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig, Environment,
-    FolderConfig, REConstants, RestAction, RestActionRun, guidGenerator
+    CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
+    Environment, FolderConfig, HttpProtocol, REConstants, RestAction, RestActionRun, RestTypeVerb, guidGenerator
 } from './model';
 import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
-import { extensionOf } from './paths';
+import { basenameOf, dirnameOf, extensionOf } from './paths';
 import { QueryError } from './query-error';
 import {
     SecretStore, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets
@@ -223,4 +223,47 @@ export async function selectEnvironment(ctx: AuthoringContext, name: string): Pr
         target.config.selectedEnvironmentId = environment.id;
         return `Selected environment '${environment.name}'`;
     });
+}
+
+// Makes a folder on disk. Writes no folder.frfolder: a folder needs one only once it has
+// settings, and editScope creates it on demand (see readDocument).
+export async function newFolder(ctx: AuthoringContext, path: string): Promise<EditResult> {
+    if (path == '' || path == '.')
+        throw new QueryError(`new_folder needs a path (given '${path}')`);
+    if (await ctx.sink.exists(path))
+        throw new QueryError(`${path} already exists`);
+
+    await ctx.sink.mkdir(path);
+    return { file: path, scope: path, changed: true, message: `Created folder ${path}` };
+}
+
+// Creates a new .frreq at path. method is matched case-insensitively against RestTypeVerb; url is
+// stored verbatim, and a leading http:// or https:// also sets protocol (the scheme stays in url).
+export async function newRequest(ctx: AuthoringContext, path: string, method: string, url: string): Promise<EditResult> {
+    if (extensionOf(path) != REConstants.ActionExtension)
+        throw new QueryError(`new_request needs a name ending in ${REConstants.ActionExtension} (given ${path})`);
+    if (await ctx.sink.exists(path))
+        throw new QueryError(`${path} already exists`);
+
+    const verbs = Object.values(RestTypeVerb);
+    const verb = verbs.find(v => v.toLowerCase() == method.toLowerCase());
+    if (verb == undefined)
+        throw new QueryError(`Unknown method '${method}' (have ${verbs.join(', ')})`);
+
+    const action = CreateEmptyAction();
+    action.id = ctx.guid.generateGUID();
+    action.name = basenameOf(path).slice(0, -extensionOf(path).length);
+    action.verb = verb;
+    if (url.startsWith('https://'))
+        action.protocol = HttpProtocol.https;
+    else if (url.startsWith('http://'))
+        action.protocol = HttpProtocol.http;
+    action.url = url;
+
+    const dir = dirnameOf(path);
+    if (!(await ctx.sink.exists(dir)))
+        await ctx.sink.mkdir(dir);
+
+    await writeDocument(ctx, path, action);
+    return { file: path, scope: path, changed: true, message: `Created request ${path}` };
 }
