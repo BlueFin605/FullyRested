@@ -17,6 +17,12 @@ describe('newFolder / newRequest', () => {
     await expect(newFolder(ctxFor(sink), 'users/admin')).rejects.toThrow(/already exists/);
   });
 
+  it('newFolder refuses an empty path and a bare dot', async () => {
+    const sink = new MemoryCollectionSink(base);
+    await expect(newFolder(ctxFor(sink), '')).rejects.toThrow(/path/);
+    await expect(newFolder(ctxFor(sink), '.')).rejects.toThrow(/path/);
+  });
+
   it('newRequest writes a normalised request named after its file, with the scheme split off into protocol', async () => {
     const sink = new MemoryCollectionSink(base);
     const result = await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'https://example.com/users');

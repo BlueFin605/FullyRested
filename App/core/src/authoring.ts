@@ -2,7 +2,8 @@ import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
     CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
-    Environment, FolderConfig, HttpProtocol, REConstants, RestAction, RestActionRun, RestTypeVerb, guidGenerator
+    CreateEmptyRestActionRun, Environment, FolderConfig, HttpProtocol, REConstants, RestAction, RestActionRun,
+    RestTypeVerb, ValidationType, guidGenerator
 } from './model';
 import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
 import { basenameOf, dirnameOf, extensionOf } from './paths';
@@ -271,4 +272,29 @@ export async function newRequest(ctx: AuthoringContext, path: string, method: st
 
     await writeDocument(ctx, path, action);
     return { file: path, scope: path, changed: true, message: `Created request ${path}` };
+}
+
+// Adds a run to the request at `request` (a collection-relative .frreq path). The run inherits
+// the request's validation until something sets its own, matching what the app does when you
+// add a run from the editor.
+export async function newRun(ctx: AuthoringContext, request: string, name: string): Promise<EditResult> {
+    if (name == '')
+        throw new QueryError(`new_run needs a name (given '${name}')`);
+
+    return editScope(ctx, 'new_run', `request:${request}`, ['request'], target => {
+        if (target.document != 'request')
+            throw new Error('wrong target');
+
+        const existing = target.action.runs.find(r => r.name == name);
+        if (existing != undefined) {
+            const names = target.action.runs.map(r => r.name).join(', ');
+            throw new QueryError(`Run '${name}' already exists (have ${names})`);
+        }
+
+        const run: RestActionRun = CreateEmptyRestActionRun(ctx.guid, ValidationType.Inherit);
+        run.name = name;
+        target.action.runs.push(run);
+
+        return `Added run '${name}'`;
+    });
 }
