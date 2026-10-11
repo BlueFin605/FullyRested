@@ -179,10 +179,19 @@ locators are accepted.
 
 | Verb group | collection | env | folder | request | run |
 |---|---|---|---|---|---|
-| headers, variables, secrets, auth | yes | yes | yes | yes | yes |
+| headers, auth | yes | yes | yes | yes | yes |
+| variables, secrets | yes | yes | yes | — | yes |
 | params | — | — | — | yes | yes |
 | url, method, body | — | — | — | yes | — |
 | validation | — | — | — | yes | yes |
+
+Variables and secrets are deliberately absent from `request:`. `RestAction`
+has no `variables` or `secrets` field and `RequestNode.layers()` contributes
+only `headers` and `auth`, so a request-level variable has nowhere to live: a
+variable that belongs to one request belongs on one of its runs, or on the
+folder holding it. `set_variable` and `add_secret_ref` with a `request:`
+locator are therefore a verb/locator mismatch error, and the message says to
+use a `run:` or `folder:` locator instead.
 
 ## Secrets
 
