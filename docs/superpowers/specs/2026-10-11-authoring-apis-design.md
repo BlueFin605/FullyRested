@@ -152,7 +152,7 @@ file opens in the desktop app immediately.
 | `set_variable` | scope, name, value |
 | `add_secret_ref` | scope, name |
 | `set_auth` | scope, type, plus the fields that type needs (secret fields as references) |
-| `remove_setting` | scope, kind (`header \| param \| variable \| secret`), name |
+| `remove_setting` | scope, kind (`header \| param \| variable \| secret \| validation-header`), name |
 
 Each `set_*` is an upsert: it replaces the entry of that name at that scope,
 or adds it if there is none. Folding four removals into one `remove_setting`
