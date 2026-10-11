@@ -20,3 +20,4 @@ export * from './redact';
 export * from './query';
 export * from './json-path';
 export * from './inspect';
+export * from './infer';
