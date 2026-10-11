@@ -774,6 +774,101 @@ async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
     return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
 }
 
+// --- move ------------------------------------------------------------------------------------------
+
+// request: and folder: only; a collection is moved by renaming the .frcol file itself (a host
+// concern, not a verb here), and env:/run: have no file of their own to move.
+const MOVE_LOCATORS: LocatorKind[] = ['request', 'folder'];
+
+// The chain-above name a verb like show_request would print for the folder at `dir`: its path, or
+// 'the collection' at the root. Matches sourceOf() in inspect.ts and FolderNode.layers() in
+// scope.ts, where a folder layer's source name is its path, not its basename.
+function inheritsFrom(dir: string): string {
+    return dir == '' ? 'the collection' : dir;
+}
+
+// Moves a request file or folder directory to a new collection-relative path.
+//
+// Like rename's request:/folder: cases, this copies raw text through ctx.source/ctx.sink rather
+// than reading a typed document: a move changes nothing about the document, so there is nothing
+// to normalise or write back differently than what was already on disk — ids and action.name
+// included, so keychain entries keep working and a move is never mistaken for a rename.
+//
+// Ordering matters for safety: refuse first, create what is needed, write every file at the new
+// path, and only then remove the old path. A failure partway through then leaves files at both
+// paths rather than losing them — not atomic, but never destructive.
+export async function move(ctx: AuthoringContext, scope: string, newPath: string): Promise<EditResult> {
+    const locator = parseLocator(scope);
+    requireAllowed('move', locator, MOVE_LOCATORS, undefined);
+
+    switch (locator.kind) {
+        case 'request':
+            return moveRequestFile(ctx, locator, scope, newPath);
+        case 'folder':
+            return moveFolderDir(ctx, locator, scope, newPath);
+        case 'collection':
+        case 'environment':
+        case 'run':
+            // unreachable: requireAllowed above has already thrown for every kind but request/folder
+            throw new Error('wrong target');
+    }
+}
+
+// Moving a request changes the folder chain it inherits from — headers, variables, secrets and
+// auth all resolve through that chain — so the message names both chains when they differ, using
+// the same names inheritsFrom() (and so show_request's source) would use.
+async function moveRequestFile(ctx: AuthoringContext, locator: Locator, scope: string, newPath: string): Promise<EditResult> {
+    if (extensionOf(newPath) != REConstants.ActionExtension)
+        throw new QueryError(`move needs a path ending in ${REConstants.ActionExtension} (given ${newPath})`);
+
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+    const oldPath = resolved.file;
+
+    if (newPath == oldPath)
+        return { file: oldPath, scope, changed: false, message: `${scope} is already in the asked-for state` };
+    if (await ctx.sink.exists(newPath))
+        throw new QueryError(`${newPath} already exists`);
+
+    const dir = dirnameOf(newPath);
+    if (!(await ctx.sink.exists(dir)))
+        await ctx.sink.mkdir(dir);
+
+    await ctx.sink.writeText(newPath, await ctx.source.readText(oldPath));
+    await ctx.sink.remove(oldPath);
+
+    const oldChain = inheritsFrom(dirnameOf(oldPath));
+    const newChain = inheritsFrom(dirnameOf(newPath));
+    const inheritance = oldChain == newChain ? '' : `; it now inherits from ${newChain} instead of ${oldChain}`;
+
+    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}${inheritance}` };
+}
+
+// Moving a directory carries everything beneath it (filesBeneath, under rename above), the same
+// raw-text copy renameFolderDir uses. newPath must be neither the old path itself nor anywhere
+// beneath it — checked with a '/' boundary so a sibling whose name merely starts with the same
+// characters (folder:users moved to users2/sub) is never mistaken for nesting.
+async function moveFolderDir(ctx: AuthoringContext, locator: Locator, scope: string, newPath: string): Promise<EditResult> {
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+    const oldPath = resolved.node!.path;
+
+    if (newPath == oldPath)
+        return { file: oldPath, scope, changed: false, message: `${scope} is already in the asked-for state` };
+    if (newPath.startsWith(oldPath + '/'))
+        throw new QueryError(`${newPath} is inside ${oldPath}; a folder cannot be moved into itself`);
+    if (await ctx.sink.exists(newPath))
+        throw new QueryError(`${newPath} already exists`);
+
+    const files = await filesBeneath(ctx.source, oldPath);
+    await ctx.sink.mkdir(newPath);
+    for (const file of files)
+        await ctx.sink.writeText(joinPath(newPath, file.slice(oldPath.length + 1)), await ctx.source.readText(file));
+    await ctx.sink.remove(oldPath);
+
+    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}` };
+}
+
 // --- delete --------------------------------------------------------------------------------------
 
 // Every kind delete accepts except the collection itself: there is nothing to delete a collection
