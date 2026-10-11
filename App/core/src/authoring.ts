@@ -1,9 +1,11 @@
 import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
-    CollectionConfig, CreateEmptyFolderConfig, Environment, FolderConfig, RestAction, RestActionRun, guidGenerator
+    CollectionConfig, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig, Environment,
+    FolderConfig, REConstants, RestAction, RestActionRun, guidGenerator
 } from './model';
 import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
+import { extensionOf } from './paths';
 import { QueryError } from './query-error';
 import {
     SecretStore, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets
@@ -161,4 +163,64 @@ export async function editScope(
 // For verbs that write a whole file rather than edit a scope (new_request, rename, move, delete)
 export async function writeDocument(ctx: AuthoringContext, file: string, doc: unknown): Promise<void> {
     await ctx.sink.writeText(file, JSON.stringify(doc, null, 4));
+}
+
+// Writes a brand-new .frcol. This is the one verb that runs with no collection loaded, so it
+// never reads ctx.collectionFile; `file` is the collection-relative name to create.
+export async function newCollection(ctx: AuthoringContext, file: string, environments: string[] = []): Promise<EditResult> {
+    if (extensionOf(file) != REConstants.CollectionExtension)
+        throw new QueryError(`new_collection needs a name ending in ${REConstants.CollectionExtension} (given ${file})`);
+    if (await ctx.sink.exists(file))
+        throw new QueryError(`${file} already exists`);
+
+    const config = CreateEmptyCollectionConfig(ctx.guid);
+    config.environments = environments.map(name => ({ ...CreateEmptyEnvironment(), name, id: ctx.guid.generateGUID() }));
+    if (config.environments.length > 0)
+        config.selectedEnvironmentId = config.environments[0].id;
+
+    normaliseCollectionConfig(config);
+    await writeDocument(ctx, file, config);
+    return { file, scope: file, changed: true, message: `Created collection ${file}` };
+}
+
+// Adds an environment to the loaded collection. Selects it when the collection had none at all.
+export async function newEnvironment(ctx: AuthoringContext, name: string): Promise<EditResult> {
+    return editScope(ctx, 'new_environment', 'collection', ['collection'], target => {
+        if (target.document != 'collection')
+            throw new Error('wrong target');
+
+        const existing = target.config.environments.find(e => e.name == name);
+        if (existing != undefined) {
+            const names = target.config.environments.map(e => e.name).join(', ');
+            throw new QueryError(`Environment '${name}' already exists (have ${names})`);
+        }
+
+        const hadNone = target.config.environments.length == 0;
+        const environment: Environment = { ...CreateEmptyEnvironment(), name, id: ctx.guid.generateGUID() };
+        target.config.environments.push(environment);
+        if (hadNone)
+            target.config.selectedEnvironmentId = environment.id;
+
+        return `Added environment '${name}'`;
+    });
+}
+
+// Switches which environment of the loaded collection is selected, by name or id.
+export async function selectEnvironment(ctx: AuthoringContext, name: string): Promise<EditResult> {
+    return editScope(ctx, 'select_environment', 'collection', ['collection'], target => {
+        if (target.document != 'collection')
+            throw new Error('wrong target');
+
+        const environment = target.config.environments.find(e => e.id == name || e.name == name);
+        if (environment == undefined) {
+            const names = target.config.environments.map(e => e.name).join(', ');
+            throw new QueryError(`Environment '${name}' is not in the collection (have ${names})`);
+        }
+
+        if (target.config.selectedEnvironmentId == environment.id)
+            return '';
+
+        target.config.selectedEnvironmentId = environment.id;
+        return `Selected environment '${environment.name}'`;
+    });
 }
