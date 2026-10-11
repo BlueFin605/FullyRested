@@ -1237,6 +1237,13 @@ export async function validationFromCase(
         jsonSchema: JSON.stringify(schema, null, 2)
     });
 
+    // setValidation (via editScope) reports changed: false, with its own "already in the
+    // asked-for state" message, when the inferred validation matches what is already there.
+    // Keep that pairing intact rather than overwriting it with the "learned" message below,
+    // which would otherwise claim something changed when it did not.
+    if (!result.changed)
+        return result;
+
     const message =
         `Set validation on ${scope} from run ${run.runId} case ${c.index}: expect ${c.response.status} and ${describeSchema(schema)}`;
     return { ...result, message };

@@ -15,12 +15,13 @@ const written = (sink: MemoryCollectionSink, file: string) => JSON.parse(sink.fi
 
 const runId = '20261011-142305-a1b2';
 
-// Five cases, one per refusal/success class the ticket lists:
+// Six cases, one per refusal/success class the ticket lists:
 //   1 passes, with a JSON object body (the success path)
 //   2 passes, but its body is not JSON
 //   3 errored - no response to learn from
 //   4 has no response at all (distinct from "errored")
 //   5 passes, with a redacted secret inside its JSON body
+//   6 passes, but has a response with no body at all (distinct from "not JSON")
 const runRecord: RunRecord = {
   runId,
   startedAt: '2026-10-11T14:23:05.000Z',
@@ -61,6 +62,11 @@ const runRecord: RunRecord = {
         status: 200, statusText: 'OK', headers: {},
         body: { contentType: 'application/json', bytes: 30, text: JSON.stringify({ token: '{{$secret:token}}' }) }
       }
+    },
+    {
+      index: 6, name: 'No body', requestFile: 'users/get.frreq', outcome: 'pass', ms: 3,
+      request: { method: 'GET', url: 'https://x/u', headers: {} },
+      response: { status: 204, statusText: 'No Content', headers: {} }
     }
   ]
 };
@@ -148,6 +154,8 @@ describe('validationFromCase', () => {
     const store = await storeWithRun();
 
     await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 4, runId))
+      .rejects.toThrow(QueryError);
+    await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 4, runId))
       .rejects.toThrow(/case 4 got no response to learn from.*set_validation/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
@@ -157,7 +165,20 @@ describe('validationFromCase', () => {
     const store = await storeWithRun();
 
     await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 2, runId))
+      .rejects.toThrow(QueryError);
+    await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 2, runId))
       .rejects.toThrow(/case 2's response body is not JSON \(content-type text\/plain\).*set_validation/);
+    expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+  });
+
+  it('refuses a response with no body at all, the same way as a non-JSON body', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const store = await storeWithRun();
+
+    await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 6, runId))
+      .rejects.toThrow(QueryError);
+    await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 6, runId))
+      .rejects.toThrow(/case 6's response body is not JSON \(content-type none\).*set_validation/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 
@@ -201,6 +222,17 @@ describe('validationFromCase', () => {
     const store = await storeWithRun();
 
     await expect(validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 99, runId))
-      .rejects.toThrow(/Case '99' not found\. The run has 5 cases:/);
+      .rejects.toThrow(/Case '99' not found\. The run has 6 cases:/);
+  });
+
+  it('is idempotent: calling it again against the same case reports no change, consistently', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const store = await storeWithRun();
+
+    await validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 1, runId);
+    const second = await validationFromCase(ctxFor(sink), [store], 'run:users/get.frreq#not found', 1, runId);
+
+    expect(second.changed).toBe(false);
+    expect(second.message).toBe('run:users/get.frreq#not found is already in the asked-for state');
   });
 });
