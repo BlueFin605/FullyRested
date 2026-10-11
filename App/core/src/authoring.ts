@@ -774,6 +774,112 @@ async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
     return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
 }
 
+// --- delete --------------------------------------------------------------------------------------
+
+// Every kind delete accepts except the collection itself: there is nothing to delete a collection
+// into, unlike a folder or request, which still exist (just empty) once their contents are gone.
+const DELETE_LOCATORS: LocatorKind[] = ['environment', 'folder', 'request', 'run'];
+const DELETE_COLLECTION_HINT = 'the collection file itself is not something delete removes';
+
+// Whether a file beneath a folder being deleted is one delete already knows is safe to lose: a
+// request (current or legacy extension, matching ACTION_FILE_EXTENSIONS) or a folder's own
+// settings file, wherever in the sub-tree it sits. Anything else is reported back to the caller
+// rather than silently removed — an agent should never delete something it did not put there.
+function isDeletableFolderFile(path: string): boolean {
+    if (basenameOf(path) == REConstants.FolderSettingsFile)
+        return true;
+
+    const ext = extensionOf(path);
+    return ext == REConstants.ActionExtension || ext == REConstants.LegacyActionExtension;
+}
+
+// Deletes an environment, run, request file or folder directory (and everything under it).
+//
+// env: and run: remove an element from an already-loaded document and go through editScope like
+// every other settings verb. request: and folder: remove a file or directory — editScope has
+// nothing to write back once the file itself is gone — so they resolve the locator themselves and
+// call ctx.sink.remove directly, the same split rename uses (see its comment above).
+//
+// Keychain entries are never deleted by any of the four kinds: core has no list operation on
+// SecretStore, so a delete has no way to find which entries belonged to what it just removed. A
+// leftover entry is inert (nothing references its service/name any more) but not cleaned up.
+export async function remove(ctx: AuthoringContext, scope: string): Promise<EditResult> {
+    const locator = parseLocator(scope);
+    requireAllowed('delete', locator, DELETE_LOCATORS, locator.kind == 'collection' ? DELETE_COLLECTION_HINT : undefined);
+
+    switch (locator.kind) {
+        case 'environment':
+            return removeEnvironment(ctx, scope);
+        case 'run':
+            return removeRun(ctx, scope);
+        case 'request':
+            return removeRequestFile(ctx, locator, scope);
+        case 'folder':
+            return removeFolderDir(ctx, locator, scope);
+        case 'collection':
+            // unreachable: requireAllowed above has already thrown for 'collection'
+            throw new Error('wrong target');
+    }
+}
+
+// Removes the Environment itself from the collection's environments array. If it was the selected
+// one, selection moves to the first environment left, or '' when none are — the collection must
+// never be left pointing at an environment that no longer exists.
+function removeEnvironment(ctx: AuthoringContext, scope: string): Promise<EditResult> {
+    return editScope(ctx, 'delete', scope, ['environment'], target => {
+        if (target.document != 'collection')
+            throw new Error('wrong target');
+
+        const environment = target.settings;
+        target.config.environments.splice(target.config.environments.indexOf(environment), 1);
+
+        if (target.config.selectedEnvironmentId == environment.id)
+            target.config.selectedEnvironmentId = target.config.environments[0]?.id ?? '';
+
+        return `Deleted environment '${environment.name}'`;
+    });
+}
+
+// Removes the RestActionRun from the request's runs array.
+function removeRun(ctx: AuthoringContext, scope: string): Promise<EditResult> {
+    return editScope(ctx, 'delete', scope, ['run'], target => {
+        if (target.document != 'request' || !('run' in target))
+            throw new Error('wrong target');
+
+        target.action.runs.splice(target.action.runs.indexOf(target.run), 1);
+        return `Deleted run '${target.run.name}'`;
+    });
+}
+
+// request: removes the .frreq file. No typed read is needed — delete has nothing to inspect in
+// the document before removing it — so this resolves the locator directly rather than going
+// through resolveTarget.
+async function removeRequestFile(ctx: AuthoringContext, locator: Locator, scope: string): Promise<EditResult> {
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+
+    await ctx.sink.remove(resolved.file);
+    return { file: resolved.file, scope, changed: true, message: `Deleted ${resolved.file}` };
+}
+
+// folder: removes the directory and everything beneath it, but only once every file down there has
+// been checked against isDeletableFolderFile — filesBeneath (see rename, above) does the walk, via
+// ctx.source so nothing is touched while checking. Any stray file aborts before ctx.sink.remove is
+// ever called, naming every one found so the caller knows exactly what is in the way.
+async function removeFolderDir(ctx: AuthoringContext, locator: Locator, scope: string): Promise<EditResult> {
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const resolved = resolveLocator(root, locator);
+    const path = resolved.node!.path;
+
+    const files = await filesBeneath(ctx.source, path);
+    const strays = files.filter(file => !isDeletableFolderFile(file));
+    if (strays.length > 0)
+        throw new QueryError(`${scope} holds file(s) delete will not remove: ${strays.join(', ')}`);
+
+    await ctx.sink.remove(path);
+    return { file: path, scope, changed: true, message: `Deleted ${path}` };
+}
+
 // --- request field verbs ------------------------------------------------------------------------
 
 // These three verbs take request: only. A run overrides a request's variables, secrets, headers,
