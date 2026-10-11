@@ -1,4 +1,7 @@
+import { REConstants } from './model';
+import { joinPath } from './paths';
 import { QueryError } from './query-error';
+import { CollectionNode, FolderNode, RequestNode, RunNode } from './scope';
 
 // The single string every settings verb takes to say what it is editing.
 // This module only parses the string; resolving it against a loaded
@@ -61,5 +64,87 @@ export function parseLocator(text: string): Locator {
         }
         default:
             throw new QueryError(`Unrecognised locator '${text}'; expected one of: ${LOCATOR_FORMS}`);
+    }
+}
+
+export type DocumentKind = 'collection' | 'folder' | 'request';
+
+export interface ResolvedScope {
+    locator: Locator;
+    document: DocumentKind;   // which kind of file holds it
+    file: string;             // collection-relative path of that file
+    isNew: boolean;           // true only for a folder with no folder.frfolder yet
+    node?: FolderNode | RequestNode | RunNode;
+}
+
+// A node whose file core could not parse must never be written to.
+function requireLoaded(node: FolderNode | RequestNode): void {
+    if (node.loadError != undefined)
+        throw new QueryError(`${node.loadError.file} is invalid: ${node.loadError.message}`);
+}
+
+function resolveEnvironment(root: CollectionNode, locator: Locator): ResolvedScope {
+    const name = locator.name!;
+    const found = root.config.environments.find(e => e.name == name || e.id == name);
+    if (found == undefined) {
+        const known = root.config.environments.map(e => e.name).join(', ') || 'none';
+        throw new QueryError(`Environment '${name}' not found (known: ${known})`);
+    }
+    return { locator, document: 'collection', file: root.fileName, isNew: false };
+}
+
+function resolveFolder(root: CollectionNode, locator: Locator): ResolvedScope {
+    const path = locator.path!;
+    const node = root.find(path);
+    if (!(node instanceof FolderNode)) {
+        const known = root.folderNodes().map(f => f.path).join(', ') || 'none';
+        throw new QueryError(`Folder '${path}' not found (known: ${known})`);
+    }
+    requireLoaded(node);
+    return { locator, document: 'folder', file: joinPath(path, REConstants.FolderSettingsFile), isNew: !node.hasSettingsFile, node };
+}
+
+// Shared by 'request' and 'run': a run's path names the request that holds it.
+// An empty path (from a bare 'request:./' or 'request:/') cannot match any request.
+function findRequest(root: CollectionNode, path: string): RequestNode {
+    const node = path === '' ? undefined : root.find(path);
+    if (!(node instanceof RequestNode)) {
+        const known = root.requestNodes().map(r => r.path).join(', ') || 'none';
+        throw new QueryError(`Request '${path}' not found (known: ${known})`);
+    }
+    requireLoaded(node);
+    return node;
+}
+
+function resolveRequest(root: CollectionNode, locator: Locator): ResolvedScope {
+    const node = findRequest(root, locator.path!);
+    return { locator, document: 'request', file: node.path, isNew: false, node };
+}
+
+function resolveRun(root: CollectionNode, locator: Locator): ResolvedScope {
+    const request = findRequest(root, locator.path!);
+    const idOrName = locator.run!;
+    const run = request.action.runs.find(r => r.id == idOrName || r.name == idOrName);
+    if (run == undefined) {
+        const known = request.action.runs.map(r => r.name).join(', ') || 'none';
+        throw new QueryError(`Run '${idOrName}' not found in '${request.name}' (known: ${known})`);
+    }
+    return { locator, document: 'request', file: request.path, isNew: false, node: new RunNode(request, run) };
+}
+
+// Turns a parsed locator into the document it names, against a loaded collection tree.
+// Fails with a QueryError listing what does exist when the locator names nothing.
+export function resolveLocator(root: CollectionNode, locator: Locator): ResolvedScope {
+    switch (locator.kind) {
+        case 'collection':
+            return { locator, document: 'collection', file: root.fileName, isNew: false };
+        case 'environment':
+            return resolveEnvironment(root, locator);
+        case 'folder':
+            return resolveFolder(root, locator);
+        case 'request':
+            return resolveRequest(root, locator);
+        case 'run':
+            return resolveRun(root, locator);
     }
 }
