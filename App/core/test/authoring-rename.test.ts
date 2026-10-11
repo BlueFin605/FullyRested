@@ -122,6 +122,39 @@ describe('rename', () => {
       expect(action.runs).toEqual([{ id: 'n1', name: 'not found' }]);
     });
 
+    it('carries a nested sub-folder, two levels deep, with it', async () => {
+      const sink = new MemoryCollectionSink({
+        ...files,
+        'users/admin/folder.frfolder': JSON.stringify({ folderId: 'f2' }),
+        'users/admin/roles/list.frreq': JSON.stringify({ id: 'r3', name: 'List roles', verb: 'get', url: 'https://x/roles', runs: [] })
+      });
+      const result = await rename(ctxFor(sink), 'folder:users', 'members');
+      expect(result.changed).toBe(true);
+
+      // everything landed at its new path, content intact
+      expect(await sink.exists('members/folder.frfolder')).toBe(true);
+      expect(await sink.exists('members/get.frreq')).toBe(true);
+      expect(await sink.exists('members/admin/folder.frfolder')).toBe(true);
+      expect(await sink.exists('members/admin/roles/list.frreq')).toBe(true);
+
+      // nothing was left behind at the old paths
+      expect(await sink.exists('users')).toBe(false);
+      expect(await sink.exists('users/admin/folder.frfolder')).toBe(false);
+      expect(await sink.exists('users/admin/roles/list.frreq')).toBe(false);
+
+      const topFolder = JSON.parse(sink.files.get('members/folder.frfolder')!);
+      expect(topFolder.folderId).toBe('f1');
+
+      const adminFolder = JSON.parse(sink.files.get('members/admin/folder.frfolder')!);
+      expect(adminFolder.folderId).toBe('f2');
+
+      const getAction = JSON.parse(sink.files.get('members/get.frreq')!);
+      expect(getAction).toMatchObject({ id: 'r1', name: 'Get user', url: 'https://x/u' });
+
+      const rolesAction = JSON.parse(sink.files.get('members/admin/roles/list.frreq')!);
+      expect(rolesAction).toMatchObject({ id: 'r3', name: 'List roles', url: 'https://x/roles' });
+    });
+
     it('renames a directory with no folder.frfolder yet', async () => {
       const sink = new MemoryCollectionSink(files);
       const result = await rename(ctxFor(sink), 'folder:orders', 'purchases');

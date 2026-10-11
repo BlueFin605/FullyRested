@@ -768,7 +768,7 @@ async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
     const files = await filesBeneath(ctx.source, oldPath);
     await ctx.sink.mkdir(newPath);
     for (const file of files)
-        await ctx.sink.writeText(newPath + file.slice(oldPath.length), await ctx.source.readText(file));
+        await ctx.sink.writeText(joinPath(newPath, file.slice(oldPath.length + 1)), await ctx.source.readText(file));
     await ctx.sink.remove(oldPath);
 
     return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
