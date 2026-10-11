@@ -80,9 +80,10 @@ export class MemoryCollectionSink implements CollectionSink, CollectionSource {
     async exists(path: string): Promise<boolean> {
         if (path == '') return true;
         if (this.files.has(path)) return true;
-        if (this.dirs.has(path)) return true;
         for (const key of this.files.keys())
             if (key.startsWith(path + '/')) return true;
+        for (const d of this.dirs)
+            if (d == path || d.startsWith(path + '/')) return true;
         return false;
     }
 }
