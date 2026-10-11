@@ -89,7 +89,9 @@ describe('treeView validation marker', () => {
   // - c: a run with Body and jsonSchema undefined -> schema: false, incomplete: true
   // - c2: a run with Body and jsonSchema.schema == '' -> same as c (empty is empty either way)
   // - d: a run with Inherit under a request with Body (a real schema) -> effective: 'Body'
-  // - e: a request with Inherit under nothing -> effective: 'None'
+  // - e: a request with Inherit under nothing -> unresolved, so effective: 'ResponseCode' (that
+  //   is what validate.ts actually enforces for Inherit -- a live status check, not "no check")
+  // - f: a run with Inherit under a request that is also Inherit -> both unresolved the same way
   const req = (body: object) => JSON.stringify({
     id: 'id', name: 'n', verb: 'get', protocol: 'https', url: '{{host}}/x', parameters: [], headers: [], ...body
   });
@@ -114,6 +116,11 @@ describe('treeView validation marker', () => {
         validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' } }]
     }),
     'e.frreq': req({ validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' } }),
+    'f.frreq': req({
+      validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' },
+      runs: [{ id: 'u', name: 'r', variables: [], secrets: [], authentication: { authentication: 'inherit' }, parameters: [], headers: [],
+        validation: { type: 'Inherit', httpCode: 200, headers: [], body: 'None' } }]
+    }),
   };
   const byPath = async (path: string) => {
     const root = await loadCollectionTree('api.frcol', memory(files), store);
@@ -142,8 +149,14 @@ describe('treeView validation marker', () => {
     expect(d.runs[0].validation).toEqual({ type: 'Inherit', effective: 'Body', schema: true });
   });
 
-  it('a request with Inherit under nothing: effective None', async () => {
-    expect((await byPath('e.frreq')).validation).toEqual({ type: 'Inherit', effective: 'None', schema: false });
+  it('a request with Inherit under nothing: unresolved, so effective ResponseCode (not None)', async () => {
+    expect((await byPath('e.frreq')).validation).toEqual({ type: 'Inherit', effective: 'ResponseCode', schema: false });
+  });
+
+  it('a run with Inherit under a request that is also Inherit: both unresolved to ResponseCode', async () => {
+    const f = await byPath('f.frreq');
+    expect(f.validation).toEqual({ type: 'Inherit', effective: 'ResponseCode', schema: false });
+    expect(f.runs[0].validation).toEqual({ type: 'Inherit', effective: 'ResponseCode', schema: false });
   });
 });
 

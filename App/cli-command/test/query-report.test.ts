@@ -89,6 +89,10 @@ describe('formatTree validation marker', () => {
     expect(formatTree(tree({ type: 'Inherit', effective: 'Body', schema: true }))).toBe('api/\n  req  GET /x  [Inherit→Body]');
   });
 
+  it('shows ResponseCode as what an unresolved Inherit resolves to, not None', () => {
+    expect(formatTree(tree({ type: 'Inherit', effective: 'ResponseCode', schema: false }))).toBe('api/\n  req  GET /x  [Inherit→ResponseCode]');
+  });
+
   it('shows a run row\'s own marker too', () => {
     const view: TreeView = {
       collection: 'api',

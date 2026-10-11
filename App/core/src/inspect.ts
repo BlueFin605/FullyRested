@@ -11,16 +11,25 @@ export interface TreeError {
 
 // A request's or run's validation marker, sharper than the bare ValidationType:
 //
-// - effective resolves ValidationType.Inherit exactly as scope.ts's toExecute() resolves it for
-//   a run: a run whose own type is Inherit takes its request's type. Only RestAction and
-//   RestActionRun carry a validation setting -- folders and the collection do not -- so there is
-//   nothing above a request to inherit from; a request whose own type is Inherit (or a run whose
-//   request is also Inherit) therefore resolves to 'None'. effective is only present when type
-//   is 'Inherit'.
+// - effective resolves ValidationType.Inherit for the two-level chain this app actually has: a
+//   run whose own type is Inherit takes its request's type. There is nothing above a request to
+//   inherit from -- ScopeSettings (folders, the collection) carries no validation field, so only
+//   RestAction and RestActionRun have one -- so a request whose own type is Inherit, or a run
+//   whose request is also Inherit, is left unresolved. validateResponse does not treat an
+//   unresolved Inherit as "no validation": it early-returns only for undefined or type == None
+//   (validate.ts:12-13), so Inherit falls through to the unconditional status check against
+//   validation.httpCode (validate.ts:20-21) while skipping the body/header checks (neither
+//   'Inherit'.includes('Body') nor .includes('Headers') is true) -- i.e. it behaves exactly like
+//   ResponseCode with the default httpCode 200. So an unresolved Inherit resolves to
+//   'ResponseCode', not 'None', to report what actually gets checked. effective is only present
+//   when type is 'Inherit'.
 // - schema/incomplete describe whichever validation is actually in force (own, or inherited): a
 //   Body/HeadersBody check with a non-empty jsonSchema.schema sets schema true; one with an empty
-//   or absent schema sets schema false and incomplete true, since it is declared but checks
-//   nothing. Both are false/absent for a type that does not check a body at all.
+//   or absent schema sets schema false and incomplete true -- a mechanical flag on the absence of
+//   a schema, not a claim that nothing is checked: when validation.body is None, validateBody
+//   still asserts the response has no payload (validate.ts:40-41) even with incomplete true. Both
+//   schema and incomplete are false/absent for a type that does not check a body at all
+//   (including an unresolved Inherit, which resolves to ResponseCode).
 export interface TreeValidation {
   type: string;
   effective?: string;
@@ -64,13 +73,17 @@ const toError = (e: LoadError): TreeError => ({ type: 'error', file: e.file, mes
 const checksBody = (type: string) => type === ValidationType.Body || type === ValidationType.HeadersBody;
 const hasSchema = (v: RestActionValidation) => (v.jsonSchema?.schema ?? '').length > 0;
 
-// Mirrors scope.ts's toExecute(): a validation whose own type is Inherit takes the one above it
-// (undefined above a request, since nothing above a request sets validation); that, in turn,
-// resolves to None if it is still Inherit with nothing further above.
+// The two-level inherit chain: a run whose own type is Inherit takes its request's type (own);
+// nothing above a request carries a validation setting (ScopeSettings has none), so a request's
+// own Inherit -- or a run's Inherit under a request that is itself Inherit -- has nothing to
+// resolve to. Unlike toExecute() (scope.ts:87-91), which neither recurses nor maps Inherit to
+// anything and simply passes it through unchanged, this reports what validate.ts actually
+// enforces for an unresolved Inherit: a live status-code check against the default httpCode,
+// indistinguishable from ResponseCode (validate.ts:12-21).
 function resolveValidation(own: RestActionValidation, above: RestActionValidation | undefined): RestActionValidation {
   if (own.type !== ValidationType.Inherit) return own;
   if (above !== undefined && above.type !== ValidationType.Inherit) return above;
-  return CreateEmptyRestActionValidation(undefined);
+  return CreateEmptyRestActionValidation(ValidationType.ResponseCode);
 }
 
 function toTreeValidation(own: RestActionValidation | undefined, above?: RestActionValidation): TreeValidation | undefined {
