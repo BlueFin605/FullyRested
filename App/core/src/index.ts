@@ -13,6 +13,7 @@ export * from './scope';
 export * from './tree';
 export * from './collection-sink';
 export * from './locator';
+export * from './authoring';
 export * from './run-record';
 export * from './run-store';
 export * from './redact';
