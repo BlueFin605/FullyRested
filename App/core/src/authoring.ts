@@ -43,14 +43,14 @@ const LOCATOR_PREFIXES: Record<LocatorKind, string> = {
     run: 'run:'
 };
 
-function requireAllowed(locator: Locator, allowed: LocatorKind[]): void {
+function requireAllowed(verb: string, locator: Locator, allowed: LocatorKind[]): void {
     if (allowed.includes(locator.kind))
         return;
 
     const accepts = allowed.map(kind => LOCATOR_PREFIXES[kind]).join(', ');
     const only = allowed.length == 1 ? ' only' : '';
     throw new QueryError(
-        `This edit accepts ${accepts}${only} (given ${LOCATOR_PREFIXES[locator.kind]}); forms are ${LOCATOR_FORMS}`
+        `${verb} accepts ${accepts}${only} (given ${LOCATOR_PREFIXES[locator.kind]}); forms are ${LOCATOR_FORMS}`
     );
 }
 
@@ -61,6 +61,24 @@ async function readDocument(ctx: AuthoringContext, resolved: ResolvedScope): Pro
         return CreateEmptyFolderConfig(ctx.guid.generateGUID());
 
     return JSON.parse(await ctx.source.readText(resolved.file));
+}
+
+// Fills in whatever the document is missing, in place. Run before apply() so a verb can count on
+// the arrays being there, and again after it so anything the verb created is complete too: the
+// normalise functions are idempotent, and their array reassignments keep the same element objects,
+// so a ScopeTarget taken before the second pass still points at the objects that get written.
+function normaliseDocument(resolved: ResolvedScope, doc: unknown): void {
+    switch (resolved.document) {
+        case 'collection':
+            normaliseCollectionConfig(doc as CollectionConfig);
+            return;
+        case 'folder':
+            normaliseFolderConfig(doc as FolderConfig);
+            return;
+        case 'request':
+            normaliseAction(doc as RestAction);
+            return;
+    }
 }
 
 // resolveLocator has already checked that the environment / run the locator names exists; these
@@ -110,14 +128,16 @@ function secretServiceFor(target: ScopeTarget): string {
 // The one write path every authoring verb goes through: resolve the locator, read the document
 // it names raw, normalise it, let apply() mutate it, move any secret values into the store, write.
 // apply() returns the one-line message for the edit it made, or '' when there was nothing to do.
+// `verb` is the name of the calling verb (e.g. 'set_url'); it only appears in error messages.
 export async function editScope(
     ctx: AuthoringContext,
+    verb: string,
     scope: string,
     allowed: LocatorKind[],
     apply: (target: ScopeTarget, resolved: ResolvedScope) => string
 ): Promise<EditResult> {
     const locator = parseLocator(scope);
-    requireAllowed(locator, allowed);
+    requireAllowed(verb, locator, allowed);
 
     const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
     const resolved = resolveLocator(root, locator);
@@ -128,6 +148,10 @@ export async function editScope(
     const message = apply(target, resolved);
     if (message == '')
         return { file: resolved.file, scope, changed: false, message: `${scope} is already in the asked-for state` };
+
+    // Anything apply() created (a new run, a new environment) is normalised too, so what lands
+    // on disk is always a complete document the app does not have to repair.
+    normaliseDocument(resolved, doc);
 
     const stored = await storeSecrets(doc, ctx.secrets, secretServiceFor(target));
     await writeDocument(ctx, resolved.file, stored);
