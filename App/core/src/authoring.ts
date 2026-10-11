@@ -3,10 +3,11 @@ import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resol
 import {
     AuthenticationDetails, CollectionConfig, CreateEmptyAction, CreateEmptyActionBody, CreateEmptyCollectionConfig, CreateEmptyEnvironment,
     CreateEmptyFolderConfig, CreateEmptyRestActionRun, Environment, FolderConfig, FORM_CONTENT_TYPE, FormField, HeaderTable, HttpProtocol,
-    ParamTable, REConstants, RestAction, RestActionRun, RestTypeVerb, SecretTable, ValidationType, VariableTable, guidGenerator
+    ParamTable, REConstants, RestAction, RestActionRun, RestActionValidation, RestActionValidationJsonSchema, RestTypeVerb, SecretTable,
+    ValidationType, ValidationTypeBody, VariableTable, guidGenerator
 } from './model';
 import {
-    normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig
+    normaliseAction, normaliseAuthentication, normaliseCollectionConfig, normaliseFolderConfig, normaliseValidation
 } from './normalise';
 import { basenameOf, dirnameOf, extensionOf } from './paths';
 import { QueryError } from './query-error';
@@ -14,6 +15,7 @@ import {
     SecretStore, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest, storeSecrets
 } from './secrets';
 import { CollectionSource, loadCollectionTree } from './tree';
+import { compileSchema } from './validate';
 
 // What an authoring verb needs to read, write and keep secrets out of the files it writes.
 // The host (the CLI, or Electron main) supplies the source, sink, secret store and guid generator.
@@ -696,4 +698,103 @@ export async function setBody(
         action.body = { contentType, body: text };
         return `Set body on ${scope}`;
     }, runOverrideHint('body'));
+}
+
+// --- validation verbs ---------------------------------------------------------------------------
+
+// Both locators a request's validation can be edited through: a request: or run: locator, never
+// the other three — validation lives on RestAction and RestActionRun alone.
+const VALIDATION_LOCATORS: LocatorKind[] = ['request', 'run'];
+
+// The fields of a validation a caller may touch. Each is optional so a single call can set only
+// what it means to change — see setValidation.
+export interface ValidationFields {
+    type?: string;         // a ValidationType value, case-insensitive
+    httpCode?: number;
+    body?: string;         // a ValidationTypeBody value, case-insensitive
+    jsonSchema?: string;   // the schema as a string, as RestActionValidationJsonSchema stores it
+}
+
+// Matches `given` against one of an enum's values without regard to case; an unknown value is a
+// QueryError listing the ones it does take, the same shape as setAuth's and setMethod's rejections.
+function matchEnumValue<T extends string>(values: T[], given: string, label: string): T {
+    const match = values.find(value => value.toLowerCase() == given.toLowerCase());
+    if (match == undefined)
+        throw new QueryError(`Unknown validation ${label} '${given}' (have ${values.join(', ')})`);
+    return match;
+}
+
+// Parses and compiles a schema up front, before editScope touches any file, so a bad schema never
+// gets as far as a half-written document. Reuses validate.ts's Ajv setup (compileSchema) rather
+// than building a second one; an uncompilable schema would otherwise make every run of the request
+// fail with a confusing error at send time instead of a clear one now, at the point it was set.
+function parseJsonSchema(text: string): RestActionValidationJsonSchema {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch (error) {
+        throw new QueryError(`jsonSchema is not valid JSON: ${(error as Error).message}`);
+    }
+
+    try {
+        compileSchema(parsed as object);
+    } catch (error) {
+        throw new QueryError(`jsonSchema does not compile: ${(error as Error).message}`);
+    }
+
+    return { schema: text };
+}
+
+// Sets the validation of a request or run. Starts from what is already there, run through
+// normaliseValidation so an older file missing fields does not crash, and applies only the fields
+// given: setting httpCode alone leaves an existing schema untouched. type and body are matched
+// case-insensitively against ValidationType and ValidationTypeBody; jsonSchema given with no body
+// implies body: 'JsonSchema', and body: 'None' clears jsonSchema to undefined — both so an agent
+// cannot leave a half-configured check (a schema nothing checks against, or a body check with no
+// schema). All of fields.type/body/jsonSchema are validated before editScope runs, so a rejection
+// never touches the file, matching setAuth and setMethod.
+export async function setValidation(ctx: AuthoringContext, scope: string, fields: ValidationFields): Promise<EditResult> {
+    const type = fields.type == undefined ? undefined : matchEnumValue(Object.values(ValidationType), fields.type, 'type');
+    const body = fields.body == undefined ? undefined : matchEnumValue(Object.values(ValidationTypeBody), fields.body, 'body');
+    const jsonSchema = fields.jsonSchema == undefined ? undefined : parseJsonSchema(fields.jsonSchema);
+
+    return editScope(ctx, 'set_validation', scope, VALIDATION_LOCATORS, target => {
+        const before = normaliseValidation(JSON.parse(JSON.stringify(requestSettings(target).validation)));
+        const validation = JSON.parse(JSON.stringify(before)) as RestActionValidation;
+
+        if (type != undefined)
+            validation.type = type;
+        if (fields.httpCode != undefined)
+            validation.httpCode = fields.httpCode;
+        if (body != undefined)
+            validation.body = body;
+        if (jsonSchema != undefined) {
+            validation.jsonSchema = jsonSchema;
+            if (fields.body == undefined)
+                validation.body = ValidationTypeBody.JsonSchema;
+        }
+        if (body == ValidationTypeBody.None)
+            validation.jsonSchema = undefined;
+
+        if (JSON.stringify(validation) == JSON.stringify(before))
+            return '';
+
+        requestSettings(target).validation = validation;
+        return `Set validation on ${scope}`;
+    });
+}
+
+// Sets (or adds) a header the response must have, on a request's or run's validation. Matched
+// case-insensitively on the header name, like setHeader; removeSetting(…, 'validation-header', …)
+// removes from the same validation.headers array this upserts into.
+export async function setValidationHeader(
+    ctx: AuthoringContext, scope: string, name: string, value: string
+): Promise<EditResult> {
+    return editScope(ctx, 'set_validation_header', scope, SETTING_LOCATORS['validation-header'], target => {
+        const entry: HeaderTable = { key: name, value, active: true, id: ctx.guid.generateGUID() };
+        if (!upsertNamed(requestSettings(target).validation.headers, 'key', name, entry, sameName))
+            return '';
+
+        return `Set validation header '${name}' on ${scope}`;
+    });
 }
