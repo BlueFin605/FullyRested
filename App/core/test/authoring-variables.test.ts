@@ -156,7 +156,23 @@ describe('addSecretRef', () => {
     const edit = () => addSecretRef(ctxFor(sink), 'request:users/get.frreq', 'token');
     await expect(edit()).rejects.toThrow(QueryError);
     await expect(edit()).rejects.toThrow(/accepts collection, env:, folder:, run:/);
-    await expect(edit()).rejects.toThrow(/no variables of its own/);
+    await expect(edit()).rejects.toThrow(/no secrets of its own/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+  });
+
+  it('is idempotent: a disabled reference of that name is left disabled', async () => {
+    const seeded = {
+      ...files,
+      'users/folder.frfolder': JSON.stringify({
+        folderId: 'f1', secrets: [{ $secret: 'token', active: false, id: 's1' }]
+      })
+    };
+    const sink = new MemoryCollectionSink(seeded);
+
+    const result = await addSecretRef(ctxFor(sink), 'folder:users', 'token');
+    expect(result.changed).toBe(false);
+    expect(written(sink, 'users/folder.frfolder').secrets)
+      .toEqual([{ $secret: 'token', active: false, id: 's1' }]);
+    expect(secrets.set).not.toHaveBeenCalled();
   });
 });

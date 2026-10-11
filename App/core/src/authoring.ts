@@ -385,8 +385,10 @@ export async function setParam(
 
 // A request has no variables or secrets of its own, so both verbs below refuse request: and say
 // where the setting can go instead rather than leaving the caller to guess.
-const NO_REQUEST_HINT =
+const NO_REQUEST_VARIABLE_HINT =
     'a request has no variables of its own — put it on one of its runs or on the folder';
+const NO_REQUEST_SECRET_HINT =
+    'a request has no secrets of its own — put it on one of its runs or on the folder';
 
 // Sets (or adds) a variable. Matched case-sensitively, because {{name}} substitution is.
 export async function setVariable(
@@ -398,7 +400,7 @@ export async function setVariable(
             return '';
 
         return `Set variable '${name}' on ${scope}`;
-    }, NO_REQUEST_HINT);
+    }, NO_REQUEST_VARIABLE_HINT);
 }
 
 // Adds a reference to a secret, never its value: the document gets { $secret } with no $value, so
@@ -415,7 +417,7 @@ export async function addSecretRef(ctx: AuthoringContext, scope: string, name: s
         // on the way out of the file, not because a document on disk has to carry it.
         secrets.push({ $secret: name, active: true, id: ctx.guid.generateGUID() } as SecretTable);
         return `Added secret reference '${name}' on ${scope}`;
-    }, NO_REQUEST_HINT);
+    }, NO_REQUEST_SECRET_HINT);
 }
 
 // Removes one setting of the given kind. An absent name is not an error: it reports no change,
