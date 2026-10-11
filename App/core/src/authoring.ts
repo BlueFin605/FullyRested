@@ -2,8 +2,8 @@ import { CollectionSink } from './collection-sink';
 import { LOCATOR_FORMS, Locator, LocatorKind, ResolvedScope, parseLocator, resolveLocator } from './locator';
 import {
     CollectionConfig, CreateEmptyAction, CreateEmptyCollectionConfig, CreateEmptyEnvironment, CreateEmptyFolderConfig,
-    CreateEmptyRestActionRun, Environment, FolderConfig, HttpProtocol, REConstants, RestAction, RestActionRun,
-    RestTypeVerb, ValidationType, guidGenerator
+    CreateEmptyRestActionRun, Environment, FolderConfig, HeaderTable, HttpProtocol, ParamTable, REConstants, RestAction,
+    RestActionRun, RestTypeVerb, ValidationType, guidGenerator
 } from './model';
 import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
 import { basenameOf, dirnameOf, extensionOf } from './paths';
@@ -272,6 +272,136 @@ export async function newRequest(ctx: AuthoringContext, path: string, method: st
 
     await writeDocument(ctx, path, action);
     return { file: path, scope: path, changed: true, message: `Created request ${path}` };
+}
+
+// --- settings verbs ----------------------------------------------------------------------------
+
+// Every level of the hierarchy holds headers, so set_header takes any locator.
+const ALL_LOCATORS: LocatorKind[] = ['collection', 'environment', 'folder', 'request', 'run'];
+
+export type SettingKind = 'header' | 'param' | 'variable' | 'secret' | 'validation-header';
+
+// Which locators each kind of setting can live at. Variables and secrets are absent from
+// request: because RestAction has no field for them (see the design spec).
+const SETTING_LOCATORS: Record<SettingKind, LocatorKind[]> = {
+    'header': ALL_LOCATORS,
+    'param': ['request', 'run'],
+    'variable': ['collection', 'environment', 'folder', 'run'],
+    'secret': ['collection', 'environment', 'folder', 'run'],
+    'validation-header': ['request', 'run']
+};
+
+// editScope has already refused the locators these verbs do not take; the guards are only so the
+// compiler can see which part of the ScopeTarget union `settings` is.
+function requestSettings(target: ScopeTarget): RestAction | RestActionRun {
+    if (target.document != 'request')
+        throw new Error('wrong target');
+    return target.settings;
+}
+
+function scopeSettings(target: ScopeTarget): Environment | FolderConfig | RestActionRun {
+    if (target.document != 'request')
+        return target.settings;
+    if (!('run' in target))
+        throw new Error('wrong target');
+    return target.run;
+}
+
+// Header and parameter names are matched without regard to case, as HTTP treats them.
+const sameName = (a: string, b: string) => a.toLowerCase() == b.toLowerCase();
+
+// Replaces the entry whose name field matches `name`, or appends it when there is none.
+// Keeps the existing entry's id so the row keeps its identity in the app's editor.
+// Returns false when the entry is already exactly what was asked for, which is the caller's
+// cue to report no change and leave the file alone.
+function upsertNamed<T extends { value: string; active: boolean; id: string }>(
+    list: T[],
+    nameField: keyof T,
+    name: string,
+    entry: T
+): boolean {
+    const index = list.findIndex(e => sameName(String(e[nameField]), name));
+    if (index < 0) {
+        list.push(entry);
+        return true;
+    }
+
+    const existing = list[index];
+    if (existing[nameField] == entry[nameField] && existing.value == entry.value && existing.active == entry.active)
+        return false;
+
+    list[index] = { ...entry, id: existing.id };
+    return true;
+}
+
+function removeWhere<T>(list: T[], match: (entry: T) => boolean): boolean {
+    const index = list.findIndex(match);
+    if (index < 0)
+        return false;
+
+    list.splice(index, 1);
+    return true;
+}
+
+// Sets (or adds) a header at any level of the hierarchy. `settings.headers` is the headers array
+// of whichever of the five documents the locator named.
+export async function setHeader(
+    ctx: AuthoringContext, scope: string, name: string, value: string, enabled: boolean = true
+): Promise<EditResult> {
+    return editScope(ctx, 'set_header', scope, SETTING_LOCATORS['header'], target => {
+        const entry: HeaderTable = { key: name, value, active: enabled, id: ctx.guid.generateGUID() };
+        if (!upsertNamed(target.settings.headers, 'key', name, entry))
+            return '';
+
+        return `Set header '${name}' on ${scope}`;
+    });
+}
+
+// Sets (or adds) a query parameter. Only requests and runs have parameters.
+export async function setParam(
+    ctx: AuthoringContext, scope: string, name: string, value: string, enabled: boolean = true
+): Promise<EditResult> {
+    return editScope(ctx, 'set_param', scope, SETTING_LOCATORS['param'], target => {
+        const entry: ParamTable = { key: name, value, active: enabled, id: ctx.guid.generateGUID() };
+        if (!upsertNamed(requestSettings(target).parameters, 'key', name, entry))
+            return '';
+
+        return `Set parameter '${name}' on ${scope}`;
+    });
+}
+
+// Removes one setting of the given kind. An absent name is not an error: it reports no change,
+// so an agent cleaning up can call this without first checking what is there.
+export async function removeSetting(
+    ctx: AuthoringContext, scope: string, kind: SettingKind, name: string
+): Promise<EditResult> {
+    const result = await editScope(ctx, 'remove_setting', scope, SETTING_LOCATORS[kind], target => {
+        if (!removeNamedSetting(target, kind, name))
+            return '';
+
+        return `Removed ${kind} '${name}' from ${scope}`;
+    });
+
+    if (result.changed)
+        return result;
+
+    return { ...result, message: `No ${kind} '${name}' on ${scope}: nothing to remove` };
+}
+
+// Each kind of setting lives in its own array, on its own part of the target document.
+function removeNamedSetting(target: ScopeTarget, kind: SettingKind, name: string): boolean {
+    switch (kind) {
+        case 'header':
+            return removeWhere(target.settings.headers, h => sameName(h.key, name));
+        case 'param':
+            return removeWhere(requestSettings(target).parameters, p => sameName(p.key, name));
+        case 'validation-header':
+            return removeWhere(requestSettings(target).validation.headers, h => sameName(h.key, name));
+        case 'variable':
+            return removeWhere(scopeSettings(target).variables, v => v.variable == name);
+        case 'secret':
+            return removeWhere(scopeSettings(target).secrets, s => s.$secret == name);
+    }
 }
 
 // Adds a run to the request at `request` (a collection-relative .frreq path). The run inherits
