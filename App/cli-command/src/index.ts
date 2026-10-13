@@ -17,9 +17,9 @@ import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
 import {
   formatBody, formatEdit, formatEnvironments, formatShown, formatTree, formatFailures, formatRequest,
-  formatResponse, formatRuns, formatSummary as formatQuerySummary, parseRange, truncationNotice
+  formatResponse, formatRuns, formatSettings, formatSummary as formatQuerySummary, parseRange, truncationNotice
 } from './query-report';
-import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
+import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { startMcp } from './mcp';
 import { createSecretStore, createSecretWriter, secretEnvironmentVariable, secretServiceForScope, stripTrailingNewline } from './secret-store';
 
@@ -180,6 +180,14 @@ withInspectOptions(program.command('envs').description('List the environments of
   .action(queryAction(async (options: InspectOptions) => {
     const view = await inspectEnvironments(options.collection, createSecretStore());
     printResult(options, view, formatEnvironments(view));
+  }));
+
+// An inspect command, not an edit one: it writes nothing, it only names what is set where.
+withInspectOptions(program.command('settings').description('List what is set in every scope of a collection, by name only (no values)')
+  .option('--scope <locator>', `only this scope; ${LOCATOR_FORMS}`))
+  .action(queryAction(async (options: InspectOptions & { scope?: string }) => {
+    const view = await inspectSettings(options.collection, createSecretStore(), options.scope);
+    printResult(options, view, formatSettings(view));
   }));
 
 withInspectOptions(program.command('show').description('Show a request as it would be sent, with where each setting comes from (secrets stay redacted)')

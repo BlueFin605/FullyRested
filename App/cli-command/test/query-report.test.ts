@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { BodyResult, TreeRequest, TreeValidation, TreeView } from '@fullyrested/core';
-import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary, formatTree, parseRange, truncationNotice } from '../src/query-report';
+import { BodyResult, ScopeSettingNames, SettingsView, TreeRequest, TreeValidation, TreeView } from '@fullyrested/core';
+import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSettings, formatSummary, formatTree, parseRange, truncationNotice } from '../src/query-report';
 
 const body = (o: Partial<BodyResult>): BodyResult =>
   ({ index: 0, name: 'n', side: 'response', bytes: 10, encoding: 'text', truncated: false, content: 'x', ...o });
@@ -99,5 +99,37 @@ describe('formatTree validation marker', () => {
       children: [{ ...request({ type: 'None', schema: false }), runs: [{ name: 'happy', validation: { type: 'Body', schema: false, incomplete: true } }] }]
     };
     expect(formatTree(view)).toBe('api/\n  req  GET /x  [None]\n    › happy  [Body(no schema!)]');
+  });
+});
+
+describe('formatSettings', () => {
+  const scope = (o: Partial<ScopeSettingNames>): ScopeSettingNames =>
+    ({ scope: 's', headers: [], variables: [], secrets: [], auth: 'inherit', ...o });
+  const view = (...scopes: ScopeSettingNames[]): SettingsView => ({ collection: 'api', scopes });
+
+  it('prints one block per scope, names only, leaving empty rows out', () => {
+    const out = formatSettings(view(
+      scope({ scope: 'collection', headers: ['Accept', 'User-Agent'], variables: ['host'], secrets: ['apiKey'], auth: 'none' }),
+      scope({ scope: 'env:Production', variables: ['host'] })
+    ));
+    expect(out.split('\n')).toEqual([
+      'collection',
+      '  headers    Accept, User-Agent',
+      '  variables  host',
+      '  secrets    apiKey',
+      '  auth       none',
+      'env:Production',
+      '  variables  host'
+    ]);
+  });
+
+  it('prints the parameters of a request or run scope', () => {
+    const out = formatSettings(view(scope({ scope: 'run:items/ok.frreq#happy', params: ['env'], auth: 'bearertoken' })));
+    expect(out.split('\n')).toEqual(['run:items/ok.frreq#happy', '  params     env', '  auth       bearertoken']);
+  });
+
+  it('prints a dash for a scope with nothing set at all', () => {
+    expect(formatSettings(view(scope({ scope: 'request:items/ok.frreq', params: [] }))).split('\n'))
+      .toEqual(['request:items/ok.frreq', '  —']);
   });
 });

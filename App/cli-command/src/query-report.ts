@@ -1,4 +1,4 @@
-import { BodyResult, EditResult, EnvironmentsView, RunListing, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EditResult, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -102,6 +102,29 @@ const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');
 export function formatEnvironments(v: EnvironmentsView): string {
   const rows = v.environments.map(e => `${e.name === v.selected ? '*' : ' '} ${e.name}  vars: ${list(e.variables)}  secrets: ${list(e.secrets)}`);
   return [...rows, `  collection  vars: ${list(v.collection.variables)}  secrets: ${list(v.collection.secrets)}`].join('\n');
+}
+
+// One block per scope: its locator, then a row per kind that has anything in it, names only --
+// never a value. An empty row is left out rather than printed as '(none)': both a person and an
+// agent read this, and a page of empty rows buries the few settings that are actually set. 'auth'
+// counts as unset when it is 'inherit' (the default every scope starts at), so a scope with
+// nothing of its own prints just its locator and a dash.
+function settingRows(s: ScopeSettingNames): string[] {
+  const row = (label: string, names: string[]) => names.length === 0 ? [] : [`  ${label.padEnd(9)}  ${names.join(', ')}`];
+  return [
+    ...row('headers', s.headers),
+    ...row('params', s.params ?? []),
+    ...row('variables', s.variables),
+    ...row('secrets', s.secrets),
+    ...row('auth', s.auth === 'inherit' ? [] : [s.auth])
+  ];
+}
+
+export function formatSettings(v: SettingsView): string {
+  return v.scopes.flatMap(s => {
+    const rows = settingRows(s);
+    return [s.scope, ...(rows.length === 0 ? ['  —'] : rows)];
+  }).join('\n');
 }
 
 // One line: result.message, plus ' (no change)' when the edit left the document as it was.

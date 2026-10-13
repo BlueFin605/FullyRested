@@ -288,6 +288,34 @@ describe('inspect commands', () => {
     expect(json.out).not.toContain('cli-secret-value');
   });
 
+  it('settings lists every scope in resolution order, names only', async () => {
+    const r = await fullyrested(['settings', '-c', fx.collection]);
+    expect(r.code).toBe(0);
+    const scopes = r.out.split('\n').filter(l => l !== '' && !l.startsWith(' '));
+    expect(scopes.slice(0, 4)).toEqual(['collection', 'env:Dev', 'env:Prod', 'folder:items']);
+    expect(scopes).toContain('request:items/ok.frreq');
+    expect(scopes).toContain('run:items/runs.frreq#expects 404');
+    expect(r.out).toMatch(/^ {2}variables {2}host$/m);
+    expect(r.out).toMatch(/^ {2}secrets {4}apikey$/m);
+    // names only: no fixture setting value may appear, in the text or in --json
+    expect(r.out).not.toContain(fx.host);
+    expect(r.out).not.toContain('cli-secret-value');
+    expect(r.out).not.toContain('{{$apikey}}');
+    const json = await fullyrested(['settings', '-c', fx.collection, '--json']);
+    expect(JSON.parse(json.out).scopes[0].scope).toBe('collection');
+    expect(json.out).not.toContain(fx.host);
+    expect(json.out).not.toContain('cli-secret-value');
+  });
+
+  it('settings --scope reports just that scope, and exits 2 for an unknown one', async () => {
+    const r = await fullyrested(['settings', '-c', fx.collection, '--scope', 'env:Prod']);
+    expect(r.code).toBe(0);
+    expect(r.out.split('\n').filter(l => l !== '' && !l.startsWith(' '))).toEqual(['env:Prod']);
+    const bad = await fullyrested(['settings', '-c', fx.collection, '--scope', 'env:Nowhere']);
+    expect(bad.code).toBe(2);
+    expect(bad.err).toMatch(/^error: /);
+  });
+
   it('show picks a run and an environment, and exits 2 for an unknown run', async () => {
     const r = await fullyrested(['show', '-c', fx.collection, '-a', 'items/runs.frreq', '-r', 'expects 404', '-e', 'Prod']);
     expect(r.code).toBe(0);
