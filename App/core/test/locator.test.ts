@@ -34,4 +34,12 @@ describe('parseLocator', () => {
     expect(() => parseLocator('run:users/get.frreq')).toThrow(/needs a run name/);
     expect(() => parseLocator('folder:.')).toThrow(/collection-wide settings/);
   });
+
+  it('rejects a path that leaves the collection folder, saying so', () => {
+    for (const text of ['folder:../other', 'request:../outside.frreq', 'request:users\\..\\..\\x.frreq', 'run:../x.frreq#one'])
+      expect(() => parseLocator(text), text).toThrow(/is outside the collection folder/);
+    expect(() => parseLocator('request:../outside.frreq')).toThrow(QueryError);
+    // '..' only as a whole segment: a name that merely starts with dots is a name
+    expect(parseLocator('request:..hidden.frreq')).toEqual({ kind: 'request', path: '..hidden.frreq' });
+  });
 });

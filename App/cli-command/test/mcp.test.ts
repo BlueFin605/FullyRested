@@ -3,10 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { spawn } from 'node:child_process';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { startFixture } from './fixture';
-import { createServer } from '../src/mcp';
+import { callTool as call, connectMcp, startFixture } from './fixture';
 import { createSecretStore } from '../src/secret-store';
 
 let fx: Awaited<ReturnType<typeof startFixture>>;
@@ -15,19 +12,7 @@ const secrets = createSecretStore({ FULLYRESTED_SECRET_APIKEY: 'sk-test-secret' 
 beforeAll(async () => { fx = await startFixture(); });
 afterAll(() => fx.stop());
 
-async function connect(defaultStore?: string) {
-  const server = createServer({ defaultStore, secrets });
-  const [a, b] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'test', version: '1' });
-  await Promise.all([server.connect(a), client.connect(b)]);
-  return client;
-}
-
-async function call(client: Client, name: string, args: Record<string, unknown> = {}) {
-  const result = await client.callTool({ name, arguments: args });
-  const text = (result.content as { type: string; text: string }[])[0]!.text;
-  return { isError: result.isError === true, text, json: () => JSON.parse(text) };
-}
+const connect = (defaultStore?: string) => connectMcp({ defaultStore, secrets });
 
 // The query tools: nothing they take may name a secret or --include-secrets.
 const QUERY_TOOLS = [

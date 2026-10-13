@@ -19,10 +19,20 @@ export const LOCATOR_FORMS =
     "collection | env:<name> | folder:<path> | request:<request path> | run:<request path>#<run name>";
 
 // Backslashes to '/', then strip a leading './' or '/'.
+//
+// A '..' segment is refused here, in the one place every locator path passes through, with the
+// same wording FsCollectionSink uses for a write that would leave the collection folder. Nothing
+// is written either way -- resolveLocator would not find such a path in the tree -- but a plain
+// "not found (known: ...)" says nothing about why it can never be found, and invites a caller
+// that meant to reach outside the folder to try the next spelling. Saying where the boundary is
+// is what lets an agent correct itself instead.
 function normalisePath(path: string): string {
     const slashed = path.replace(/\\/g, '/');
     const stripped = slashed.startsWith('./') ? slashed.slice(2) : slashed.startsWith('/') ? slashed.slice(1) : slashed;
-    return stripped.endsWith('/') ? stripped.slice(0, -1) : stripped;
+    const trimmed = stripped.endsWith('/') ? stripped.slice(0, -1) : stripped;
+    if (trimmed.split('/').some(segment => segment === '..'))
+        throw new QueryError(`'${path}' is outside the collection folder`);
+    return trimmed;
 }
 
 export function parseLocator(text: string): Locator {
