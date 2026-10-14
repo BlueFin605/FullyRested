@@ -420,7 +420,7 @@ withScope(editCommand('move', 'Move a request or folder to a new path'))
     runEdit(options, ctx => move(ctx, options.scope, options.to))));
 
 program.command('mcp')
-  .description('Serve inspect, run and query tools over MCP on stdio (stdout carries the protocol)')
+  .description('Serve the inspect, run, query and authoring tools over MCP on stdio (stdout carries the protocol)')
   .option('--store <dir>', 'folder holding .fullyrested-runs, read and written by default')
   .action(async (options: { store?: string }) => {
     try {
