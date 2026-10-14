@@ -36,7 +36,7 @@ flowchart TB
     MCP -->|"requires dist"| Core
     CLI --> CliHost
     MCP --> CliHost
-    CliHost --> Files
+    CliHost -->|"reads and writes"| Files
     CliHost --> Runs[".fullyrested-runs<br/>run records"]
     CliHost --> Keychain
     Main --> Files
@@ -45,9 +45,9 @@ flowchart TB
 
 | Layer | Where | Job |
 |---|---|---|
-| Front ends | `App/FullyRested/src` (Angular), `App/cli-command` (CLI commands, plus the MCP server in `mcp.ts`, which shares the CLI host and the same pipeline) | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`, `run-store.ts`, `inspect.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host supplies `FsCollectionSource`. The CLI host reads collections, writes run records (`FsRunStore`, in `.fullyrested-runs`), and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain |
-| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore`. For AI use: `run-record.ts` (the run record), `redact.ts` (`redactCase`, `secretReplacer`), `run-store.ts` (`RunStore`, `MemoryRunStore`), `query.ts` (summary, failures and case queries, with `json-path.ts` and `query-error.ts`) and `inspect.ts` (tree, environments and show-request views) |
+| Front ends | `App/FullyRested/src` (Angular), `App/cli-command` (CLI commands, plus the MCP server in `mcp.ts`, which shares the CLI host and the same pipeline, and serves the authoring verbs by default) | Collect input and show results. Should hold no request logic of their own |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`, `run-store.ts`, `inspect.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host reads collections through `FsCollectionSource` and writes them through `FsCollectionSink` (JSON at 4-space indent, so app-saved and agent-saved files do not churn in `git diff`), which resolves every path against the collection folder and refuses anything that escapes it — the same idea as `collection-access.js`, implemented a second time for the CLI. It also writes run records (`FsRunStore`, in `.fullyrested-runs`), and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain; `secret set` is the only path that writes a secret value, and it exists on the CLI alone |
+| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore`. For AI use: `run-record.ts` (the run record), `redact.ts` (`redactCase`, `secretReplacer`), `run-store.ts` (`RunStore`, `MemoryRunStore`), `query.ts` (summary, failures and case queries, with `json-path.ts` and `query-error.ts`) and `inspect.ts` (tree, environments, settings and show-request views). For authoring: `locator.ts` (parse a scope locator, resolve it against the tree), `collection-sink.ts` (`CollectionSink`, the write sibling of `CollectionSource`, plus `MemoryCollectionSink`), `authoring/` (one file per verb family over the shared `editScope` write path: `edit-scope.ts`, `create.ts`, `settings.ts`, `request-fields.ts`, `validation.ts`, `structure.ts`) with `authoring.ts` as the re-export barrel and only public entry point, and `infer.ts` (JSON Schema inference from a recorded body) |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
@@ -69,6 +69,7 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
 | Record and query | core `run-record.ts` builds the run record, its cases numbered from 1; core `redact.ts` (`redactCase`) redacts each case, called from the CLI's `run.ts` unless `--include-secrets` is given; a `RunStore` keeps it (`FsRunStore` on disk in the CLI, `MemoryRunStore` in the MCP server); `query.ts` answers run-result (what MCP `run` returns), summary, failures and per-case questions for both the CLI commands and the MCP tools |
+| Author: create or change a document | core `authoring/` over `editScope`: resolve the locator, read the document raw through `CollectionSource`, apply the verb, `normalise*`, `storeSecrets`, write through `CollectionSink` — `FsCollectionSink` in the CLI and the MCP server, `MemoryCollectionSink` in tests. The app still has its own write handlers in `main.js` |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
 ## Where the plan lives
@@ -82,6 +83,9 @@ initiative (`78286444-4af7-4e63-9929-1a63a8b641c7`); `active` stays UI Refresh.
 The `feature/ai-interface` branch maps to the **AI First** initiative
 (`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
 `docs/superpowers/specs/2026-10-11-ai-interface-design.md`.
+The `feature/authoring-apis` branch maps to the same **AI First** initiative
+(`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
+`docs/superpowers/specs/2026-10-11-authoring-apis-design.md`.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it

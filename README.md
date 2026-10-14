@@ -38,7 +38,7 @@ I like Postman, but it falls short in a few places:
 |---|---|
 | Desktop app (Electron + Angular) | Working: edit, run, validate and save requests and collections |
 | Shared core (`App/core`) | Holds the model, substitution, authentication, execution, validation and secret handling. Covered by unit tests |
-| CLI (`App/cli-command`) | Working: `fullyrested run` sends a request, one run, or a whole collection, and reports pass or fail |
+| CLI (`App/cli-command`) | Working: `fullyrested run` sends a request, one run, or a whole collection and reports pass or fail; `fullyrested edit` creates and changes collections, and `fullyrested mcp` serves both over MCP |
 | Request chaining | **Not built yet.** Runs (named variants of a request) exist, but one request can't feed values into the next |
 
 ## Concepts
@@ -149,17 +149,126 @@ when anything fails, and 2 for bad options.
 turned into `_`), then from the OS keychain the desktop app saves to. On CI,
 set the environment variables.
 
+## Editing a collection
+
+Collections, folders, requests, runs, environments and their settings can be
+built and changed from the command line as well as in the app. Each change is
+its own verb under `fullyrested edit`, so a command says exactly what it
+touches, and the scope it writes is always named rather than inferred.
+
+```sh
+# a collection, a request in it, and a run of that request that expects a 404
+fullyrested edit new-collection --file api.frcol --environment Production
+fullyrested edit new-request -c api.frcol --path "users/get.frreq" --method get --url "{{base}}/users/{{id}}"
+fullyrested edit new-run -c api.frcol --request "users/get.frreq" --name "not found"
+fullyrested edit set-validation -c api.frcol --scope "run:users/get.frreq#not found" --type ResponseCode --http-code 404
+```
+
+Every verb but `new-collection` takes `-c, --collection`, and every verb that
+changes an existing thing takes `--scope`: a locator naming the level it edits.
+
+| Locator | What it addresses |
+|---|---|
+| `collection` | the collection-wide settings in the `.frcol` |
+| `env:Production` | one environment in the `.frcol` |
+| `folder:users` | `users/folder.frfolder`, created if it isn't there yet |
+| `request:users/get.frreq` | that request file |
+| `run:users/get.frreq#not found` | the named run inside that request |
+
+A locator is resolved against the collection before anything is written, so a
+mistyped folder, request or run name fails with a list of the names that do
+exist, and a path holding a `..` segment is refused as
+`'<path>' is outside the collection folder` — the same rule that stops any
+write landing outside the collection's folder.
+
+| Group | Verbs |
+|---|---|
+| Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
+| Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `remove-setting` |
+| Request | `set-url`, `set-method`, `set-body` |
+| Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
+| Structure | `rename`, `delete`, `move` |
+
+`fullyrested edit <verb> --help` has the options for one verb. Worth knowing
+before you reach for `--help`:
+
+- **Each `set-*` is an upsert**, keyed by name at that scope: it replaces the
+  entry of that name or adds it if there is none. `remove-setting --kind` takes
+  it away again (`header`, `param`, `variable`, `secret`, `validation-header`).
+- **Not every verb takes every locator.** Parameters, url, method, body and
+  validation are request- and run-level; variables and secret references are
+  not request-level, because a request has nowhere to keep them — put them on
+  one of its runs or on the folder above. A mismatch names the locators the
+  verb does accept.
+- **`set-header`, `set-param` and `set-validation-header` take `--disabled`**
+  to write the row switched off. The flag is written either way, so a verb that
+  omits it switches a disabled row back on.
+- **`set-validation --json-schema <file>`** takes a path to a schema file; the
+  MCP tool takes the schema as text instead, since an MCP client shares no
+  filesystem with the server.
+- **`validation-from-case`** writes the validation for you from a case of a
+  recorded run (see **Run records** below): the status it saw, and a JSON
+  Schema inferred from the body. The inference fails on regressions rather than
+  on growth — `required` is what the sample had, and a field the API adds later
+  does not fail the check.
+- **Nothing is overwritten silently.** `new-*`, `rename` and `move` onto an
+  existing path are refused, and `delete folder:` only goes ahead when the
+  folder holds nothing but `.frreq` and `folder.frfolder` files.
+- **`--json`** prints the result as JSON. Usage and locator errors exit 2.
+
+### Secrets, end to end
+
+A secret's value lives in the keychain and nothing else writes it:
+
+```sh
+fullyrested edit add-secret-ref -c api.frcol --scope collection --name apiPass   # declare the reference
+fullyrested edit set-auth -c api.frcol --scope collection --type basicauth \
+  --user-name dean --password '{{$apiPass}}'                                     # reference it
+fullyrested secret set -c api.frcol --scope collection --name apiPass            # a person types the value
+```
+
+`secret set` reads the value from a prompt, from a pipe, or from `--value`, and
+stores it under that scope's keychain service — the same one the desktop app
+uses. It writes the keychain only; the `{$secret}` reference in the file is the
+separate `add-secret-ref` step above. On CI, set
+`FULLYRESTED_SECRET_<NAME>` instead of using the keychain at all.
+
+The credential fields — `--password`, `--secret-key` and `--session-token` —
+accept a single `{{$name}}` reference and nothing else. A literal, a
+`{{variable}}`, an empty string or two references run together are all refused,
+so auth can be wired up completely without a value ever passing through the
+command line or an agent.
+
+### Known gaps
+
+- **Deleting a scope leaves its keychain entries behind.** `delete` removes the
+  file or the entry in it; the secret values stay under that scope's service in
+  the OS keychain until you clear them yourself.
+- **A secret name must be letters and digits only.** `{{$api_pass}}` and
+  `{{$aws-secret}}` can be declared but never substitute — today they resolve to
+  an empty string, silently, everywhere except the reference-only auth fields,
+  which refuse the name outright.
+- **The desktop app can write a secret field the verbs never produce.** Saving
+  in the app puts `$value: ""` into a secret that has no keychain entry on that
+  machine, and the save keeps it.
+- **There is no locking.** Nothing detects the desktop app holding the same file
+  open with unsaved changes. If both write, the last writer wins — collections
+  are plain JSON in git, so `git diff` shows it and `git checkout` undoes it.
+
 ## Using FullyRested from an AI agent
 
-`fullyrested mcp` serves the runner over MCP on stdio, so an agent can run a
-collection and look into the results without reading raw output. After
-`npm link` in `App/cli-command`, register it:
+`fullyrested mcp` serves the runner and the authoring verbs over MCP on stdio,
+so an agent can look at a collection, change it, run it and look into the
+results without reading raw output. After `npm link` in `App/cli-command`,
+register it:
 
 ```sh
 claude mcp add fullyrested -- fullyrested mcp [--store <dir>]
 ```
 
-The tool flow is **run**, then the `case_*` tools for any case that needs a closer look:
+Reading and running come first — **run**, then the `case_*` tools for any case
+that needs a closer look — and the authoring tools are the same verbs the CLI
+has:
 
 | Tool | Use |
 |---|---|
@@ -167,6 +276,27 @@ The tool flow is **run**, then the `case_*` tools for any case that needs a clos
 | `run` | Send requests (the whole collection unless `action` or `folder` is given) and get the counts plus only the cases that did not pass, with their failed checks (bodies are never included) |
 | `list_runs`, `run_summary`, `failures` | Find an earlier run, list every case, or see which cases failed, grouped by check |
 | `case_request`, `case_response`, `case_body` | Drill into one case. `case_body` takes `path`, `outline`, `range` and `full` so a large body is not dumped whole. `case_response` shows only the useful headers unless `headers` is `true` or a list of names |
+| `settings` | What is set at every scope, or at one (`scope`), by name only — no values. Answers "is this header already set above me?" |
+| `new_collection`, `new_folder`, `new_request`, `new_run`, `new_environment`, `select_environment` | Create things |
+| `set_header`, `set_param`, `set_variable`, `add_secret_ref`, `set_auth`, `remove_setting` | Settings, at any scope the locator allows |
+| `set_url`, `set_method`, `set_body` | A request's own fields |
+| `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
+| `rename`, `delete`, `move` | Structure |
+
+The authoring tools take the same locators the CLI does (see **Editing a
+collection**), and the loop is three steps:
+
+1. `tree` — what exists, and which requests and runs still have no real
+   validation.
+2. `settings` — only when inheritance is in question: is this header, variable
+   or auth already set at a scope above?
+3. Edit, then `run` — and from then on `tree` and `run`.
+
+**Authoring is live by default**, with no flag to arm it: a verb writes the file
+as soon as it is called. Collections are plain JSON in git, so `git diff` is
+the review and `git checkout` is the undo. Writes are confined to the
+collection's folder, and `secret set` is deliberately not served — a secret
+value never crosses the protocol.
 
 The CLI has the same queries for a terminal or a script:
 
@@ -175,7 +305,8 @@ The CLI has the same queries for a terminal or a script:
 | `run --record` | `run`, and also saves the run record |
 | `runs`, `summary`, `failures` | `list_runs`, `run_summary`, `failures` |
 | `request`, `response`, `body` | `case_request`, `case_response`, `case_body` (`response` shows every header unless `--headers <names>` is given) |
-| `tree`, `envs`, `show` | `tree`, `environments`, `show_request` (`tree --folder <path>` for one folder) |
+| `tree`, `envs`, `show`, `settings` | `tree`, `environments`, `show_request`, `settings` (`tree --folder <path>` for one folder, `settings --scope <locator>` for one scope) |
+| `edit <verb>` | The authoring tools, one per verb (see **Editing a collection**) |
 
 Every query command takes `--json`. A case is named by its index, counted
 from 1 in the order the run sent it, or by its name.
