@@ -12,6 +12,7 @@ export * from './paths';
 export * from './scope';
 export * from './tree';
 export * from './collection-sink';
+export * from './collection-guard';
 export * from './locator';
 export * from './authoring';
 export * from './run-record';

@@ -3,7 +3,7 @@
 // every path or secret service outside those, so a renderer can't reach arbitrary files or keychain entries.
 const path = require('node:path');
 const fs = require('node:fs');
-const { REConstants, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
+const { REConstants, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, guardedRealTarget, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
 
 // Collection guids, request ids and folder ids are app-generated GUIDs; secret names are user-typed keys
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
@@ -11,13 +11,32 @@ const ACCOUNT_PATTERN = /^[^\0\r\n]{1,256}$/;
 
 const hasExtension = (file, extensions) => extensions.some(e => file.toLowerCase().endsWith(e.toLowerCase()));
 
-// The real path of a file that may not exist yet: its folder must exist, and an existing file is followed
-// through any symlink
+// The file system primitives core's path guard needs. core is bundled into the renderer as well, so it
+// cannot import node:fs or node:path itself; the walk that uses these is shared with the CLI's guard.
+const guardHost = {
+    // existsSync() reports a dangling symlink as ABSENT, which is how the old check here stepped past a
+    // dead link, took it for a not-yet-created plain name, and let the write land at the link's target
+    // outside the collection. lstat sees the link itself.
+    exists: target => {
+        try {
+            fs.lstatSync(target);
+            return true;
+        } catch {
+            return false;
+        }
+    },
+    realpath: target => fs.realpathSync.native(target),
+    dirname: target => path.dirname(target),
+    join: (base, ...rest) => path.join(base, ...rest)
+};
+
+// The real path of a file that may not exist yet: the nearest existing ancestor is followed through any
+// symlink and the segments still to be created are appended, so a symlinked grandparent is noticed and
+// not only the immediate parent. undefined when there is no real path at all -- a dangling symlink, or an
+// ancestor that cannot be resolved -- which every caller must refuse rather than read as "not created
+// yet", since that is exactly how a write ends up at the link's target outside the collection.
 function realTarget(file) {
-    const full = path.resolve(file);
-    if (fs.existsSync(full))
-        return fs.realpathSync.native(full);
-    return path.join(fs.realpathSync.native(path.dirname(full)), path.basename(full));
+    return guardedRealTarget(guardHost, path.resolve(file));
 }
 
 function isInside(base, full) {
@@ -83,6 +102,7 @@ class CollectionAccess {
 
     // Saving writes only the open collection's own file; a new one goes through Save As
     checkCollectionToSave(filename) {
+        // realTarget is undefined for a path with no real path, which can never equal the open collection
         if (this.collectionFile == undefined || typeof filename != 'string' || filename == '' || realTarget(filename) != this.collectionFile)
             throw new Error(`${filename} is not the open collection`);
         return this.collectionFile;
@@ -109,7 +129,7 @@ class CollectionAccess {
 
     checkInside(full) {
         const real = realTarget(full);
-        if (this.root == undefined || !isInside(this.root, real))
+        if (this.root == undefined || real == undefined || !isInside(this.root, real))
             throw new Error(`${full} is outside the collection folder`);
         return real;
     }
@@ -119,7 +139,7 @@ class CollectionAccess {
         if (typeof fullFilename != 'string' || fullFilename == '' || !hasExtension(fullFilename, ACTION_FILE_EXTENSIONS))
             throw new Error(`${fullFilename} is not a FullyRested request`);
         const real = realTarget(fullFilename);
-        if (this.trusted.has(real) || (this.root != undefined && isInside(this.root, real)))
+        if (real != undefined && (this.trusted.has(real) || (this.root != undefined && isInside(this.root, real))))
             return real;
         throw new Error(`${fullFilename} is outside the collection folder`);
     }
@@ -127,6 +147,9 @@ class CollectionAccess {
     // The user chose this request file in a native dialog
     trustRequest(fullFilename) {
         const real = realTarget(fullFilename);
+        // a dangling link never enters the trusted set: it would be trusted now and resolve elsewhere later
+        if (real == undefined)
+            throw new Error(`${fullFilename} is outside the collection folder`);
         if (this.trusted.has(real)) return;
         this.trusted.add(real);
         this.writeTrusted();

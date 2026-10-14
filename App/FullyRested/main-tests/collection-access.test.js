@@ -144,3 +144,54 @@ test('opening another collection forgets the previous one\'s secrets', () => {
     assert.doesNotThrow(() => access.checkSecret('fullyrested-collection-other-guid', 'apiKey'));
     assert.throws(() => access.collectionPath(collection, 'api'), /not the open collection/);
 });
+
+// existsSync() reports a dangling symlink as ABSENT, so the old check stepped past a dead link inside the
+// collection, took it for a not-yet-created plain name, and let the write land at the link's target
+// outside the folder. The guard is now core's shared lstat-based walk (AIF-5).
+test('a dangling symlink inside the collection is refused, not treated as a free name', (t) => {
+    const access = opened();
+    const gone = path.join(outside, 'gone');
+    try {
+        fs.symlinkSync(gone, path.join(collection, 'dead'), 'junction');
+        fs.symlinkSync(path.join(outside, 'gone.frreq'), path.join(collection, 'dead.frreq'), 'junction');
+    } catch (err) {
+        t.skip(`cannot create a link here: ${err.message}`);
+        return;
+    }
+    assert.throws(() => access.collectionPath(collection, 'dead'), /outside/);
+    assert.throws(() => access.collectionPath(collection, 'dead/new.frreq'), /outside/);
+    // a dangling request link inside the collection: refused even though it sits at an allowed name
+    assert.throws(() => access.checkRequest(path.join(collection, 'dead.frreq')), /outside/);
+});
+
+test('a dangling symlink is never trusted as a dialog-chosen request', (t) => {
+    const dead = path.join(outside, 'dead.frreq');
+    try {
+        fs.symlinkSync(path.join(outside, 'gone.frreq'), dead, 'junction');
+    } catch (err) {
+        t.skip(`cannot create a link here: ${err.message}`);
+        return;
+    }
+    const access = new CollectionAccess(trustedFile);
+    assert.throws(() => access.trustRequest(dead), /outside/);
+    assert.throws(() => access.checkRequest(dead), /outside/);
+});
+
+// realpathing only the immediate parent cannot notice a link further up, which is what stopped the old
+// check being reusable anywhere that creates parent directories
+test('a symlinked grandparent is noticed, not only the immediate parent', (t) => {
+    const access = opened();
+    try {
+        fs.symlinkSync(outside, path.join(collection, 'out'), 'junction');
+    } catch (err) {
+        t.skip(`cannot create a link here: ${err.message}`);
+        return;
+    }
+    assert.throws(() => access.collectionPath(collection, 'out/a/b/new.frreq'), /outside/);
+});
+
+test('a name not created yet is still allowed inside the collection', () => {
+    const access = opened();
+    assert.equal(access.collectionPath(collection, 'api/new.frreq'), path.join(collection, 'api', 'new.frreq'));
+    assert.equal(access.collectionPath(collection, 'fresh/deep/new.frreq'), path.join(collection, 'fresh', 'deep', 'new.frreq'));
+});
