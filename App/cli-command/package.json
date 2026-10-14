@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": "npm --prefix ../core run build && tsc -p tsconfig.json",
-    "pretest": "npm run build",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "pretest": "npm run build && npm run typecheck",
     "test": "vitest run"
   },
   "license": "GPL-3.0",

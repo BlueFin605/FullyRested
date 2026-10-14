@@ -74,13 +74,13 @@ describe('editScope', () => {
       if (target.document !== 'collection') throw new Error('wrong target');
       expect(target.settings).toBe(target.config.collectionEnvironment);
       expect(target.settings.name).toBe('system.settings');
-      target.settings.secrets.push({ $secret: 'apiKey', $value: 'shhh' });
+      target.settings.secrets.push({ $secret: 'apiKey', $value: 'shhh', active: true, id: 's1' });
       return 'added';
     });
     expect(result).toMatchObject({ file: 'api.frcol', changed: true });
     expect(secrets.set).toHaveBeenCalledWith('fullyrested-collection-c1', 'apiKey', 'shhh');
     const written = JSON.parse(sink.files.get('api.frcol')!);
-    expect(written.collectionEnvironment.secrets).toEqual([{ $secret: 'apiKey' }]);
+    expect(written.collectionEnvironment.secrets).toEqual([{ $secret: 'apiKey', active: true, id: 's1' }]);
   });
 
   it('targets the named environment for an env: locator, under the collection service', async () => {
@@ -89,13 +89,13 @@ describe('editScope', () => {
       if (target.document !== 'collection') throw new Error('wrong target');
       expect(target.settings).toBe(target.config.environments[0]);
       expect(target.settings.id).toBe('e1');
-      target.settings.secrets.push({ $secret: 'prodKey', $value: 'shhh' });
+      target.settings.secrets.push({ $secret: 'prodKey', $value: 'shhh', active: true, id: 's2' });
       return 'added';
     });
     expect(result).toMatchObject({ file: 'api.frcol', changed: true });
     expect(secrets.set).toHaveBeenCalledWith('fullyrested-collection-c1', 'prodKey', 'shhh');
     const written = JSON.parse(sink.files.get('api.frcol')!);
-    expect(written.environments[0].secrets).toEqual([{ $secret: 'prodKey' }]);
+    expect(written.environments[0].secrets).toEqual([{ $secret: 'prodKey', active: true, id: 's2' }]);
     expect(written.collectionEnvironment.secrets).toEqual([]);
   });
 
@@ -105,7 +105,7 @@ describe('editScope', () => {
       if (target.document !== 'folder') throw new Error('wrong target');
       expect(target.settings).toBe(target.config);
       expect(target.config.folderId).toBe('f1');
-      target.settings.secrets.push({ $secret: 'folderKey', $value: 'shhh' });
+      target.settings.secrets.push({ $secret: 'folderKey', $value: 'shhh', active: true, id: 's3' });
       return 'added';
     });
     expect(result).toMatchObject({ file: 'users/folder.frfolder', changed: true });
