@@ -17,14 +17,18 @@ export function secretServiceForFolder(folderId: string): string {
   return `fullyrested-folder-${folderId}`;
 }
 
-// Returns a copy of value with every non-empty { $secret, $value } moved into the store (the $value is removed)
+// Returns a copy of value with every non-empty { $secret, $value } moved into the store, and the $value
+// removed either way. An empty one is dropped rather than kept: loadSecrets writes $value: '' into every
+// reference the store has no entry for, so keeping it meant opening a collection on a machine missing a
+// keychain entry and saving added `"$value": ""` to the file -- a field a document should never carry.
 export async function storeSecrets<T>(value: T, store: SecretStore, service: string): Promise<T> {
   const copy = JSON.parse(JSON.stringify(value)) as T;
   await visitObjects(copy, async entry => {
     const name = entry['$secret'];
     const secret = entry['$value'];
-    if (typeof name == 'string' && name != '' && typeof secret == 'string' && secret != '') {
-      await store.set(service, name, secret);
+    if (typeof name == 'string' && name != '' && typeof secret == 'string') {
+      if (secret != '')
+        await store.set(service, name, secret);
       delete entry['$value'];
     }
   });
