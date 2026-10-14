@@ -467,15 +467,34 @@ export async function addSecretRef(ctx: AuthoringContext, scope: string, name: s
 // AuthenticationDetails are named ('basicAuth', 'bearerToken', 'awsSig').
 const AUTH_TYPES = ['inherit', 'none', 'basicauth', 'bearertoken', 'awssig'];
 
-// The non-secret fields of each authentication type. The secret-bearing ones — basicAuth.password,
-// awsSig.secretKey and awsSig.sessionToken — are deliberately absent; see setAuth.
+// The fields of each authentication type. The three secret-bearing ones are reference-only: they
+// take a single `{{$name}}` and nothing else, so no credential value can pass through this verb —
+// see setAuth and requireSecretRef.
 export interface AuthFields {
     userName?: string;                        // basicauth
+    password?: string;                        // basicauth — secret reference only
     token?: string;                           // bearertoken
     accessKey?: string;                       // awssig (the key id, not the secret)
+    secretKey?: string;                       // awssig — secret reference only
+    sessionToken?: string;                    // awssig — secret reference only
     awsRegion?: string;
     serviceName?: string;
     signUrl?: boolean;
+}
+
+// One secret reference and nothing else. `[0-9a-zA-Z]` is the name substitution.ts actually
+// resolves (its PLACEHOLDER regex), so a name this refuses would have been written to the file but
+// never substituted at send time. Anchored rather than reusing isRawCredential, which is also
+// false for '' and for two references run together — neither of which is a credential a single
+// field can hold.
+const SECRET_REF_ONLY = /^\{\{\$[0-9a-zA-Z]+\}\}$/;
+
+// Guards a reference-only field. Refusing a literal here is what keeps setAuth unable to carry a
+// credential value, now that these three fields are writable at all.
+function requireSecretRef(field: string, value: string): string {
+    if (!SECRET_REF_ONLY.test(value))
+        throw new QueryError(`${field} takes a secret reference like {{$name}}, not a value`);
+    return value;
 }
 
 // Auth sits on a different property depending on the document: ScopeSettings — a collection
@@ -502,6 +521,8 @@ function applyAuthFields(auth: AuthenticationDetails, type: string, fields: Auth
         case 'basicauth':
             if (fields.userName != undefined)
                 auth.basicAuth.userName = fields.userName;
+            if (fields.password != undefined)
+                auth.basicAuth.password = requireSecretRef('password', fields.password);
             return;
         case 'bearertoken':
             if (fields.token != undefined)
@@ -510,6 +531,10 @@ function applyAuthFields(auth: AuthenticationDetails, type: string, fields: Auth
         case 'awssig':
             if (fields.accessKey != undefined)
                 auth.awsSig.accessKey = fields.accessKey;
+            if (fields.secretKey != undefined)
+                auth.awsSig.secretKey = requireSecretRef('secretKey', fields.secretKey);
+            if (fields.sessionToken != undefined)
+                auth.awsSig.sessionToken = requireSecretRef('sessionToken', fields.sessionToken);
             if (fields.awsRegion != undefined)
                 auth.awsSig.awsRegion = fields.awsRegion;
             if (fields.serviceName != undefined)
@@ -528,12 +553,16 @@ function applyAuthFields(auth: AuthenticationDetails, type: string, fields: Auth
 // `{{$name}}` in the field itself — substitution.ts resolves `{{$name}}` against the scope's
 // `secrets` array at send time — and the named entry is put there by addSecretRef, which writes
 // `{ $secret: name }` with no `$value`. So the complete, agent-safe way to wire up a password,
-// an AWS secret key or a session token is: addSecretRef(scope, name) to declare it, then have a
-// person set the value with the CLI's `secret set`. The fields that hold those three credentials
-// are not in AuthFields at all, so this verb can never carry a secret value, and storeSecrets()
-// finds nothing to move into the keychain on the way out. `name` must be `[0-9a-zA-Z]` only —
-// that is all the substitution regex (substitution.ts) matches inside `{{...}}`, so anything else
-// is written but never resolves.
+// an AWS secret key or a session token is: addSecretRef(scope, name) to declare it, pass
+// `{{$name}}` here as the field, then have a person set the value with the CLI's `secret set`.
+//
+// Those three fields — password, secretKey, sessionToken — are reference-only: requireSecretRef
+// refuses anything but a single `{{$name}}`, so this verb still cannot carry a secret value and
+// storeSecrets() finds nothing to move into the keychain on the way out. The guarantee holds by
+// construction rather than by leaving the fields out, which is what let an agent configure
+// bearertoken fully while basicauth and awssig needed a person to finish them in the app.
+// `name` must be `[0-9a-zA-Z]` only — that is all the substitution regex (substitution.ts)
+// matches inside `{{...}}`, so anything else is written but never resolves.
 // (`{{$secret:name}}` is only the display form inspect.ts and redact.ts print; it is not what a
 // document holds and would not substitute.)
 export async function setAuth(

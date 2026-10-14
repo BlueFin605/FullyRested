@@ -136,6 +136,40 @@ describe('the authoring loop over MCP', () => {
     }
   });
 
+  // AIF-11: the whole point of the reference-only fields - an agent wires up basic auth end to
+  // end, and the collection file holds the reference while the value stays in the keychain.
+  it('wires up a basicauth password with only a secret reference, and refuses a value', async () => {
+    const ws = workspace();
+    const keychain = memoryKeychain();
+    const secrets = createSecretWriter(keychain);
+    const client = await connectMcp({ secrets });
+
+    try {
+      await callTool(client, 'new_collection', { file: ws.collection });
+      await callTool(client, 'add_secret_ref', { collection: ws.collection, scope: 'collection', name: 'apiPass' });
+
+      const set = await callTool(client, 'set_auth', {
+        collection: ws.collection, scope: 'collection', type: 'basicauth',
+        userName: 'api', password: '{{$apiPass}}'
+      });
+      expect(set.isError).toBe(false);
+
+      const stored = JSON.parse(fs.readFileSync(ws.collection, 'utf8')).collectionEnvironment.auth;
+      expect(stored.authentication).toBe('basicauth');
+      expect(stored.basicAuth).toEqual({ userName: 'api', password: '{{$apiPass}}' });
+
+      // the value is refused outright, so there is no path by which it could reach the file
+      const refused = await callTool(client, 'set_auth', {
+        collection: ws.collection, scope: 'collection', type: 'basicauth', password: 'hunter2'
+      });
+      expect(refused.isError).toBe(true);
+      expect(refused.text).toMatch(/password takes a secret reference/);
+      expect(fs.readFileSync(ws.collection, 'utf8')).not.toContain('hunter2');
+    } finally {
+      ws.cleanup();
+    }
+  });
+
   it('settings names a secret reference and never its value', async () => {
     const ws = workspace();
     const keychain = memoryKeychain();

@@ -207,6 +207,14 @@ secret value. Writing keeps the same line:
   `fullyrested-collection-<guid>`, `fullyrested-folder-<folderId>` or
   `fullyrested-request-<requestId>`. `FULLYRESTED_SECRET_<NAME>` still works
   as it does today.
+- **Credential fields are reference-only.** A reference substitutes only where
+  it is physically stored, so `set_auth` has to be able to write the field
+  that holds a credential. `password`, `secretKey` and `sessionToken` take a
+  single `{{$name}}` and nothing else — a literal, a `{{variable}}`, an empty
+  string and two references run together are all refused. The field is
+  writable, so `basicauth` and `awssig` can be finished by an agent; it cannot
+  hold a value, so the guarantee holds by construction rather than by leaving
+  the field out.
 
 So an agent can wire up a secret completely — reference it in a header, auth
 block or body — and still never sees or sets the value.

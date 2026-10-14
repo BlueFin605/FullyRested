@@ -230,14 +230,18 @@ export function createServer(opts: McpOptions): McpServer {
       collection, scope,
       type: z.string().describe('inherit | none | basicauth | bearertoken | awssig'),
       userName: z.string().optional().describe('basicauth: user name'),
+      password: z.string().optional().describe('basicauth: password as a secret reference only, e.g. {{$apiPass}}; add_secret_ref first, a human sets the value'),
       token: z.string().optional().describe('bearertoken: token (use {{$name}} for a secret)'),
       accessKey: z.string().optional().describe('awssig: access key id'),
+      secretKey: z.string().optional().describe('awssig: secret access key as a secret reference only, e.g. {{$awsSecret}}'),
+      sessionToken: z.string().optional().describe('awssig: session token as a secret reference only, e.g. {{$awsSession}}'),
       awsRegion: z.string().optional().describe('awssig: AWS region'),
       serviceName: z.string().optional().describe('awssig: AWS service name'),
       signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers')
     }
   }, a => runEdit(a.collection, ctx => setAuth(ctx, a.scope, a.type, {
-    userName: a.userName, token: a.token, accessKey: a.accessKey,
+    userName: a.userName, password: a.password, token: a.token,
+    accessKey: a.accessKey, secretKey: a.secretKey, sessionToken: a.sessionToken,
     awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl
   })));
 

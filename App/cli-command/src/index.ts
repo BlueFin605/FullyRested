@@ -327,14 +327,18 @@ withScope(editCommand('add-secret-ref', 'Add a reference to a secret ({$secret})
 withScope(editCommand('set-auth', 'Set the authentication of a scope'))
   .requiredOption('--type <type>', 'inherit | none | basicauth | bearertoken | awssig (case-insensitive)')
   .option('--user-name <name>', 'basicauth: user name')
+  .option('--password <ref>', 'basicauth: password, as a secret reference only, e.g. {{$apiPass}}')
   .option('--token <token>', 'bearertoken: token')
   .option('--access-key <key>', 'awssig: access key id')
+  .option('--secret-key <ref>', 'awssig: secret access key, as a secret reference only')
+  .option('--session-token <ref>', 'awssig: session token, as a secret reference only')
   .option('--aws-region <region>', 'awssig: AWS region')
   .option('--service-name <name>', 'awssig: AWS service name')
   .option('--sign-url <true|false>', 'awssig: sign the url (query string) instead of headers', (v: string) => parseBool('--sign-url', v))
   .action(queryAction(async (options: EditOptions & { scope: string; type: string } & AuthFields) => {
     const fields: AuthFields = {
-      userName: options.userName, token: options.token, accessKey: options.accessKey,
+      userName: options.userName, password: options.password, token: options.token,
+      accessKey: options.accessKey, secretKey: options.secretKey, sessionToken: options.sessionToken,
       awsRegion: options.awsRegion, serviceName: options.serviceName, signUrl: options.signUrl
     };
     await runEdit(options, ctx => setAuth(ctx, options.scope, options.type, fields));

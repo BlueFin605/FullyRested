@@ -48,6 +48,18 @@ describe('mcp server', () => {
     expect(JSON.stringify(ref.inputSchema)).not.toMatch(/value/i);
   });
 
+  // AIF-11: the three credential fields are writable, but reference-only. The description is the
+  // part that matters for an agent - it is what stops it trying a literal and burning a call.
+  it('set_auth serves the credential fields as reference-only', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    const auth = tools.find(t => t.name === 'set_auth')!;
+    const props = (auth.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    for (const field of ['password', 'secretKey', 'sessionToken']) {
+      expect(props[field], field).toBeTruthy();
+      expect(props[field]!.description, field).toMatch(/secret reference/i);
+    }
+  });
+
   it('every description is one line, and the authoring ones stay under 200 characters', async () => {
     const { tools } = await connect().then(c => c.listTools());
     for (const tool of tools) {

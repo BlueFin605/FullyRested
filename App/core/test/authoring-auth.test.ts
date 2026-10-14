@@ -3,6 +3,8 @@ import { setAuth } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { QueryError } from '../src/query-error';
 import { files } from './fixtures/collection';
+import { ExecuteRestAction } from '../src/builder';
+import { AuthenticationDetails, HttpProtocol, RestTypeVerb } from '../src/model';
 
 const guid = { generateGUID: () => 'generated' };
 const newSecrets = () => ({ get: async () => null, set: vi.fn(async () => { }) });
@@ -126,5 +128,96 @@ describe('setAuth', () => {
     const config = written(sink, 'users/folder.frfolder');
     expect(config.auth.authentication).toBe('none');
     expect(config.authentication).toBeUndefined();
+  });
+});
+
+// AIF-11: password, secretKey and sessionToken are reference-only fields. They exist so an agent
+// can finish a basicauth or awssig block on its own, and they take a single {{$name}} reference
+// and nothing else, so no credential value can ever pass through setAuth.
+describe('setAuth reference-only credential fields', () => {
+  it('sets a basicauth password as a secret reference, with no value reaching the secret store', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const secrets = newSecrets();
+    const result = await setAuth(ctxFor(sink, secrets), 'folder:users', 'basicauth',
+      { userName: 'api', password: '{{$apiPass}}' });
+
+    expect(result).toMatchObject({ file: 'users/folder.frfolder', changed: true });
+    expect(written(sink, 'users/folder.frfolder').auth.basicAuth)
+      .toEqual({ userName: 'api', password: '{{$apiPass}}' });
+    expect(secrets.set).not.toHaveBeenCalled();
+  });
+
+  it('sets the awssig secret key and session token as secret references', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const secrets = newSecrets();
+    await setAuth(ctxFor(sink, secrets), 'collection', 'awssig', {
+      accessKey: 'AKIAEXAMPLE', secretKey: '{{$awsSecret}}', sessionToken: '{{$awsSession}}',
+      awsRegion: 'ap-southeast-2', serviceName: 'execute-api'
+    });
+
+    expect(written(sink, 'api.frcol').collectionEnvironment.auth.awsSig).toEqual({
+      signUrl: false, accessKey: 'AKIAEXAMPLE', secretKey: '{{$awsSecret}}',
+      sessionToken: '{{$awsSession}}', awsRegion: 'ap-southeast-2', serviceName: 'execute-api'
+    });
+    expect(secrets.set).not.toHaveBeenCalled();
+  });
+
+  it('refuses a literal password, writing nothing', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'folder:users', 'basicauth', { password: 'hunter2' }))
+      .rejects.toThrow(/password takes a secret reference like \{\{\$name\}\}, not a value/);
+    expect(sink.files.get('users/folder.frfolder')).toBe(files['users/folder.frfolder']);
+  });
+
+  it('refuses a variable reference, which would put the value in the file in plain text', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'folder:users', 'basicauth', { password: '{{apiPass}}' }))
+      .rejects.toThrow(QueryError);
+  });
+
+  it('refuses a reference with anything around it, and two references run together', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { secretKey: 'AWS {{$awsSecret}}' }))
+      .rejects.toThrow(QueryError);
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { secretKey: '{{$a}}{{$b}}' }))
+      .rejects.toThrow(QueryError);
+  });
+
+  it('refuses a name the substitution regex would never match', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { sessionToken: '{{$aws-session}}' }))
+      .rejects.toThrow(QueryError);
+  });
+
+  it('refuses an empty reference: clearing a credential is a type switch, not an empty field', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'folder:users', 'basicauth', { password: '' }))
+      .rejects.toThrow(QueryError);
+  });
+
+  it('ignores a password passed with bearertoken rather than refusing it', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setAuth(ctxFor(sink), 'request:users/get.frreq', 'bearertoken',
+      { token: '{{$token}}', password: 'hunter2' });
+
+    const auth = written(sink, 'users/get.frreq').authentication;
+    expect(auth.authentication).toBe('bearertoken');
+    expect(auth.bearerToken).toEqual({ token: '{{$token}}' });
+    // the password belongs to basicauth, so it is dropped unvalidated, like any other stray field
+    expect(auth.basicAuth).toEqual({ userName: '', password: '' });
+  });
+
+  it('resolves a stored password reference at send time', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setAuth(ctxFor(sink), 'folder:users', 'basicauth', { userName: 'api', password: '{{$apiPass}}' });
+    const stored = written(sink, 'users/folder.frfolder').auth as AuthenticationDetails;
+
+    const sent = new ExecuteRestAction({
+      verb: RestTypeVerb.get, protocol: HttpProtocol.https, url: '', headers: {}, body: {},
+      authentication: stored, validation: undefined, variables: [],
+      secrets: [{ $secret: 'apiPass', $value: 'hunter2', active: true, id: 'one' }]
+    }).replaceVariables();
+
+    expect(sent.authentication!.basicAuth).toEqual({ userName: 'api', password: 'hunter2' });
   });
 });

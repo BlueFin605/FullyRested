@@ -242,6 +242,40 @@ describe('fullyrested edit', () => {
     expect(parsed).toEqual({ file: 'api.frcol', scope: 'collection', changed: true, message: "Added environment 'Temp'" });
   }, 60000);
 
+  // AIF-11: password, secretKey and sessionToken are reference-only, so an agent can finish a
+  // basicauth or awssig block without a value ever passing through the CLI.
+  it('set-auth takes a secret reference for the password, and refuses a literal', async () => {
+    let r = await fullyrested(['edit', 'add-secret-ref', '-c', collection, '--scope', 'collection', '--name', 'apiPass'], dir);
+    expect(r.code).toBe(0);
+
+    r = await fullyrested(['edit', 'set-auth', '-c', collection, '--scope', 'collection',
+      '--type', 'basicauth', '--user-name', 'api', '--password', '{{$apiPass}}'], dir);
+    expect(r.code).toBe(0);
+    const auth = JSON.parse(fs.readFileSync(collection, 'utf8')).collectionEnvironment.auth;
+    expect(auth.basicAuth).toEqual({ userName: 'api', password: '{{$apiPass}}' });
+
+    // a literal is refused by core, which queryAction maps to exit 2
+    r = await fullyrested(['edit', 'set-auth', '-c', collection, '--scope', 'collection',
+      '--type', 'basicauth', '--password', 'hunter2'], dir);
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/password takes a secret reference/);
+  });
+
+  it('set-auth takes secret references for the awssig secret key and session token', async () => {
+    let r = await fullyrested(['edit', 'set-auth', '-c', collection, '--scope', 'collection',
+      '--type', 'awssig', '--access-key', 'AKIAEXAMPLE', '--secret-key', '{{$awsSecret}}',
+      '--session-token', '{{$awsSession}}'], dir);
+    expect(r.code).toBe(0);
+    const awsSig = JSON.parse(fs.readFileSync(collection, 'utf8')).collectionEnvironment.auth.awsSig;
+    expect(awsSig.secretKey).toBe('{{$awsSecret}}');
+    expect(awsSig.sessionToken).toBe('{{$awsSession}}');
+
+    r = await fullyrested(['edit', 'set-auth', '-c', collection, '--scope', 'collection',
+      '--type', 'awssig', '--secret-key', 'AKIASECRETVALUE'], dir);
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/secretKey takes a secret reference/);
+  });
+
   it('a bad locator exits 2 and lists the forms, matching --scope\'s own help text', async () => {
     const r = await fullyrested(['edit', 'set-header', '-c', collection, '--scope', 'bogus', '--name', 'x', '--value', 'y'], dir);
     expect(r.code).toBe(2);
