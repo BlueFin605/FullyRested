@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  CollectionNode, CollectionSink, CollectionSource, DirEntry, RestAction, SecretStore,
+  CollectionNode, CollectionSink, CollectionSource, DirEntry, GuardHost, RestAction, SecretStore, guardedRealTarget,
   hostPath, loadCollectionTree, loadSecrets, normaliseAction, relativePath, secretServiceForRequest
 } from '@fullyrested/core';
 
@@ -27,34 +27,32 @@ export class FsCollectionSource implements CollectionSource {
   }
 }
 
-// The real path of a target that need not exist yet: the nearest existing ancestor is followed through
-// any symlink, and the segments still to be created are appended to it. A symlink that cannot be followed
-// (a dangling one) has no real path, so it is refused rather than written through.
+// The file system primitives core's path guard needs. core is bundled into the Angular renderer too, so
+// it cannot import node:fs or node:path itself; the walk that uses these lives in core and is shared with
+// the desktop app's guard (collection-guard.ts).
+const guardHost: GuardHost = {
+  // existsSync() is false for a dangling symlink; lstat sees the link itself
+  exists: target => {
+    try {
+      fs.lstatSync(target);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  realpath: target => fs.realpathSync.native(target),
+  dirname: target => path.dirname(target),
+  join: (base, ...rest) => path.join(base, ...rest),
+};
+
+// The real path of a target that need not exist yet. A symlink that cannot be followed (a dangling one)
+// has no real path, so it is refused rather than written through.
 function realTarget(full: string): string | undefined {
-  const missing: string[] = [];
-  let at = full;
-  while (!pathExists(at)) {
-    const parent = path.dirname(at);
-    if (parent == at)
-      return undefined; // not even the filesystem root exists: nothing to compare against
-    missing.unshift(path.basename(at));
-    at = parent;
-  }
-  try {
-    return path.join(fs.realpathSync.native(at), ...missing);
-  } catch {
-    return undefined;
-  }
+  return guardedRealTarget(guardHost, full);
 }
 
-// existsSync() is false for a dangling symlink; lstat sees the link itself
 function pathExists(target: string): boolean {
-  try {
-    fs.lstatSync(target);
-    return true;
-  } catch {
-    return false;
-  }
+  return guardHost.exists(target);
 }
 
 // The collection folder on disk, for core's authoring verbs. Every path an agent names is confined to the

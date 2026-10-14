@@ -62,6 +62,49 @@ describe('findCase', () => {
     expect(() => findCase(r, 'zzz')).toThrow("Case 'zzz' not found. The run has 3 cases: 1 Create Pet, 2 Get Pet, 3 Delete Pet");
     expect(() => findCase(r, 9)).toThrow(QueryError);
   });
+
+  // A case is recorded as 'request › run', but the name an agent gives new_run and addresses the scope
+  // with is the bare run name, so the same thing had two names depending on what you were doing (AIF-8)
+  describe('falling back to the run name', () => {
+    const withRuns = (...runNames: (string | undefined)[]): typeof r => ({
+      ...r,
+      cases: runNames.map((runName, i) => ({
+        ...r.cases[0]!,
+        index: i + 1,
+        name: runName === undefined ? `req${i + 1}` : `req${i + 1} › ${runName}`,
+        ...(runName === undefined ? {} : { runName }),
+      })),
+    });
+
+    it('finds a case by the bare run name it was created with', () => {
+      expect(findCase(withRuns('not found'), 'not found').name).toBe('req1 › not found');
+    });
+
+    it('matches a run name whatever its case', () => {
+      expect(findCase(withRuns('Not Found'), 'not found').index).toBe(1);
+    });
+
+    it('prefers an exact case name over a run name, so it can never shadow one', () => {
+      const run = withRuns('alpha', 'beta');
+      run.cases[1]!.name = 'alpha'; // case 2's own name is what case 1's run is called
+      expect(findCase(run, 'alpha').index).toBe(2);
+    });
+
+    it('refuses an ambiguous run name with the candidates rather than picking one', () => {
+      expect(() => findCase(withRuns('not found', 'ok', 'not found'), 'not found'))
+        .toThrow("Case 'not found' is a run name held by 2 cases: 1 req1 › not found, 3 req3 › not found. Use the index, or the full 'request › run' name.");
+    });
+
+    it('still reports an unknown name as not found, not as ambiguous', () => {
+      expect(() => findCase(withRuns('a', 'b'), 'zzz')).toThrow(/not found\. The run has 2 cases/);
+    });
+
+    it('ignores cases with no run name at all', () => {
+      // two cases carrying no runName must not read as two ambiguous matches for a name nothing holds
+      expect(() => findCase(withRuns(undefined, undefined), 'missing')).toThrow(/not found\. The run has 2 cases/);
+      expect(findCase(withRuns(undefined, 'x'), 'x').index).toBe(2);
+    });
+  });
 });
 
 describe('summary', () => {

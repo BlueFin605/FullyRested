@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ExecuteRestAction, SecretTable, VariableTable, substituteDeep, substituteText } from '../src';
+import { ExecuteRestAction, SecretTable, VariableTable, canSubstitute, isRawCredential, substituteDeep, substituteText } from '../src';
 
 const vars = (pairs: { [name: string]: string }): VariableTable[] =>
   Object.entries(pairs).map(([variable, value], i) => ({ variable, value, active: true, id: `v${i}` }));
@@ -70,5 +70,33 @@ describe('ExecuteRestAction.replaceVariables', () => {
     const replaced = action.replaceVariables();
     expect(replaced.variables).toEqual(action.variables);
     expect(replaced.secrets).toEqual(action.secrets);
+  });
+});
+
+// A name is never restricted where it is declared, so one the placeholder could not match used to be
+// accepted, referenced, and then resolved to '' -- sending an empty credential with no warning (AIF-2)
+describe('names holding - and _', () => {
+  it('substitutes a secret named with _ or -', () => {
+    expect(substituteText('{{$api_key}}/{{$aws-secret}}', undefined, secrets({ api_key: 'K', 'aws-secret': 'S' }))).toBe('K/S');
+  });
+
+  it('substitutes a variable named with _ or -', () => {
+    expect(substituteText('{{base_url}}/{{aws-region}}', vars({ base_url: 'http://h', 'aws-region': 'ap-southeast-2' }), undefined))
+      .toBe('http://h/ap-southeast-2');
+  });
+
+  it('still leaves a name holding anything else untouched, so it is reported at load instead', () => {
+    expect(substituteText('{{a.b}}/{{c d}}', vars({ 'a.b': 'X', 'c d': 'Y' }), undefined)).toBe('{{a.b}}/{{c d}}');
+  });
+
+  it('reports which names can substitute', () => {
+    expect(['plain', 'api_key', 'aws-secret', 'A1_b-2', ''].every(canSubstitute)).toBe(true);
+    expect(['a.b', 'c d', 'e$f', 'g/h', 'héllo'].some(canSubstitute)).toBe(false);
+  });
+
+  it('treats a secret reference named with - or _ as a reference, not a raw credential', () => {
+    expect(isRawCredential('{{$api_key}}')).toBe(false);
+    expect(isRawCredential('{{$aws-secret}}')).toBe(false);
+    expect(isRawCredential('literal')).toBe(true);
   });
 });

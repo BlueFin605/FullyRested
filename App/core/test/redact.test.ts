@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { redactCase, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, executeRequest, prepareRequest } from '../src';
+import { redactCase, maskPresignedUrl, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, executeRequest, prepareRequest } from '../src';
 
 const secret = (name: string, value: string, active = true): SecretTable => ({ $secret: name, $value: value, active, id: name });
 
@@ -184,5 +184,65 @@ describe('redactCase with an echo server', () => {
   it('skips values containing # without throwing', () => {
     const out = redactCase(base({ url: 'https://x.test/?a=ab#cd' }), [secret('h', 'ab#cd')]);
     expect(out.request.url).toBe('https://x.test/?a={{$secret:h}}');
+  });
+});
+
+// A presigned SigV4 URL's signature, session token and credential scope are not declared secrets, so
+// secretReplacer never sees them. FullyRested's own signUrl signing is applied inside executeRequest and
+// that URL is never recorded, but a presigned URL pasted into a request's URL field is recorded as typed.
+describe('maskPresignedUrl', () => {
+  const presigned = 'https://b.s3.amazonaws.com/k?X-Amz-Algorithm=AWS4-HMAC-SHA256'
+    + '&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20130721%2Fus-east-1%2Fs3%2Faws4_request'
+    + '&X-Amz-Date=20130721T201207Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host'
+    + '&X-Amz-Security-Token=FQoDYXdzEPn%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaDA'
+    + '&X-Amz-Signature=aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404';
+
+  it('masks the signature, the session token and the credential scope in a recorded URL', () => {
+    const { request } = redactCase(base({ url: presigned }), []);
+    expect(request.url).toBe('https://b.s3.amazonaws.com/k?X-Amz-Algorithm=AWS4-HMAC-SHA256'
+      + '&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F***'
+      + '&X-Amz-Date=20130721T201207Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host'
+      + '&X-Amz-Security-Token=***&X-Amz-Signature=***');
+  });
+
+  it('keeps the access key id, which identifies the caller but is not a credential', () => {
+    expect(maskPresignedUrl(presigned)).toContain('AKIAIOSFODNN7EXAMPLE');
+  });
+
+  it('masks a literal / separator in the credential as well as an encoded one', () => {
+    expect(maskPresignedUrl('https://x.test/?X-Amz-Credential=AKIA1/20130721/us-east-1/s3/aws4_request'))
+      .toBe('https://x.test/?X-Amz-Credential=AKIA1/***');
+  });
+
+  it('matches the parameter names whatever their case', () => {
+    expect(maskPresignedUrl('https://x.test/?x-amz-signature=abc&X-AMZ-SECURITY-TOKEN=def'))
+      .toBe('https://x.test/?x-amz-signature=***&X-AMZ-SECURITY-TOKEN=***');
+  });
+
+  it('leaves a credential that is only an access key id, with no scope to mask', () => {
+    expect(maskPresignedUrl('https://x.test/?X-Amz-Credential=AKIA1')).toBe('https://x.test/?X-Amz-Credential=AKIA1');
+  });
+
+  it('leaves every other parameter, and a URL with no query, exactly as it was', () => {
+    expect(maskPresignedUrl('https://x.test/a')).toBe('https://x.test/a');
+    expect(maskPresignedUrl('https://x.test/a?')).toBe('https://x.test/a?');
+    expect(maskPresignedUrl('https://x.test/a?k=v&X-Amz-Date=20130721T201207Z')).toBe('https://x.test/a?k=v&X-Amz-Date=20130721T201207Z');
+  });
+
+  it('preserves a fragment after the masked query', () => {
+    expect(maskPresignedUrl('https://x.test/?X-Amz-Signature=abc#frag')).toBe('https://x.test/?X-Amz-Signature=***#frag');
+  });
+
+  it('leaves a URL holding an unsubstituted placeholder rather than failing to parse it', () => {
+    expect(maskPresignedUrl('{{base}}/k?X-Amz-Signature=abc')).toBe('{{base}}/k?X-Amz-Signature=***');
+  });
+
+  it('leaves a valueless parameter alone', () => {
+    expect(maskPresignedUrl('https://x.test/?X-Amz-Signature&k=v')).toBe('https://x.test/?X-Amz-Signature&k=v');
+  });
+
+  it('still replaces a declared secret elsewhere in a presigned URL', () => {
+    const { request } = redactCase(base({ url: 'https://x.test/?key=topsecret&X-Amz-Signature=abc' }), [secret('k', 'topsecret')]);
+    expect(request.url).toBe('https://x.test/?key={{$secret:k}}&X-Amz-Signature=***');
   });
 });

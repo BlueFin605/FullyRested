@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CollectionSource, FolderNode, RequestNode, SecretStore, loadCollectionTree } from '../src';
+import { CollectionSource, FolderNode, RequestNode, SecretStore, loadCollectionTree, treeView } from '../src';
 
 // A collection folder held in memory: file path → contents
 function memory(files: Record<string, string>): CollectionSource {
@@ -132,5 +132,71 @@ describe('loadCollectionTree', () => {
 
     it('throws when the collection file cannot be read', async () => {
         await expect(loadCollectionTree('missing.frcol', memory(files()), store)).rejects.toThrow('ENOENT missing.frcol');
+    });
+});
+
+// {{...}} matches letters, digits, '-' and '_' only, but nothing refuses a name holding anything else
+// where it is declared, so a reference to one resolves to '' and the request goes out with an empty
+// credential. The collection reports such a name on load instead (AIF-2).
+describe('warnings about names that can never substitute', () => {
+    const named = (secretName: string, variableName = 'ok') => JSON.stringify({
+        collectionGuid: 'c1', selectedEnvironmentId: 'e1',
+        collectionEnvironment: {
+            name: 'system.settings', variables: [{ variable: variableName, value: 'v', active: true, id: 'v1' }],
+            secrets: [{ $secret: secretName, active: true, id: 's' }], auth: { authentication: 'none' }
+        },
+        environments: [{ id: 'e1', name: 'Production', variables: [], secrets: [], auth: { authentication: 'inherit' }, headers: [] }]
+    });
+
+    it('says nothing about a name holding only letters, digits, - and _', async () => {
+        const root = await loadCollectionTree('api.frcol', memory(files({ 'api.frcol': named('api_key', 'base-url') })), store);
+        expect(root.warnings).toEqual([]);
+    });
+
+    it('reports a secret in the collection environment that can never substitute', async () => {
+        const root = await loadCollectionTree('api.frcol', memory(files({ 'api.frcol': named('api.key') })), store);
+        expect(root.warnings).toEqual([
+            "Secret 'api.key' in collection 'api' can never be substituted: {{...}} matches only letters, digits, '-' and '_', so a reference to it resolves to an empty value"
+        ]);
+    });
+
+    it('reports a variable as well as a secret', async () => {
+        const root = await loadCollectionTree('api.frcol', memory(files({ 'api.frcol': named('ok', 'a b') })), store);
+        expect(root.warnings).toEqual([expect.stringContaining("Variable 'a b' in collection 'api'")]);
+    });
+
+    it('names the environment, the folder and the run a bad name sits in', async () => {
+        const collectionWithEnv = JSON.stringify({
+            collectionGuid: 'c1', selectedEnvironmentId: 'e1',
+            collectionEnvironment: { name: 'system.settings', variables: [], secrets: [], auth: { authentication: 'none' } },
+            environments: [{
+                id: 'e1', name: 'Production', variables: [], headers: [],
+                secrets: [{ $secret: 'env.key', active: true, id: 's' }], auth: { authentication: 'inherit' }
+            }]
+        });
+        const folderWithBadName = JSON.stringify({
+            folderId: 'fb', variables: [], headers: [], auth: { authentication: 'inherit' },
+            secrets: [{ $secret: 'folder key', active: true, id: 'f' }]
+        });
+        const requestWithRun = JSON.stringify({
+            id: 'r1', name: 'one', verb: 'get', protocol: 'https', url: 'example.com', headers: [], parameters: [],
+            runs: [{
+                id: 'run1', name: 'first', variables: [], headers: [], parameters: [],
+                secrets: [{ $secret: 'run$key', active: true, id: 'rs' }], auth: { authentication: 'inherit' }
+            }]
+        });
+        const root = await loadCollectionTree('api.frcol', memory(files({
+            'api.frcol': collectionWithEnv, 'b/folder.frfolder': folderWithBadName, 'b/one.frreq': requestWithRun
+        })), store);
+        expect(root.warnings).toEqual([
+            expect.stringContaining("Secret 'env.key' in environment 'Production'"),
+            expect.stringContaining("Secret 'folder key' in folder 'b'"),
+            expect.stringContaining("Secret 'run$key' in run 'one › first'")
+        ]);
+    });
+
+    it('surfaces the warnings through treeView', async () => {
+        const root = await loadCollectionTree('api.frcol', memory(files({ 'api.frcol': named('api.key') })), store);
+        expect(treeView(root).warnings).toEqual([expect.stringContaining("Secret 'api.key'")]);
     });
 });

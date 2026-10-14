@@ -46,13 +46,30 @@ export function findCase(r: RunRecord, ref: string | number): CaseRecord {
     found = r.cases.find(c => c.index === index);
   } else {
     found = r.cases.find(c => c.name === ref)
-      ?? r.cases.find(c => c.name.toLowerCase() === ref.toLowerCase());
+      ?? r.cases.find(c => c.name.toLowerCase() === ref.toLowerCase())
+      ?? byRunName(r, ref);
   }
   if (!found) {
     const list = r.cases.slice(0, 5).map(c => `${c.index} ${c.name}`).join(', ');
     throw new QueryError(`Case '${ref}' not found. The run has ${r.cases.length} cases: ${list}`);
   }
   return found;
+}
+
+// A case is recorded as 'request › run' (RunNode.name), but the name an agent gave new_run and addressed
+// the scope with is the bare run name, so the same thing was named one way for editing and another for
+// querying. Falling back to runName closes that, after both name matches so it can never shadow a case
+// whose own name is an exact hit.
+//
+// Two requests can each hold a run of the same name, so an ambiguous reference is refused with the
+// candidates rather than resolved to whichever came first: picking one silently would hand back another
+// request's response as if it were the one asked for.
+function byRunName(r: RunRecord, ref: string): CaseRecord | undefined {
+  const matches = r.cases.filter(c => c.runName !== undefined && c.runName.toLowerCase() === ref.toLowerCase());
+  if (matches.length === 0) return undefined;
+  if (matches.length === 1) return matches[0];
+  const list = matches.map(c => `${c.index} ${c.name}`).join(', ');
+  throw new QueryError(`Case '${ref}' is a run name held by ${matches.length} cases: ${list}. Use the index, or the full 'request › run' name.`);
 }
 
 const bodyMeta = (b: RecordBody | undefined): { contentType?: string; bytes: number } | undefined => {

@@ -37,6 +37,34 @@ describe('storeSecrets', () => {
     expect(stored.environments[0].secrets[0].$secret).toBe('token');
   });
 
+
+  // loadSecrets writes $value: '' into every reference the store has no entry for, so keeping an empty
+  // one meant opening a collection on a machine missing a keychain entry and saving added `"$value": ""`
+  // to the file -- a field an agent-authored document never has (AIF-10)
+  it('strips an empty $value instead of leaving it in the document', async () => {
+    const stored = await storeSecrets(collection(), memoryStore().store, 'svc');
+    expect(stored.environments[0].secrets[1]).toEqual({ $secret: 'unset', active: true, id: '3' });
+    expect(stored.environments[0].secrets[1]).not.toHaveProperty('$value');
+  });
+
+  it('leaves no $value anywhere after a load-then-save with no keychain entries at all', async () => {
+    // $value is optional in the document: loadSecrets is what fills it in on the way out of the file
+    const input: { secrets: { $secret: string; active: boolean; id: string; $value?: string }[] } =
+      { secrets: [{ $secret: 'missing', active: true, id: '1' }] };
+    const loaded = await loadSecrets(input, memoryStore().store, 'svc');
+    expect(loaded.secrets[0]!.$value).toBe('');
+
+    const stored = await storeSecrets(loaded, memoryStore().store, 'svc');
+    expect(JSON.stringify(stored)).not.toContain('$value');
+  });
+
+  it('still moves a plain-text value from an older file into the store', async () => {
+    const { data, store } = memoryStore();
+    const stored = await storeSecrets({ secrets: [{ $secret: 'legacy', $value: 'plain', active: true, id: '1' }] }, store, 'svc');
+    expect(data.get('svc/legacy')).toBe('plain');
+    expect(stored.secrets[0]).not.toHaveProperty('$value');
+  });
+
   it('does not mutate its input', async () => {
     const input = collection();
     await storeSecrets(input, memoryStore().store, 'svc');

@@ -72,6 +72,26 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Author: create or change a document | core `authoring/` over `editScope`: resolve the locator, read the document raw through `CollectionSource`, apply the verb, `normalise*`, `storeSecrets`, write through `CollectionSink` — `FsCollectionSink` in the CLI and the MCP server, `MemoryCollectionSink` in tests. The app still has its own write handlers in `main.js` |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
+## Known limitations
+
+Recorded because they are decisions rather than oversights — the code shows
+what the guards do, not what they deliberately don't.
+
+**The collection-folder guards are check-then-act.** Both hosts validate a
+path and then call `fs`, so there is a window between the check and the
+write. A local process that can already write *inside* the collection folder
+can swap a checked directory for a symlink in that window, and the write
+follows it out. Node offers no portable `O_NOFOLLOW` / `openat`, so closing
+it properly needs a platform-specific file-handle API. Not taken: the threat
+model is an attacker who already has write access inside the folder, and for
+a single-user desktop tool whose collections live in git, `git diff` and
+`git checkout` are the real safety net. Revisit if the threat model ever
+includes a hostile local process.
+
+What the guards *do* cover — escaping the folder, symlinked ancestors and
+dangling symlinks — is core `collection-guard.ts`, shared by both hosts,
+with the escape tests beside it.
+
 ## Where the plan lives
 
 On the BlueFinWiki kanban board, under initiative **AI Refresh**
@@ -86,6 +106,9 @@ The `feature/ai-interface` branch maps to the **AI First** initiative
 The `feature/authoring-apis` branch maps to the same **AI First** initiative
 (`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
 `docs/superpowers/specs/2026-10-11-authoring-apis-design.md`.
+The `feature/ai-first-followups` branch maps to the same **AI First**
+initiative and carries that board's tail: the review and follow-up tickets
+left after the two epics shipped.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it
@@ -97,7 +120,8 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Task | Command (from the folder shown) |
 |---|---|
 | Build core | `App/core`: `npm install && npm run build` |
-| Test core (vitest) | `App/core`: `npm test` |
+| Test core (vitest) | `App/core`: `npm test` — `pretest` type-checks first |
+| Type-check one package, tests included | `App/core` or `App/cli-command`: `npm run typecheck`. `tsconfig.json` covers `src` only and vitest never type-checks, so this is what catches a type error in a test |
 | Run the desktop app | `App/FullyRested`: `npm run electron` (builds core, runs `ng build`, starts Electron) |
 | UI only, in a browser | `App/FullyRested`: `ng serve`. With no Electron IPC, the repository and execute services return built-in mock data |
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |

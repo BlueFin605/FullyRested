@@ -126,14 +126,14 @@ withQueryOptions(program.command('failures').argument('[runId]', 'run id (defaul
     printResult(options, result, formatFailures(result));
   }));
 
-withQueryOptions(program.command('request').argument('<case>', 'case index or name').argument('[runId]', 'run id (default: the latest)')
+withQueryOptions(program.command('request').argument('<case>', 'case index, full name, or bare run name if unique').argument('[runId]', 'run id (default: the latest)')
   .description('Show the request a case sent'))
   .action(queryAction(async (ref: string, runId: string | undefined, options: QueryOptions) => {
     const result = caseRequest(await resolveRun([openStore(options)], runId), ref);
     printResult(options, result, formatRequest(result));
   }));
 
-withQueryOptions(program.command('response').argument('<case>', 'case index or name').argument('[runId]', 'run id (default: the latest)')
+withQueryOptions(program.command('response').argument('<case>', 'case index, full name, or bare run name if unique').argument('[runId]', 'run id (default: the latest)')
   .description('Show the response a case received')
   .option('--headers <names>', 'show only these headers (comma-separated, any case)'))
   .action(queryAction(async (ref: string, runId: string | undefined, options: QueryOptions & { headers?: string }) => {
@@ -142,7 +142,7 @@ withQueryOptions(program.command('response').argument('<case>', 'case index or n
     printResult(options, result, formatResponse(result));
   }));
 
-withQueryOptions(program.command('body').argument('<case>', 'case index or name').argument('[runId]', 'run id (default: the latest)')
+withQueryOptions(program.command('body').argument('<case>', 'case index, full name, or bare run name if unique').argument('[runId]', 'run id (default: the latest)')
   .description('Show the response body of a case (or the request body with --request)')
   .option('--request', 'show the request body instead')
   .option('--path <path>', 'extract a path from a JSON body')

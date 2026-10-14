@@ -1,7 +1,17 @@
 import { SecretTable, VariableTable } from './model';
 
-// {{name}} is a variable, {{$name}} is a secret
-const PLACEHOLDER = /\{\{(\$?[0-9a-zA-Z]*?)\}\}/g;
+// {{name}} is a variable, {{$name}} is a secret.
+// '-' and '_' are accepted because nothing stops a name being declared with them -- addSecretRef and the
+// desktop editor both take any string -- and a name the placeholder cannot match resolves to '' instead,
+// sending an empty credential with no warning anywhere. A name holding anything else still cannot
+// substitute, so declaring one is reported by warnUnsubstitutableNames() when the collection loads.
+const NAME = '[0-9a-zA-Z_-]';
+const PLACEHOLDER = new RegExp(`\\{\\{(\\$?${NAME}*?)\\}\\}`, 'g');
+
+// True when a declared variable or secret name can actually be matched inside {{...}}
+export function canSubstitute(name: string): boolean {
+  return new RegExp(`^${NAME}*$`).test(name);
+}
 
 // Replaces every placeholder in a single pass. Unknown or inactive names become ''.
 // Values are inserted verbatim: quotes are not escaped and '$&'-style patterns are not interpreted.
@@ -46,7 +56,7 @@ function lookup(name: string, variables: VariableTable[] | undefined, secrets: S
 }
 
 
-const SECRET_REFERENCE = /\{\{\$[0-9a-zA-Z]*?\}\}/g;
+const SECRET_REFERENCE = new RegExp(`\\{\\{\\$${NAME}*?\\}\\}`, 'g');
 
 // True when a credential field holds a literal value rather than only {{$secret}} references.
 // Literal values (and {{variables}}) end up in plain text in collection and request files.
