@@ -64,7 +64,10 @@ The single exception is `secret set`, which exists only on the CLI.
 ```
 core (still no fs)
   |- locator.ts    parse a scope locator; resolve it against the tree
-  |- authoring.ts  one function per verb, over a shared editScope helper
+  |- authoring.ts  re-export barrel: the only public entry point
+  |- authoring/    one function per verb, over a shared editScope helper,
+  |                one file per verb family (edit-scope, create, settings,
+  |                request-fields, validation, structure)
   |- infer.ts      JSON Schema inference from a recorded response body
   +- run-store.ts  (existing) read by validation_from_case
 
