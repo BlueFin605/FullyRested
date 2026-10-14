@@ -221,7 +221,7 @@ export function createServer(opts: McpOptions): McpServer {
   // No value parameter, and there never may be one: this writes the reference, nothing else.
   server.registerTool('add_secret_ref', {
     description: 'Add a reference to a secret, never its value; a human stores the value with the CLI.',
-    inputSchema: { collection, scope, name: z.string().describe('Secret name, as used in {{$name}}') }
+    inputSchema: { collection, scope, name: z.string().describe("Secret name, as used in {{$name}}: letters, digits, '-' and '_' only, or it will never substitute") }
   }, a => runEdit(a.collection, ctx => addSecretRef(ctx, a.scope, a.name)));
 
   server.registerTool('set_auth', {

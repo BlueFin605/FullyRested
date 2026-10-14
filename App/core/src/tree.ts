@@ -1,10 +1,11 @@
 import {
-    ACTION_FILE_EXTENSIONS, CollectionConfig, CreateEmptyAction, CreateEmptyFolderConfig, FolderConfig, REConstants, RestAction
+    ACTION_FILE_EXTENSIONS, CollectionConfig, CreateEmptyAction, CreateEmptyFolderConfig, FolderConfig, REConstants, RestAction, ScopeSettings
 } from './model';
 import { normaliseAction, normaliseCollectionConfig, normaliseFolderConfig } from './normalise';
 import { extensionOf, joinPath } from './paths';
 import { CollectionNode, ContainerNode, FolderNode, RequestNode } from './scope';
 import { SecretStore, loadSecrets, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } from './secrets';
+import { canSubstitute } from './substitution';
 
 export interface DirEntry {
     name: string;
@@ -34,7 +35,33 @@ export async function loadCollectionTree(collectionFile: string, source: Collect
         root.warnings.push(`${REConstants.FolderSettingsFile} next to ${collectionFile} is ignored; collection-wide settings belong in ${collectionFile}`);
 
     await loadEntries(root, '', entries, loader);
+    warnUnsubstitutableNames(root);
     return root;
+}
+
+// A declared name that {{...}} cannot match is written to the file happily but resolves to '' at send
+// time, so a credential goes out empty with nothing to show why. Nothing refuses such a name where it is
+// declared -- addSecretRef and the desktop editor both take any string -- so the collection reports it on
+// load, which is the one place both hosts already surface warnings.
+function warnUnsubstitutableNames(root: CollectionNode): void {
+    const report = (where: string, kind: string, names: string[]) => {
+        for (const name of names)
+            if (!canSubstitute(name))
+                root.warnings.push(`${kind} '${name}' in ${where} can never be substituted: {{...}} matches only letters, digits, '-' and '_', so a reference to it resolves to an empty value`);
+    };
+    const scope = (where: string, settings: Partial<ScopeSettings> | undefined) => {
+        report(where, 'Secret', (settings?.secrets ?? []).map(s => s.$secret));
+        report(where, 'Variable', (settings?.variables ?? []).map(v => v.variable));
+    };
+
+    scope(`collection '${root.name}'`, root.config.collectionEnvironment);
+    for (const env of root.config.environments)
+        scope(`environment '${env.name}'`, env);
+    for (const folder of root.folderNodes())
+        scope(`folder '${folder.path}'`, folder.config);
+    for (const request of root.requestNodes())
+        for (const run of request.action.runs)
+            scope(`run '${request.name} › ${run.name}'`, run);
 }
 
 async function loadEntries(container: ContainerNode, dir: string, entries: DirEntry[], loader: Loader): Promise<void> {

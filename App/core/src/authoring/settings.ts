@@ -117,12 +117,12 @@ export interface AuthFields {
     signUrl?: boolean;
 }
 
-// One secret reference and nothing else. `[0-9a-zA-Z]` is the name substitution.ts actually
+// One secret reference and nothing else. `[0-9a-zA-Z_-]` is the name substitution.ts actually
 // resolves (its PLACEHOLDER regex), so a name this refuses would have been written to the file but
 // never substituted at send time. Anchored rather than reusing isRawCredential, which is also
 // false for '' and for two references run together — neither of which is a credential a single
 // field can hold.
-const SECRET_REF_ONLY = /^\{\{\$[0-9a-zA-Z]+\}\}$/;
+const SECRET_REF_ONLY = /^\{\{\$[0-9a-zA-Z_-]+\}\}$/;
 
 // Guards a reference-only field. Refusing a literal here is what keeps setAuth unable to carry a
 // credential value, now that these three fields are writable at all.
@@ -196,8 +196,9 @@ function applyAuthFields(auth: AuthenticationDetails, type: string, fields: Auth
 // storeSecrets() finds nothing to move into the keychain on the way out. The guarantee holds by
 // construction rather than by leaving the fields out, which is what let an agent configure
 // bearertoken fully while basicauth and awssig needed a person to finish them in the app.
-// `name` must be `[0-9a-zA-Z]` only — that is all the substitution regex (substitution.ts)
-// matches inside `{{...}}`, so anything else is written but never resolves.
+// `name` must be `[0-9a-zA-Z_-]` only — that is all the substitution regex (substitution.ts)
+// matches inside `{{...}}`, so anything else is written but never resolves. A collection holding
+// such a name reports it as a warning when it loads (tree.ts warnUnsubstitutableNames).
 // (`{{$secret:name}}` is only the display form inspect.ts and redact.ts print; it is not what a
 // document holds and would not substitute.)
 export async function setAuth(

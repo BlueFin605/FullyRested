@@ -183,9 +183,19 @@ describe('setAuth reference-only credential fields', () => {
       .rejects.toThrow(QueryError);
   });
 
-  it('refuses a name the substitution regex would never match', async () => {
+  it('takes a name holding - or _, which the substitution regex now matches', async () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { sessionToken: '{{$aws-session}}' }))
+      .resolves.toMatchObject({ changed: true });
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { sessionToken: '{{$aws_session}}' }))
+      .resolves.toMatchObject({ changed: true });
+  });
+
+  it('refuses a name the substitution regex would never match', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { sessionToken: '{{$aws.session}}' }))
+      .rejects.toThrow(QueryError);
+    await expect(setAuth(ctxFor(sink), 'collection', 'awssig', { sessionToken: '{{$aws session}}' }))
       .rejects.toThrow(QueryError);
   });
 
