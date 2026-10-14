@@ -1,4 +1,8 @@
-import { AuthenticationDetails, CollectionConfig, SecretTable } from './model';
+import { Locator, resolveLocator, ResolvedScope } from './locator';
+import {
+  AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestActionRun, RestActionValidation, ScopeSettings, SecretTable,
+  ValidationType,
+} from './model';
 import { QueryError } from './query-error';
 import { secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
@@ -9,9 +13,37 @@ export interface TreeError {
   message: string;
 }
 
+// A request's or run's validation marker, sharper than the bare ValidationType:
+//
+// - effective resolves ValidationType.Inherit for the two-level chain this app actually has: a
+//   run whose own type is Inherit takes its request's type. There is nothing above a request to
+//   inherit from -- ScopeSettings (folders, the collection) carries no validation field, so only
+//   RestAction and RestActionRun have one -- so a request whose own type is Inherit, or a run
+//   whose request is also Inherit, is left unresolved. validateResponse does not treat an
+//   unresolved Inherit as "no validation": it early-returns only for undefined or type == None
+//   (validate.ts:12-13), so Inherit falls through to the unconditional status check against
+//   validation.httpCode (validate.ts:20-21) while skipping the body/header checks (neither
+//   'Inherit'.includes('Body') nor .includes('Headers') is true) -- i.e. it behaves exactly like
+//   ResponseCode with the default httpCode 200. So an unresolved Inherit resolves to
+//   'ResponseCode', not 'None', to report what actually gets checked. effective is only present
+//   when type is 'Inherit'.
+// - schema/incomplete describe whichever validation is actually in force (own, or inherited): a
+//   Body/HeadersBody check with a non-empty jsonSchema.schema sets schema true; one with an empty
+//   or absent schema sets schema false and incomplete true -- a mechanical flag on the absence of
+//   a schema, not a claim that nothing is checked: when validation.body is None, validateBody
+//   still asserts the response has no payload (validate.ts:40-41) even with incomplete true. Both
+//   schema and incomplete are false/absent for a type that does not check a body at all
+//   (including an unresolved Inherit, which resolves to ResponseCode).
+export interface TreeValidation {
+  type: string;
+  effective?: string;
+  schema: boolean;
+  incomplete?: true;
+}
+
 export interface TreeRun {
   name: string;
-  validation: string | undefined;
+  validation: TreeValidation | undefined;
 }
 
 export interface TreeRequest {
@@ -20,7 +52,7 @@ export interface TreeRequest {
   path: string;
   method: string;
   url: string;
-  validation: string | undefined;
+  validation: TreeValidation | undefined;
   runs?: TreeRun[];
 }
 
@@ -42,6 +74,32 @@ export interface TreeView {
 
 const toError = (e: LoadError): TreeError => ({ type: 'error', file: e.file, message: e.message });
 
+const checksBody = (type: string) => type === ValidationType.Body || type === ValidationType.HeadersBody;
+const hasSchema = (v: RestActionValidation) => (v.jsonSchema?.schema ?? '').length > 0;
+
+// The two-level inherit chain: a run whose own type is Inherit takes its request's type (own);
+// nothing above a request carries a validation setting (ScopeSettings has none), so a request's
+// own Inherit -- or a run's Inherit under a request that is itself Inherit -- has nothing to
+// resolve to. Unlike toExecute() (scope.ts:87-91), which neither recurses nor maps Inherit to
+// anything and simply passes it through unchanged, this reports what validate.ts actually
+// enforces for an unresolved Inherit: a live status-code check against the default httpCode,
+// indistinguishable from ResponseCode (validate.ts:12-21).
+function resolveValidation(own: RestActionValidation, above: RestActionValidation | undefined): RestActionValidation {
+  if (own.type !== ValidationType.Inherit) return own;
+  if (above !== undefined && above.type !== ValidationType.Inherit) return above;
+  return CreateEmptyRestActionValidation(ValidationType.ResponseCode);
+}
+
+function toTreeValidation(own: RestActionValidation | undefined, above?: RestActionValidation): TreeValidation | undefined {
+  if (own == undefined) return undefined;
+  const resolved = resolveValidation(own, above);
+  const schema = checksBody(resolved.type) && hasSchema(resolved);
+  const view: TreeValidation = { type: own.type, schema };
+  if (checksBody(resolved.type) && !schema) view.incomplete = true;
+  if (own.type === ValidationType.Inherit) view.effective = resolved.type;
+  return view;
+}
+
 function childrenOf(container: ContainerNode): TreeNodeView[] {
   return container.children.flatMap((child): TreeNodeView[] => {
     if (child instanceof FolderNode) {
@@ -55,9 +113,9 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
     const action = child.action;
     const view: TreeRequest = {
       type: 'request', name: child.name, path: child.path,
-      method: action.verb, url: action.url, validation: action.validation?.type,
+      method: action.verb, url: action.url, validation: toTreeValidation(action.validation),
     };
-    const runs = child.runs().map(r => ({ name: r.run.name, validation: r.run.validation?.type }));
+    const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
     return [view];
   });
@@ -111,6 +169,94 @@ export function environmentsView(config: CollectionConfig): EnvironmentsView {
   };
 }
 
+// One scope's settings, by name only -- never a value. That is what makes this view cheap to
+// call and safe to serve over MCP: an agent can ask "is Authorization already set here, or at
+// collection level?" without any secret or header value crossing the wire. `scope` is a valid
+// locator (see locator.ts), so it can be fed straight back into a write verb.
+//
+// A request has no `variables` or `secrets` of its own -- ScopeSettings (which carries those) is
+// not defined at that level; only `run` and the scopes above a request have them. Both arrays
+// are always empty for a request scope, which must not be read as "nothing set here yet".
+export interface ScopeSettingNames {
+  scope: string;
+  headers: string[];
+  variables: string[];
+  secrets: string[];      // the $secret names, never values
+  auth: string;           // the authentication type, e.g. 'inherit', 'bearertoken'
+  params?: string[];      // request and run scopes only
+}
+
+export interface SettingsView {
+  collection: string;
+  scopes: ScopeSettingNames[];
+}
+
+const headerNames = (s: { headers: { key: string; active: boolean }[] }) => s.headers.filter(h => h.active).map(h => h.key);
+const paramNames = (s: { parameters: { key: string; active: boolean }[] }) => s.parameters.filter(p => p.active).map(p => p.key);
+
+function scopeSettingsNames(scope: string, settings: ScopeSettings): ScopeSettingNames {
+  return {
+    scope,
+    headers: headerNames(settings),
+    variables: variableNames(settings),
+    secrets: secretNames(settings),
+    auth: settings.auth.authentication,
+  };
+}
+
+function requestSettingsNames(request: RequestNode): ScopeSettingNames {
+  return {
+    scope: `request:${request.path}`,
+    headers: headerNames(request.action),
+    variables: [],
+    secrets: [],
+    auth: request.action.authentication.authentication,
+    params: paramNames(request.action),
+  };
+}
+
+function runSettingsNames(request: RequestNode, run: RestActionRun): ScopeSettingNames {
+  return {
+    scope: `run:${request.path}#${run.name}`,
+    headers: headerNames(run),
+    variables: variableNames(run),
+    secrets: secretNames(run),
+    auth: run.authentication.authentication,
+    params: paramNames(run),
+  };
+}
+
+// Every scope in the collection, in resolution order: collection, each environment, each
+// folder (depth-first, in tree order), each request, each run.
+function allScopes(root: CollectionNode): ScopeSettingNames[] {
+  const requests = root.requestNodes();
+  return [
+    scopeSettingsNames('collection', root.config.collectionEnvironment),
+    ...root.config.environments.map(e => scopeSettingsNames(`env:${e.name}`, e)),
+    ...root.folderNodes().map(f => scopeSettingsNames(`folder:${f.path}`, f.config)),
+    ...requests.map(requestSettingsNames),
+    ...requests.flatMap(r => r.action.runs.map(run => runSettingsNames(r, run))),
+  ];
+}
+
+function singleScope(root: CollectionNode, locator: Locator, resolved: ResolvedScope): ScopeSettingNames {
+  if (locator.kind === 'collection') return scopeSettingsNames('collection', root.config.collectionEnvironment);
+  if (locator.kind === 'environment') {
+    const env = root.config.environments.find(e => e.name === locator.name || e.id === locator.name)!;
+    return scopeSettingsNames(`env:${env.name}`, env);
+  }
+  if (resolved.node instanceof FolderNode) return scopeSettingsNames(`folder:${resolved.node.path}`, resolved.node.config);
+  if (resolved.node instanceof RunNode) return runSettingsNames(resolved.node.request, resolved.node.run);
+  if (resolved.node instanceof RequestNode) return requestSettingsNames(resolved.node);
+  throw new QueryError(`Unsupported locator kind '${locator.kind}'`);
+}
+
+/** Every scope's settings by name only, or (with `locator`) just the one scope it addresses. */
+export function settingsView(root: CollectionNode, locator?: Locator): SettingsView {
+  const scopes = locator === undefined ? allScopes(root) : [singleScope(root, locator, resolveLocator(root, locator))];
+  return { collection: root.name, scopes };
+}
+
 export interface ShownRequest {
   name: string;
   method: string;
@@ -122,7 +268,7 @@ export interface ShownRequest {
   validation: unknown;
 }
 
-const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
+export const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
 
 function redactDeep<T>(value: T, replace: (s: string) => string): T {
   if (typeof value === 'string') return replace(value) as T;

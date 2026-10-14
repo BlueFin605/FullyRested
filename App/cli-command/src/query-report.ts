@@ -1,4 +1,4 @@
-import { BodyResult, EnvironmentsView, RunListing, ShownRequest, TreeNodeView, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EditResult, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -69,13 +69,26 @@ export function parseRange(text: string): [number, number] | undefined {
   return m ? [Number(m[1]), Number(m[2])] : undefined;
 }
 
+// One short marker per row: the bare type; type(schema) / type(no schema!) when it checks a body;
+// or Inherit→<effective> when the row's own type is Inherit (the resolved type's own schema
+// completeness is in the TreeValidation data for a programmatic reader, but left out of this
+// one-line marker to keep an inherited row to a single arrow rather than two nested annotations).
+function validationMarker(v: TreeValidation): string {
+  if (v.type === 'Inherit') return `Inherit→${v.effective}`;
+  if (v.incomplete) return `${v.type}(no schema!)`;
+  if (v.schema) return `${v.type}(schema)`;
+  return v.type;
+}
+
 function treeLines(nodes: TreeNodeView[], depth: number): string[] {
   const pad = '  '.repeat(depth);
   return nodes.flatMap(n => {
     if (n.type === 'folder') return [`${pad}${n.name}/`, ...treeLines(n.children, depth + 1)];
     if (n.type === 'error') return [`${pad}! ${n.file}: ${n.message}`];
-    const validation = n.validation ? `  [${n.validation}]` : '';
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(r => `${pad}  › ${r.name}`)];
+    const validation = n.validation ? `  [${validationMarker(n.validation)}]` : '';
+    const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
+      `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(runLine)];
   });
 }
 
@@ -89,6 +102,34 @@ const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');
 export function formatEnvironments(v: EnvironmentsView): string {
   const rows = v.environments.map(e => `${e.name === v.selected ? '*' : ' '} ${e.name}  vars: ${list(e.variables)}  secrets: ${list(e.secrets)}`);
   return [...rows, `  collection  vars: ${list(v.collection.variables)}  secrets: ${list(v.collection.secrets)}`].join('\n');
+}
+
+// One block per scope: its locator, then a row per kind that has anything in it, names only --
+// never a value. An empty row is left out rather than printed as '(none)': both a person and an
+// agent read this, and a page of empty rows buries the few settings that are actually set. 'auth'
+// counts as unset when it is 'inherit' (the default every scope starts at), so a scope with
+// nothing of its own prints just its locator and a dash.
+function settingRows(s: ScopeSettingNames): string[] {
+  const row = (label: string, names: string[]) => names.length === 0 ? [] : [`  ${label.padEnd(9)}  ${names.join(', ')}`];
+  return [
+    ...row('headers', s.headers),
+    ...row('params', s.params ?? []),
+    ...row('variables', s.variables),
+    ...row('secrets', s.secrets),
+    ...row('auth', s.auth === 'inherit' ? [] : [s.auth])
+  ];
+}
+
+export function formatSettings(v: SettingsView): string {
+  return v.scopes.flatMap(s => {
+    const rows = settingRows(s);
+    return [s.scope, ...(rows.length === 0 ? ['  —'] : rows)];
+  }).join('\n');
+}
+
+// One line: result.message, plus ' (no change)' when the edit left the document as it was.
+export function formatEdit(result: EditResult): string {
+  return result.changed ? result.message : `${result.message} (no change)`;
 }
 
 export function formatShown(r: ShownRequest): string {

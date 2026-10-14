@@ -3,10 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { spawn } from 'node:child_process';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { startFixture } from './fixture';
-import { createServer } from '../src/mcp';
+import { callTool as call, connectMcp, startFixture } from './fixture';
 import { createSecretStore } from '../src/secret-store';
 
 let fx: Awaited<ReturnType<typeof startFixture>>;
@@ -15,31 +12,71 @@ const secrets = createSecretStore({ FULLYRESTED_SECRET_APIKEY: 'sk-test-secret' 
 beforeAll(async () => { fx = await startFixture(); });
 afterAll(() => fx.stop());
 
-async function connect(defaultStore?: string) {
-  const server = createServer({ defaultStore, secrets });
-  const [a, b] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'test', version: '1' });
-  await Promise.all([server.connect(a), client.connect(b)]);
-  return client;
-}
+const connect = (defaultStore?: string) => connectMcp({ defaultStore, secrets });
 
-async function call(client: Client, name: string, args: Record<string, unknown> = {}) {
-  const result = await client.callTool({ name, arguments: args });
-  const text = (result.content as { type: string; text: string }[])[0]!.text;
-  return { isError: result.isError === true, text, json: () => JSON.parse(text) };
-}
-
-const TOOLS = [
+// The query tools: nothing they take may name a secret or --include-secrets.
+const QUERY_TOOLS = [
   'case_body', 'case_request', 'case_response', 'environments', 'failures', 'list_runs',
   'run', 'run_summary', 'show_request', 'tree'
 ];
 
+// One tool per authoring verb, named as the spec names them, plus the read tool `settings`.
+const EDIT_TOOLS = [
+  'new_collection', 'new_folder', 'new_request', 'new_run', 'new_environment', 'select_environment',
+  'set_header', 'set_param', 'set_variable', 'add_secret_ref', 'set_auth', 'remove_setting',
+  'set_url', 'set_method', 'set_body', 'set_validation', 'set_validation_header',
+  'validation_from_case', 'rename', 'delete', 'move', 'settings'
+];
+
+const TOOLS = [...QUERY_TOOLS, ...EDIT_TOOLS].sort();
+
 describe('mcp server', () => {
-  it('lists exactly the tools (the ticket lists ten names) and none mentions secrets or include', async () => {
+  it('lists exactly the query and authoring tools, and no query tool mentions secrets or include', async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map(t => t.name).sort()).toEqual(TOOLS);
-    expect(JSON.stringify(tools.map(t => t.inputSchema))).not.toMatch(/secret|include/i);
+    const queries = tools.filter(t => QUERY_TOOLS.includes(t.name));
+    expect(JSON.stringify(queries.map(t => t.inputSchema))).not.toMatch(/secret|include/i);
+  });
+
+  it('serves no secret-value tool: add_secret_ref is the only one, and it cannot carry a value', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    expect(tools.map(t => t.name).filter(n => /secret/.test(n))).toEqual(['add_secret_ref']);
+    const ref = tools.find(t => t.name === 'add_secret_ref')!;
+    expect(Object.keys((ref.inputSchema as { properties: object }).properties).sort())
+      .toEqual(['collection', 'name', 'scope']);
+    expect(JSON.stringify(ref.inputSchema)).not.toMatch(/value/i);
+  });
+
+  // AIF-12: set_validation_header gains the enabled flag its sibling set_header already had.
+  it('set_validation_header serves an enabled flag, like set_header', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    const check = tools.find(t => t.name === 'set_validation_header')!;
+    const props = (check.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    expect(props.enabled).toBeTruthy();
+    expect(props.enabled!.description).toMatch(/default: true/i);
+  });
+
+  // AIF-11: the three credential fields are writable, but reference-only. The description is the
+  // part that matters for an agent - it is what stops it trying a literal and burning a call.
+  it('set_auth serves the credential fields as reference-only', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    const auth = tools.find(t => t.name === 'set_auth')!;
+    const props = (auth.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    for (const field of ['password', 'secretKey', 'sessionToken']) {
+      expect(props[field], field).toBeTruthy();
+      expect(props[field]!.description, field).toMatch(/secret reference/i);
+    }
+  });
+
+  it('every description is one line, and the authoring ones stay under 200 characters', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    for (const tool of tools) {
+      expect(tool.description, tool.name).toBeTruthy();
+      expect(tool.description, tool.name).not.toContain('\n');
+      if (EDIT_TOOLS.includes(tool.name))
+        expect(tool.description!.length, tool.name).toBeLessThan(200);
+    }
   });
 
   it('tree, environments and show_request answer like the CLI', async () => {

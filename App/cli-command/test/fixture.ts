@@ -3,6 +3,9 @@ import { AddressInfo } from 'node:net';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { McpOptions, createServer as createMcpServer } from '../src/mcp';
 
 export function validation(type: string, httpCode: number) {
   return { type, httpCode, headers: [], body: 'None', jsonSchema: undefined };
@@ -70,4 +73,28 @@ export async function startFixture() {
       fs.rmSync(folder, { recursive: true, force: true });
     }
   };
+}
+
+// The in-process MCP harness: a server and a client joined by a linked transport pair, with no
+// child process and no stdio. It lives here rather than in mcp.test.ts so every suite that drives
+// the MCP tools (mcp.test.ts, mcp-authoring.test.ts) shares the one copy.
+export async function connectMcp(options: McpOptions): Promise<Client> {
+  const server = createMcpServer(options);
+  const [serverEnd, clientEnd] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: 'test', version: '1' });
+  await Promise.all([server.connect(serverEnd), client.connect(clientEnd)]);
+  return client;
+}
+
+export interface ToolCall {
+  isError: boolean;
+  text: string;
+  json(): any;   // a tool's answer is shaped per tool; tests assert on it directly
+}
+
+// One tool call, unwrapped to the single text item every tool answers with
+export async function callTool(client: Client, name: string, args: Record<string, unknown> = {}): Promise<ToolCall> {
+  const result = await client.callTool({ name, arguments: args });
+  const text = (result.content as { type: string; text: string }[])[0]!.text;
+  return { isError: result.isError === true, text, json: () => JSON.parse(text) };
 }

@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { SecretStore, environmentsView, showRequest, treeView } from '@fullyrested/core';
+import { SecretStore, environmentsView, parseLocator, settingsView, showRequest, treeView } from '@fullyrested/core';
 import { UsageError, findEnvironment, requestFor, setup } from './run';
 import { loadTree } from './files';
 
@@ -13,6 +13,11 @@ export async function inspectTree(collection: string, store: SecretStore, onWarn
 export async function inspectEnvironments(collection: string, store: SecretStore) {
   const root = await setup(() => loadTree(collection, store));
   return environmentsView(root.config);
+}
+
+export async function inspectSettings(collection: string, store: SecretStore, scope?: string) {
+  const root = await setup(() => loadTree(collection, store));
+  return settingsView(root, scope === undefined ? undefined : parseLocator(scope));
 }
 
 export interface ShowOptions { collection: string; action: string; run?: string; environment?: string }

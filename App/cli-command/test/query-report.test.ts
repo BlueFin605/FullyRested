@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { BodyResult } from '@fullyrested/core';
-import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSummary, parseRange, truncationNotice } from '../src/query-report';
+import { BodyResult, ScopeSettingNames, SettingsView, TreeRequest, TreeValidation, TreeView } from '@fullyrested/core';
+import { formatBody, formatFailures, formatRequest, formatResponse, formatRuns, formatSettings, formatSummary, formatTree, parseRange, truncationNotice } from '../src/query-report';
 
 const body = (o: Partial<BodyResult>): BodyResult =>
   ({ index: 0, name: 'n', side: 'response', bytes: 10, encoding: 'text', truncated: false, content: 'x', ...o });
+
+const request = (validation: TreeValidation | undefined): TreeRequest =>
+  ({ type: 'request', name: 'req', path: 'req.frreq', method: 'get', url: '/x', validation });
+const tree = (validation: TreeValidation | undefined): TreeView =>
+  ({ collection: 'api', children: [request(validation)] });
 
 describe('query-report', () => {
   it('formats runs, with a message when empty', () => {
@@ -60,5 +65,71 @@ describe('query-report', () => {
   it('parses ranges strictly', () => {
     expect(parseRange('0:10')).toEqual([0, 10]);
     for (const bad of ['a:b', '1.5:3', '-1:3', '3', '1:2:3', ':']) expect(parseRange(bad)).toBeUndefined();
+  });
+});
+
+describe('formatTree validation marker', () => {
+  it('shows nothing for a row with no validation', () => {
+    expect(formatTree(tree(undefined))).toBe('api/\n  req  GET /x');
+  });
+
+  it('shows the bare type when it checks no body', () => {
+    expect(formatTree(tree({ type: 'ResponseCode', schema: false }))).toBe('api/\n  req  GET /x  [ResponseCode]');
+  });
+
+  it('flags a real schema', () => {
+    expect(formatTree(tree({ type: 'Body', schema: true }))).toBe('api/\n  req  GET /x  [Body(schema)]');
+  });
+
+  it('flags a declared body check with an empty schema', () => {
+    expect(formatTree(tree({ type: 'Body', schema: false, incomplete: true }))).toBe('api/\n  req  GET /x  [Body(no schema!)]');
+  });
+
+  it('shows what an Inherit row resolves to', () => {
+    expect(formatTree(tree({ type: 'Inherit', effective: 'Body', schema: true }))).toBe('api/\n  req  GET /x  [Inherit→Body]');
+  });
+
+  it('shows ResponseCode as what an unresolved Inherit resolves to, not None', () => {
+    expect(formatTree(tree({ type: 'Inherit', effective: 'ResponseCode', schema: false }))).toBe('api/\n  req  GET /x  [Inherit→ResponseCode]');
+  });
+
+  it('shows a run row\'s own marker too', () => {
+    const view: TreeView = {
+      collection: 'api',
+      children: [{ ...request({ type: 'None', schema: false }), runs: [{ name: 'happy', validation: { type: 'Body', schema: false, incomplete: true } }] }]
+    };
+    expect(formatTree(view)).toBe('api/\n  req  GET /x  [None]\n    › happy  [Body(no schema!)]');
+  });
+});
+
+describe('formatSettings', () => {
+  const scope = (o: Partial<ScopeSettingNames>): ScopeSettingNames =>
+    ({ scope: 's', headers: [], variables: [], secrets: [], auth: 'inherit', ...o });
+  const view = (...scopes: ScopeSettingNames[]): SettingsView => ({ collection: 'api', scopes });
+
+  it('prints one block per scope, names only, leaving empty rows out', () => {
+    const out = formatSettings(view(
+      scope({ scope: 'collection', headers: ['Accept', 'User-Agent'], variables: ['host'], secrets: ['apiKey'], auth: 'none' }),
+      scope({ scope: 'env:Production', variables: ['host'] })
+    ));
+    expect(out.split('\n')).toEqual([
+      'collection',
+      '  headers    Accept, User-Agent',
+      '  variables  host',
+      '  secrets    apiKey',
+      '  auth       none',
+      'env:Production',
+      '  variables  host'
+    ]);
+  });
+
+  it('prints the parameters of a request or run scope', () => {
+    const out = formatSettings(view(scope({ scope: 'run:items/ok.frreq#happy', params: ['env'], auth: 'bearertoken' })));
+    expect(out.split('\n')).toEqual(['run:items/ok.frreq#happy', '  params     env', '  auth       bearertoken']);
+  });
+
+  it('prints a dash for a scope with nothing set at all', () => {
+    expect(formatSettings(view(scope({ scope: 'request:items/ok.frreq', params: [] }))).split('\n'))
+      .toEqual(['request:items/ok.frreq', '  —']);
   });
 });

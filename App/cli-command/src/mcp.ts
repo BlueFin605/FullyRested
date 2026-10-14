@@ -1,11 +1,15 @@
+import * as path from 'path';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore,
-  caseBody, caseRequest, caseResponse, failures, listRuns, resolveRun, runResult, summary
+  AuthoringContext, EditResult, LOCATOR_FORMS, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
+  addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
+  newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
+  setMethod, setParam, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
-import { inspectEnvironments, inspectRequest, inspectTree } from './inspect';
+import { edit } from './authoring';
+import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
 import { runCollection } from './run';
 
@@ -17,6 +21,13 @@ const warn = (m: string) => console.error(`warning: ${m}`); // stdout belongs to
 const caseRef = z.union([z.string(), z.number()]).describe('Case index or name');
 const store = z.string().optional().describe('Folder holding .fullyrested-runs (default: this server\'s, else memory only)');
 const runId = z.string().optional().describe('Run id (default: the latest)');
+const collection = z.string().describe('Path to the .frcol file');
+// The locator grammar is carried once, here, by the shared scope schema -- no authoring tool's
+// description repeats it, and this is the same string parseLocator's own error quotes.
+const scope = z.string().describe(`Scope to edit: ${LOCATOR_FORMS}`);
+const settingName = z.string().describe('Setting name');
+const settingValue = z.string().describe('Setting value');
+const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-header'] as const;
 
 export function createServer(opts: McpOptions): McpServer {
   const server = new McpServer({ name: 'fullyrested', version: require('../package.json').version });
@@ -48,28 +59,39 @@ export function createServer(opts: McpOptions): McpServer {
     }
   };
 
+  // Every authoring tool goes through this one write path, so a bad collection path or a core
+  // QueryError comes back as an isError result holding the same text the CLI prints -- which is
+  // what lets an agent correct a mistyped locator without help.
+  const runEdit = (file: string, run: (ctx: AuthoringContext) => Promise<EditResult>) =>
+    respond(() => edit(file, opts.secrets, run));
+
   server.registerTool('tree', {
     description: 'List the folders, requests and runs of a collection, or of one folder in it. Not needed before run.',
     inputSchema: {
-      collection: z.string().describe('Path to the .frcol file'),
+      collection,
       folder: z.string().optional().describe('Show only this folder (a path inside the collection)')
     }
-  }, ({ collection, folder }) => respond(() => inspectTree(collection, opts.secrets, warn, folder)));
+  }, a => respond(() => inspectTree(a.collection, opts.secrets, warn, a.folder)));
 
   server.registerTool('environments', {
     description: 'List the environments of a collection (names only).',
-    inputSchema: { collection: z.string() }
-  }, ({ collection }) => respond(() => inspectEnvironments(collection, opts.secrets)));
+    inputSchema: { collection }
+  }, a => respond(() => inspectEnvironments(a.collection, opts.secrets)));
+
+  server.registerTool('settings', {
+    description: 'List what is set in every scope of a collection, or in one scope, by name only (no values).',
+    inputSchema: { collection, scope: scope.optional() }
+  }, a => respond(() => inspectSettings(a.collection, opts.secrets, a.scope)));
 
   server.registerTool('show_request', {
     description: 'Show a request as it would be sent, with where each setting comes from.',
-    inputSchema: { collection: z.string(), action: z.string().describe('Request file (.frreq)'), run: z.string().optional(), environment: z.string().optional() }
+    inputSchema: { collection, action: z.string().describe('Request file (.frreq)'), run: z.string().optional(), environment: z.string().optional() }
   }, args => respond(() => inspectRequest(args, opts.secrets, warn)));
 
   server.registerTool('run', {
-    description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body.',
+    description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body. Authoring loop: tree, edit, run.',
     inputSchema: {
-      collection: z.string(), environment: z.string().optional(), action: z.string().optional(),
+      collection, environment: z.string().optional(), action: z.string().optional(),
       run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
     }
   }, ({ store: dir, ...options }) => respond(async () => {
@@ -130,6 +152,161 @@ export function createServer(opts: McpOptions): McpServer {
     request: a.request, path: a.path, outline: a.outline, full: a.full,
     range: a.range ? [a.range.start, a.range.end] : undefined
   })));
+
+  // -------------------------------------------------------------------------------------------
+  // The authoring verbs: one tool each, named as the design spec names them. `secret set` is
+  // deliberately NOT registered -- a secret value must never cross the protocol, and the keychain
+  // is out of an agent's reach by design. add_secret_ref below writes the reference only; the
+  // value is set by a human with `fullyrested secret set`. Do not add it here for symmetry.
+  // Descriptions stay one short line: the shared `scope` schema carries the locator grammar once.
+  // -------------------------------------------------------------------------------------------
+
+  server.registerTool('new_collection', {
+    description: 'Create a new collection file, optionally with environments.',
+    inputSchema: {
+      file: z.string().describe('Collection file to create (.frcol)'),
+      environments: z.array(z.string()).optional().describe('Environments to create')
+    }
+  }, a => runEdit(a.file, ctx => newCollection(ctx, path.basename(a.file), a.environments ?? [])));
+
+  server.registerTool('new_folder', {
+    description: 'Create a folder in a collection.',
+    inputSchema: { collection, path: z.string().describe('Folder path, relative to the collection') }
+  }, a => runEdit(a.collection, ctx => newFolder(ctx, a.path)));
+
+  server.registerTool('new_request', {
+    description: 'Create a request file with a method and url.',
+    inputSchema: {
+      collection,
+      path: z.string().describe('Request path, relative to the collection (.frreq)'),
+      method: z.string().describe('HTTP method (get, post, patch, option, delete, put)'),
+      url: z.string().describe('Request url (may hold {{variables}})')
+    }
+  }, a => runEdit(a.collection, ctx => newRequest(ctx, a.path, a.method, a.url)));
+
+  server.registerTool('new_run', {
+    description: 'Add a run to a request.',
+    inputSchema: {
+      collection,
+      request: z.string().describe('Request path, relative to the collection (.frreq)'),
+      name: z.string().describe('Run name')
+    }
+  }, a => runEdit(a.collection, ctx => newRun(ctx, a.request, a.name)));
+
+  server.registerTool('new_environment', {
+    description: 'Add an environment to the collection.',
+    inputSchema: { collection, name: z.string().describe('Environment name') }
+  }, a => runEdit(a.collection, ctx => newEnvironment(ctx, a.name)));
+
+  server.registerTool('select_environment', {
+    description: "Select the collection's active environment.",
+    inputSchema: { collection, name: z.string().describe('Environment name or id') }
+  }, a => runEdit(a.collection, ctx => selectEnvironment(ctx, a.name)));
+
+  server.registerTool('set_header', {
+    description: 'Set (or add) a header on a scope.',
+    inputSchema: { collection, scope, name: settingName, value: settingValue, enabled: z.boolean().optional().describe('Default: true') }
+  }, a => runEdit(a.collection, ctx => setHeader(ctx, a.scope, a.name, a.value, a.enabled ?? true)));
+
+  server.registerTool('set_param', {
+    description: 'Set (or add) a query parameter (requests and runs only).',
+    inputSchema: { collection, scope, name: settingName, value: settingValue, enabled: z.boolean().optional().describe('Default: true') }
+  }, a => runEdit(a.collection, ctx => setParam(ctx, a.scope, a.name, a.value, a.enabled ?? true)));
+
+  server.registerTool('set_variable', {
+    description: 'Set (or add) a variable on a scope.',
+    inputSchema: { collection, scope, name: settingName, value: settingValue }
+  }, a => runEdit(a.collection, ctx => setVariable(ctx, a.scope, a.name, a.value)));
+
+  // No value parameter, and there never may be one: this writes the reference, nothing else.
+  server.registerTool('add_secret_ref', {
+    description: 'Add a reference to a secret, never its value; a human stores the value with the CLI.',
+    inputSchema: { collection, scope, name: z.string().describe('Secret name, as used in {{$name}}') }
+  }, a => runEdit(a.collection, ctx => addSecretRef(ctx, a.scope, a.name)));
+
+  server.registerTool('set_auth', {
+    description: 'Set the authentication of a scope; give only the fields the type needs.',
+    inputSchema: {
+      collection, scope,
+      type: z.string().describe('inherit | none | basicauth | bearertoken | awssig'),
+      userName: z.string().optional().describe('basicauth: user name'),
+      password: z.string().optional().describe('basicauth: password as a secret reference only, e.g. {{$apiPass}}; add_secret_ref first, a human sets the value'),
+      token: z.string().optional().describe('bearertoken: token (use {{$name}} for a secret)'),
+      accessKey: z.string().optional().describe('awssig: access key id'),
+      secretKey: z.string().optional().describe('awssig: secret access key as a secret reference only, e.g. {{$awsSecret}}'),
+      sessionToken: z.string().optional().describe('awssig: session token as a secret reference only, e.g. {{$awsSession}}'),
+      awsRegion: z.string().optional().describe('awssig: AWS region'),
+      serviceName: z.string().optional().describe('awssig: AWS service name'),
+      signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers')
+    }
+  }, a => runEdit(a.collection, ctx => setAuth(ctx, a.scope, a.type, {
+    userName: a.userName, password: a.password, token: a.token,
+    accessKey: a.accessKey, secretKey: a.secretKey, sessionToken: a.sessionToken,
+    awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl
+  })));
+
+  server.registerTool('remove_setting', {
+    description: 'Remove one header, parameter, variable, secret reference or validation header.',
+    inputSchema: { collection, scope, kind: z.enum(SETTING_KINDS).describe('Setting kind'), name: settingName }
+  }, a => runEdit(a.collection, ctx => removeSetting(ctx, a.scope, a.kind as SettingKind, a.name)));
+
+  server.registerTool('set_url', {
+    description: 'Set the url of a request.',
+    inputSchema: { collection, scope, url: z.string().describe('Request url (may hold {{variables}})') }
+  }, a => runEdit(a.collection, ctx => setUrl(ctx, a.scope, a.url)));
+
+  server.registerTool('set_method', {
+    description: 'Set the HTTP method of a request.',
+    inputSchema: { collection, scope, method: z.string().describe('get, post, patch, option, delete, put') }
+  }, a => runEdit(a.collection, ctx => setMethod(ctx, a.scope, a.method)));
+
+  server.registerTool('set_body', {
+    description: "Set the body of a request; content type 'none' clears it.",
+    inputSchema: {
+      collection, scope,
+      contentType: z.string().describe("Content type, or 'none' to clear the body"),
+      text: z.string().optional().describe('Body text (every content type but the form one)'),
+      fields: z.array(z.object({ name: z.string(), value: z.string() })).optional().describe('Form fields, for the form content type')
+    }
+  }, a => runEdit(a.collection, ctx => setBody(ctx, a.scope, a.contentType, { text: a.text, fields: a.fields })));
+
+  server.registerTool('set_validation', {
+    description: 'Set the validation of a request or run.',
+    inputSchema: {
+      collection, scope,
+      type: z.string().optional().describe('Inherit | None | ResponseCode | Headers | Body | HeadersBody'),
+      httpCode: z.number().int().optional().describe('Expected HTTP status code'),
+      body: z.string().optional().describe('None | JsonSchema'),
+      jsonSchema: z.string().optional().describe('JSON Schema to check the response body against, as text')
+    }
+  }, a => runEdit(a.collection, ctx => setValidation(ctx, a.scope, {
+    type: a.type, httpCode: a.httpCode, body: a.body, jsonSchema: a.jsonSchema
+  })));
+
+  server.registerTool('set_validation_header', {
+    description: 'Set (or add) a header the response must have.',
+    inputSchema: { collection, scope, name: settingName, value: settingValue, enabled: z.boolean().optional().describe('Default: true') }
+  }, a => runEdit(a.collection, ctx => setValidationHeader(ctx, a.scope, a.name, a.value, a.enabled ?? true)));
+
+  server.registerTool('validation_from_case', {
+    description: 'Learn a validation from one recorded case of a run.',
+    inputSchema: { collection, scope, case: caseRef, runId, store }
+  }, a => runEdit(a.collection, ctx => validationFromCase(ctx, storesFor(a.store), a.scope, a.case, a.runId)));
+
+  server.registerTool('rename', {
+    description: 'Rename an environment, folder, request or run; use move for a new path.',
+    inputSchema: { collection, scope, name: z.string().describe('New (bare) name; a path is an error') }
+  }, a => runEdit(a.collection, ctx => rename(ctx, a.scope, a.name)));
+
+  server.registerTool('delete', {
+    description: 'Delete an environment, folder, request or run.',
+    inputSchema: { collection, scope }
+  }, a => runEdit(a.collection, ctx => remove(ctx, a.scope)));
+
+  server.registerTool('move', {
+    description: 'Move a request or folder to a new path.',
+    inputSchema: { collection, scope, to: z.string().describe('New path, relative to the collection') }
+  }, a => runEdit(a.collection, ctx => move(ctx, a.scope, a.to)));
 
   return server;
 }
