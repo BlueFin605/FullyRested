@@ -4,7 +4,7 @@ import {
   ValidationType,
 } from './model';
 import { QueryError } from './query-error';
-import { secretReplacer } from './redact';
+import { maskPresignedUrl, secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
 
 export interface TreeError {
@@ -299,7 +299,7 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
     return {
       name: node.name,
       method: request.action.verb,
-      url: replace(`${resolved.protocol}://${resolved.url}`),
+      url: replace(maskPresignedUrl(`${resolved.protocol}://${resolved.url}`)),
       headers: eff.headers.map(h => ({ key: h.value.key, value: label(h.value.value), source: sourceOf(h.source), overridden: h.overridden })),
       variables: eff.variables.map(v => ({ variable: v.value.variable, value: label(v.value.value), source: sourceOf(v.source), overridden: v.overridden })),
       secrets: eff.secrets.map(s => ({ name: s.value.$secret, source: sourceOf(s.source), overridden: s.overridden })),

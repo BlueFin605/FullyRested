@@ -60,6 +60,50 @@ export function secretReplacer(secrets: SecretTable[] | undefined, minLength: nu
   return text => text.replace(pattern, m => byValue.get(m) as string);
 }
 
+// A presigned SigV4 URL carries the signature, the credential and the session token in its query string.
+// FullyRested's own signUrl signing happens inside executeRequest and that signed URL is never recorded
+// (runCase records prepareRequest, before authentication), but a presigned URL pasted into a request's URL
+// field reaches records and showRequest exactly as typed — and none of its parts is a declared secret, so
+// secretReplacer would not touch them. Masked here instead, by the same rule maskAuthorization applies to
+// the header form.
+//
+// The URL is edited in place rather than rebuilt through new URL(): it may still hold unsubstituted
+// placeholders or be no valid URL at all, and re-serialising would re-encode parts that must be recorded
+// as they were sent.
+export function maskPresignedUrl(url: string): string {
+  const start = url.indexOf('?');
+  if (start < 0) return url;
+  const hash = url.indexOf('#', start);
+  const end = hash < 0 ? url.length : hash;
+  const query = url.slice(start + 1, end);
+  if (query === '') return url;
+
+  const masked = query.split('&').map(pair => {
+    const eq = pair.indexOf('=');
+    if (eq < 0) return pair;
+    const name = pair.slice(0, eq);
+    switch (name.toLowerCase()) {
+      case 'x-amz-signature':
+      case 'x-amz-security-token':
+        return `${name}=***`;
+      case 'x-amz-credential':
+        return `${name}=${maskCredentialScope(pair.slice(eq + 1))}`;
+      default:
+        return pair;
+    }
+  }).join('&');
+
+  return masked === query ? url : url.slice(0, start + 1) + masked + url.slice(end);
+}
+
+// Keeps the access key id, which identifies the caller but is not a credential, and masks the scope after
+// it. The separator may be encoded (%2F) or literal depending on who built the URL.
+function maskCredentialScope(value: string): string {
+  const separator = /%2f|\//i.exec(value);
+  if (!separator) return value; // just the key id: nothing after it to mask
+  return `${value.slice(0, separator.index)}${separator[0]}***`;
+}
+
 function maskAuthorization(value: string): string {
   if (/^Basic\s/i.test(value)) return 'Basic ***';
   if (/^Bearer\s/i.test(value)) return 'Bearer ***';
@@ -103,7 +147,7 @@ export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): C
   const replace = secretReplacer(secrets, MIN_SECRET_LENGTH, sentCredentials(c.request.headers));
   const request: CaseRecord['request'] = {
     ...c.request,
-    url: replace(c.request.url),
+    url: replace(maskPresignedUrl(c.request.url)),
     headers: redactHeaders(c.request.headers, replace),
   };
   if (c.request.body) request.body = redactBody(c.request.body, replace);
