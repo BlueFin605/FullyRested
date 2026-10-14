@@ -161,6 +161,46 @@ describe('setValidationHeader', () => {
       .toEqual([{ key: 'x-trace', value: '2', active: true, id: 'generated' }]);
   });
 
+  // AIF-12: the flag setHeader always had. A header check is a HeaderTable row like any other,
+  // and validateHeaders already skips an inactive one - only authoring could not write it.
+  it('honours enabled: false, and flips an existing row either way', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const scope = 'run:users/get.frreq#not found';
+    const headers = () => written(sink, 'users/get.frreq').runs[0].validation.headers;
+
+    await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', false);
+    expect(headers()).toEqual([{ key: 'X-Trace', value: '1', active: false, id: 'generated' }]);
+
+    // flipped back on, then off again, without deleting and re-adding the row
+    expect((await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', true)).changed).toBe(true);
+    expect(headers()[0]!.active).toBe(true);
+    expect((await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', false)).changed).toBe(true);
+    expect(headers()[0]!.active).toBe(false);
+  });
+
+  it('defaults to enabled when the flag is omitted, exactly as setHeader does', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const scope = 'run:users/get.frreq#not found';
+    const headers = () => written(sink, 'users/get.frreq').runs[0].validation.headers;
+
+    await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', false);
+    await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1');
+    // setHeader writes active: enabled unconditionally, so an omitted flag re-enables the row;
+    // this verb matches it rather than inventing a third upsert rule.
+    expect(headers()[0]!.active).toBe(true);
+  });
+
+  it('reports no change when the row already has that value and that flag', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const scope = 'run:users/get.frreq#not found';
+    await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', false);
+    const before = sink.files.get('users/get.frreq');
+
+    const result = await setValidationHeader(ctxFor(sink), scope, 'X-Trace', '1', false);
+    expect(result.changed).toBe(false);
+    expect(sink.files.get('users/get.frreq')).toBe(before);
+  });
+
   it('is removed by removeSetting, reading the same validation.headers it writes', async () => {
     const sink = new MemoryCollectionSink(files);
     await setValidationHeader(ctxFor(sink), 'request:users/get.frreq', 'X-Trace', '1');

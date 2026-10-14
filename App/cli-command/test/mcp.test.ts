@@ -48,6 +48,15 @@ describe('mcp server', () => {
     expect(JSON.stringify(ref.inputSchema)).not.toMatch(/value/i);
   });
 
+  // AIF-12: set_validation_header gains the enabled flag its sibling set_header already had.
+  it('set_validation_header serves an enabled flag, like set_header', async () => {
+    const { tools } = await connect().then(c => c.listTools());
+    const check = tools.find(t => t.name === 'set_validation_header')!;
+    const props = (check.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    expect(props.enabled).toBeTruthy();
+    expect(props.enabled!.description).toMatch(/default: true/i);
+  });
+
   // AIF-11: the three credential fields are writable, but reference-only. The description is the
   // part that matters for an agent - it is what stops it trying a literal and burning a call.
   it('set_auth serves the credential fields as reference-only', async () => {

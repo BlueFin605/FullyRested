@@ -242,6 +242,24 @@ describe('fullyrested edit', () => {
     expect(parsed).toEqual({ file: 'api.frcol', scope: 'collection', changed: true, message: "Added environment 'Temp'" });
   }, 60000);
 
+  // AIF-12: --disabled on a validation header, spelled as set-header s own flag is.
+  it('set-validation-header --disabled writes an inactive check, and the default stays active', async () => {
+    let r = await fullyrested(['edit', 'new-request', '-c', collection, '--path', 'parked.frreq', '--method', 'get', '--url', 'https://x/p'], dir);
+    expect(r.code).toBe(0);
+    const file = path.join(dir, 'parked.frreq');
+    const checks = () => JSON.parse(fs.readFileSync(file, 'utf8')).validation.headers;
+
+    r = await fullyrested(['edit', 'set-validation-header', '-c', collection, '--scope', 'request:parked.frreq',
+      '--name', 'X-Trace', '--value', '1', '--disabled'], dir);
+    expect(r.code).toBe(0);
+    expect(checks()).toMatchObject([{ key: 'X-Trace', value: '1', active: false }]);
+
+    r = await fullyrested(['edit', 'set-validation-header', '-c', collection, '--scope', 'request:parked.frreq',
+      '--name', 'X-Trace', '--value', '1'], dir);
+    expect(r.code).toBe(0);
+    expect(checks()[0].active).toBe(true);
+  });
+
   // AIF-11: password, secretKey and sessionToken are reference-only, so an agent can finish a
   // basicauth or awssig block without a value ever passing through the CLI.
   it('set-auth takes a secret reference for the password, and refuses a literal', async () => {

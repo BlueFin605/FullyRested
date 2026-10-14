@@ -392,8 +392,9 @@ withScope(editCommand('set-validation', 'Set the validation of a request or run'
 withScope(editCommand('set-validation-header', 'Set (or add) a header the response must have'))
   .requiredOption('--name <name>', 'header name')
   .requiredOption('--value <value>', 'header value')
-  .action(queryAction(async (options: EditOptions & { scope: string; name: string; value: string }) =>
-    runEdit(options, ctx => setValidationHeader(ctx, options.scope, options.name, options.value))));
+  .option('--disabled', 'create the check disabled, so it is not enforced (default: enabled)')
+  .action(queryAction(async (options: EditOptions & { scope: string; name: string; value: string; disabled?: boolean }) =>
+    runEdit(options, ctx => setValidationHeader(ctx, options.scope, options.name, options.value, !options.disabled))));
 
 withScope(editCommand('validation-from-case', 'Learn a validation from one recorded case of a run'))
   .requiredOption('--case <index-or-name>', 'case index (1-based) or name')

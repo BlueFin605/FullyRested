@@ -1195,11 +1195,15 @@ export async function setValidation(ctx: AuthoringContext, scope: string, fields
 // Sets (or adds) a header the response must have, on a request's or run's validation. Matched
 // case-insensitively on the header name, like setHeader; removeSetting(…, 'validation-header', …)
 // removes from the same validation.headers array this upserts into.
+//
+// `enabled` works exactly as setHeader's does — written unconditionally, so an omitted flag means
+// true and re-enables a row that was off. A header check is a HeaderTable row like any other and
+// validateHeaders skips an inactive one, so this is how an agent parks a check without deleting it.
 export async function setValidationHeader(
-    ctx: AuthoringContext, scope: string, name: string, value: string
+    ctx: AuthoringContext, scope: string, name: string, value: string, enabled: boolean = true
 ): Promise<EditResult> {
     return editScope(ctx, 'set_validation_header', scope, SETTING_LOCATORS['validation-header'], target => {
-        const entry: HeaderTable = { key: name, value, active: true, id: ctx.guid.generateGUID() };
+        const entry: HeaderTable = { key: name, value, active: enabled, id: ctx.guid.generateGUID() };
         if (!upsertNamed(requestSettings(target).validation.headers, 'key', name, entry, sameName))
             return '';
 

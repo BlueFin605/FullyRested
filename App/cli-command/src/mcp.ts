@@ -285,8 +285,8 @@ export function createServer(opts: McpOptions): McpServer {
 
   server.registerTool('set_validation_header', {
     description: 'Set (or add) a header the response must have.',
-    inputSchema: { collection, scope, name: settingName, value: settingValue }
-  }, a => runEdit(a.collection, ctx => setValidationHeader(ctx, a.scope, a.name, a.value)));
+    inputSchema: { collection, scope, name: settingName, value: settingValue, enabled: z.boolean().optional().describe('Default: true') }
+  }, a => runEdit(a.collection, ctx => setValidationHeader(ctx, a.scope, a.name, a.value, a.enabled ?? true)));
 
   server.registerTool('validation_from_case', {
     description: 'Learn a validation from one recorded case of a run.',
