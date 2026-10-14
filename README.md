@@ -244,13 +244,10 @@ command line or an agent.
 - **Deleting a scope leaves its keychain entries behind.** `delete` removes the
   file or the entry in it; the secret values stay under that scope's service in
   the OS keychain until you clear them yourself.
-- **A secret name must be letters and digits only.** `{{$api_pass}}` and
-  `{{$aws-secret}}` can be declared but never substitute — today they resolve to
-  an empty string, silently, everywhere except the reference-only auth fields,
-  which refuse the name outright.
-- **The desktop app can write a secret field the verbs never produce.** Saving
-  in the app puts `$value: ""` into a secret that has no keychain entry on that
-  machine, and the save keeps it.
+- **A secret name must be letters, digits, `-` and `_`.** `{{$api_pass}}` and
+  `{{$aws-secret}}` both work. A name holding anything else — a dot, a space —
+  can still be declared but never substitutes; opening the collection reports it
+  as a warning rather than letting it fail silently at send time.
 - **There is no locking.** Nothing detects the desktop app holding the same file
   open with unsaved changes. If both write, the last writer wins — collections
   are plain JSON in git, so `git diff` shows it and `git checkout` undoes it.
