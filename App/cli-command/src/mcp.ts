@@ -18,7 +18,7 @@ export interface McpOptions { defaultStore?: string; secrets: SecretStore }
 
 const warn = (m: string) => console.error(`warning: ${m}`); // stdout belongs to the protocol
 
-const caseRef = z.union([z.string(), z.number()]).describe('Case index or name');
+const caseRef = z.union([z.string(), z.number()]).describe("Case index, full 'request › run' name, or the bare run name when only one case holds it");
 const store = z.string().optional().describe('Folder holding .fullyrested-runs (default: this server\'s, else memory only)');
 const runId = z.string().optional().describe('Run id (default: the latest)');
 const collection = z.string().describe('Path to the .frcol file');
