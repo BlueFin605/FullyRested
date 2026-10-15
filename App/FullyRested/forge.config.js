@@ -8,6 +8,29 @@ module.exports = {
     // No extension: electron-packager appends .ico on Windows and .icns on
     // macOS. Generated from icons/master.png by `npm run icons`.
     icon: './icons/fullyrested',
+    // FullyRested ships unsigned: an ACM certificate cannot sign code, and
+    // macOS notarization needs a paid Apple Developer account. These env vars
+    // are absent, so nothing below applies - they exist so that adding
+    // certificates later is a change to GitHub secrets rather than to this
+    // file. See docs/superpowers/specs/2026-10-15-desktop-distribution-design.md
+    ...(process.env.WINDOWS_CERT_FILE
+      ? {
+          windowsSign: {
+            certificateFile: process.env.WINDOWS_CERT_FILE,
+            certificatePassword: process.env.WINDOWS_CERT_PASSWORD,
+          },
+        }
+      : {}),
+    ...(process.env.APPLE_ID
+      ? {
+          osxSign: {},
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID,
+          },
+        }
+      : {}),
     // The renderer ships as the ng build output in dist/fullyrested; its sources, caches and
     // other build output stay out of the package
     ignore: [
@@ -66,6 +89,20 @@ module.exports = {
     {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
+    },
+  ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: { owner: 'BlueFin605', name: 'FullyRested' },
+        // Every platform's runner publishes into the same release, so it stays
+        // a draft until the release workflow has checked all of them arrived.
+        // update.electronjs.org never sees a draft, so a half-finished or
+        // mistyped release cannot reach anyone.
+        draft: true,
+        prerelease: false,
+      },
     },
   ],
 };
