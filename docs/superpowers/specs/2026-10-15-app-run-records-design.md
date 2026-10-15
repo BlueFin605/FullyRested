@@ -79,6 +79,15 @@ carries `.secrets`, what `redactCase` needs), the substituted request, the
 response, and the validation. Core is bundled into the renderer, so
 `buildCaseRecord`, `redactCase` and `newRunId` are already in reach there.
 
+The building itself is a **pure core function**, `buildAppRunRecord`, not
+logic inside the Angular service. Two reasons: the repo's rule that a front
+end holds no request logic of its own, and testability —
+`App/FullyRested`'s `ng test` runs Karma against an interactive Chrome
+(`browsers: ['Chrome']`, `singleRun: false`), so a renderer unit test is not
+runnable by an agent or in CI, while core's vitest suite is. The Angular
+service is then a few lines: call the function, hand the result to the IPC
+wrapper, swallow failures.
+
 `main.js` is then a dumb writer. It refuses any record whose `redacted` is not
 exactly `true` and otherwise hands it to the store. The check cannot *prove*
 redaction — the renderer is our own code — but it keeps the MCP server's
@@ -276,13 +285,21 @@ server, and later the app give the same answers") true by construction, and
 |---|---|
 | core | New `fileRunStore` tests against a memory host: round-trip, the corrupt-file message, newest-first sort, traversal and absolute ids refused, and the prune — deletes only `-app` files, keeps the newest 200, leaves CLI records alone. `listingOf` tests for `ms` and the single-case-only `status`. |
 | core, no-regression | `App/cli-command/test/run-store.test.ts` passes **unchanged**. |
-| renderer | `ExecuteRestCallsService` against a fake `window.ipc`: the saved record has `redacted: true`, one case at `index: 1`, a `-app` run id, `requestFile` relative to the collection, and a secret value in the URL comes back as `{{$secret:NAME}}`. A throwing `saveRun` does not fail the send. |
+| record building | `buildAppRunRecord` in core's vitest suite: the record has `redacted: true`, one case at `index: 1`, a `-app` run id, `selection` as the locator for both a request and a run, `requestFile` collection-relative, and a secret value in the URL redacted to `{{$secret:NAME}}`. |
+| renderer | No unit test: `ng test` needs an interactive Chrome. The Angular service is kept to a wrapper thin enough that its only untested behaviour is "a failing save does not fail the send", which is one `try`/`catch` and is covered in Dean's end-to-end pass. |
 | main process | `npm run test:main`: `saveRun` refuses a record without `redacted === true`, refuses a traversal run id, writes under the collection folder, prunes only `-app` files; `listRuns` / `loadRun` refuse a path outside it. |
 | end to end | Dean, in the real app against `Test Collection`: send, open History, click the case; then `fullyrested runs --store "<collection folder>"` shows the app's record. |
 
 Commands: `App/core` → `npm test` and `npm run typecheck`;
 `App/cli-command` → `npm test`, `npm run typecheck`;
 `App/FullyRested` → `npm run test:main`, `ng lint`.
+
+The main-process work is **not** written inline in `main.js`, which has no
+seam a test can reach (its handlers are registered inside
+`app.whenReady()`). It goes in a new `App/FullyRested/run-records.js`
+exporting the `fs` host and a store factory; `main.js` only wires it to the
+three IPC channels, and `main-tests/` exercises the module directly — the
+shape `collection-access.js` and its test already have.
 
 ## Out of scope
 
