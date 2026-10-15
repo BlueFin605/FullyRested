@@ -75,13 +75,18 @@ module.exports = {
     {
       name: '@electron-forge/maker-deb',
       config: {
-        options: { icon: './icons/fullyrested.png' },
+        // bin must be given explicitly. Both Linux installers default it to
+        // the sanitised - lowercased - package name, but productName makes
+        // electron-packager write the binary as FullyRested, and the maker
+        // then fails with "could not find the Electron app binary".
+        // Setting executableName instead would also rename the Windows exe.
+        options: { bin: 'FullyRested', icon: './icons/fullyrested.png' },
       },
     },
     {
       name: '@electron-forge/maker-rpm',
       config: {
-        options: { icon: './icons/fullyrested.png' },
+        options: { bin: 'FullyRested', icon: './icons/fullyrested.png' },
       },
     },
   ],
