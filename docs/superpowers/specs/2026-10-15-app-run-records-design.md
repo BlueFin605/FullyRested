@@ -60,7 +60,8 @@ renderer (core bundled)                 main process                  disk
 ExecuteRestCallsService
   node.resolve({environmentId})  ──► resolved (carries .secrets)
   .replaceVariables()            ──► substituted
-  invoke('testRest') ───────────────► executeRequest() ──────────────► network
+  prepareRequest()               ──► prepared (pure: method, url, body)
+  invoke('testRest') ────────────────► executeRequest() ──────────────► network
                      ◄──────────────── RestActionResult (incl. headersSent)
   validateResponse()
   buildCaseRecord(...)
@@ -94,18 +95,22 @@ redaction — the renderer is our own code — but it keeps the MCP server's
 invariant ("a record not marked redacted is never served") from being broken
 by an accident on the app side.
 
-### No second prepareRequest
+### prepareRequest, but never applyAuthentication
 
-The CLI calls `prepareRequest` and passes the result to `buildCaseRecord`. The
-app cannot: signing already happened inside `executeRequest` in the main
-process, and re-signing in the renderer would record an `Authorization` header
-that differs from the one sent (SigV4 is time-dependent).
+The renderer calls core's `prepareRequest(substituted)` and passes the result
+to `buildCaseRecord`, exactly as the CLI's `runCase` does. That is safe
+because `prepareRequest` is pure and synchronous — it only works out the
+method, the `protocol://url`, the serialised body and the content type.
+Signing is a separate step, `applyAuthentication`, which runs later inside
+`executeRequest` in the main process, and the renderer must **not** call it:
+re-signing would produce a second SigV4 timestamp and record an
+`Authorization` header that was never sent.
 
-Instead the renderer synthesises the `PreparedRequest` from the substituted
-request plus `response.headersSent` — which `buildCaseRecord` already prefers
-over `request.headers` when it is non-empty. When `headersSent` is absent
-(no response at all), the substituted request's own headers are used, which is
-exactly the existing fallback.
+The headers actually sent come back on the result as `headersSent`, and
+`buildCaseRecord` already prefers it over `request.headers` whenever it is
+non-empty, falling back to the prepared headers when there was no response at
+all. So the record shows the signed headers without the renderer ever signing
+anything.
 
 ### fileRunStore moves into core
 
