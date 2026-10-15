@@ -59,6 +59,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ubuntu-latest ships dpkg but not rpmbuild, which maker-rpm requires.
+      - name: Install rpm tooling
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
