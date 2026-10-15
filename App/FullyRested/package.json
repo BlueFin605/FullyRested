@@ -1,9 +1,11 @@
 {
   "name": "fullyrested",
-  "version": "0.0.0",
+  "productName": "FullyRested",
+  "version": "0.1.0",
   "description": "A desktop REST client whose collections are plain files",
   "author": "BlueFin605",
   "main": "main.js",
+  "repository": "https://github.com/BlueFin605/FullyRested",
   "scripts": {
     "ng": "ng",
     "start": "npm run build:core && electron-forge start",
@@ -14,6 +16,8 @@
     "package": "npm run build:core && ng build && electron-forge package",
     "make": "npm run build:core && ng build && electron-forge make",
     "build:core": "npm --prefix ../core run build",
+    "icons:master": "node scripts/restore-alpha.mjs",
+    "icons": "node scripts/make-icons.mjs",
     "pretest:main": "npm --prefix ../cli-command run build",
     "test:main": "node --test \"main-tests/*.test.js\""
   },
@@ -21,7 +25,8 @@
   "dependencies": {
     "@fullyrested/core": "file:../core",
     "@napi-rs/keyring": "^2.1.0",
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "update-electron-app": "^3.3.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^22.2.2",
@@ -51,6 +56,7 @@
     "@electron-forge/maker-squirrel": "^8.0.1",
     "@electron-forge/maker-zip": "^8.0.1",
     "@electron-forge/plugin-auto-unpack-natives": "^8.0.1",
+    "@electron-forge/publisher-github": "^8.0.1",
     "@lezer/highlight": "^1.2.5",
     "@types/jasmine": "~4.0.0",
     "codemirror": "^6.0.2",
@@ -63,6 +69,7 @@
     "karma-jasmine": "~5.0.0",
     "karma-jasmine-html-reporter": "~1.7.0",
     "material-icons": "^1.13.14",
+    "png2icons": "^2.0.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
     "typescript": "~6.0.3",

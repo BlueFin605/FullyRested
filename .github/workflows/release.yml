@@ -1,0 +1,129 @@
+name: Release
+
+# Cutting a release is one command, run by hand:
+#
+#   cd App/FullyRested
+#   npm version 1.2.3        # bumps package.json, commits, tags v1.2.3
+#   git push --follow-tags
+#
+# Pushing the tag IS the manual trigger. Nothing else starts a release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # Cheap checks first, so a bad tag fails in seconds rather than after three
+  # platform builds.
+  guard:
+    name: Check the tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need master's history for the ancestry check
+
+      - name: Tag must match the app version
+        run: |
+          version="v$(node -p "require('./App/FullyRested/package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match App/FullyRested/package.json ($version)."
+            echo "::error::Use 'npm version <x.y.z>' in App/FullyRested, which bumps and tags together."
+            exit 1
+          fi
+          echo "Tag and package version agree: $version"
+
+      - name: Tag must be on master
+        run: |
+          git fetch --no-tags origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$GITHUB_REF_NAME points at a commit that is not on master."
+            echo "::error::Merge the work to master first, then tag the merge."
+            exit 1
+          fi
+          echo "Tagged commit is on master."
+
+  build:
+    name: ${{ matrix.os }}
+    needs: guard
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Never fail fast here: a half-published draft is easier to reason about
+      # when every platform has had its turn.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            App/core/package-lock.json
+            App/cli-command/package-lock.json
+            App/FullyRested/package-lock.json
+
+      # No tests here. The guard job has already proven this commit is on
+      # master, and build.yml tests every commit that reaches master. Re-running
+      # them would triple the time to publish without testing anything new.
+      #
+      # Same order and reasoning as build.yml: core's dist is what the main
+      # process and the packager consume. cli-command is not installed - the
+      # desktop app does not depend on it.
+      - name: core - install and build
+        working-directory: App/core
+        run: npm ci && npm run build
+
+      - name: app - install and build renderer
+        working-directory: App/FullyRested
+        run: npm ci && npm run build
+
+      # Each platform publishes into the SAME release, which publisher-github
+      # creates as a draft (see forge.config.js). Drafts are invisible to
+      # update.electronjs.org, so nothing reaches users until the finalise job
+      # has checked every platform arrived.
+      - name: Publish ${{ matrix.os }} artifacts
+        working-directory: App/FullyRested
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-forge publish
+
+  finalise:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The one silent-failure mode in this design: without RELEASES among the
+      # assets, installs work perfectly and auto-update quietly never happens.
+      # Nobody would notice for months. Check before anyone can download it.
+      - name: Windows auto-update assets must be present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets=$(gh release view "$GITHUB_REF_NAME" --json assets -q '.assets[].name')
+          echo "$assets"
+
+          missing=""
+          echo "$assets" | grep -qx 'RELEASES' || missing="$missing RELEASES"
+          # Lowercase, and derived from the package id rather than productName,
+          # so match the shape instead of a literal name.
+          echo "$assets" | grep -q -- '-full\.nupkg$' || missing="$missing *-full.nupkg"
+          echo "$assets" | grep -q 'Setup\.exe$' || missing="$missing Setup.exe"
+
+          if [ -n "$missing" ]; then
+            echo "::error::Release $GITHUB_REF_NAME is missing:$missing"
+            echo "::error::Leaving it as a draft. Without RELEASES, auto-update silently never runs."
+            exit 1
+          fi
+
+      - name: Flip the draft to published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false
