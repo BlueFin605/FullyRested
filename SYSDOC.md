@@ -70,6 +70,7 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
 | Record and query | core `run-record.ts` builds the run record, its cases numbered from 1; core `redact.ts` (`redactCase`) redacts each case, called from the CLI's `run.ts` unless `--include-secrets` is given; a `RunStore` keeps it (`FsRunStore`, one `.frrun` file per record, a wrapper over core's `fileRunStore`, on disk in the CLI; `MemoryRunStore` in the MCP server). The app records too: the renderer builds the record with `buildAppRunRecord` and writes it over the `saveRun` IPC channel; `query.ts` answers run-result (what MCP `run` returns), summary, failures and per-case questions for both the CLI commands and the MCP tools |
+| Pick the cases to run | core `scope-cases.ts` (`casesFor` / `casesForScope`), used by the CLI, the MCP server and the app. The app runs a folder or the collection root with `ExecuteRestCallsService.executeScope`, builds one multi-case record with `buildScopeRunRecord` (alongside `buildAppRunRecord` for a single send), and `LatestResultsService` shows each request's latest result in its tab |
 | Author: create or change a document | core `authoring/` over `editScope`: resolve the locator, read the document raw through `CollectionSource`, apply the verb, `normalise*`, `storeSecrets`, write through `CollectionSink` — `FsCollectionSink` in the CLI and the MCP server, `MemoryCollectionSink` in tests. The app still has its own write handlers in `main.js` |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
@@ -107,6 +108,8 @@ The `feature/ai-interface` branch maps to the **AI First** initiative
 The `feature/authoring-apis` branch maps to the same **AI First** initiative
 (`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
 `docs/superpowers/specs/2026-10-11-authoring-apis-design.md`.
+Running a folder or collection from the UI (UI Refresh) is designed in
+`docs/superpowers/specs/2026-10-17-ui-run-scope-design.md`.
 The `feature/ai-first-followups` branch maps to the same **AI First**
 initiative and carries that board's tail: the review and follow-up tickets
 left after the two epics shipped.
