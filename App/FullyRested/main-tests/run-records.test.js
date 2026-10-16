@@ -25,7 +25,7 @@ test('writes a record into the runs folder and reads it back', async () => {
 
     await store.save(record('20261015-100000-aaaa-app'));
 
-    const file = path.join(dir, RUNS_FOLDER, '20261015-100000-aaaa-app.json');
+    const file = path.join(dir, RUNS_FOLDER, '20261015-100000-aaaa-app.frrun');
     assert.ok(fs.existsSync(file), `expected ${file} to exist`);
     assert.equal((await store.load('20261015-100000-aaaa-app')).selection, 'request:a.frreq');
 });
@@ -96,7 +96,7 @@ test('handleSaveRun writes under the collection folder and the others read it ba
 
     await handleSaveRun(access, { root: collection, record: rec });
 
-    assert.ok(fs.existsSync(path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.json')));
+    assert.ok(fs.existsSync(path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.frrun')));
     assert.deepEqual((await handleListRuns(access, { root: collection })).map(l => l.runId), ['20261015-100000-aaaa-app']);
     assert.equal((await handleLoadRun(access, { root: collection, runId: rec.runId })).selection, 'request:a.frreq');
 });
@@ -174,7 +174,7 @@ test('listing skips a record file that is a symlink', async (t) => {
     const outsideFile = path.join(dir, 'outside.json');
     fs.writeFileSync(outsideFile, JSON.stringify(record('20261016-100000-link-app')));
     try {
-        fs.symlinkSync(outsideFile, path.join(dir, RUNS_FOLDER, '20261016-100000-link-app.json'), 'file');
+        fs.symlinkSync(outsideFile, path.join(dir, RUNS_FOLDER, '20261016-100000-link-app.frrun'), 'file');
     } catch {
         return t.skip('no symlink available');
     }

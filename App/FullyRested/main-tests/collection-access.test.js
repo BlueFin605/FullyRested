@@ -202,7 +202,7 @@ test('runsPath is the runs folder inside the open collection', () => {
 
     assert.equal(access.runsPath(collection), path.join(collection, RUNS_FOLDER));
     assert.equal(access.runsPath(collection, '20261015-100000-aaaa-app'),
-        path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.json'));
+        path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.frrun'));
 });
 
 test('runsPath refuses a run id that is not a plain id', () => {

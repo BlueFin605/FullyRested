@@ -3,7 +3,7 @@
 // every path or secret service outside those, so a renderer can't reach arbitrary files or keychain entries.
 const path = require('node:path');
 const fs = require('node:fs');
-const { REConstants, RUNS_FOLDER, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, guardedRealTarget, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
+const { REConstants, RUNS_FOLDER, RUN_FILE_EXTENSION, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, guardedRealTarget, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
 
 // Collection guids, request ids and folder ids are app-generated GUIDs; secret names are user-typed keys
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
@@ -134,7 +134,7 @@ class CollectionAccess {
             throw new Error(`${runId} is not a run id`);
 
         const folder = path.join(this.root, RUNS_FOLDER);
-        const wanted = runId == undefined ? folder : path.join(folder, `${runId}.json`);
+        const wanted = runId == undefined ? folder : path.join(folder, `${runId}${RUN_FILE_EXTENSION}`);
 
         const real = realTarget(wanted);
         if (real == undefined || !isInside(realTarget(this.root) ?? this.root, real))

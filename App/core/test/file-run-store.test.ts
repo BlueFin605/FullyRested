@@ -38,7 +38,7 @@ describe('fileRunStore', () => {
     await store.save(run);
 
     expect(await store.load(run.runId)).toEqual(run);
-    expect(files.has(`dir/${RUNS_FOLDER}/${run.runId}.json`)).toBe(true);
+    expect(files.has(`dir/${RUNS_FOLDER}/${run.runId}.frrun`)).toBe(true);
   });
 
   it('returns undefined for an unknown run', async () => {
@@ -62,16 +62,25 @@ describe('fileRunStore', () => {
     expect(await fileRunStore(host, 'dir').list()).toEqual([]);
   });
 
+  it('ignores a stray .json file in the runs folder', async () => {
+    const { host, files } = memoryHost();
+    const store = fileRunStore(host, 'dir');
+    await store.save(record('20261011-100000-aaaa'));
+    files.set(`dir/${RUNS_FOLDER}/old.json`, JSON.stringify(record('old')));
+
+    expect((await store.list()).map(l => l.runId)).toEqual(['20261011-100000-aaaa']);
+  });
+
   it('skips a corrupt file in list with a warning', async () => {
     const { host, files } = memoryHost();
     const warnings: string[] = [];
     const store = fileRunStore(host, 'dir', { onWarning: m => warnings.push(m) });
     await store.save(record('20261011-100000-aaaa'));
-    files.set(`dir/${RUNS_FOLDER}/bad.json`, '{not json');
+    files.set(`dir/${RUNS_FOLDER}/bad.frrun`, '{not json');
 
     expect((await store.list()).map(l => l.runId)).toEqual(['20261011-100000-aaaa']);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('bad.json');
+    expect(warnings[0]).toContain('bad.frrun');
   });
 
   it('ignores a non-json file in list', async () => {
@@ -86,17 +95,17 @@ describe('fileRunStore', () => {
   it('throws from load for a corrupt file, naming it', async () => {
     const { host, files, dirs } = memoryHost();
     dirs.add(`dir/${RUNS_FOLDER}`);
-    files.set(`dir/${RUNS_FOLDER}/bad.json`, '{not json');
+    files.set(`dir/${RUNS_FOLDER}/bad.frrun`, '{not json');
 
-    await expect(fileRunStore(host, 'dir').load('bad')).rejects.toThrow(/Run file .*bad\.json is corrupt/);
+    await expect(fileRunStore(host, 'dir').load('bad')).rejects.toThrow(/Run file .*bad.frrun is corrupt/);
   });
 
   it('throws from load for a file that parses but is not an object', async () => {
     const { host, files, dirs } = memoryHost();
     dirs.add(`dir/${RUNS_FOLDER}`);
-    files.set(`dir/${RUNS_FOLDER}/nul.json`, 'null');
+    files.set(`dir/${RUNS_FOLDER}/nul.frrun`, 'null');
 
-    await expect(fileRunStore(host, 'dir').load('nul')).rejects.toThrow(/Run file .*nul\.json is corrupt/);
+    await expect(fileRunStore(host, 'dir').load('nul')).rejects.toThrow(/Run file .*nul.frrun is corrupt/);
   });
 
   it('refuses traversal, backslash and absolute ids rather than reading outside the folder', async () => {
@@ -147,7 +156,20 @@ describe('fileRunStore pruning', () => {
     for (let n = 1; n <= 5; n++) await store.save(record(appId(n)));
 
     expect((await store.list()).map(l => l.runId)).toEqual([appId(5), appId(4), appId(3)]);
-    expect(files.has(`dir/${RUNS_FOLDER}/${appId(1)}.json`)).toBe(false);
+    expect(files.has(`dir/${RUNS_FOLDER}/${appId(1)}.frrun`)).toBe(false);
+  });
+
+  it('prunes only *-app.frrun files, leaving a stray .json alone', async () => {
+    const { host, files } = memoryHost();
+    const store = fileRunStore(host, 'dir', { cap: 1 });
+    const stray = `dir/${RUNS_FOLDER}/20261001-090000-aaaa${APP_RUN_SUFFIX}.json`;
+    files.set(stray, 'stray');
+    await store.save(record(appId(1)));
+    await store.save(record(appId(2)));
+
+    expect(files.has(`dir/${RUNS_FOLDER}/${appId(1)}.frrun`)).toBe(false);
+    expect(files.has(`dir/${RUNS_FOLDER}/${appId(2)}.frrun`)).toBe(true);
+    expect(files.has(stray)).toBe(true);
   });
 
   it('never deletes a record without the -app suffix', async () => {

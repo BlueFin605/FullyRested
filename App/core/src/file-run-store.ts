@@ -2,6 +2,7 @@ import { RunRecord } from './run-record';
 import { RunListing, RunStore, listingOf, newRunId } from './run-store';
 
 export const RUNS_FOLDER = '.fullyrested-runs';
+export const RUN_FILE_EXTENSION = '.frrun';
 
 // A run id is a file name, so it may hold nothing that could escape the runs folder
 const VALID_RUN_ID = /^[A-Za-z0-9_-]+$/;
@@ -43,7 +44,7 @@ export interface FileRunStoreOptions {
 export function fileRunStore(host: RunStoreHost, dir: string, options: FileRunStoreOptions = {}): RunStore {
   const folder = host.join(dir, RUNS_FOLDER);
   const warn = options.onWarning ?? (() => { });
-  const fileOf = (runId: string) => host.join(folder, `${runId}.json`);
+  const fileOf = (runId: string) => host.join(folder, `${runId}${RUN_FILE_EXTENSION}`);
 
   const parse = (file: string): RunRecord => {
     try {
@@ -62,7 +63,7 @@ export function fileRunStore(host: RunStoreHost, dir: string, options: FileRunSt
     if (options.cap === undefined) return;
     try {
       const names = host.readdir(folder)
-        .filter(n => n.endsWith(`${APP_RUN_SUFFIX}.json`))
+        .filter(n => n.endsWith(`${APP_RUN_SUFFIX}${RUN_FILE_EXTENSION}`))
         .sort()
         .reverse();
       for (const name of names.slice(options.cap)) host.remove(host.join(folder, name));
@@ -90,7 +91,7 @@ export function fileRunStore(host: RunStoreHost, dir: string, options: FileRunSt
       if (!host.exists(folder)) return [];
       const listings: RunListing[] = [];
       for (const name of host.readdir(folder)) {
-        if (!name.endsWith('.json')) continue;
+        if (!name.endsWith(RUN_FILE_EXTENSION)) continue;
         try {
           listings.push(listingOf(parse(host.join(folder, name))));
         } catch (error) {

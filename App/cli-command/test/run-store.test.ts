@@ -35,7 +35,7 @@ describe('FsRunStore', () => {
     await store.save(run);
 
     expect(await store.load(run.runId)).toEqual(run);
-    expect(fs.existsSync(path.join(dir, RUNS_FOLDER, `${run.runId}.json`))).toBe(true);
+    expect(fs.existsSync(path.join(dir, RUNS_FOLDER, `${run.runId}.frrun`))).toBe(true);
   });
 
   it('returns undefined for an unknown run', async () => {
@@ -65,41 +65,41 @@ describe('FsRunStore', () => {
     const warnings: string[] = [];
     const store = new FsRunStore(dir, m => warnings.push(m));
     await store.save(record('20261011-100000-aaaa'));
-    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'bad.json'), '{not json');
+    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'bad.frrun'), '{not json');
 
     const ids = (await store.list()).map(l => l.runId);
 
     expect(ids).toEqual(['20261011-100000-aaaa']);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('bad.json');
+    expect(warnings[0]).toContain('bad.frrun');
   });
 
   it('throws from load for a corrupt file', async () => {
     const store = new FsRunStore(dir);
     fs.mkdirSync(path.join(dir, RUNS_FOLDER));
-    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'bad.json'), '{not json');
+    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'bad.frrun'), '{not json');
 
-    await expect(store.load('bad')).rejects.toThrow(/Run file .*bad\.json is corrupt/);
+    await expect(store.load('bad')).rejects.toThrow(/Run file .*bad.frrun is corrupt/);
   });
 
   it('throws from load for a file that parses but is not an object', async () => {
     const store = new FsRunStore(dir);
     fs.mkdirSync(path.join(dir, RUNS_FOLDER));
-    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'nul.json'), 'null');
+    fs.writeFileSync(path.join(dir, RUNS_FOLDER, 'nul.frrun'), 'null');
 
-    await expect(store.load('nul')).rejects.toThrow(/Run file .*nul\.json is corrupt/);
+    await expect(store.load('nul')).rejects.toThrow(/Run file .*nul.frrun is corrupt/);
   });
 
   it('returns undefined for a traversal id instead of reading outside the runs folder', async () => {
     const store = new FsRunStore(dir);
-    fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify(record('../x')));
+    fs.writeFileSync(path.join(dir, 'x.frrun'), JSON.stringify(record('../x')));
 
     expect(await store.load('../x')).toBeUndefined();
   });
 
   it('returns undefined for a backslash traversal id', async () => {
     const store = new FsRunStore(dir);
-    fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify(record('..\\x')));
+    fs.writeFileSync(path.join(dir, 'x.frrun'), JSON.stringify(record('..\\x')));
 
     expect(await store.load('..\\x')).toBeUndefined();
   });
@@ -107,7 +107,7 @@ describe('FsRunStore', () => {
   it('returns undefined for an absolute path id', async () => {
     const store = new FsRunStore(dir);
     const abs = path.join(dir, 'abs');
-    fs.writeFileSync(`${abs}.json`, JSON.stringify(record(abs)));
+    fs.writeFileSync(`${abs}.frrun`, JSON.stringify(record(abs)));
 
     expect(await store.load(abs)).toBeUndefined();
   });
@@ -116,6 +116,6 @@ describe('FsRunStore', () => {
     const store = new FsRunStore(dir);
 
     await expect(store.save(record('../x'))).rejects.toThrow("Invalid run id '../x'");
-    expect(fs.existsSync(path.join(dir, 'x.json'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'x.frrun'))).toBe(false);
   });
 });
