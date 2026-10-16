@@ -51,6 +51,13 @@ Fields added for `websocket`:
 
 Existing HTTP validation fields are not used by websocket requests.
 
+**Auth placement.** Browsers cannot set headers on a WebSocket, and BlueFinWiki's
+realtime endpoint is built that way. Its `$connect` handler reads a Cognito ID token
+from the query string (`?token=`) and returns 401 without one. So a websocket
+request's auth has a placement setting: `header` (the default, as for HTTP) or
+`query` with a parameter name (for BlueFinWiki, `token`). A `{{$secret}}` holds the
+token value, and the token is URL-encoded when it is added.
+
 A missing `type` means `http`, so every existing file loads unchanged.
 
 ## Test run semantics
@@ -168,8 +175,19 @@ axios.
 
 ## Open items
 
-- **BlueFinWiki handshake auth.** Confirm how its realtime endpoint authenticates.
-  If it needs a token in the query string rather than a header, `ws_session_open`
-  needs a variant. This is the first thing to check before building.
+- **Resolved: BlueFinWiki handshake auth.** The endpoint is
+  `wss://{apiId}.execute-api.{region}.amazonaws.com/prod` (CDK output
+  `RealtimeUrl`, `BluefinWiki/infrastructure/INFRASTRUCTURE.md`). It takes a
+  Cognito **ID token** in `?token=`, verified by `verifyIdToken` in
+  `backend/src/realtime/ws-connect.ts` (on BlueFinWiki `master`). The frontend
+  (`frontend/src/app/core/realtime/realtime.ts`) refreshes the token and
+  URL-encodes it. Covered by the auth placement above.
+- **Open: where the token comes from.** A Cognito ID token expires after about an
+  hour. Two options:
+  1. v1 reads the token from a `{{$secret}}` that the user fills in (for example,
+     copied from the BlueFinWiki browser session). Refreshing it is manual.
+  2. v1 runs Cognito sign-in in FullyRested and keeps a refresh token in the
+     keychain, so the token refreshes itself. This is more work, and the sign-in
+     flow is new code in the app.
 - **Settle default.** 500 ms is a guess. Adjust it after the first real test
   against BlueFinWiki.
