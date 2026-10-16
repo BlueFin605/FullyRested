@@ -80,7 +80,45 @@ body.
 
 **Response viewers:** JSON, XML, HTML and images.
 
-## Getting started
+## Installing
+
+Download the latest build from
+[Releases](https://github.com/BlueFin605/FullyRested/releases/latest):
+
+| Platform | File |
+|---|---|
+| Windows | `FullyRested-x.y.z Setup.exe` |
+| macOS | `FullyRested-darwin-arm64-x.y.z.zip` |
+| Linux | the `.deb` or `.rpm` |
+
+**FullyRested is not code-signed.** Signing certificates cost money this
+project doesn't spend: a code-signing certificate for Windows runs a few
+hundred a year, and notarizing on macOS needs a paid Apple Developer account.
+So each platform will warn you, and here is exactly what to expect.
+
+**Windows.** The installer shows a blue SmartScreen panel saying it protected
+your PC. Choose **More info**, then **Run anyway**. It installs for the
+current user only, into `%LOCALAPPDATA%\FullyRested` — no administrator
+prompt — and creates Start Menu and Desktop shortcuts. After the first
+install it keeps itself up to date: new versions download in the background
+and apply the next time you start the app.
+
+**macOS.** Gatekeeper will refuse to open an unsigned, unnotarized app, and on
+Apple Silicon the old right-click-and-Open trick no longer works. Move
+`FullyRested.app` to `/Applications`, then clear the quarantine flag:
+
+```sh
+xattr -d com.apple.quarantine /Applications/FullyRested.app
+```
+
+There is no auto-update on macOS — download a new build to upgrade.
+
+**Linux.** Install the `.deb` or `.rpm` as usual. No auto-update; download a
+new package to upgrade.
+
+To build it yourself instead, see below.
+
+## Building from source
 
 Prerequisites: Node.js 22 or later (24 is the pinned version, see `.nvmrc`)
 and npm.
@@ -336,6 +374,7 @@ Ctrl+K.
 | `App/cli-command` | The command-line runner |
 | `Test Collection` | Example collection and requests |
 | `docs/` | Point-in-time reviews |
+| `.github/workflows` | Build on every push and pull request; release on a version tag |
 
 See [`SYSDOC.md`](SYSDOC.md) for how the layers fit together and how to
 build, test and package each part.

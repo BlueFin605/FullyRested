@@ -1,0 +1,86 @@
+name: Build
+
+# Generic build: no secrets, no credentials, no deploy. Releases are cut by
+# release.yml on a version tag.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the state of the other two.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ships dpkg but not rpmbuild, which maker-rpm requires.
+      - name: Install rpm tooling
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            App/core/package-lock.json
+            App/cli-command/package-lock.json
+            App/FullyRested/package-lock.json
+
+      # core first, and built rather than only tested: both the Electron main
+      # process and the CLI require() its compiled dist, and `npm test` only
+      # type-checks. electron-forge package later copies that dist into the
+      # app, so a missing build surfaces as a confusing packaging failure.
+      - name: core - install
+        working-directory: App/core
+        run: npm ci
+      - name: core - build
+        working-directory: App/core
+        run: npm run build
+      - name: core - test
+        working-directory: App/core
+        run: npm test
+
+      - name: cli - install
+        working-directory: App/cli-command
+        run: npm ci
+      - name: cli - test
+        working-directory: App/cli-command
+        run: npm test
+
+      - name: app - install
+        working-directory: App/FullyRested
+        run: npm ci
+      - name: app - build renderer
+        working-directory: App/FullyRested
+        run: npm run build
+      - name: app - test main process
+        working-directory: App/FullyRested
+        run: npm run test:main
+
+      # The point of this workflow. Proves forge.config.js still works on each
+      # platform - that the packageAfterPrune hook resolves the file:../core
+      # link, that the @napi-rs/keyring native module is unpacked rather than
+      # buried in the asar, and that every maker can actually build.
+      #
+      # This runs `make`, not `package`. `package` skips the makers entirely,
+      # which is how the Linux bin-name mismatch reached a release run
+      # unnoticed - see AIF-81. Building the installers costs a few minutes a
+      # platform and is the only thing that would have caught it on the PR.
+      - name: app - make installers
+        working-directory: App/FullyRested
+        run: npx electron-forge make
+
+# Angular's `npm test` (karma/jasmine) is deliberately not run: those specs are
+# still Angular CLI boilerplate and assert nothing about this app, so a headless
+# Chrome run would cost time and prove nothing. See SYSDOC.md.

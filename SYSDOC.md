@@ -113,6 +113,9 @@ left after the two epics shipped.
 The `feature/app-run-records` branch maps to the same **AI First**
 initiative; its design is
 `docs/superpowers/specs/2026-10-15-app-run-records-design.md`.
+The `feature/desktop-distribution` branch maps to the same **AI First**
+initiative; its design is
+`docs/superpowers/specs/2026-10-15-desktop-distribution-design.md`.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it
@@ -131,6 +134,9 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |
 | Test the main process (node:test) | `App/FullyRested`: `npm run test:main` (now also covers `run-records.js`) |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
+| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` |
+| Package installers | `App/FullyRested`: `npm run make` (electron-forge). Output lands in `out/make/` |
+| Regenerate the icons | `App/FullyRested`: `npm run icons`, after `npm run icons:master` if `icons/source.png` changed. Output is committed |
 | Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
 | Test the CLI (vitest) | `App/cli-command`: `npm test` |
 | Serve the MCP server | `App/cli-command`: `fullyrested mcp [--store <dir>]` (or `node dist/index.js mcp`). Stdout carries the protocol, so warnings go to stderr. Registration and tools are in the README |
@@ -142,3 +148,52 @@ saved outside a collection (allowed through the IPC guard) in
 the keychain services `fullyrested-collection-<collectionGuid>` and
 `fullyrested-request-<requestId>`; folder secrets use
 `fullyrested-folder-<folderId>`.
+
+## Distribution
+
+Nothing here is deployed to AWS. Installers are published as **GitHub Release
+assets** on `BlueFin605/FullyRested`, and that is the only place they are
+stored. How a user installs one is in [`README.md`](README.md).
+
+| Workflow | Trigger | Job |
+|---|---|---|
+| `.github/workflows/build.yml` | push to `master`, every PR | Builds and tests core, the CLI and the app on ubuntu/windows/macos, ending in `electron-forge package` — the step that proves `forge.config.js` still works on each platform |
+| `.github/workflows/release.yml` | a `v*` tag, and nothing else | Checks the tag, builds all three platforms into one draft release, then publishes it |
+
+Cutting a release is `npm version <x.y.z>` in `App/FullyRested` followed by
+`git push --follow-tags`. `npm version` bumps, commits and tags together, so
+the tag and `package.json` cannot drift — which the workflow then asserts,
+along with the tagged commit being an ancestor of `master`.
+
+Each platform's runner publishes into the same release, which stays a **draft**
+until a final job confirms the Windows `RELEASES`, `*-full.nupkg` and
+`Setup.exe` all arrived. Drafts are invisible to `update.electronjs.org`, so a
+mistyped tag or a failed matrix leg leaves something to delete rather than
+something users receive. Without `RELEASES` in particular, installs work
+perfectly and auto-update silently never happens — hence the explicit check.
+
+**Both workflows live in this public repo, not in Home.** That is a deliberate
+deviation from the `bluefin-dev` layout, which puts deploy workflows in the
+private repo. The split exists to keep environment-specific config and AWS
+credentials out of public repos, and there are none here: the release
+authenticates with the built-in `GITHUB_TOKEN`. Routing it through Home would
+require a personal access token with write access to this repo — strictly
+worse.
+
+**The app ships unsigned.** An ACM certificate cannot sign code, and macOS
+notarization needs a paid Apple Developer account. `forge.config.js` carries a
+signing seam that reads absent environment variables, so adding certificates
+later is a change to GitHub secrets rather than to the config. The cost to
+users is a SmartScreen warning on Windows and a quarantine flag on macOS; both
+are documented in the README.
+
+**Auto-update is Windows only.** `main.js` calls `update-electron-app` against
+`update.electronjs.org`, guarded on `app.isPackaged` and `win32`: the service
+requires a signed app on macOS, and Squirrel does not apply on Linux. Any
+failure is logged and ignored — an update check must never delay or block
+startup, because the app has to keep working offline. macOS and Linux users
+re-download.
+
+The icons are generated from `App/FullyRested/icons/source.png` and committed,
+not built on demand; `scripts/restore-alpha.mjs` explains why `master.png`
+exists separately.

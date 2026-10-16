@@ -10,6 +10,29 @@ const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, s
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
 if (require('electron-squirrel-startup')) app.quit();
 
+// Background updates, Windows only while the app is unsigned. Squirrel fetches
+// deltas from the GitHub release and applies them on the next restart.
+function startUpdateChecks() {
+    // A dev run loads an unpackaged app; there is nothing to update.
+    if (!app.isPackaged) return;
+
+    // update.electronjs.org requires a signed app on macOS, and Squirrel does
+    // not apply on Linux. Both re-download from GitHub releases instead.
+    if (process.platform !== 'win32') {
+        console.error('[update] skipped: auto-update is Windows-only while the app is unsigned');
+        return;
+    }
+
+    try {
+        require('update-electron-app').updateElectronApp({ updateInterval: '1 hour' });
+    } catch (error) {
+        // Offline, service unreachable, DNS blocked. Log and carry on: the right
+        // behaviour for a REST client with no internet is "works normally", not
+        // "will not open". Nothing in startup may wait on this.
+        console.error('[update] check could not start:', error.message);
+    }
+}
+
 // dialog filters want extensions without the dot
 const withoutDot = extensions => extensions.map(e => e.substring(1));
 
@@ -67,6 +90,7 @@ app.whenReady().then(() => {
     access = new CollectionAccess(path.join(app.getPath("userData"), "trusted_requests.json"), openTabFiles);
     Menu.setApplicationMenu(appMenu())
     createWindow()
+    startUpdateChecks()
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
