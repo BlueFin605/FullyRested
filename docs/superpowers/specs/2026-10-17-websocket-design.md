@@ -182,12 +182,11 @@ axios.
   `backend/src/realtime/ws-connect.ts` (on BlueFinWiki `master`). The frontend
   (`frontend/src/app/core/realtime/realtime.ts`) refreshes the token and
   URL-encodes it. Covered by the auth placement above.
-- **Open: where the token comes from.** A Cognito ID token expires after about an
-  hour. Two options:
-  1. v1 reads the token from a `{{$secret}}` that the user fills in (for example,
-     copied from the BlueFinWiki browser session). Refreshing it is manual.
-  2. v1 runs Cognito sign-in in FullyRested and keeps a refresh token in the
-     keychain, so the token refreshes itself. This is more work, and the sign-in
-     flow is new code in the app.
+- **Decided: where the token comes from.** A Cognito ID token expires after about
+  an hour. v1 reads it from a `{{$secret}}` that the user fills in (for example,
+  copied from the BlueFinWiki browser session), and refreshing it is manual.
+  Signing in to Cognito inside FullyRested, with a refresh token kept in the
+  keychain, is a backlog enhancement (placeholder Epic `3229037b` on the
+  WebSocket Support board).
 - **Settle default.** 500 ms is a guess. Adjust it after the first real test
   against BlueFinWiki.
