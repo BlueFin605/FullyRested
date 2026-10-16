@@ -91,6 +91,8 @@ by file path plus run id.
   move.
 - App: specs for `executeScope` (order, cancel, exactly one saved record,
   failure does not stop the batch) and for `LatestResultsService`.
-- E2E: right-click a folder → Run → results appear in Run history and in an
-  already-open request tab.
-- Lint for every touched package before closing tickets.
+- There is no e2e harness and no lint script in this repo. The end-to-end
+  check (right-click a folder → Run → results in Run history and in an
+  already-open request tab) is a manual smoke test for Dean in the desktop
+  app. Every package must still build (`App/core` and `App/cli-command`
+  `npm run build`, `App/FullyRested` `ng build`) and pass its tests.
