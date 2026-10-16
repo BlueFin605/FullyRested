@@ -4,6 +4,7 @@ const path = require('node:path')
 const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
 const { CollectionAccess } = require('./collection-access');
+const { appRunStore, saveRecord } = require('./run-records');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
@@ -92,6 +93,23 @@ app.whenReady().then(() => {
         var text = fs.readFileSync(file, 'utf8');
         access.noteRead(file, text);
         return text;
+    });
+
+    // The run history of the open collection. access.runsPath throws when no collection is open or when
+    // the path escapes the collection folder, which is what keeps these three as confined as readText.
+    ipcMain.handle("saveRun", (event, request) => {
+        access.runsPath(request?.runId);               // a run id is a file name: check it before writing
+        return saveRecord(appRunStore(access.root), request);
+    });
+
+    ipcMain.handle("listRuns", (event, request) => {
+        access.runsPath();
+        return appRunStore(access.root).list();
+    });
+
+    ipcMain.handle("loadRun", (event, request) => {
+        access.runsPath(request.runId);
+        return appRunStore(access.root).load(request.runId);
     });
 
     ipcMain.handle("getSecret", (event, request) => {

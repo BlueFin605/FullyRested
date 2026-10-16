@@ -22,4 +22,13 @@ function appRunStore(folder, cap = APP_RUN_CAP) {
     });
 }
 
-module.exports = { nodeRunStoreHost, appRunStore };
+// A record kept with secret values must never reach disk from the app: the app has no
+// --include-secrets, and the MCP server refuses to serve a record that is not marked redacted. The
+// renderer is our own code, so this cannot prove redaction -- it stops an accident, not an attacker.
+async function saveRecord(store, record) {
+    if (record == undefined || record.redacted !== true)
+        throw new Error(`Run ${record?.runId ?? '(none)'} is not marked as redacted; the app will not save it`);
+    await store.save(record);
+}
+
+module.exports = { nodeRunStoreHost, appRunStore, saveRecord };

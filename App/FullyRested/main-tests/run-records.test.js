@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { RUNS_FOLDER } = require('@fullyrested/core');
-const { appRunStore } = require('../run-records');
+const { appRunStore, saveRecord } = require('../run-records');
 
 let dir;
 
@@ -49,4 +49,31 @@ test('prunes app records beyond the cap but never a CLI record', async () => {
     const ids = (await store.list()).map(l => l.runId).sort();
 
     assert.deepEqual(ids, ['20261010-100000-cli0', '20261012-100000-aaaa-app', '20261013-100000-aaaa-app'].sort());
+});
+
+test('saveRecord refuses a record that is not marked redacted', async () => {
+    const store = appRunStore(dir);
+
+    await assert.rejects(
+        () => saveRecord(store, { ...record('20261015-100000-aaaa-app'), redacted: false }),
+        /not marked as redacted/);
+
+    const folder = path.join(dir, RUNS_FOLDER);
+    assert.deepEqual(fs.existsSync(folder) ? fs.readdirSync(folder) : [], []);
+});
+
+test('saveRecord refuses a record with no redacted flag at all', async () => {
+    const store = appRunStore(dir);
+    const bad = record('20261015-100000-aaaa-app');
+    delete bad.redacted;
+
+    await assert.rejects(() => saveRecord(store, bad), /not marked as redacted/);
+});
+
+test('saveRecord saves a redacted record', async () => {
+    const store = appRunStore(dir);
+
+    await saveRecord(store, record('20261015-100000-aaaa-app'));
+
+    assert.ok(await store.load('20261015-100000-aaaa-app'));
 });
