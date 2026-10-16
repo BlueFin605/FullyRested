@@ -312,9 +312,10 @@ from 1 in the order the run sent it, or by its name.
 `<store>/.fullyrested-runs`. `--store` defaults to the current directory. The
 MCP server keeps its runs in memory (the last 20) unless a store is given:
 `fullyrested mcp --store <dir>` or the `run` tool's `store` argument also
-writes them to disk. The CLI and the MCP server never prune that folder, and
-you decide whether to add it to `.gitignore`; the app never edits
-`.gitignore` itself.
+writes them to disk. Each record is a `<runId>.frrun` file (JSON content). The
+CLI and the MCP server never prune that folder. Consider adding `*.frrun` (or
+`.fullyrested-runs/`) to `.gitignore`; the app never edits `.gitignore`
+itself.
 
 The desktop app records too: every send goes into the open collection's
 `.fullyrested-runs`, and its records have ids ending in `-app`. The app keeps
