@@ -6,6 +6,7 @@ import {
   redactCase, relativePath, validateResponse
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
+import { isWebSocketRequest, runWebSocketCase } from './ws-run';
 
 export interface RunOptions {
   collection: string;
@@ -141,6 +142,9 @@ async function runCase(test: TestCase, index: number, environmentId: string | un
     ...(test.node instanceof RunNode ? { runName: test.node.run.name } : {})
   };
 
+  if (isWebSocketRequest(requestNodeOf(test.node)))
+    return runWebSocketCase(base, test.node, environmentId, includeSecrets);
+
   let request;
   try {
     request = test.node.resolve({ environmentId }).replaceVariables();
@@ -212,7 +216,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
 export function toTestResult(c: CaseRecord): TestResult {
   return {
     name: c.name,
-    status: c.response?.status ?? noResponseStatus.get(c) ?? 'error',
+    status: c.response?.status ?? noResponseStatus.get(c) ?? (c.websocket ? 'WS' : 'error'),
     ms: c.ms,
     passed: c.outcome == 'pass',
     errors: c.error ? [c.error] : c.validation?.checks.flatMap(x => x.errors) ?? []

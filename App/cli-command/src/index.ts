@@ -21,6 +21,7 @@ import {
 } from './query-report';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { startMcp } from './mcp';
+import { sendToActiveSession, watchSession } from './ws';
 import { createSecretStore, createSecretWriter, secretEnvironmentVariable, secretServiceForScope, stripTrailingNewline } from './secret-store';
 
 const program = new Command();
@@ -76,6 +77,48 @@ desktop app uses. A secret named "api key" is read from ${secretEnvironmentVaria
         fs.writeFileSync(options.junit, toJUnit(path.basename(options.collection), results));
 
       process.exitCode = results.every(r => r.passed) ? 0 : 1;
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = error instanceof UsageError ? 2 : 1;
+    }
+  });
+
+const wsNamespace = program
+  .command('ws')
+  .description('Live websocket sessions. A session lives only while `ws watch` runs in this process.');
+
+wsNamespace
+  .command('watch <target>')
+  .description('Open a session on a websocket request (-c <collection>) or a ws:// / wss:// url and stream its events to stdout until interrupted (Ctrl+C) or the server closes it. Warnings go to stderr.')
+  .option('-c, --collection <file>', 'collection file (.frcol), needed when the target is a request file')
+  .option('-e, --environment <name>', 'environment name or id (default: the selected one)')
+  .option('-r, --run <name>', 'one run of the request, by name or id')
+  .option('--send <message...>', 'send these text frames once the session opens')
+  .option('--json', 'print each event as one JSON line')
+  .action(async (target: string, options: { collection?: string; environment?: string; run?: string; send?: string[]; json?: boolean }) => {
+    const stop = new AbortController();
+    const interrupt = () => stop.abort();
+    process.once('SIGINT', interrupt);
+    try {
+      const clean = await watchSession(
+        target, options, createSecretStore(),
+        { out: line => console.log(line), warn: line => console.error(line) },
+        stop.signal);
+      process.exitCode = clean ? 0 : 1;
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = error instanceof UsageError ? 2 : 1;
+    } finally {
+      process.off('SIGINT', interrupt);
+    }
+  });
+
+wsNamespace
+  .command('send <message>')
+  .description('Send a text frame into the session this process holds. Each CLI invocation is its own process, so on its own this reports that no session is open; use `ws watch --send <message>` to send from the command line.')
+  .action(async (message: string) => {
+    try {
+      sendToActiveSession(message);
     } catch (error) {
       console.error(`error: ${(error as Error).message}`);
       process.exitCode = error instanceof UsageError ? 2 : 1;
