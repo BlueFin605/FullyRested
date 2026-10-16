@@ -1,18 +1,18 @@
 <h2 class="pane-title">
   Run history <span class="pane-scope">· {{ collection?.name }}</span>
   <span class="runs-folder">{{ runsFolder }}</span>
-  <button class="fr-icon-btn pane-action" (click)="refresh()" [disabled]="loading || collection == undefined" matTooltip="Refresh" aria-label="Refresh">
+  <button class="fr-icon-btn pane-action" (click)="refresh()" [disabled]="loading || !hasCollection" matTooltip="Refresh" aria-label="Refresh">
     <mat-icon>refresh</mat-icon>
   </button>
 </h2>
 
 <div class="run-list">
-  @if (collection == undefined) {
-    <p class="hint">Open a collection to see its run history.</p>
+  @if (!hasCollection) {
+    <p class="hint">Open a saved collection to see its run history.</p>
   }
   @if (loading) { <p class="hint">Loading…</p> }
   @if (error) { <p class="pane-error">{{ error }}</p> }
-  @if (!loading && runs.length == 0 && collection) {
+  @if (!loading && runs.length == 0 && hasCollection) {
     <p class="hint">No runs recorded yet. Every send lands in <code>{{ runsFolder }}</code>, as does <code>fullyrested run --record</code>.</p>
   }
   @for (run of runs; track run.runId) {

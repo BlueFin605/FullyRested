@@ -1,7 +1,8 @@
-import { provideZoneChangeDetection, signal } from '@angular/core';
+import { provideZoneChangeDetection } from '@angular/core';
+import { Subject } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { RunListing, RunRecord } from '@fullyrested/core';
+import { RUNS_FOLDER, RunListing, RunRecord } from '@fullyrested/core';
 import { RunTimePipe } from '../../pipes/run-time.pipe';
 import { RunHistoryService } from '../../services/run-history/run-history.service';
 import { RunHistoryComponent } from './run-history.component';
@@ -11,43 +12,59 @@ function listing(over: Partial<RunListing>): RunListing {
 }
 
 describe('RunHistoryComponent', () => {
-  let changed = signal(0);
+  let saved$: Subject<RunRecord>;
   let list: jasmine.Spy;
+  let load: jasmine.Spy;
 
-  function create(runs: RunListing[]) {
-    changed = signal(0);
+  function create(runs: RunListing[], collection: any = { name: 'Test', path: '/c', filename: '/c/t.frcol', config: {} as any }) {
+    saved$ = new Subject<RunRecord>();
     list = jasmine.createSpy('list').and.resolveTo(runs);
+    load = jasmine.createSpy('load').and.resolveTo(undefined);
     TestBed.configureTestingModule({
       declarations: [RunHistoryComponent, RunTimePipe],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
-      providers: [provideZoneChangeDetection(), { provide: RunHistoryService, useValue: { list, changed } }],
+      providers: [provideZoneChangeDetection(), { provide: RunHistoryService, useValue: { list, load, saved$: saved$.asObservable() } }],
     });
     const fixture = TestBed.createComponent(RunHistoryComponent);
-    fixture.componentInstance.collection = { name: 'Test', path: '/c', filename: '/c/t.frcol', config: {} as any };
-    fixture.detectChanges();
+    fixture.componentInstance.collection = collection;
     fixture.componentInstance.ngOnChanges();
     return fixture;
   }
 
-  // the first effect run is scheduled by change detection, so let it and the load it starts finish
   async function settle(f: { detectChanges(): void }) {
-    for (let i = 0; i < 3; i++) {
-      f.detectChanges();
-      await new Promise(r => setTimeout(r));
-    }
+    await new Promise(r => setTimeout(r));
     f.detectChanges();
   }
 
-  it('lists the collection runs and classifies the outcome', async () => {
+  function appRecord(runId: string): RunRecord {
+    return {
+      runId, startedAt: new Date().toISOString(), collection: '/c/t.frcol', selection: 'request:new.frreq', redacted: true,
+      cases: [{ index: 1, name: 'new', requestFile: 'new.frreq', outcome: 'pass', ms: 7, request: { method: 'GET', url: 'x', headers: {} } }]
+    };
+  }
+
+  it('lists the collection runs by its folder and classifies the outcome', async () => {
     const f = create([listing({ runId: 'a-app' }), listing({ runId: 'b', failed: 1 }), listing({ runId: 'c-app', errored: 1, failed: 1 })]);
     await settle(f);
     const c = f.componentInstance;
+    expect(list).toHaveBeenCalledOnceWith('/c');
     expect(c.runs.length).toBe(3);
     expect(c.outcome(c.runs[0])).toBe('pass');
     expect(c.outcome(c.runs[1])).toBe('fail');
     expect(c.outcome(c.runs[2])).toBe('error');
     expect(f.nativeElement.querySelectorAll('.run-row').length).toBe(3);
     expect(f.nativeElement.querySelectorAll('.run-chip').length).toBe(1);
+  });
+
+  it('treats an unsaved collection as no collection', async () => {
+    const f = create([listing({})], { name: 'New', path: '', filename: '', config: {} as any });
+    await settle(f);
+    expect(list).not.toHaveBeenCalled();
+    expect(f.componentInstance.runs).toEqual([]);
+    expect(f.componentInstance.hasCollection).toBeFalse();
+    expect(f.nativeElement.textContent).toContain('Open a saved collection');
+    await f.componentInstance.select(listing({}));
+    expect(load).not.toHaveBeenCalled();
   });
 
   it('labels with the status when present, otherwise the case count', async () => {
@@ -58,24 +75,75 @@ describe('RunHistoryComponent', () => {
     expect(c.label(listing({}))).toBe('1 case');
   });
 
-  it('reloads when a send bumps changed, and on manual refresh', async () => {
-    const f = create([]);
-    await f.whenStable();
-    const before = list.calls.count();
-    changed.update(n => n + 1);
-    f.detectChanges();
-    await f.whenStable();
-    expect(list.calls.count()).toBeGreaterThan(before);
-    const after = list.calls.count();
-    await f.componentInstance.refresh();
-    expect(list.calls.count()).toBe(after + 1);
+  it('adds a saved record to the top without re-listing', async () => {
+    const f = create([listing({ runId: 'old-app' })]);
+    await settle(f);
+    saved$.next(appRecord('new-app'));
+    saved$.next(appRecord('new-app'));
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(f.componentInstance.runs.map(r => r.runId)).toEqual(['new-app', 'old-app']);
   });
 
-  it('shows the empty state with the runs folder', async () => {
+  it('keeps the selection and the open detail when a send is saved', async () => {
+    const f = create([listing({ runId: 'old-app' })]);
+    await settle(f);
+    const c = f.componentInstance;
+    const rec = appRecord('old-app');
+    load.and.resolveTo(rec);
+    await c.select(c.runs[0]);
+    saved$.next(appRecord('new-app'));
+    expect(c.selected?.runId).toBe('old-app');
+    expect(c.record).toBe(rec);
+  });
+
+  it('ignores a record saved for another collection', async () => {
+    const f = create([]);
+    await settle(f);
+    saved$.next({ ...appRecord('x-app'), collection: '/other/o.frcol' });
+    expect(f.componentInstance.runs).toEqual([]);
+  });
+
+  it('re-lists on manual refresh', async () => {
+    const f = create([]);
+    await settle(f);
+    await f.componentInstance.refresh();
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets a newer refresh win over a slower earlier one', async () => {
+    const f = create([]);
+    await settle(f);
+    let slow!: (r: RunListing[]) => void;
+    list.and.returnValues(new Promise<RunListing[]>(r => (slow = r)), Promise.resolve([listing({ runId: 'fresh' })]));
+    const first = f.componentInstance.refresh();
+    await f.componentInstance.refresh();
+    slow([listing({ runId: 'stale' })]);
+    await first;
+    expect(f.componentInstance.runs.map(r => r.runId)).toEqual(['fresh']);
+    expect(f.componentInstance.loading).toBeFalse();
+  });
+
+  it('lets the latest selection win over a slower earlier one', async () => {
+    const f = create([]);
+    await settle(f);
+    const c = f.componentInstance;
+    let slow!: (r: RunRecord) => void;
+    const newer = appRecord('b-app');
+    load.and.returnValues(new Promise<RunRecord>(r => (slow = r)), Promise.resolve(newer));
+    const first = c.select(listing({ runId: 'a-app' }));
+    await c.select(listing({ runId: 'b-app' }));
+    slow(appRecord('a-app'));
+    await first;
+    expect(c.record).toBe(newer);
+    expect(c.selected?.runId).toBe('b-app');
+  });
+
+  it('shows the empty state with the runs folder name', async () => {
     const f = create([]);
     await settle(f);
     expect(f.nativeElement.textContent).toContain('No runs recorded yet');
-    expect(f.nativeElement.textContent).toContain('/c/.fullyrested-runs');
+    expect(f.nativeElement.textContent).toContain('.fullyrested-runs');
+    expect(f.componentInstance.runsFolder).toBe(RUNS_FOLDER);
   });
 });
 
@@ -98,20 +166,21 @@ describe('RunHistoryComponent case detail', () => {
   };
 
   function create() {
-    const history = { list: jasmine.createSpy('list').and.resolveTo([]), load: jasmine.createSpy('load').and.resolveTo(record), changed: signal(0) };
+    const history = { list: jasmine.createSpy('list').and.resolveTo([]), load: jasmine.createSpy('load').and.resolveTo(record), saved$: new Subject<RunRecord>() };
     TestBed.configureTestingModule({
       declarations: [RunHistoryComponent, RunTimePipe],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
       providers: [provideZoneChangeDetection(), { provide: RunHistoryService, useValue: history }],
     });
     const c = TestBed.createComponent(RunHistoryComponent).componentInstance;
+    c.collection = { name: 'Test', path: '/c', filename: '/c/t.frcol', config: {} as any };
     return { c, history };
   }
 
   it('loads the record and shows its first case', async () => {
     const { c, history } = create();
     await c.select(listing({ runId: 'r1-app' }));
-    expect(history.load).toHaveBeenCalledWith('r1-app');
+    expect(history.load).toHaveBeenCalledWith('/c', 'r1-app');
     expect(c.caseIndex).toBe(1);
     expect(c.cases.map(x => x.index)).toEqual([1, 2]);
     expect(c.currentCase?.name).toBe('create');

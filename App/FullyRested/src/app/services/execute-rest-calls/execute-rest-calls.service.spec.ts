@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import {
   CollectionConfig, CollectionNode, CreateEmptyAction, CreateEmptyEnvironment, CreateEmptyFolderConfig, FolderNode,
-  CreateEmptyRestActionValidation, IExecuteRestAction, ValidationType, normaliseCollectionConfig,
+  CreateEmptyRestActionValidation, CreateEmptyRestActionRun, IExecuteRestAction, RunNode, RunRecord, ValidationType, normaliseCollectionConfig,
 } from '@fullyrested/core';
 
 import { ExecuteRestCallsService } from './execute-rest-calls.service';
@@ -113,5 +114,143 @@ describe('ExecuteRestCallsService', () => {
   it('rejects when the main process fails to send', async () => {
     (window as any).ipc = { invoke: () => Promise.reject(new Error('ipc down')) };
     await expectAsync(service.executeNode(nodeFor('x.example'))).toBeRejectedWithError('ipc down');
+  });
+
+  describe('recording the send', () => {
+    let saved: Promise<{ root: string; record: RunRecord }>;
+    let saves: { root: string; record: RunRecord }[];
+    let ipcInvoke: jasmine.Spy;
+
+    function openCollection(over: Partial<{ filename: string; path: string }> | undefined) {
+      const trees = TestBed.inject(CollectionTreeService) as any;
+      Object.defineProperty(trees, 'openCollection', {
+        get: () => over == undefined ? undefined : ({ name: 'api', filename: 'C:/c/api.frcol', path: 'C:/c', config: rootNode().config, ...over }),
+        configurable: true,
+      });
+    }
+
+    // stubs ipc per channel and resolves `saved` with the saveRun payload
+    function stubIpc(saveRun: () => Promise<void> = async () => undefined) {
+      saves = [];
+      let resolveSaved!: (v: { root: string; record: RunRecord }) => void;
+      saved = new Promise(r => (resolveSaved = r));
+      ipcInvoke = jasmine.createSpy('invoke').and.callFake(async (channel: string, args: any) => {
+        if (channel == 'testRest') return { status: 200, statusText: 'OK', headers: {}, headersSent: {}, body: undefined, validated: undefined };
+        if (channel == 'saveRun') {
+          saves.push(args);
+          resolveSaved(args);
+          return saveRun();
+        }
+        throw new Error('unexpected channel ' + channel);
+      });
+      (window as any).ipc = { invoke: ipcInvoke };
+    }
+
+    const flush = () => new Promise(r => setTimeout(r));
+    const saveCalls = () => ipcInvoke.calls.allArgs().filter(a => a[0] == 'saveRun');
+
+    it('saves the record with the collection folder as root, the environment sent with and the request node', async () => {
+      stubIpc();
+      openCollection({});
+      await service.executeNode(nodeFor('{{host}}/x'), 'test');
+      const { root, record } = await saved;
+      expect(root).toBe('C:/c');
+      expect(record.collection).toBe('C:/c/api.frcol');
+      expect(record.environment).toBe('test');
+      expect(record.selection).toBe('request:a.frreq');
+      expect(record.cases[0].request?.url).toBe('https://test.example/x');
+    });
+
+    it('takes the environment name from the environment sent with, not the collection selection', async () => {
+      stubIpc();
+      openCollection({});
+      await service.executeNode(nodeFor('x.example'), 'test');
+      expect((await saved).record.environment).toBe('test');
+    });
+
+    it('records no environment when sent without one', async () => {
+      stubIpc();
+      openCollection({});
+      await service.executeNode(nodeFor('x.example'));
+      expect((await saved).record.environment).toBeUndefined();
+    });
+
+    it('records a run node as kind run with its run name', async () => {
+      stubIpc();
+      openCollection({});
+      const request = nodeFor('x.example');
+      const run = { ...CreateEmptyRestActionRun({ generateGUID: () => 'r1' }, undefined), name: 'happy path' };
+      await service.executeNode(new RunNode(request, run));
+      const { record } = await saved;
+      expect(record.selection).toBe('run:a.frreq#happy path');
+    });
+
+    it('does not fail the send when saving fails', async () => {
+      stubIpc(() => Promise.reject(new Error('disk full')));
+      openCollection({});
+      spyOn(console, 'warn');
+      const result = await service.executeNode(nodeFor('x.example'));
+      expect(result.status).toBe(200);
+      await saved;
+      await flush();
+      expect(console.warn).toHaveBeenCalledWith(jasmine.stringMatching(/disk full/));
+    });
+
+    it('does not wait for the disk write before answering', async () => {
+      let release!: () => void;
+      stubIpc(() => new Promise<void>(r => (release = r)));
+      openCollection({});
+      const result = await service.executeNode(nodeFor('x.example'));
+      expect(result.status).toBe(200);
+      release();
+      await saved;
+    });
+
+    it('saves nothing when no collection is open', async () => {
+      stubIpc();
+      openCollection(undefined);
+      await service.executeNode(nodeFor('x.example'));
+      await flush();
+      expect(saveCalls().length).toBe(0);
+    });
+
+    it('saves nothing for an unsaved collection', async () => {
+      stubIpc();
+      openCollection({ filename: '', path: '' });
+      await service.executeNode(nodeFor('x.example'));
+      await flush();
+      expect(saveCalls().length).toBe(0);
+    });
+
+    it('records an error run, with no request, and rethrows when the request cannot be resolved', async () => {
+      stubIpc();
+      openCollection({});
+      const tree = rootNode();
+      const folder = new FolderNode(tree, 'f', CreateEmptyFolderConfig('f'), true);
+      folder.loadError = { file: 'f/folder.frfolder', message: 'bad json' };
+      tree.children.push(folder);
+
+      await expectAsync(service.executeNode(tree.attach(CreateEmptyAction(), 'f/a.frreq'))).toBeRejectedWithError(/is invalid/);
+      const { record } = await saved;
+      expect(record.cases[0].outcome).toBe('error');
+      expect(record.cases[0].error).toMatch(/is invalid/);
+      expect(record.cases[0].request.url).toBe('');
+    });
+
+    it('records an error run and rethrows when the main process fails to send', async () => {
+      stubIpc();
+      ipcInvoke.and.callFake(async (channel: string, args: any) => {
+        if (channel == 'testRest') throw new Error('ipc down');
+        saves.push(args);
+        return undefined;
+      });
+      openCollection({});
+      await expectAsync(service.executeNode(nodeFor('x.example'))).toBeRejectedWithError('ipc down');
+      await flush();
+      expect(saves.length).toBe(1);
+      expect(saves[0].record.cases[0].outcome).toBe('error');
+      expect(saves[0].record.cases[0].error).toBe('ipc down');
+      expect(saves[0].record.cases[0].request.url).toBe('');
+    });
   });
 });

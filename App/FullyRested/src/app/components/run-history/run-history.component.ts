@@ -1,13 +1,12 @@
-import { ChangeDetectionStrategy, Component, Input, OnChanges, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, Input, OnChanges, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  BodyResult, Collection, RunListing, RunRecord, ValidationCheck, caseBody, caseRequest, caseResponse, isAppRunId, summary
+  BodyResult, Collection, DEFAULT_BODY_CAP, RUNS_FOLDER, RunListing, RunRecord, ValidationCheck, caseBody, caseRequest,
+  caseResponse, isAppRunId, listingOf, summary
 } from '@fullyrested/core';
 import { bodyKind, editorLanguage } from '../rest-action/response/display-response-body/body-format';
 import { CodeLanguage } from '../code-editor/code-editor.component';
 import { RunHistoryService } from '../../services/run-history/run-history.service';
-
-// caseBody's default cap, in characters, which is what keeps a huge recorded body out of the DOM
-const BODY_CAP = 32768;
 
 @Component({
   selector: 'app-run-history',
@@ -24,15 +23,22 @@ export class RunHistoryComponent implements OnChanges {
   loading = false;
   error: string | undefined;
 
+  record: RunRecord | undefined;
+  caseIndex = 1;
+  detailError: string | undefined;
+
   private readonly history = inject(RunHistoryService);
 
+  // bumped by every refresh() and select(), so a slow earlier answer cannot overwrite a newer one
+  private listToken = 0;
+  private selectToken = 0;
+
   constructor() {
-    // a send writes a record and bumps changed: an open pane picks it up without a file watcher.
-    // 0 is the initial value (ngOnChanges loads then), and the reload runs in a microtask so it never
-    // writes component state in the middle of change detection.
-    effect(() => {
-      if (this.history.changed() == 0) return;
-      void Promise.resolve().then(() => this.refresh());
+    // a send writes a record: an open pane adds it to the top of the list, keeping the selection and
+    // the open detail. Nothing is re-listed, so a hidden pane costs nothing per send.
+    this.history.saved$.pipe(takeUntilDestroyed(inject(DestroyRef))).subscribe(record => {
+      if (this.root == undefined || record.collection != this.collection?.filename) return;
+      this.runs = [listingOf(record), ...this.runs.filter(r => r.runId != record.runId)];
     });
   }
 
@@ -40,43 +46,61 @@ export class RunHistoryComponent implements OnChanges {
     void this.refresh();
   }
 
-  // Shown in the heading so it is obvious what to add to .gitignore: the app never edits it
-  get runsFolder(): string {
-    return this.collection == undefined ? '' : `${this.collection.path}/.fullyrested-runs`;
+  // The folder runs are listed from; an unsaved collection (no file yet) has none, so it counts as no collection
+  private get root(): string | undefined {
+    return this.collection?.filename ? this.collection.path : undefined;
   }
 
+  get hasCollection(): boolean {
+    return this.root != undefined;
+  }
+
+  // Shown in the heading so it is obvious what to add to .gitignore: the app never edits it. It lives
+  // inside the collection folder, so the name alone is what matters.
+  readonly runsFolder = RUNS_FOLDER;
+
   async refresh(): Promise<void> {
+    const token = ++this.listToken;
+    this.selectToken++;
     this.selected = undefined;
     this.record = undefined;
     this.detailError = undefined;
-    if (this.collection == undefined) {
+    const root = this.root;
+    if (root == undefined) {
       this.runs = [];
+      this.loading = false;
+      this.error = undefined;
       return;
     }
     this.loading = true;
     this.error = undefined;
     try {
-      this.runs = await this.history.list();
+      const runs = await this.history.list(root);
+      if (token != this.listToken) return;
+      this.runs = runs;
     } catch (error) {
+      if (token != this.listToken) return;
       this.error = (error as Error).message;
       this.runs = [];
     } finally {
-      this.loading = false;
+      if (token == this.listToken) this.loading = false;
     }
   }
 
-  record: RunRecord | undefined;
-  caseIndex = 1;
-  detailError: string | undefined;
-
   async select(run: RunListing): Promise<void> {
+    const root = this.root;
+    if (root == undefined) return;
+    const token = ++this.selectToken;
     this.selected = run;
     this.record = undefined;
     this.detailError = undefined;
     try {
-      this.record = await this.history.load(run.runId);
+      const record = await this.history.load(root, run.runId);
+      if (token != this.selectToken) return;
+      this.record = record;
       this.caseIndex = 1;
     } catch (error) {
+      if (token != this.selectToken) return;
       this.detailError = (error as Error).message;
     }
   }
@@ -118,7 +142,7 @@ export class RunHistoryComponent implements OnChanges {
     return editorLanguage(bodyKind(body.contentType));
   }
 
-  readonly bodyCap = BODY_CAP;
+  readonly bodyCap = DEFAULT_BODY_CAP;
 
   isApp(run: RunListing): boolean {
     return isAppRunId(run.runId);

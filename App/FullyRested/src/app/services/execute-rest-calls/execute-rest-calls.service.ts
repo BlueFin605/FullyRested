@@ -30,13 +30,21 @@ export class ExecuteRestCallsService {
   // Resolves the node through its folders, environment and collection, sends it and checks the response:
   // the same steps the CLI runs
   async executeNode(node: RequestNode | RunNode, environmentId?: string): Promise<TimedActionResult> {
-    const resolved = node.resolve({ environmentId });
-    const request = resolved.replaceVariables();
-
     const started = performance.now();
-    const response: RestActionResult = this.getIpcRenderer() == undefined
-      ? await mockRestResult(request)
-      : await this.getIpcRenderer().invoke('testRest', request);
+    let resolved: ExecuteRestAction;
+    let request: ExecuteRestAction;
+    let response: RestActionResult;
+    try {
+      resolved = node.resolve({ environmentId });
+      request = resolved.replaceVariables();
+      response = this.getIpcRenderer() == undefined
+        ? await mockRestResult(request)
+        : await this.getIpcRenderer().invoke('testRest', request);
+    } catch (error) {
+      // a send that could not be resolved or sent is still a run, recorded as an error
+      void this.record(node, environmentId, { error: (error as Error)?.message ?? String(error), ms: Math.round(performance.now() - started) });
+      throw error;
+    }
 
     const result: TimedActionResult = {
       ...response,
@@ -45,40 +53,43 @@ export class ExecuteRestCallsService {
       sizeBytes: response.body?.body?.byteLength,
     };
 
-    await this.record(node, resolved, request, result);
+    void this.record(node, environmentId, { resolved, substituted: request, result, ms: result.durationMs ?? 0 });
     return result;
   }
 
-  // A send is one run of one case. Failing to record must never fail the send, so everything here is
-  // best-effort: no collection open, a read-only folder or a full disk all just warn.
-  private async record(node: RequestNode | RunNode, resolved: ExecuteRestAction,
-                       substituted: ExecuteRestAction, result: TimedActionResult): Promise<void> {
+  // A send is one run of one case. Failing to record must never fail the send (and the disk write is
+  // not awaited), so everything here is best-effort: no or unsaved collection, a read-only folder or a
+  // full disk all just warn.
+  private async record(node: RequestNode | RunNode, environmentId: string | undefined, outcome: {
+    resolved?: ExecuteRestAction; substituted?: ExecuteRestAction; result?: TimedActionResult; error?: string; ms: number;
+  }): Promise<void> {
     try {
       const collection = this.trees.openCollection;
-      if (collection == undefined) return;
+      // an unsaved collection has no folder to hold runs
+      if (collection == undefined || !collection.filename) return;
 
       const sent: AppSendNode = node instanceof RunNode
         ? { kind: 'run', name: node.name, path: node.path, runName: node.run.name }
         : { kind: 'request', name: node.name, path: node.path };
 
-      await this.history.save(buildAppRunRecord({
+      await this.history.save(collection.path, buildAppRunRecord({
         collection: collection.filename,
-        environment: this.environmentNameOf(collection),
+        environment: this.environmentNameOf(collection, environmentId),
         node: sent,
-        request: prepareRequest(substituted),
-        result,
-        validation: result.validated,
-        ms: result.durationMs ?? 0,
-        secrets: resolved.secrets
+        request: outcome.substituted == undefined ? undefined : prepareRequest(outcome.substituted),
+        result: outcome.result,
+        validation: outcome.result?.validated,
+        error: outcome.error,
+        ms: outcome.ms,
+        secrets: outcome.resolved?.secrets
       }));
     } catch (error) {
       console.warn(`[FullyRested] the send was not recorded: ${(error as Error).message}`);
     }
   }
 
-  // The same rule as the toolbar's activeEnvironmentName, minus its 'No environment' label
-  private environmentNameOf(collection: Collection): string | undefined {
-    const id = collection.config?.selectedEnvironmentId;
+  // The environment the send was made with, by name; none when it was sent without one
+  private environmentNameOf(collection: Collection, id: string | undefined): string | undefined {
     return collection.config?.environments?.find(e => e.id == id)?.name;
   }
 }

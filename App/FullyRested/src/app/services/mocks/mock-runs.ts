@@ -11,7 +11,7 @@ function oneCase(index: number, name: string, requestFile: string, status: numbe
     },
     validation: {
       valid: ok,
-      checks: [{ name: 'status is 200', valid: ok, message: ok ? undefined : `expected 200 but got ${status}` } as any]
+      checks: [{ check: 'status', passed: ok, errors: ok ? [] : [`expected 200 but got ${status}`] }]
     }
   };
 }
