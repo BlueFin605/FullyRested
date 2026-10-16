@@ -5,7 +5,14 @@ const path = require('node:path');
 const { APP_RUN_CAP, fileRunStore } = require('@fullyrested/core');
 
 const nodeRunStoreHost = {
-    exists: p => fs.existsSync(p),
+    // lstat, not existsSync: a symlink counts as absent so load() cannot be steered outside the runs folder
+    exists: p => {
+        try {
+            return !fs.lstatSync(p).isSymbolicLink();
+        } catch {
+            return false;
+        }
+    },
     readText: p => fs.readFileSync(p, 'utf8'),
     writeText: (p, text) => fs.writeFileSync(p, text),
     // a record file that is a symlink is skipped: it could point at anything outside the runs folder
