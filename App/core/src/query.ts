@@ -186,7 +186,7 @@ export interface BodyResult {
   encoding: 'text' | 'base64' | 'json'; truncated: boolean; content: string | unknown;
 }
 
-const DEFAULT_BODY_CAP = 32768;
+export const DEFAULT_BODY_CAP = 32768;
 const OUTLINE_MAX_DEPTH = 6;
 
 function outlineOf(v: unknown, depth = 0): unknown {

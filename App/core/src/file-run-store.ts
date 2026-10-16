@@ -5,6 +5,7 @@ export const RUNS_FOLDER = '.fullyrested-runs';
 
 // A run id is a file name, so it may hold nothing that could escape the runs folder
 const VALID_RUN_ID = /^[A-Za-z0-9_-]+$/;
+const isRunId = (value: unknown): value is string => typeof value === 'string' && VALID_RUN_ID.test(value);
 
 // The file primitives a run store needs. core cannot import node:fs -- the Angular build bundles its
 // source into the renderer -- so each host supplies these: node:fs in the CLI and in Electron's main
@@ -72,14 +73,14 @@ export function fileRunStore(host: RunStoreHost, dir: string, options: FileRunSt
 
   return {
     async save(record: RunRecord): Promise<void> {
-      if (!VALID_RUN_ID.test(record.runId)) throw new Error(`Invalid run id '${record.runId}'`);
+      if (!isRunId(record?.runId)) throw new Error(`Invalid run id '${String(record?.runId)}'`);
       host.mkdir(folder);
       host.writeText(fileOf(record.runId), JSON.stringify(record, null, 2));
       prune();
     },
 
     async load(runId: string): Promise<RunRecord | undefined> {
-      if (!VALID_RUN_ID.test(runId)) return undefined;
+      if (!isRunId(runId)) return undefined;
       const file = fileOf(runId);
       if (!host.exists(file)) return undefined;
       return parse(file);

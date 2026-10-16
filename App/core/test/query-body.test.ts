@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { caseBody, QueryError } from '../src';
+import { caseBody, QueryError, DEFAULT_BODY_CAP } from '../src';
 import { fixtureRun } from './fixtures/run-record';
 
 const withBody = (text: string | undefined, base64?: string) => {
@@ -81,4 +81,8 @@ describe('caseBody', () => {
     const b = caseBody(fixtureRun(), 1, { path: '$', cap: 6 });
     expect(b).toMatchObject({ encoding: 'text', truncated: true, content: '[{"id"' });
   });
+});
+
+it('exports DEFAULT_BODY_CAP from the index', () => {
+  expect(DEFAULT_BODY_CAP).toBe(32768);
 });

@@ -69,6 +69,25 @@ describe('buildAppRunRecord', () => {
     expect(Object.keys(buildAppRunRecord(input()).cases[0].request.headers)).toContain('authorization');
   });
 
+  const authorizationFor = (value: string) => {
+    const r = result();
+    r.headersSent = { ...r.headersSent, authorization: value };
+    return buildAppRunRecord(input({ result: r })).cases[0].request.headers['authorization'];
+  };
+
+  it('masks the signature part of an AWS Authorization header', () => {
+    expect(authorizationFor('AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20261015/us-east-1/s3/aws4_request, Signature=deadbeef'))
+      .toBe('AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/***');
+  });
+
+  it('masks a Bearer token', () => {
+    expect(authorizationFor('Bearer abc.def.ghi-token')).toBe('Bearer ***');
+  });
+
+  it('masks a Basic credential', () => {
+    expect(authorizationFor('Basic dXNlcjpwYXNz')).toBe('Basic ***');
+  });
+
   it('records a run, with its run name and locator', () => {
     const run = buildAppRunRecord(input({
       node: { kind: 'run', name: 'Create user > happy', path: 'users/create.frreq', runName: 'happy' }

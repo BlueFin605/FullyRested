@@ -183,7 +183,27 @@ describe('fileRunStore pruning', () => {
     expect(warnings.join(' ')).toContain('EBUSY');
   });
 
-  it('caps app records at 200 by default', () => {
+  it('keeps exactly APP_RUN_CAP app records when given that cap', async () => {
+    const { host } = memoryHost();
+    const store = fileRunStore(host, 'dir', { cap: APP_RUN_CAP });
+    const idOf = (n: number) => `20261015-${100000 + n}-aaaa${APP_RUN_SUFFIX}`;
+    for (let n = 1; n <= APP_RUN_CAP + 1; n++) await store.save(record(idOf(n)));
+
+    const ids = (await store.list()).map(l => l.runId);
+
     expect(APP_RUN_CAP).toBe(200);
+    expect(ids).toHaveLength(APP_RUN_CAP);
+    expect(ids).not.toContain(idOf(1));
+    expect(ids).toContain(idOf(APP_RUN_CAP + 1));
+  });
+
+  it('refuses a missing or non-string run id', async () => {
+    const { host, files } = memoryHost();
+    const store = fileRunStore(host, 'dir');
+
+    await expect(store.save(record(undefined as unknown as string))).rejects.toThrow(/Invalid run id/);
+    expect(await store.load(undefined as unknown as string)).toBeUndefined();
+    expect(await store.load(42 as unknown as string)).toBeUndefined();
+    expect([...files.keys()]).toEqual([]);
   });
 });
