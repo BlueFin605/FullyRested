@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, PreparedRequest, applyAuthentication } from '../src';
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, PreparedRequest, applyAuthentication, withQueryToken } from '../src';
 
 // Credentials and date from the AWS SigV4 test suite
 const signingDate = new Date(Date.UTC(2015, 7, 30, 12, 36, 0));
@@ -77,5 +77,17 @@ describe('applyAuthentication', () => {
     const original = request('POST', 'hello');
     await applyAuthentication(original, aws(false), signingDate);
     expect(original).toEqual(request('POST', 'hello'));
+  });
+});
+
+describe('withQueryToken', () => {
+  it('adds the token URL-encoded', () => {
+    const url = withQueryToken('wss://x.example.com/prod', 'token', 'a b+c/d=');
+    expect(url).toBe('wss://x.example.com/prod?token=a+b%2Bc%2Fd%3D');
+    expect(new URL(url).searchParams.get('token')).toBe('a b+c/d=');
+  });
+
+  it('keeps existing query parameters', () => {
+    expect(withQueryToken('wss://x/prod?a=1', 'token', 't')).toBe('wss://x/prod?a=1&token=t');
   });
 });

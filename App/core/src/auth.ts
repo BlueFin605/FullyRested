@@ -69,3 +69,11 @@ async function signAwsSigV4(request: PreparedRequest, aws: AuthenticationDetails
   signedUrl.search = new URLSearchParams(presigned.query as { [key: string]: string }).toString();
   return { ...request, url: signedUrl.toString(), headers: presigned.headers };
 }
+
+// Adds a token to the URL as a query parameter (websocket handshakes cannot carry headers in a
+// browser). URLSearchParams URL-encodes the value.
+export function withQueryToken(url: string, param: string, token: string): string {
+  const result = new URL(url);
+  result.searchParams.set(param, token);
+  return result.toString();
+}

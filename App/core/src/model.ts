@@ -43,6 +43,9 @@ export interface AuthenticationDetails {
     awsSig: AuthenticationDetailsAWSSig;
     basicAuth: AuthenticationDetailsBasicAuth;
     bearerToken: AuthenticationDetailsBearerToken;
+    // Where a token goes on a websocket handshake: 'header' (the default, and what a missing
+    // value means) or the name of a query parameter, e.g. 'token'.
+    placement?: string;
 }
 
 export interface AuthenticationDetailsAWSSig {
@@ -99,6 +102,23 @@ export interface RestActionValidation {
     jsonSchema: RestActionValidationJsonSchema | undefined;
 }
 
+export type RequestType = 'http' | 'websocket';
+
+export type ExpectMatch = 'all' | 'any';
+export type ExpectExtras = 'ignore' | 'fail';
+
+export const DEFAULT_EXPECT_SETTLE_MS = 500;
+
+// What a websocket test waits for (see the websocket design spec)
+export interface WebSocketExpect {
+    count: number;
+    match: ExpectMatch;
+    schema: RestActionValidationJsonSchema | undefined;
+    extras: ExpectExtras;
+    timeout: number;   // ms, overall limit
+    settle: number;    // ms to keep listening after a pass; used only when extras is 'fail'
+}
+
 export interface RestActionRun {
     id: string;
     name: string;
@@ -122,6 +142,10 @@ export interface RestAction {
     body: RestActionBody;
     runs: RestActionRun[];
     validation: RestActionValidation;
+    // Websocket requests only. A missing type means 'http', so older files load unchanged.
+    type?: RequestType;
+    message?: string;
+    expect?: WebSocketExpect;
 }
 
 
@@ -223,6 +247,10 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     };
   }
   
+  export function CreateEmptyWebSocketExpect(): WebSocketExpect {
+    return { count: 1, match: 'all', schema: undefined, extras: 'ignore', timeout: 5000, settle: DEFAULT_EXPECT_SETTLE_MS };
+  }
+
   export function CreateEmptyActionBody(): RestActionBody {
     return { contentType: 'none', body: undefined };
   }

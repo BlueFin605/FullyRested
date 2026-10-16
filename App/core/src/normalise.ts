@@ -2,7 +2,8 @@ import {
     AuthenticationDetails, CollectionConfig, CurrentState, Environment, FolderConfig, RestAction, RestActionRun, RestActionValidation,
     ValidationType, ValidationTypeBody,
     CreateEmptyActionBody, CreateEmptyAuthenticationDetails, CreateEmptyAuthenticationDetailsAwsSig,
-    CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation
+    CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation,
+    WebSocketExpect, CreateEmptyWebSocketExpect
 } from './model';
 
 // Older .frreq / .frcol files (and the saved session state) can be missing fields that
@@ -62,7 +63,20 @@ export function normaliseAction(action: RestAction): RestAction {
     if (action.body == undefined || typeof (action.body) == "string")
         action.body = CreateEmptyActionBody();
 
+    // HTTP requests (type missing or 'http') stay exactly as they were on disk; only websocket
+    // requests get the extra fields filled in.
+    if (action.type == 'websocket') {
+        action.message = action.message ?? '';
+        action.expect = normaliseExpect(action.expect);
+        action.authentication.placement = action.authentication.placement ?? 'header';
+    }
+
     return action;
+}
+
+export function normaliseExpect(expect: Partial<WebSocketExpect> | undefined): WebSocketExpect {
+    const defined = Object.fromEntries(Object.entries(expect ?? {}).filter(([, v]) => v !== undefined));
+    return { ...CreateEmptyWebSocketExpect(), ...defined };
 }
 
 export function normaliseEnvironment(env: Environment): Environment {

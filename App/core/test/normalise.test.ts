@@ -4,7 +4,7 @@ import * as path from 'path';
 import {
     normaliseAction, normaliseCollectionConfig, normaliseCurrentState,
     normaliseFolderConfig, normaliseEnvironment, CreateEmptyAuthenticationDetails, FolderConfig, Environment,
-    CollectionConfig, CurrentState, RestAction, ValidationType, ValidationTypeBody
+    CollectionConfig, CurrentState, RestAction, ValidationType, ValidationTypeBody, WebSocketExpect
 } from '../src';
 
 const testCollection = path.resolve(__dirname, '../../../Test Collection');
@@ -125,5 +125,47 @@ describe('normaliseEnvironment headers', () => {
     it('gives older environments an empty header list', () => {
         const env = normaliseEnvironment({ name: 'Dev', id: 'd', variables: [], secrets: [] } as unknown as Environment);
         expect(env.headers).toEqual([]);
+    });
+});
+
+describe('websocket request fields', () => {
+    const wsAction = () => ({ id: 'w', name: 'ws', type: 'websocket', url: 'wss://x/prod' }) as unknown as RestAction;
+
+    it('leaves an http request without any new fields and round-trips it unchanged', () => {
+        for (const file of requestFiles()) {
+            const original = readJson<RestAction>(file);
+            const normalised = normaliseAction(readJson<RestAction>(file));
+            expect(normalised.type).toBeUndefined();
+            expect(normalised.message).toBeUndefined();
+            expect(normalised.expect).toBeUndefined();
+            expect(normalised.authentication.placement).toBeUndefined();
+            expect(JSON.parse(JSON.stringify(normaliseAction(normalised)))).toEqual(JSON.parse(JSON.stringify(normalised)));
+            expect(Object.keys(normalised)).toEqual(expect.arrayContaining(Object.keys(original)));
+        }
+    });
+
+    it('fills websocket defaults', () => {
+        const action = normaliseAction(wsAction());
+        expect(action.message).toBe('');
+        expect(action.expect).toEqual({ count: 1, match: 'all', schema: undefined, extras: 'ignore', timeout: 5000, settle: 500 });
+        expect(action.authentication.placement).toBe('header');
+    });
+
+    it('keeps set websocket values and round-trips them through JSON', () => {
+        const action = wsAction();
+        action.message = '{"a":1}';
+        action.expect = { count: 3, match: 'any', schema: { schema: '{}' }, extras: 'fail', timeout: 2000, settle: 100 };
+        action.authentication = { ...CreateEmptyAuthenticationDetails('bearertoken'), placement: 'token' };
+        const normalised = normaliseAction(action);
+        const again = normaliseAction(JSON.parse(JSON.stringify(normalised)) as RestAction);
+        expect(again).toEqual(normalised);
+        expect(again.expect).toEqual({ count: 3, match: 'any', schema: { schema: '{}' }, extras: 'fail', timeout: 2000, settle: 100 });
+        expect(again.authentication.placement).toBe('token');
+    });
+
+    it('fills only the missing expect fields', () => {
+        const action = wsAction();
+        action.expect = { count: 4 } as WebSocketExpect;
+        expect(normaliseAction(action).expect).toMatchObject({ count: 4, match: 'all', settle: 500 });
     });
 });
