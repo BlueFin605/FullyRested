@@ -57,3 +57,48 @@ export function buildAppRunRecord(input: AppSendInput): RunRecord {
   if (input.environment !== undefined) record.environment = input.environment;
   return record;
 }
+
+export interface AppScopeCase {
+  node: AppSendNode;
+  request?: PreparedRequest;
+  result?: RestActionResult;
+  validation?: ResponseValidation;
+  error?: string;
+  ms: number;
+  secrets: SecretTable[] | undefined; // this case's own secrets; redactCase masks only these
+}
+
+export interface AppScopeInput {
+  collection: string;
+  environment?: string;
+  selection: string;                  // e.g. 'collection' or 'folder:users'
+  cases: AppScopeCase[];
+  runId?: string;
+  startedAt?: string;
+}
+
+// A branch run from the app: one record, one case per request sent, each redacted with its own secrets.
+export function buildScopeRunRecord(input: AppScopeInput): RunRecord {
+  const cases = input.cases.map((c, i) => redactCase(buildCaseRecord({
+    index: i + 1,
+    name: c.node.name,
+    requestFile: c.node.path,
+    runName: c.node.runName,
+    ms: c.ms,
+    request: c.request,
+    response: c.result,
+    validation: c.validation,
+    error: c.error
+  }), c.secrets));
+
+  const record: RunRecord = {
+    runId: input.runId ?? newAppRunId(),
+    startedAt: input.startedAt ?? new Date().toISOString(),
+    collection: input.collection,
+    selection: input.selection,
+    redacted: true,
+    cases
+  };
+  if (input.environment !== undefined) record.environment = input.environment;
+  return record;
+}

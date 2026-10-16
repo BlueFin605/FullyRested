@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PreparedRequest } from '../src/auth';
 import { RestActionResult } from '../src/builder';
 import { SecretTable } from '../src/model';
-import { AppSendInput, appSelection, buildAppRunRecord } from '../src/app-run';
+import { AppSendInput, AppScopeCase, appSelection, buildAppRunRecord, buildScopeRunRecord } from '../src/app-run';
 
 const prepared: PreparedRequest = {
   method: 'POST', url: 'https://api.example.com/users?key=sw0rdf1sh-secret',
@@ -114,5 +114,53 @@ describe('buildAppRunRecord', () => {
 
     expect(run.runId.endsWith('-app')).toBe(true);
     expect(Number.isNaN(Date.parse(run.startedAt))).toBe(false);
+  });
+});
+
+describe('buildScopeRunRecord', () => {
+  const okCase = (): AppScopeCase => ({
+    node: { kind: 'request', name: 'List', path: 'users/list.frreq' },
+    request: prepared, result: { ...result(), status: 200, statusText: 'OK' },
+    validation: { information: [], errors: [], valid: true }, ms: 10, secrets: undefined
+  });
+  const failCase = (): AppScopeCase => ({
+    node: { kind: 'request', name: 'Create', path: 'users/create.frreq' },
+    request: prepared, result: result(),
+    validation: { information: [], errors: ['bad'], valid: false, checks: [] }, ms: 20, secrets
+  });
+  const errorCase = (): AppScopeCase => ({
+    node: { kind: 'run', name: 'Boom', path: 'users/boom.frreq', runName: 'x' },
+    error: 'folder is broken', ms: 5, secrets: undefined
+  });
+  const build = (extra = {}) => buildScopeRunRecord({
+    collection: 'C:/work/api/api.frcol', environment: 'dev', selection: 'folder:users',
+    cases: [okCase(), failCase(), errorCase()],
+    runId: '20261015-143207-ab12-app', startedAt: '2026-10-15T14:32:07.000Z', ...extra
+  });
+
+  it('builds one numbered case per input with pass/fail/error outcomes', () => {
+    const run = build();
+
+    expect(run.cases.map(c => c.index)).toEqual([1, 2, 3]);
+    expect(run.cases.map(c => c.outcome)).toEqual(['pass', 'fail', 'error']);
+    expect(run.cases[2].runName).toBe('x');
+    expect(run.selection).toBe('folder:users');
+    expect(run.redacted).toBe(true);
+    expect(run.environment).toBe('dev');
+  });
+
+  it('generates an -app run id when none is pinned', () => {
+    expect(build({ runId: undefined }).runId.endsWith('-app')).toBe(true);
+  });
+
+  it('omits environment when undefined', () => {
+    expect('environment' in build({ environment: undefined })).toBe(false);
+  });
+
+  it('redacts each case with its own secrets only', () => {
+    const run = build();
+
+    expect(run.cases[0].request.url).toContain('sw0rdf1sh-secret');
+    expect(run.cases[1].request.url).toBe('https://api.example.com/users?key={{$secret:API_KEY}}');
   });
 });
