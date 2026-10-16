@@ -43,13 +43,13 @@ describe('RestActionRunComponent shared results', () => {
     component.sending = false;
     component.response = EmptyActionResult;
     component.trees = { tree: new BehaviorSubject(root), nodeFor: (action: any) => root.attach(action, 'a.frreq') };
-    component.era = { executeNode: async (node: any) => (latest.set(resultKey(node.path, 'r1'), result), result) };
+    component.era = { executeNode: async (node: any) => (latest.set(resultKey(undefined, node.path, 'r1'), result), result) };
     return { component: component as RestActionRunComponent, latest };
   }
 
   it('shows the stored result for this run on init', () => {
     const { component, latest } = setup();
-    latest.set(resultKey('a.frreq', 'r1'), result);
+    latest.set(resultKey(undefined, 'a.frreq', 'r1'), result);
     component.ngOnInit();
     expect(component.response).toBe(result);
   });
@@ -57,15 +57,15 @@ describe('RestActionRunComponent shared results', () => {
   it('ignores the request result and other runs', () => {
     const { component, latest } = setup();
     component.ngOnInit();
-    latest.set(resultKey('a.frreq'), result);
-    latest.set(resultKey('a.frreq', 'r2'), result);
+    latest.set(resultKey(undefined, 'a.frreq'), result);
+    latest.set(resultKey(undefined, 'a.frreq', 'r2'), result);
     expect(component.response).toBe(EmptyActionResult);
   });
 
   it('follows store updates while open', () => {
     const { component, latest } = setup();
     component.ngOnInit();
-    latest.set(resultKey('a.frreq', 'r1'), result);
+    latest.set(resultKey(undefined, 'a.frreq', 'r1'), result);
     expect(component.response).toBe(result);
   });
 
@@ -73,7 +73,7 @@ describe('RestActionRunComponent shared results', () => {
     const { component, latest } = setup();
     component.ngOnInit();
     component.ngOnDestroy();
-    latest.set(resultKey('a.frreq', 'r1'), result);
+    latest.set(resultKey(undefined, 'a.frreq', 'r1'), result);
     expect(component.response).toBe(EmptyActionResult);
   });
 
@@ -84,6 +84,6 @@ describe('RestActionRunComponent shared results', () => {
     await component.executeAction();
     expect(set).toHaveBeenCalledTimes(1);
     expect(component.response).toBe(result);
-    expect(latest.get(resultKey('a.frreq', 'r1'))).toBe(result);
+    expect(latest.get(resultKey(undefined, 'a.frreq', 'r1'))).toBe(result);
   });
 });

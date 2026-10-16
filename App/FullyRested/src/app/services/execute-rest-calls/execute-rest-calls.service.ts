@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { RequestNode, RunNode, buildAppRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, validateResponse } from '@fullyrested/core';
 import type { AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
@@ -19,9 +19,17 @@ export interface TimedActionResult extends RestActionResult {
 
 export interface ScopeProgress { done: number; total: number; passed: number; failed: number; }
 
+// How the last batch ended: `total` is how many cases the scope held (0 = nothing to run), `ran` how many were
+// sent, `recorded` whether a history record was saved (an unsaved collection runs but writes none)
+export interface ScopeOutcome { total: number; ran: number; cancelled: boolean; recorded: boolean; }
+
 interface SentCase {
   resolved?: ExecuteRestAction; substituted?: ExecuteRestAction; result?: TimedActionResult; error?: string; thrown?: unknown; ms: number;
 }
+
+// An errored send still gives the tabs something to show, in the shape of a response
+const errorResult = (message: string, ms: number): TimedActionResult =>
+  ({ ...EmptyActionResult, status: 'error', statusText: message, durationMs: ms });
 
 const runIdOf = (node: RequestNode | RunNode): string | undefined => node instanceof RunNode ? node.run.id : undefined;
 
@@ -49,13 +57,29 @@ export class ExecuteRestCallsService {
   // The batch's progress; undefined when no batch is running
   readonly scopeProgress$: Observable<ScopeProgress | undefined> = this.progress.asObservable();
 
+  // Emits whenever a single request or run is sent
+  private readonly sent = new Subject<void>();
+  readonly sent$: Observable<void> = this.sent.asObservable();
+
+  // How the most recent batch ended; set before scopeProgress$ goes idle
+  lastScope: ScopeOutcome | undefined;
+
+  private keyOf(node: RequestNode | RunNode): string {
+    const collection = this.trees.openCollection;
+    return resultKey(collection?.filename || collection?.path, node.path, runIdOf(node));
+  }
+
   // Resolves the node through its folders, environment and collection, sends it and checks the response:
   // the same steps the CLI runs
   async executeNode(node: RequestNode | RunNode, environmentId?: string): Promise<TimedActionResult> {
+    this.sent.next();
     const sent = await this.sendNode(node, environmentId);
     void this.record(node, environmentId, sent);
-    if (sent.result == undefined) throw sent.thrown;
-    this.latest.set(resultKey(node.path, runIdOf(node)), sent.result);
+    if (sent.result == undefined) {
+      this.latest.set(this.keyOf(node), errorResult(sent.error ?? 'The request failed', sent.ms));
+      throw sent.thrown;
+    }
+    this.latest.set(this.keyOf(node), sent.result);
     return sent.result;
   }
 
@@ -64,19 +88,23 @@ export class ExecuteRestCallsService {
   async executeScope(scope: ContainerNode, environmentId?: string, selection = 'collection'): Promise<RunRecord | undefined> {
     if (this.running) return undefined;
     const cases = casesForScope(scope);
-    if (cases.length == 0) return undefined;
+    if (cases.length == 0) {
+      this.lastScope = { total: 0, ran: 0, cancelled: false, recorded: false };
+      return undefined;
+    }
 
     this.running = true;
     this.cancelled = false;
     const done: AppScopeCase[] = [];
     let passed = 0;
     let failed = 0;
+    let recorded = false;
     try {
       this.progress.next({ done: 0, total: cases.length, passed, failed });
       for (const c of cases) {
         if (this.cancelled) break;
         const sent = await this.sendNode(c.node, environmentId);
-        if (sent.result != undefined) this.latest.set(resultKey(c.node.path, runIdOf(c.node)), sent.result);
+        this.latest.set(this.keyOf(c.node), sent.result ?? errorResult(sent.error ?? 'The request failed', sent.ms));
         const ok = sent.error == undefined && sent.result?.validated?.valid !== false;
         if (ok) passed++; else failed++;
         done.push({
@@ -101,11 +129,13 @@ export class ExecuteRestCallsService {
       });
       try {
         await this.history.save(collection.path, record);
+        recorded = true;
       } catch (error) {
         console.warn(`[FullyRested] the run was not recorded: ${(error as Error).message}`);
       }
       return record;
     } finally {
+      this.lastScope = { total: cases.length, ran: done.length, cancelled: this.cancelled, recorded };
       this.running = false;
       this.progress.next(undefined);
     }

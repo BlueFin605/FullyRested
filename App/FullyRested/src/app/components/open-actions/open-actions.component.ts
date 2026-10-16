@@ -105,6 +105,8 @@ export class OpenActionsComponent implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe((command) => this.onShortcut(command));
 
+    // any Send, from the button or the shortcut, dismisses the notice
+    this.era.sent$.pipe(takeUntilDestroyed()).subscribe(() => this.clearScopeNotice());
     this.era.scopeProgress$.pipe(takeUntilDestroyed()).subscribe((p) => (this.scopeRunning = p != undefined));
     this.repo.collections.subscribe((s) => {
       this.collection = s;
@@ -756,6 +758,10 @@ export class OpenActionsComponent implements OnInit {
     return '· Collection';
   }
 
+  clearScopeNotice() {
+    this.scopeNotice = '';
+  }
+
   // Runs every case under a folder, or the whole collection from the root row
   async runScope(item: SelectedTreeItem) {
     if (this.scopeRunning || !this.collection) return;
@@ -771,7 +777,9 @@ export class OpenActionsComponent implements OnInit {
       this.collection.config.selectedEnvironmentId,
       isRoot ? 'collection' : `folder:${node.path}`,
     );
-    if (record == undefined && !this.scopeRunning) this.scopeNotice = isRoot ? 'Nothing to run in this collection' : 'Nothing to run in this folder';
+    // an unsaved collection runs its cases and writes no record, so only an empty scope earns the notice
+    if (record == undefined && this.era.lastScope?.total === 0)
+      this.scopeNotice = isRoot ? 'Nothing to run in this collection' : 'Nothing to run in this folder';
   }
 
   async onExplorerCommand(command: ExplorerCommand) {

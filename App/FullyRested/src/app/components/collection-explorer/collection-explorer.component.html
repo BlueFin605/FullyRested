@@ -95,7 +95,7 @@
       </button>
     }
     @for (name of contextItem.value.actions ?? []; track name) {
-      <button mat-menu-item (click)="emitCommand(name, contextItem)">
+      <button mat-menu-item [disabled]="name == 'runScope' && scopeRunning" (click)="emitCommand(name, contextItem)">
         <mat-icon>{{ commandIcon(name) }}</mat-icon> {{ commandLabel(name) }}
       </button>
     }

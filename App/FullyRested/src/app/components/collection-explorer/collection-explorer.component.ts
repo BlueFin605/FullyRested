@@ -7,6 +7,8 @@ import {
   ChangeDetectionStrategy,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { MatMenuTrigger } from '@angular/material/menu';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
@@ -117,7 +119,11 @@ export class CollectionExplorerComponent implements OnInit {
   @Output()
   selectedChange = new EventEmitter<string>();
 
-  constructor(private trees: CollectionTreeService) {
+  // a batch run is in flight: Run is disabled until it finishes
+  scopeRunning = false;
+
+  constructor(private trees: CollectionTreeService, era: ExecuteRestCallsService) {
+    era.scopeProgress$.pipe(takeUntilDestroyed()).subscribe((p) => (this.scopeRunning = p != undefined));
     this.trees.tree.subscribe((root) => {
       this.root = root;
       this.rebuild();

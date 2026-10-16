@@ -6,6 +6,7 @@ import { ScopeRunStatusComponent } from './scope-run-status.component';
 describe('ScopeRunStatusComponent', () => {
   let progress$: BehaviorSubject<ScopeProgress | undefined>;
   let cancelScope: jasmine.Spy;
+  let era: { scopeProgress$: any; cancelScope: jasmine.Spy; lastScope?: any };
   let fixture: ComponentFixture<ScopeRunStatusComponent>;
 
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe('ScopeRunStatusComponent', () => {
     cancelScope = jasmine.createSpy('cancelScope');
     TestBed.configureTestingModule({
       imports: [ScopeRunStatusComponent],
-      providers: [{ provide: ExecuteRestCallsService, useValue: { scopeProgress$: progress$.asObservable(), cancelScope } }],
+      providers: [{ provide: ExecuteRestCallsService, useValue: (era = { scopeProgress$: progress$.asObservable(), cancelScope, lastScope: { total: 5, ran: 5, cancelled: false, recorded: true } }) }],
     });
     fixture = TestBed.createComponent(ScopeRunStatusComponent);
     fixture.detectChanges();
@@ -49,6 +50,24 @@ describe('ScopeRunStatusComponent', () => {
     fixture.detectChanges();
     expect(text()).toBe('');
   }));
+
+  it('says the run was cancelled, and after how many cases', () => {
+    era.lastScope = { total: 5, ran: 2, cancelled: true, recorded: true };
+    progress$.next({ done: 2, total: 5, passed: 2, failed: 0 });
+    progress$.next(undefined);
+    fixture.detectChanges();
+    expect(text()).toContain('Run cancelled after 2 of 5');
+    expect(text()).not.toContain('Run finished');
+  });
+
+  it('says nothing was recorded, without a View link, when no record was saved', () => {
+    era.lastScope = { total: 2, ran: 2, cancelled: false, recorded: false };
+    progress$.next({ done: 2, total: 2, passed: 2, failed: 0 });
+    progress$.next(undefined);
+    fixture.detectChanges();
+    expect(text()).toContain('Nothing was recorded');
+    expect(fixture.nativeElement.querySelector('button.view')).toBeNull();
+  });
 
   it('emits viewHistory from the View link', () => {
     const emitted = jasmine.createSpy('viewHistory');

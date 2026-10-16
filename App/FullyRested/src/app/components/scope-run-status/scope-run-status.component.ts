@@ -17,7 +17,7 @@ export class ScopeRunStatusComponent {
   @Output() viewHistory = new EventEmitter<void>();
 
   progress: ScopeProgress | undefined;
-  finished: { passed: number; failed: number } | undefined;
+  finished: { passed: number; failed: number; ran: number; total: number; cancelled: boolean; recorded: boolean } | undefined;
 
   private readonly era = inject(ExecuteRestCallsService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -33,7 +33,15 @@ export class ScopeRunStatusComponent {
       if (p != undefined) {
         this.finished = undefined;
       } else if (last != undefined) {
-        this.finished = { passed: last.passed, failed: last.failed };
+        const outcome = this.era.lastScope;
+        this.finished = {
+          passed: last.passed,
+          failed: last.failed,
+          ran: outcome?.ran ?? last.done,
+          total: outcome?.total ?? last.total,
+          cancelled: outcome?.cancelled ?? false,
+          recorded: outcome?.recorded ?? true,
+        };
         this.timer = setTimeout(() => {
           this.finished = undefined;
           this.cdr.markForCheck();

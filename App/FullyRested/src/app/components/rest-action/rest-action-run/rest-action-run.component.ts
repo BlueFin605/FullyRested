@@ -87,7 +87,7 @@ export class RestActionRunComponent implements OnInit, DoCheck, OnDestroy {
   // Follow the shared store for this run's key; re-keys when the node (path/run) changes
   private bindResults() {
     const node = this.inheritedNode;
-    const key = node ? resultKey(node.path, this._runId as string) : undefined;
+    const key = node ? resultKey(this.trees.openCollection?.filename || this.trees.openCollection?.path, node.path, this._runId as string) : undefined;
     if (key === this.watchedKey && this.watching) return;
     this.watching?.unsubscribe();
     this.watchedKey = key;

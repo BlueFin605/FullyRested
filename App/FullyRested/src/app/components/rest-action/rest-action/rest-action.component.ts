@@ -93,7 +93,7 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
   // Follow the shared store for this tab's key; re-keys when the node (path) changes
   private bindResults() {
     const node = this.inheritedNode;
-    const key = node ? resultKey(node.path) : undefined;
+    const key = node ? resultKey(this.trees.openCollection?.filename || this.trees.openCollection?.path, node.path) : undefined;
     if (key === this.watchedKey && this.watching) return;
     this.watching?.unsubscribe();
     this.watchedKey = key;

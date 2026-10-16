@@ -42,6 +42,13 @@ describe('ExecuteRestCallsService', () => {
     expect(result.body?.contentType).toContain('application/json');
   });
 
+  it('announces each single send on sent$', async () => {
+    let count = 0;
+    service.sent$.subscribe(() => count++);
+    await service.executeNode(nodeFor('anything.example'));
+    expect(count).toBe(1);
+  });
+
   it('sends the request to the main process with the selected environment then the collection substituted', async () => {
     const sent: IExecuteRestAction[] = [];
     (window as any).ipc = {
@@ -353,8 +360,46 @@ describe('ExecuteRestCallsService', () => {
       stub();
       const latest = TestBed.inject(LatestResultsService);
       await service.executeScope(treeOf('a.frreq', 'b.frreq'));
-      expect(latest.get(resultKey('a.frreq'))?.status).toBe(200);
-      expect(latest.get(resultKey('b.frreq'))?.status).toBe(200);
+      expect(latest.get(resultKey('C:/c/api.frcol', 'a.frreq'))?.status).toBe(200);
+      expect(latest.get(resultKey('C:/c/api.frcol', 'b.frreq'))?.status).toBe(200);
+    });
+
+    it('stores an error result for a case that errors in a batch', async () => {
+      stub('b.example');
+      const latest = TestBed.inject(LatestResultsService);
+      latest.set(resultKey('C:/c/api.frcol', 'b.frreq'), { status: 200 } as any);
+      await service.executeScope(treeOf('a.frreq', 'b.frreq'));
+      const stored = latest.get(resultKey('C:/c/api.frcol', 'b.frreq'));
+      expect(stored?.status).toBe('error');
+      expect(stored?.statusText).toBe('ipc down');
+    });
+
+    it('stores an error result when a single executeNode errors', async () => {
+      stub('a.example');
+      const latest = TestBed.inject(LatestResultsService);
+      latest.set(resultKey('C:/c/api.frcol', 'a.frreq'), { status: 200 } as any);
+      await expectAsync(service.executeNode(treeOf('a.frreq').children[0] as RequestNode)).toBeRejectedWithError('ipc down');
+      const stored = latest.get(resultKey('C:/c/api.frcol', 'a.frreq'));
+      expect(stored?.status).toBe('error');
+      expect(stored?.statusText).toBe('ipc down');
+    });
+
+    it('reports an empty scope, a cancelled run and a recorded run in lastScope', async () => {
+      stub();
+      await service.executeScope(treeOf());
+      expect(service.lastScope).toEqual({ total: 0, ran: 0, cancelled: false, recorded: false });
+      onSend = () => service.cancelScope();
+      await service.executeScope(treeOf('a.frreq', 'b.frreq'));
+      expect(service.lastScope).toEqual({ total: 2, ran: 1, cancelled: true, recorded: true });
+    });
+
+    it('runs but records nothing for an unsaved collection', async () => {
+      stub();
+      const trees = TestBed.inject(CollectionTreeService) as any;
+      Object.defineProperty(trees, 'openCollection', { get: () => ({ name: 'new', filename: '', path: '', config: rootNode().config }), configurable: true });
+      expect(await service.executeScope(treeOf('a.frreq'))).toBeUndefined();
+      expect(sentUrls).toEqual(['a.example']);
+      expect(service.lastScope).toEqual({ total: 1, ran: 1, cancelled: false, recorded: false });
     });
 
     it('leaves executeNode throwing and recording a failed send', async () => {

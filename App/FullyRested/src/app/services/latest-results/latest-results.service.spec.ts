@@ -13,8 +13,15 @@ describe('LatestResultsService', () => {
   });
 
   it('builds keys from path and optional run id', () => {
-    expect(resultKey('a/b.frreq')).toBe('a/b.frreq');
-    expect(resultKey('a/b.frreq', 'happy')).toBe('a/b.frreq#happy');
+    expect(resultKey('c1', 'a/b.frreq')).toBe('c1|a/b.frreq');
+    expect(resultKey('c1', 'a/b.frreq', 'happy')).toBe('c1|a/b.frreq#happy');
+  });
+
+  it('keeps two collections with the same request path apart', () => {
+    expect(resultKey('C:/one/api.frcol', 'a.frreq')).not.toBe(resultKey('C:/two/api.frcol', 'a.frreq'));
+    expect(resultKey('C:/one/api.frcol', 'a.frreq', 'r1')).not.toBe(resultKey('C:/two/api.frcol', 'a.frreq', 'r1'));
+    service.set(resultKey('C:/one/api.frcol', 'a.frreq'), result(200));
+    expect(service.get(resultKey('C:/two/api.frcol', 'a.frreq'))).toBeUndefined();
   });
 
   it('stores and returns the latest result', () => {

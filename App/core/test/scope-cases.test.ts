@@ -50,8 +50,6 @@ describe('scope cases', () => {
 
     it('lists every case from the root', () => {
         const { root } = build();
-        const names = casesForScope(root).map(c => c.name);
-        expect(names).toHaveLength(5);
-        expect(names).toEqual(expect.arrayContaining(['plain', 'multi › first', 'multi › second', 'else', 'top']));
+        expect(casesForScope(root).map(c => c.name)).toEqual(['plain', 'multi › first', 'multi › second', 'else', 'top']);
     });
 });

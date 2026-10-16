@@ -295,7 +295,7 @@
 
       <app-scope-run-status (viewHistory)="showHistory()"></app-scope-run-status>
       @if (scopeNotice) {
-        <p class="pane-error">{{ scopeNotice }}</p>
+        <p class="pane-notice" role="status">{{ scopeNotice }}</p>
       }
       <div class="pane settings-pane" [hidden]="!folderSettingsVisible()">
         @if (selectedFolder) {

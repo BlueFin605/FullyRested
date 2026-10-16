@@ -107,7 +107,7 @@ describe('OpenActionsComponent folder settings', () => {
   describe('runScope command', () => {
     function withEra(result: any) {
       const ctx = setup();
-      const era = { executeScope: jasmine.createSpy('executeScope').and.resolveTo(result) };
+      const era = { executeScope: jasmine.createSpy('executeScope').and.resolveTo(result), lastScope: { total: 0 } as any };
       (ctx.component as any).era = era;
       (ctx.component as any).collection.config.selectedEnvironmentId = 'env1';
       return { ...ctx, era };
@@ -124,6 +124,21 @@ describe('OpenActionsComponent folder settings', () => {
       const { component, era, folder } = withEra({});
       await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
       expect(era.executeScope).toHaveBeenCalledWith(folder, 'env1', 'folder:api/users');
+    });
+
+    it('shows no notice for an unsaved collection whose cases ran but wrote no record', async () => {
+      const { component, era } = withEra(undefined);
+      era.lastScope = { total: 3, ran: 3, cancelled: false, recorded: false };
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(component.scopeNotice).toBe('');
+    });
+
+    it('clears the notice when a Send happens', async () => {
+      const { component } = withEra(undefined);
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(component.scopeNotice).not.toBe('');
+      component.clearScopeNotice();
+      expect(component.scopeNotice).toBe('');
     });
 
     it('says so when there is nothing to run', async () => {
