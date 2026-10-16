@@ -1,5 +1,5 @@
 import { RunRecord } from './run-record';
-import { RunListing, RunStore, listingOf } from './run-store';
+import { RunListing, RunStore, listingOf, newRunId } from './run-store';
 
 export const RUNS_FOLDER = '.fullyrested-runs';
 
@@ -19,7 +19,23 @@ export interface RunStoreHost {
   join(...parts: string[]): string;
 }
 
+export const APP_RUN_SUFFIX = '-app';
+
+// The app records every send, so its records are capped; the CLI's and an agent's are not, since a
+// suite being queried must not vanish underneath it.
+export const APP_RUN_CAP = 200;
+
+export function newAppRunId(now?: Date): string {
+  return newRunId(now) + APP_RUN_SUFFIX;
+}
+
+export function isAppRunId(runId: string): boolean {
+  return runId.endsWith(APP_RUN_SUFFIX);
+}
+
 export interface FileRunStoreOptions {
+  /** prune to this many app-written records after each save; undefined never prunes */
+  cap?: number;
   onWarning?: (message: string) => void;
 }
 
@@ -38,11 +54,28 @@ export function fileRunStore(host: RunStoreHost, dir: string, options: FileRunSt
     }
   };
 
+  // Classification is by file name alone: parsing every record to decide what to delete would mean
+  // re-reading every recorded body on every send. Run ids start with a UTC timestamp, so a plain
+  // string sort is oldest-first.
+  const prune = () => {
+    if (options.cap === undefined) return;
+    try {
+      const names = host.readdir(folder)
+        .filter(n => n.endsWith(`${APP_RUN_SUFFIX}.json`))
+        .sort()
+        .reverse();
+      for (const name of names.slice(options.cap)) host.remove(host.join(folder, name));
+    } catch (error) {
+      warn(`Could not prune ${folder}: ${(error as Error).message}`);
+    }
+  };
+
   return {
     async save(record: RunRecord): Promise<void> {
       if (!VALID_RUN_ID.test(record.runId)) throw new Error(`Invalid run id '${record.runId}'`);
       host.mkdir(folder);
       host.writeText(fileOf(record.runId), JSON.stringify(record, null, 2));
+      prune();
     },
 
     async load(runId: string): Promise<RunRecord | undefined> {

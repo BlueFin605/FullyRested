@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RunRecord } from '../src/run-record';
-import { RUNS_FOLDER, RunStoreHost, fileRunStore } from '../src/file-run-store';
+import { APP_RUN_CAP, APP_RUN_SUFFIX, RUNS_FOLDER, RunStoreHost, fileRunStore, isAppRunId, newAppRunId } from '../src/file-run-store';
 
 function memoryHost() {
   const files = new Map<string, string>();
@@ -114,5 +114,76 @@ describe('fileRunStore', () => {
 
     await expect(store.save(record('../x'))).rejects.toThrow("Invalid run id '../x'");
     expect(files.size).toBe(0);
+  });
+});
+
+describe('app run ids', () => {
+  it('marks an app run id with the suffix, and recognises it', () => {
+    const id = newAppRunId(new Date('2026-10-15T14:32:07Z'));
+
+    expect(id.startsWith('20261015-143207-')).toBe(true);
+    expect(id.endsWith(APP_RUN_SUFFIX)).toBe(true);
+    expect(isAppRunId(id)).toBe(true);
+    expect(isAppRunId('20261015-143207-ab12')).toBe(false);
+  });
+
+  it('is a valid run id, so it saves and loads like any other', async () => {
+    const { host } = memoryHost();
+    const store = fileRunStore(host, 'dir');
+    const run = record(newAppRunId(new Date('2026-10-15T14:32:07Z')));
+
+    await store.save(run);
+
+    expect(await store.load(run.runId)).toEqual(run);
+  });
+});
+
+describe('fileRunStore pruning', () => {
+  const appId = (n: number) => `202610${String(10 + n).padStart(2, '0')}-100000-aaaa${APP_RUN_SUFFIX}`;
+
+  it('keeps the newest cap app records and deletes the rest', async () => {
+    const { host, files } = memoryHost();
+    const store = fileRunStore(host, 'dir', { cap: 3 });
+    for (let n = 1; n <= 5; n++) await store.save(record(appId(n)));
+
+    expect((await store.list()).map(l => l.runId)).toEqual([appId(5), appId(4), appId(3)]);
+    expect(files.has(`dir/${RUNS_FOLDER}/${appId(1)}.json`)).toBe(false);
+  });
+
+  it('never deletes a record without the -app suffix', async () => {
+    const { host } = memoryHost();
+    const store = fileRunStore(host, 'dir', { cap: 1 });
+    await store.save(record('20261001-090000-cli1'));
+    await store.save(record('20261002-090000-cli2'));
+    await store.save(record(appId(1)));
+    await store.save(record(appId(2)));
+
+    expect((await store.list()).map(l => l.runId).sort())
+      .toEqual(['20261001-090000-cli1', '20261002-090000-cli2', appId(2)].sort());
+  });
+
+  it('prunes nothing when no cap is given', async () => {
+    const { host } = memoryHost();
+    const store = fileRunStore(host, 'dir');
+    for (let n = 1; n <= 5; n++) await store.save(record(appId(n)));
+
+    expect(await store.list()).toHaveLength(5);
+  });
+
+  it('warns but still saves when a delete fails', async () => {
+    const { host } = memoryHost();
+    const warnings: string[] = [];
+    const failing: RunStoreHost = { ...host, remove: () => { throw new Error('EBUSY'); } };
+    const store = fileRunStore(failing, 'dir', { cap: 1, onWarning: m => warnings.push(m) });
+    await store.save(record(appId(1)));
+
+    await store.save(record(appId(2)));
+
+    expect(await store.load(appId(2))).toBeDefined();
+    expect(warnings.join(' ')).toContain('EBUSY');
+  });
+
+  it('caps app records at 200 by default', () => {
+    expect(APP_RUN_CAP).toBe(200);
   });
 });
