@@ -1,7 +1,7 @@
 import { provideZoneChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { RunListing } from '@fullyrested/core';
+import { RunListing, RunRecord } from '@fullyrested/core';
 import { RunTimePipe } from '../../pipes/run-time.pipe';
 import { RunHistoryService } from '../../services/run-history/run-history.service';
 import { RunHistoryComponent } from './run-history.component';
@@ -76,5 +76,77 @@ describe('RunHistoryComponent', () => {
     await settle(f);
     expect(f.nativeElement.textContent).toContain('No runs recorded yet');
     expect(f.nativeElement.textContent).toContain('/c/.fullyrested-runs');
+  });
+});
+
+describe('RunHistoryComponent case detail', () => {
+  const body = (text: string, contentType = 'application/json') => ({ contentType, bytes: text.length, text });
+  const record: RunRecord = {
+    runId: 'r1-app', startedAt: new Date().toISOString(), collection: 'c.frcol', selection: 'request:a.frreq', redacted: true,
+    cases: [
+      {
+        index: 1, name: 'create', requestFile: 'a.frreq', outcome: 'fail', ms: 12,
+        request: { method: 'POST', url: 'https://x.test/u', headers: { a: 'b' }, body: body('{"n":1}') },
+        response: { status: 422, statusText: 'Unprocessable', headers: { 'set-cookie': 'k=v', 'content-type': 'application/json' }, body: body('{"e":1}') },
+        validation: { valid: false, checks: [{ check: 'body', passed: true, errors: [] }, { check: 'status', passed: false, errors: ['expected 200'] }] }
+      },
+      {
+        index: 2, name: 'broken', requestFile: 'b.frreq', outcome: 'error', ms: 3, error: 'ECONNREFUSED',
+        request: { method: 'GET', url: 'https://y.test', headers: {} }
+      }
+    ]
+  };
+
+  function create() {
+    const history = { list: jasmine.createSpy('list').and.resolveTo([]), load: jasmine.createSpy('load').and.resolveTo(record), changed: signal(0) };
+    TestBed.configureTestingModule({
+      declarations: [RunHistoryComponent, RunTimePipe],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
+      providers: [provideZoneChangeDetection(), { provide: RunHistoryService, useValue: history }],
+    });
+    const c = TestBed.createComponent(RunHistoryComponent).componentInstance;
+    return { c, history };
+  }
+
+  it('loads the record and shows its first case', async () => {
+    const { c, history } = create();
+    await c.select(listing({ runId: 'r1-app' }));
+    expect(history.load).toHaveBeenCalledWith('r1-app');
+    expect(c.caseIndex).toBe(1);
+    expect(c.cases.map(x => x.index)).toEqual([1, 2]);
+    expect(c.currentCase?.name).toBe('create');
+  });
+
+  it('answers through the query functions, with every response header', async () => {
+    const { c } = create();
+    await c.select(listing({}));
+    expect(c.requestView.value?.method).toBe('POST');
+    expect(c.responseView.value?.status).toBe(422);
+    expect(c.responseView.value?.headers['set-cookie']).toBe('k=v');
+    expect(c.requestBody.value?.content).toBe('{"n":1}');
+    expect(c.responseBody.value?.encoding).toBe('text');
+  });
+
+  it('reports a case with no response or body as a message, not a failure', async () => {
+    const { c } = create();
+    await c.select(listing({}));
+    c.caseIndex = 2;
+    expect(c.responseView.value).toBeUndefined();
+    expect(c.responseView.message).toContain('got no response');
+    expect(c.requestBody.message).toContain('no request body');
+    expect(c.currentCase?.error).toBe('ECONNREFUSED');
+  });
+
+  it('puts failed checks first', async () => {
+    const { c } = create();
+    await c.select(listing({}));
+    expect(c.checks.map(k => k.check)).toEqual(['status', 'body']);
+  });
+
+  it('shows a load failure', async () => {
+    const { c, history } = create();
+    history.load.and.rejectWith(new Error('corrupt run'));
+    await c.select(listing({}));
+    expect(c.detailError).toBe('corrupt run');
   });
 });

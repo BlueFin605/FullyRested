@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, effect, inject } from '@angular/core';
-import { Collection, RunListing, isAppRunId } from '@fullyrested/core';
+import {
+  BodyResult, Collection, RunListing, RunRecord, ValidationCheck, caseBody, caseRequest, caseResponse, isAppRunId, summary
+} from '@fullyrested/core';
+import { bodyKind, editorLanguage } from '../rest-action/response/display-response-body/body-format';
+import { CodeLanguage } from '../code-editor/code-editor.component';
 import { RunHistoryService } from '../../services/run-history/run-history.service';
+
+// caseBody's default cap, in characters, which is what keeps a huge recorded body out of the DOM
+const BODY_CAP = 32768;
 
 @Component({
   selector: 'app-run-history',
@@ -40,6 +47,8 @@ export class RunHistoryComponent implements OnChanges {
 
   async refresh(): Promise<void> {
     this.selected = undefined;
+    this.record = undefined;
+    this.detailError = undefined;
     if (this.collection == undefined) {
       this.runs = [];
       return;
@@ -56,9 +65,60 @@ export class RunHistoryComponent implements OnChanges {
     }
   }
 
-  select(run: RunListing) {
+  record: RunRecord | undefined;
+  caseIndex = 1;
+  detailError: string | undefined;
+
+  async select(run: RunListing): Promise<void> {
     this.selected = run;
+    this.record = undefined;
+    this.detailError = undefined;
+    try {
+      this.record = await this.history.load(run.runId);
+      this.caseIndex = 1;
+    } catch (error) {
+      this.detailError = (error as Error).message;
+    }
   }
+
+  // Each view is core's answer to the question the matching MCP tool asks. A QueryError means "this
+  // case has no response / no body", which is a thing to say, not a failure.
+  private view<T>(fn: () => T): { value?: T; message?: string } {
+    if (this.record == undefined) return {};
+    try {
+      return { value: fn() };
+    } catch (error) {
+      return { message: (error as Error).message };
+    }
+  }
+
+  get requestView() { return this.view(() => caseRequest(this.record!, this.caseIndex)); }
+  get responseView() { return this.view(() => caseResponse(this.record!, this.caseIndex, { headers: true })); }
+  get requestBody() { return this.view(() => caseBody(this.record!, this.caseIndex, { request: true })); }
+  get responseBody() { return this.view(() => caseBody(this.record!, this.caseIndex)); }
+  get cases() { return this.record == undefined ? [] : summary(this.record).cases; }
+  get currentCase() { return this.record?.cases.find(c => c.index == this.caseIndex); }
+
+  // failures first, so the reason a case failed is the first thing seen
+  get checks(): ValidationCheck[] {
+    const checks = this.currentCase?.validation?.checks ?? [];
+    return [...checks.filter(k => !k.passed), ...checks.filter(k => k.passed)];
+  }
+
+  headerRows(headers: Record<string, string> | undefined): [string, string][] {
+    return Object.entries(headers ?? {});
+  }
+
+  // the editor shows the text of a text or json body; a binary one is not shown
+  bodyText(body: BodyResult): string {
+    return typeof body.content == "string" ? body.content : JSON.stringify(body.content, null, 2);
+  }
+
+  language(body: BodyResult): CodeLanguage {
+    return editorLanguage(bodyKind(body.contentType));
+  }
+
+  readonly bodyCap = BODY_CAP;
 
   isApp(run: RunListing): boolean {
     return isAppRunId(run.runId);
