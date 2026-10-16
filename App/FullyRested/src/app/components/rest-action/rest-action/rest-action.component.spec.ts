@@ -53,7 +53,7 @@ describe('RestActionComponent shared results', () => {
     component.sending = false;
     component.response = EmptyActionResult;
     component.trees = { tree: new BehaviorSubject(root), nodeFor: (action: any) => root.attach(action, 'a.frreq') };
-    component.era = { executeNode: async () => result };
+    component.era = { executeNode: async (node: any) => (latest.set(resultKey(node.path), result), result) };
     return { component: component as RestActionComponent, latest };
   }
 
@@ -85,10 +85,12 @@ describe('RestActionComponent shared results', () => {
     expect(component.response).toBe(EmptyActionResult);
   });
 
-  it('Send shows its result and stores it', async () => {
+  it('Send shows its result; executeNode is the only writer', async () => {
     const { component, latest } = setup();
+    const set = spyOn(latest, 'set').and.callThrough();
     component.ngOnInit();
     await component.executeAction();
+    expect(set).toHaveBeenCalledTimes(1);
     expect(component.response).toBe(result);
     expect(latest.get(resultKey('a.frreq'))).toBe(result);
   });

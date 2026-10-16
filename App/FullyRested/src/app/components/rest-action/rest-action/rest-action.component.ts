@@ -147,7 +147,6 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
     try {
       const node = this.trees.nodeFor(this._action, this._fullFilename);
       this.response = await this.era.executeNode(node, this.collection?.config.selectedEnvironmentId);
-      this.latest.set(resultKey(node.path), this.response);
     } catch (error) {
       // a broken folder or collection file refuses to resolve: show why instead of sending without it
       this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
