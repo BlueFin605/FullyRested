@@ -1,0 +1,26 @@
+.scope-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: var(--fr-font-size-sm);
+}
+
+.counts {
+  color: var(--fr-text-muted);
+}
+
+button {
+  margin-left: auto;
+  padding: 0 8px;
+  border: 1px solid var(--fr-border);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.view {
+  margin-left: 0;
+}

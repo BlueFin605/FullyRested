@@ -293,6 +293,7 @@
         <app-run-history [collection]="collection"></app-run-history>
       </div>
 
+      <app-scope-run-status (viewHistory)="showHistory()"></app-scope-run-status>
       @if (scopeNotice) {
         <p class="pane-error">{{ scopeNotice }}</p>
       }
