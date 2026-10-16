@@ -1,0 +1,8 @@
+<h2 class="pane-title">
+  Run history <span class="pane-scope">· {{ collection?.name }}</span>
+  <span class="runs-folder">{{ runsFolder }}</span>
+</h2>
+
+@if (collection == undefined) {
+  <p class="hint">Open a collection to see its run history.</p>
+}

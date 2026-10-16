@@ -509,6 +509,14 @@ export class OpenActionsComponent implements OnInit {
     return this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'headers';
   }
 
+  historyVisible(): boolean {
+    return this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'history';
+  }
+
+  showHistory() {
+    this.openSystem({ activeTab: true, key: 'system.history', runkey: '', type: 'system', subtype: 'history', enabledMenuOptions: [] });
+  }
+
   authenticationVisible(): boolean {
     if (
       this.selectedTab.selectedType == 'system' &&
@@ -691,6 +699,7 @@ export class OpenActionsComponent implements OnInit {
       command('New collection…', 'create_new_folder', () => this.newCollection()),
       command(`${this.layout.sidebarVisible() ? 'Hide' : 'Show'} sidebar`, 'view_sidebar', () => this.layout.toggleSidebar(), 'Ctrl+B'),
       command('Toggle response position', 'view_agenda', () => this.layout.toggleOrientation()),
+      ...(this.collection ? [command('Run history', 'history', () => this.showHistory())] : []),
       command('Theme: System', 'brightness_auto', () => this.theme.set('system')),
       command('Theme: Light', 'light_mode', () => this.theme.set('light')),
       command('Theme: Dark', 'dark_mode', () => this.theme.set('dark')),

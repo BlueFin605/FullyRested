@@ -181,6 +181,11 @@ export class CollectionExplorerComponent implements OnInit {
         collapsed: false,
       }),
       new TreeviewItem({
+        text: 'History',
+        value: { type: 'system', subtype: 'history', key: 'system.history' },
+        collapsed: false,
+      }),
+      new TreeviewItem({
         text: 'Environments',
         value: {
           type: 'dir',
@@ -443,6 +448,8 @@ export class CollectionExplorerComponent implements OnInit {
         return 'lock';
       case 'headers':
         return 'view_list';
+      case 'history':
+        return 'history';
       default:
         return 'settings';
     }

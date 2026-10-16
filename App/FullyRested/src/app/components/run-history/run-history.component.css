@@ -1,0 +1,5 @@
+.runs-folder {
+  font-size: var(--fr-font-size-sm);
+  font-weight: 400;
+  color: var(--fr-text-muted);
+}

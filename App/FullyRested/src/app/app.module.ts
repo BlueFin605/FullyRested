@@ -22,6 +22,7 @@ import { CodeEditorComponent } from './components/code-editor/code-editor.compon
 import { KeyValueTableComponent } from './components/key-value-table/key-value-table.component';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { SplitterDirective } from './components/splitter/splitter.directive';
+import { RunHistoryComponent } from './components/run-history/run-history.component';
 import { VerbLabelPipe } from './pipes/verb-label.pipe';
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 
@@ -62,6 +63,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     CommandPaletteComponent,
     SplitterDirective,
     VerbLabelPipe,
+    RunHistoryComponent,
     SplitPaneComponent,
     AppComponent,
     RestActionComponent,
