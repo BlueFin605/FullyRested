@@ -164,5 +164,13 @@ export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): C
     if (c.response.statusText !== undefined) out.response.statusText = replace(c.response.statusText);
     if (c.response.body) out.response.body = redactBody(c.response.body, replace);
   }
+  if (c.websocket) {
+    out.websocket = {
+      ...c.websocket,
+      messages: c.websocket.messages.map(m => ({ ...m, text: replace(m.text) })),
+      errors: c.websocket.errors.map(replace),
+    };
+    if (c.websocket.closeReason !== undefined) out.websocket.closeReason = replace(c.websocket.closeReason);
+  }
   return out;
 }

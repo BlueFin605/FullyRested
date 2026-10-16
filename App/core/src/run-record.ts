@@ -1,6 +1,7 @@
 import { ResponseValidation, ValidationCheck } from './model';
 import { RestActionResult } from './builder';
 import { PreparedRequest } from './auth';
+import type { ReceivedMessage, WebSocketTestResult } from './websocket/test-run';
 
 export interface RecordBody { contentType?: string; bytes: number; text?: string; base64?: string }
 
@@ -15,6 +16,18 @@ export interface CaseRecord {
   response?: { status: number; statusText?: string; headers: Record<string, string>; body?: RecordBody };
   validation?: { valid: boolean; checks: ValidationCheck[] };
   error?: string;
+  /** Set for a websocket case: what the socket received and how it ended. */
+  websocket?: WebSocketRecord;
+}
+
+export interface WebSocketRecord {
+  messages: ReceivedMessage[];
+  closeCode?: number;
+  closeReason?: string;
+  /** The handshake status when the server rejected the connect (e.g. 401). */
+  connectStatus?: number;
+  /** Why the test failed; empty when it passed. */
+  errors: string[];
 }
 
 export interface RunRecord {
@@ -108,6 +121,54 @@ export function buildCaseRecord(input: CaseInput): CaseRecord {
     record.error = 'No response: ' + response!.statusText;
   } else if (validation && !validation.valid) {
     record.outcome = 'fail';
+  }
+  return record;
+}
+
+export interface WebSocketCaseInput {
+  index: number;
+  name: string;
+  requestFile: string;
+  runName?: string;
+  ms: number;
+  url: string;
+  headers: Record<string, string>;
+  message?: string;
+  result?: WebSocketTestResult;       // undefined when resolve failed
+  error?: string;
+}
+
+/** A websocket case: the method is WS, the sent message is the request body, the outcome is pass, fail or error. */
+export function buildWebSocketCaseRecord(input: WebSocketCaseInput): CaseRecord {
+  const record: CaseRecord = {
+    index: input.index,
+    name: input.name,
+    requestFile: input.requestFile,
+    outcome: 'pass',
+    ms: input.ms,
+    request: { method: 'WS', url: input.url, headers: { ...input.headers } }
+  };
+  if (input.runName !== undefined) record.runName = input.runName;
+  if (input.message) record.request.body = { bytes: new TextEncoder().encode(input.message).length, text: input.message };
+
+  const { result } = input;
+  if (result) {
+    const ws: WebSocketRecord = { messages: result.messages.map(m => ({ ...m })), errors: [...result.errors] };
+    if (result.closeCode !== undefined) ws.closeCode = result.closeCode;
+    if (result.closeReason !== undefined) ws.closeReason = result.closeReason;
+    if (result.connectStatus !== undefined) ws.connectStatus = result.connectStatus;
+    record.websocket = ws;
+  }
+
+  if (input.error !== undefined) {
+    record.outcome = 'error';
+    record.error = input.error;
+  } else if (!result) {
+    record.outcome = 'error';
+    record.error = 'No websocket result';
+  } else if (!result.passed) {
+    record.outcome = 'fail';
+    record.error = result.errors.join('; ') || 'Websocket test failed';
   }
   return record;
 }

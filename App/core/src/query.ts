@@ -87,9 +87,16 @@ export function summary(r: RunRecord) {
     selection: r.selection,
     ...toCaseOutcomeCounts(r.cases),
     cases: r.cases.map(c => {
-      const row: { index: number; name: string; outcome: CaseRecord['outcome']; status?: number; ms: number } =
-        { index: c.index, name: c.name, outcome: c.outcome, ms: c.ms };
+      const row: {
+        index: number; name: string; outcome: CaseRecord['outcome']; status?: number; ms: number;
+        messages?: number; closeCode?: number;
+      } = { index: c.index, name: c.name, outcome: c.outcome, ms: c.ms };
       if (c.response) row.status = c.response.status;
+      if (c.websocket) {
+        row.messages = c.websocket.messages.length;
+        if (c.websocket.closeCode !== undefined) row.closeCode = c.websocket.closeCode;
+        if (c.websocket.connectStatus !== undefined) row.status = c.websocket.connectStatus;
+      }
       return row;
     })
   };
@@ -98,6 +105,8 @@ export function summary(r: RunRecord) {
 export interface ProblemRow {
   index: number; name: string; outcome: CaseRecord['outcome']; status?: number; error?: string;
   failedChecks: { check: string; errors: string[] }[];
+  /** Websocket cases: messages received and how the socket closed. */
+  messages?: number; closeCode?: number; closeReason?: string;
 }
 
 // A case that did not pass, with only its failed checks
@@ -108,6 +117,12 @@ function problemRow(c: CaseRecord): ProblemRow {
   };
   if (c.response) row.status = c.response.status;
   if (c.error !== undefined) row.error = c.error;
+  if (c.websocket) {
+    row.messages = c.websocket.messages.length;
+    if (c.websocket.connectStatus !== undefined) row.status = c.websocket.connectStatus;
+    if (c.websocket.closeCode !== undefined) row.closeCode = c.websocket.closeCode;
+    if (c.websocket.closeReason) row.closeReason = c.websocket.closeReason;
+  }
   return row;
 }
 
