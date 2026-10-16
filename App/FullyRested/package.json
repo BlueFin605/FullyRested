@@ -1,7 +1,7 @@
 {
   "name": "fullyrested",
   "productName": "FullyRested",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "A desktop REST client whose collections are plain files",
   "author": "BlueFin605",
   "license": "GPL-3.0",
