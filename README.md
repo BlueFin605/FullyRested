@@ -312,8 +312,16 @@ from 1 in the order the run sent it, or by its name.
 `<store>/.fullyrested-runs`. `--store` defaults to the current directory. The
 MCP server keeps its runs in memory (the last 20) unless a store is given:
 `fullyrested mcp --store <dir>` or the `run` tool's `store` argument also
-writes them to disk. FullyRested never prunes
-that folder, and you decide whether to add it to `.gitignore`.
+writes them to disk. The CLI and the MCP server never prune that folder, and
+you decide whether to add it to `.gitignore`; the app never edits
+`.gitignore` itself.
+
+The desktop app records too: every send goes into the open collection's
+`.fullyrested-runs`, and its records have ids ending in `-app`. The app keeps
+the newest 200 of its own and never prunes anyone else's. Its **History** pane
+browses the same folder, so a run recorded by the CLI or an agent shows up
+there too. Open History from the sidebar, from **View > Run history**, or with
+Ctrl+K.
 
 **Secrets** are redacted in run records and in everything the agent sees.
 `--include-secrets` keeps them in a record, and exists on the CLI only.
