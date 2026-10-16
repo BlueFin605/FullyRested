@@ -6,11 +6,15 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
   ViewChild,
+  DoCheck,
+  OnDestroy,
 } from '@angular/core';
 import { EditRequestComponent } from '../request/edit-request/edit-request.component';
 import { RestActionRunComponent } from '../rest-action-run/rest-action-run.component';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
+import { Subscription } from 'rxjs';
+import { LatestResultsService, resultKey } from 'src/app/services/latest-results/latest-results.service';
 import { CreateEmptyAction } from '@fullyrested/core';
 import { RestAction, Collection } from '@fullyrested/core';
 import {
@@ -26,7 +30,7 @@ import {
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class RestActionComponent implements OnInit {
+export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
   _action: RestAction = CreateEmptyAction();
   _laststate: string = '';
   _fullFilename: string = '';
@@ -73,12 +77,38 @@ export class RestActionComponent implements OnInit {
     private era: ExecuteRestCallsService,
     private repository: ActionRepositoryService,
     private trees: CollectionTreeService,
+    private latest: LatestResultsService,
   ) {}
 
   @ViewChild(EditRequestComponent) requestEditor: EditRequestComponent | undefined;
   @ViewChild(RestActionRunComponent) runView: RestActionRunComponent | undefined;
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.bindResults();
+  }
+
+  private watching: Subscription | undefined;
+  private watchedKey: string | undefined;
+
+  // Follow the shared store for this tab's key; re-keys when the node (path) changes
+  private bindResults() {
+    const node = this.inheritedNode;
+    const key = node ? resultKey(node.path) : undefined;
+    if (key === this.watchedKey && this.watching) return;
+    this.watching?.unsubscribe();
+    this.watchedKey = key;
+    this.watching = key === undefined ? undefined : this.latest.watch(key).subscribe((r) => (this.response = r ?? EmptyActionResult));
+    if (key === undefined) this.response = EmptyActionResult;
+  }
+
+  ngDoCheck(): void {
+    this.bindResults();
+  }
+
+  ngOnDestroy(): void {
+    this.watching?.unsubscribe();
+    this.watching = undefined;
+  }
 
   private inheritedCache: { key: unknown[]; node: ReturnType<CollectionTreeService['nodeFor']> } | undefined;
 
@@ -117,6 +147,7 @@ export class RestActionComponent implements OnInit {
     try {
       const node = this.trees.nodeFor(this._action, this._fullFilename);
       this.response = await this.era.executeNode(node, this.collection?.config.selectedEnvironmentId);
+      this.latest.set(resultKey(node.path), this.response);
     } catch (error) {
       // a broken folder or collection file refuses to resolve: show why instead of sending without it
       this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
