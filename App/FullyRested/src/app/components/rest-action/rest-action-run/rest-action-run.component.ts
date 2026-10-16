@@ -6,7 +6,11 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
   ViewChild,
+  DoCheck,
+  OnDestroy,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { LatestResultsService, resultKey } from 'src/app/services/latest-results/latest-results.service';
 import { EditRequestRunComponent } from '../request/edit-request-run/edit-request-run.component';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
@@ -31,7 +35,7 @@ import {
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class RestActionRunComponent implements OnInit {
+export class RestActionRunComponent implements OnInit, DoCheck, OnDestroy {
   _runId: String = '';
   run: RestActionRun = CreateEmptyRestActionRun(
     this.systemSupport,
@@ -68,11 +72,37 @@ export class RestActionRunComponent implements OnInit {
     private repository: ActionRepositoryService,
     private trees: CollectionTreeService,
     private systemSupport: SystemSupportService,
+    private latest: LatestResultsService,
   ) {}
 
   @ViewChild(EditRequestRunComponent) runEditor: EditRequestRunComponent | undefined;
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.bindResults();
+  }
+
+  private watching: Subscription | undefined;
+  private watchedKey: string | undefined;
+
+  // Follow the shared store for this run's key; re-keys when the node (path/run) changes
+  private bindResults() {
+    const node = this.inheritedNode;
+    const key = node ? resultKey(this.trees.openCollection?.filename || this.trees.openCollection?.path, node.path, this._runId as string) : undefined;
+    if (key === this.watchedKey && this.watching) return;
+    this.watching?.unsubscribe();
+    this.watchedKey = key;
+    this.watching = key === undefined ? undefined : this.latest.watch(key).subscribe((r) => (this.response = r ?? EmptyActionResult));
+    if (key === undefined) this.response = EmptyActionResult;
+  }
+
+  ngDoCheck(): void {
+    this.bindResults();
+  }
+
+  ngOnDestroy(): void {
+    this.watching?.unsubscribe();
+    this.watching = undefined;
+  }
 
   send() {
     this.runEditor?.test();

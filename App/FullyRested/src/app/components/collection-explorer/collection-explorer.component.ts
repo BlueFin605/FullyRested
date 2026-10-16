@@ -7,6 +7,8 @@ import {
   ChangeDetectionStrategy,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { MatMenuTrigger } from '@angular/material/menu';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import {
@@ -41,6 +43,7 @@ const COMMANDS: { [name: string]: { label: string; icon: string } } = {
   deleteRun: { label: 'Delete run', icon: 'delete' },
   createEnvironment: { label: 'New environment', icon: 'add' },
   deleteEnvironment: { label: 'Delete environment', icon: 'delete' },
+  runScope: { label: 'Run', icon: 'play_arrow' },
   folderSettings: { label: 'Folder settings', icon: 'tune' },
 };
 
@@ -116,7 +119,11 @@ export class CollectionExplorerComponent implements OnInit {
   @Output()
   selectedChange = new EventEmitter<string>();
 
-  constructor(private trees: CollectionTreeService) {
+  // a batch run is in flight: Run is disabled until it finishes
+  scopeRunning = false;
+
+  constructor(private trees: CollectionTreeService, era: ExecuteRestCallsService) {
+    era.scopeProgress$.pipe(takeUntilDestroyed()).subscribe((p) => (this.scopeRunning = p != undefined));
     this.trees.tree.subscribe((root) => {
       this.root = root;
       this.rebuild();
@@ -138,7 +145,7 @@ export class CollectionExplorerComponent implements OnInit {
     this.items = [
       new TreeviewItem({
         text: this._collection.name,
-        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message },
+        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message, actions: ['runScope'] },
         children: [this.systemSettings(), ...this.root.children.map((c) => this.convertNode(c, this._state!))],
         collapsed: true,
       }),
@@ -266,7 +273,7 @@ export class CollectionExplorerComponent implements OnInit {
           key,
           hasSettings: node.hasSettingsFile,
           error: node.loadError?.message,
-          actions: ['folderSettings'],
+          actions: ['runScope', 'folderSettings'],
         },
         children: node.children.map((c) => this.convertNode(c, state)),
         collapsed: true,

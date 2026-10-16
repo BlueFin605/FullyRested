@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
-  CaseRecord, RunRecord, basenameOf, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
+  CaseRecord, RunRecord, TestCase, basenameOf, casesFor, casesForScope, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
   redactCase, relativePath, validateResponse
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
@@ -22,11 +22,6 @@ export interface TestResult {
   ms: number;
   passed: boolean;
   errors: string[];
-}
-
-interface TestCase {
-  node: RequestNode | RunNode;
-  name: string;
 }
 
 export class UsageError extends Error { }
@@ -52,15 +47,6 @@ export function findEnvironment(config: CollectionConfig, name: string | undefin
     throw new UsageError(`Environment '${name}' not found (known: ${known})`);
   }
   return { id: env.id, name: env.name };
-}
-
-// A request with runs is tested once per run; one without runs is tested as it is
-function casesFor(request: RequestNode): TestCase[] {
-  const runs = request.runs();
-  if (runs.length == 0)
-    return [{ node: request, name: request.name }];
-
-  return runs.map(r => ({ node: r, name: r.name }));
 }
 
 function resolveActionFile(file: string, collectionFolder: string): string {
@@ -120,7 +106,7 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     const folder = root.find(treePath(root, folderPath(options.folder)));
     if (!(folder instanceof ContainerNode))
       throw new UsageError(`Folder '${options.folder}' not found in the collection`);
-    return folder.requestNodes().flatMap(casesFor);
+    return casesForScope(folder);
   }
 
   if (options.action == undefined) {
@@ -129,7 +115,7 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     if (!options.all)
       throw new UsageError('Give --action <file>, --folder <path> or --all');
 
-    return root.requestNodes().flatMap(casesFor);
+    return casesForScope(root);
   }
 
   const request = await requestFor(options.action, root, collectionFolder, store);

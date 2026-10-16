@@ -19,6 +19,7 @@ import {
   ValidationType,
   FolderNode,
   relativePath,
+  ContainerNode,
 } from '@fullyrested/core';
 import {
   CreateEmptyEnvironment,
@@ -41,6 +42,7 @@ import { RestActionComponent } from '../rest-action/rest-action/rest-action.comp
 import { PaletteItem } from '../command-palette/command-palette.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
+import { ExecuteRestCallsService } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 
 interface SelectedTab {
   readonly selectedType: string;
@@ -83,6 +85,8 @@ export class OpenActionsComponent implements OnInit {
   selectedFolder: FolderNode | undefined;
   selectedFolderPath = '';
   folderSaveError = '';
+  scopeNotice = '';
+  private scopeRunning = false;
 
   paletteOpen = false;
   paletteItems: PaletteItem[] = [];
@@ -92,6 +96,7 @@ export class OpenActionsComponent implements OnInit {
     private appRef: ApplicationRef,
     private systemSupport: SystemSupportService,
     private trees: CollectionTreeService,
+    private era: ExecuteRestCallsService,
     public layout: LayoutService,
     public theme: ThemeService,
     shortcuts: ShortcutsService,
@@ -100,6 +105,9 @@ export class OpenActionsComponent implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe((command) => this.onShortcut(command));
 
+    // any Send, from the button or the shortcut, dismisses the notice
+    this.era.sent$.pipe(takeUntilDestroyed()).subscribe(() => this.clearScopeNotice());
+    this.era.scopeProgress$.pipe(takeUntilDestroyed()).subscribe((p) => (this.scopeRunning = p != undefined));
     this.repo.collections.subscribe((s) => {
       this.collection = s;
       // this.appRef.tick();
@@ -750,6 +758,30 @@ export class OpenActionsComponent implements OnInit {
     return '· Collection';
   }
 
+  clearScopeNotice() {
+    this.scopeNotice = '';
+  }
+
+  // Runs every case under a folder, or the whole collection from the root row
+  async runScope(item: SelectedTreeItem) {
+    if (this.scopeRunning || !this.collection) return;
+    const root = this.trees.tree.value;
+    const isRoot = item.key == '__root_dir__';
+    const relative = isRoot ? undefined : relativePath(this.collection.path, item.key);
+    const node = isRoot ? root : relative == undefined ? undefined : root?.find(relative);
+    if (!(node instanceof ContainerNode)) return;
+
+    this.scopeNotice = '';
+    const record = await this.era.executeScope(
+      node,
+      this.collection.config.selectedEnvironmentId,
+      isRoot ? 'collection' : `folder:${node.path}`,
+    );
+    // an unsaved collection runs its cases and writes no record, so only an empty scope earns the notice
+    if (record == undefined && this.era.lastScope?.total === 0)
+      this.scopeNotice = isRoot ? 'Nothing to run in this collection' : 'Nothing to run in this folder';
+  }
+
   async onExplorerCommand(command: ExplorerCommand) {
     this.enabledMenuOptions = [command.name];
     this.selectedTab = {
@@ -760,6 +792,9 @@ export class OpenActionsComponent implements OnInit {
     };
 
     switch (command.name) {
+      case 'runScope':
+        await this.runScope(command.item);
+        break;
       case 'folderSettings':
         this.openFolderSettings(command.item.key);
         break;

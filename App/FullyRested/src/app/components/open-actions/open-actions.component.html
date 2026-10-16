@@ -293,6 +293,10 @@
         <app-run-history [collection]="collection"></app-run-history>
       </div>
 
+      <app-scope-run-status (viewHistory)="showHistory()"></app-scope-run-status>
+      @if (scopeNotice) {
+        <p class="pane-notice" role="status">{{ scopeNotice }}</p>
+      }
       <div class="pane settings-pane" [hidden]="!folderSettingsVisible()">
         @if (selectedFolder) {
           <h2 class="pane-title">

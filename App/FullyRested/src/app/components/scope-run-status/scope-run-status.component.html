@@ -1,0 +1,20 @@
+@if (progress; as p) {
+  <div class="scope-status" role="status">
+    <span>Running {{ p.done }} of {{ p.total }}</span>
+    <span class="counts">{{ p.passed }} passed, {{ p.failed }} failed</span>
+    <button type="button" class="cancel" (click)="cancel()">Cancel</button>
+  </div>
+} @else if (finished; as f) {
+  <div class="scope-status" role="status">
+    @if (f.cancelled) {
+      <span>Run cancelled after {{ f.ran }} of {{ f.total }}</span>
+    } @else {
+      <span>Run finished: {{ f.passed }} passed, {{ f.failed }} failed</span>
+    }
+    @if (f.recorded) {
+      <button type="button" class="view" (click)="viewHistory.emit()">View</button>
+    } @else {
+      <span class="unrecorded">Nothing was recorded</span>
+    }
+  </div>
+}

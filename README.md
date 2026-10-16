@@ -362,6 +362,11 @@ browses the same folder, so a run recorded by the CLI or an agent shows up
 there too. Open History from the sidebar, from **View > Run history**, or with
 Ctrl+K.
 
+To run more than one request in the app, right-click a folder or the
+collection root and choose **Run**. Everything beneath it runs, the results
+appear in Run history and in each request's tab, and **Cancel** stops the run
+after the current request.
+
 **Secrets** are redacted in run records and in everything the agent sees.
 `--include-secrets` keeps them in a record, and exists on the CLI only.
 

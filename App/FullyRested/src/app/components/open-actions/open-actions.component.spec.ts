@@ -104,6 +104,50 @@ describe('OpenActionsComponent folder settings', () => {
     expect(component.folderSettingsVisible()).toBeTrue();
   });
 
+  describe('runScope command', () => {
+    function withEra(result: any) {
+      const ctx = setup();
+      const era = { executeScope: jasmine.createSpy('executeScope').and.resolveTo(result), lastScope: { total: 0 } as any };
+      (ctx.component as any).era = era;
+      (ctx.component as any).collection.config.selectedEnvironmentId = 'env1';
+      return { ...ctx, era };
+    }
+    const folderItem = { key: folderHostPath, type: 'dir', subtype: 'folder', runkey: undefined };
+
+    it('runs the whole collection from the root row', async () => {
+      const { component, era, root } = withEra({});
+      await component.onExplorerCommand({ name: 'runScope', item: { key: '__root_dir__', type: 'dir', runkey: undefined } } as any);
+      expect(era.executeScope).toHaveBeenCalledWith(root, 'env1', 'collection');
+    });
+
+    it('runs one folder from its row', async () => {
+      const { component, era, folder } = withEra({});
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(era.executeScope).toHaveBeenCalledWith(folder, 'env1', 'folder:api/users');
+    });
+
+    it('shows no notice for an unsaved collection whose cases ran but wrote no record', async () => {
+      const { component, era } = withEra(undefined);
+      era.lastScope = { total: 3, ran: 3, cancelled: false, recorded: false };
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(component.scopeNotice).toBe('');
+    });
+
+    it('clears the notice when a Send happens', async () => {
+      const { component } = withEra(undefined);
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(component.scopeNotice).not.toBe('');
+      component.clearScopeNotice();
+      expect(component.scopeNotice).toBe('');
+    });
+
+    it('says so when there is nothing to run', async () => {
+      const { component } = withEra(undefined);
+      await component.onExplorerCommand({ name: 'runScope', item: folderItem } as any);
+      expect(component.scopeNotice).toBe('Nothing to run in this folder');
+    });
+  });
+
   it('opens the folder, giving it an id when it had none', () => {
     const { component, folder } = setup();
     expect(component.folderSettingsVisible()).toBeFalse();

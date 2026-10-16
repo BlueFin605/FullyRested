@@ -385,3 +385,7 @@
   font: inherit;
   cursor: pointer;
 }
+
+.pane-notice {
+  color: var(--fr-text-muted);
+}
