@@ -4,7 +4,7 @@ const path = require('node:path')
 const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
 const { CollectionAccess } = require('./collection-access');
-const { appRunStore, saveRecord } = require('./run-records');
+const { handleSaveRun, handleListRuns, handleLoadRun } = require('./run-records');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
@@ -95,22 +95,11 @@ app.whenReady().then(() => {
         return text;
     });
 
-    // The run history of the open collection. access.runsPath throws when no collection is open or when
-    // the path escapes the collection folder, which is what keeps these three as confined as readText.
-    ipcMain.handle("saveRun", (event, request) => {
-        access.runsPath(request?.runId);               // a run id is a file name: check it before writing
-        return saveRecord(appRunStore(access.root), request);
-    });
-
-    ipcMain.handle("listRuns", (event, request) => {
-        access.runsPath();
-        return appRunStore(access.root).list();
-    });
-
-    ipcMain.handle("loadRun", (event, request) => {
-        access.runsPath(request.runId);
-        return appRunStore(access.root).load(request.runId);
-    });
+    // The run history of the open collection: { root, record } / { root } / { root, runId }. The handlers
+    // live in run-records.js and are confined by access.runsPath like readText.
+    ipcMain.handle("saveRun", (event, request) => handleSaveRun(access, request));
+    ipcMain.handle("listRuns", (event, request) => handleListRuns(access, request));
+    ipcMain.handle("loadRun", (event, request) => handleLoadRun(access, request));
 
     ipcMain.handle("getSecret", (event, request) => {
         access.checkSecret(request.service, request.account);

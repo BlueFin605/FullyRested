@@ -119,15 +119,18 @@ class CollectionAccess {
         return this.checkInside(full);
     }
 
-    // The runs folder of the open collection, or one record in it. Run ids are file names, so only a
+    // The runs folder of the open collection (root is the folder the renderer thinks is open; a stale one is
+    // refused), or one record in it. Run ids are file names, so only a
     // plain id is allowed -- no separators, no drive, nothing that could resolve elsewhere -- and the
     // real path is checked the way every other handler's path is, which also catches a runs folder
     // symlinked out of the collection.
-    runsPath(runId) {
+    runsPath(root, runId) {
         if (this.root == undefined)
             throw new Error('There is no collection open, so there is no run history');
+        if (typeof root != 'string' || !this.sameFolder(root))
+            throw new Error(`${root} is not the open collection`);
 
-        if (runId != undefined && !ID_PATTERN.test(runId))
+        if (runId !== undefined && !(typeof runId == 'string' && ID_PATTERN.test(runId)))
             throw new Error(`${runId} is not a run id`);
 
         const folder = path.join(this.root, RUNS_FOLDER);

@@ -10,7 +10,8 @@ export const nodeRunStoreHost: RunStoreHost = {
   exists: p => fs.existsSync(p),
   readText: p => fs.readFileSync(p, 'utf8'),
   writeText: (p, text) => fs.writeFileSync(p, text),
-  readdir: p => fs.readdirSync(p),
+  // a record file that is a symlink is skipped: it could point at anything outside the runs folder
+  readdir: p => fs.readdirSync(p, { withFileTypes: true }).filter(e => !e.isSymbolicLink()).map(e => e.name),
   mkdir: p => { fs.mkdirSync(p, { recursive: true }); },
   remove: p => { fs.rmSync(p, { force: true }); },
   join: (...parts) => path.join(...parts)

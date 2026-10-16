@@ -77,3 +77,108 @@ test('saveRecord saves a redacted record', async () => {
 
     assert.ok(await store.load('20261015-100000-aaaa-app'));
 });
+
+// --- the IPC handlers: { root, record } / { root } / { root, runId } ---
+const { CollectionAccess } = require('../collection-access');
+const { handleSaveRun, handleListRuns, handleLoadRun } = require('../run-records');
+
+const openedAccess = () => {
+    const collection = fs.realpathSync.native(fs.mkdtempSync(path.join(dir, 'col-')));
+    fs.writeFileSync(path.join(collection, 'my.frcol'), JSON.stringify({ collectionGuid: 'g' }));
+    const access = new CollectionAccess(path.join(dir, 'trusted.json'));
+    access.openCollection(path.join(collection, 'my.frcol'), { collectionGuid: 'g' });
+    return { access, collection };
+};
+
+test('handleSaveRun writes under the collection folder and the others read it back', async () => {
+    const { access, collection } = openedAccess();
+    const rec = record('20261015-100000-aaaa-app');
+
+    await handleSaveRun(access, { root: collection, record: rec });
+
+    assert.ok(fs.existsSync(path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.json')));
+    assert.deepEqual((await handleListRuns(access, { root: collection })).map(l => l.runId), ['20261015-100000-aaaa-app']);
+    assert.equal((await handleLoadRun(access, { root: collection, runId: rec.runId })).selection, 'request:a.frreq');
+});
+
+test('the handlers refuse a traversal run id', async () => {
+    const { access, collection } = openedAccess();
+
+    await assert.rejects(async () => handleSaveRun(access, { root: collection, record: record('../../escaped') }), /escaped/);
+    await assert.rejects(async () => handleLoadRun(access, { root: collection, runId: '../../etc/passwd' }), /not a run id/);
+});
+
+test('the handlers refuse a missing run id', async () => {
+    const { access, collection } = openedAccess();
+
+    await assert.rejects(async () => handleSaveRun(access, { root: collection, record: record(undefined) }), /run id/);
+    await assert.rejects(async () => handleLoadRun(access, { root: collection }), /run id/);
+    await assert.rejects(async () => handleSaveRun(access, undefined), /open collection/);
+});
+
+test('the handlers refuse a stale root', async () => {
+    const { access } = openedAccess();
+    const stale = fs.mkdtempSync(path.join(dir, 'stale-'));
+
+    await assert.rejects(async () => handleSaveRun(access, { root: stale, record: record('20261015-100000-aaaa-app') }), /not the open collection/);
+    await assert.rejects(async () => handleListRuns(access, { root: stale }), /not the open collection/);
+    await assert.rejects(async () => handleLoadRun(access, { root: stale, runId: '20261015-100000-aaaa-app' }), /not the open collection/);
+    assert.equal(fs.existsSync(path.join(stale, RUNS_FOLDER)), false);
+});
+
+test('the handlers refuse a runs folder junctioned out of the collection', async (t) => {
+    const { access, collection } = openedAccess();
+    const elsewhere = fs.mkdtempSync(path.join(dir, 'elsewhere-'));
+    try {
+        fs.symlinkSync(elsewhere, path.join(collection, RUNS_FOLDER), 'junction');
+    } catch {
+        return t.skip('no symlink or junction available');
+    }
+
+    await assert.rejects(async () => handleSaveRun(access, { root: collection, record: record('20261015-100000-aaaa-app') }), /outside the collection/);
+    await assert.rejects(async () => handleListRuns(access, { root: collection }), /outside the collection/);
+    assert.deepEqual(fs.readdirSync(elsewhere), []);
+});
+
+test('handleSaveRun refuses a record of an unsaved collection', async () => {
+    const { access, collection } = openedAccess();
+
+    await assert.rejects(async () => handleSaveRun(access, { root: collection, record: { ...record('20261015-100000-aaaa-app'), collection: '' } }), /unsaved|collection/i);
+    assert.equal(fs.existsSync(path.join(collection, RUNS_FOLDER)), false);
+});
+
+test('saveRecord refuses a record with an empty collection', async () => {
+    await assert.rejects(() => saveRecord(appRunStore(dir), { ...record('20261015-100000-aaaa-app'), collection: '' }), /collection/);
+});
+
+test('saveRecord refuses a record with no run id', async () => {
+    await assert.rejects(() => saveRecord(appRunStore(dir), record(undefined)), /run id/i);
+});
+
+test('the default store prunes after APP_RUN_CAP + 1 app records', async () => {
+    const { APP_RUN_CAP } = require('@fullyrested/core');
+    const store = appRunStore(dir);
+    const idOf = n => `20261015-${100000 + n}-aaaa-app`;
+    for (let n = 1; n <= APP_RUN_CAP + 1; n++) await store.save(record(idOf(n)));
+
+    const ids = (await store.list()).map(l => l.runId);
+
+    assert.equal(ids.length, APP_RUN_CAP);
+    assert.ok(!ids.includes(idOf(1)));
+    assert.ok(ids.includes(idOf(APP_RUN_CAP + 1)));
+});
+
+test('listing skips a record file that is a symlink', async (t) => {
+    const store = appRunStore(dir);
+    await store.save(record('20261015-100000-aaaa-app'));
+    const outsideFile = path.join(dir, 'outside.json');
+    fs.writeFileSync(outsideFile, JSON.stringify(record('20261016-100000-link-app')));
+    try {
+        fs.symlinkSync(outsideFile, path.join(dir, RUNS_FOLDER, '20261016-100000-link-app.json'), 'file');
+    } catch {
+        return t.skip('no symlink available');
+    }
+
+    assert.deepEqual((await store.list()).map(l => l.runId), ['20261015-100000-aaaa-app']);
+    assert.equal(await store.load('20261016-100000-link-app'), undefined);
+});
