@@ -1,8 +1,28 @@
 <h2 class="pane-title">
   Run history <span class="pane-scope">· {{ collection?.name }}</span>
   <span class="runs-folder">{{ runsFolder }}</span>
+  <button class="fr-icon-btn pane-action" (click)="refresh()" [disabled]="loading || collection == undefined" matTooltip="Refresh" aria-label="Refresh">
+    <mat-icon>refresh</mat-icon>
+  </button>
 </h2>
 
-@if (collection == undefined) {
-  <p class="hint">Open a collection to see its run history.</p>
-}
+<div class="run-list">
+  @if (collection == undefined) {
+    <p class="hint">Open a collection to see its run history.</p>
+  }
+  @if (loading) { <p class="hint">Loading…</p> }
+  @if (error) { <p class="pane-error">{{ error }}</p> }
+  @if (!loading && runs.length == 0 && collection) {
+    <p class="hint">No runs recorded yet. Every send lands in <code>{{ runsFolder }}</code>, as does <code>fullyrested run --record</code>.</p>
+  }
+  @for (run of runs; track run.runId) {
+    <button class="run-row" [class.selected]="run == selected" (click)="select(run)">
+      <span class="run-outcome" [attr.data-outcome]="outcome(run)"></span>
+      <span class="run-time">{{ run.startedAt | runTime }}</span>
+      <span class="run-selection">{{ run.selection }}</span>
+      @if (!isApp(run)) { <span class="run-chip">cli</span> } @else { <span></span> }
+      <span class="run-status">{{ label(run) }}</span>
+      <span class="run-ms">{{ run.ms }}ms</span>
+    </button>
+  }
+</div>
