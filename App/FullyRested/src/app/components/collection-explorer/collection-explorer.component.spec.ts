@@ -69,6 +69,12 @@ describe('CollectionExplorerComponent', () => {
     expect(envs.children!.length).toBeGreaterThan(0);
   });
 
+  it('offers Run on the collection row and on folders', () => {
+    const { top, children } = create();
+    expect(top.value.actions).toEqual(['runScope']);
+    expect(children.find((c) => c.text == 'google')!.value.actions).toEqual(['runScope', 'folderSettings']);
+  });
+
   it('marks the collection row when the collection failed to load', () => {
     const { top } = create({ file: 'x.frcol', message: 'cannot read' });
     expect(top.value.error).toBe('cannot read');

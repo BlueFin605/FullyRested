@@ -293,6 +293,9 @@
         <app-run-history [collection]="collection"></app-run-history>
       </div>
 
+      @if (scopeNotice) {
+        <p class="pane-error">{{ scopeNotice }}</p>
+      }
       <div class="pane settings-pane" [hidden]="!folderSettingsVisible()">
         @if (selectedFolder) {
           <h2 class="pane-title">

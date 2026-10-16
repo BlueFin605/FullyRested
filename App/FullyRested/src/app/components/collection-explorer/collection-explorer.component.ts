@@ -41,6 +41,7 @@ const COMMANDS: { [name: string]: { label: string; icon: string } } = {
   deleteRun: { label: 'Delete run', icon: 'delete' },
   createEnvironment: { label: 'New environment', icon: 'add' },
   deleteEnvironment: { label: 'Delete environment', icon: 'delete' },
+  runScope: { label: 'Run', icon: 'play_arrow' },
   folderSettings: { label: 'Folder settings', icon: 'tune' },
 };
 
@@ -138,7 +139,7 @@ export class CollectionExplorerComponent implements OnInit {
     this.items = [
       new TreeviewItem({
         text: this._collection.name,
-        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message },
+        value: { type: 'dir', key: '__root_dir__', error: this.root.loadError?.message, actions: ['runScope'] },
         children: [this.systemSettings(), ...this.root.children.map((c) => this.convertNode(c, this._state!))],
         collapsed: true,
       }),
@@ -266,7 +267,7 @@ export class CollectionExplorerComponent implements OnInit {
           key,
           hasSettings: node.hasSettingsFile,
           error: node.loadError?.message,
-          actions: ['folderSettings'],
+          actions: ['runScope', 'folderSettings'],
         },
         children: node.children.map((c) => this.convertNode(c, state)),
         collapsed: true,
