@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const { RUNS_FOLDER } = require('@fullyrested/core');
 const { CollectionAccess } = require('../collection-access');
 
 let dir, collection, outside, trustedFile;
@@ -194,4 +195,37 @@ test('a name not created yet is still allowed inside the collection', () => {
     const access = opened();
     assert.equal(access.collectionPath(collection, 'api/new.frreq'), path.join(collection, 'api', 'new.frreq'));
     assert.equal(access.collectionPath(collection, 'fresh/deep/new.frreq'), path.join(collection, 'fresh', 'deep', 'new.frreq'));
+});
+
+test('runsPath is the runs folder inside the open collection', () => {
+    const access = opened();
+
+    assert.equal(access.runsPath(), path.join(collection, RUNS_FOLDER));
+    assert.equal(access.runsPath('20261015-100000-aaaa-app'),
+        path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.json'));
+});
+
+test('runsPath refuses a run id that is not a plain id', () => {
+    const access = opened();
+
+    assert.throws(() => access.runsPath('../../escaped'), /escaped/);
+    assert.throws(() => access.runsPath('a/b'), /a\/b/);
+    assert.throws(() => access.runsPath(path.join(dir, 'abs')), /abs/);
+});
+
+test('runsPath refuses when no collection is open', () => {
+    const access = new CollectionAccess(trustedFile);
+
+    assert.throws(() => access.runsPath(), /no collection/i);
+});
+
+test('runsPath refuses a runs folder symlinked out of the collection', (t) => {
+    const access = opened();
+    try {
+        fs.symlinkSync(outside, path.join(collection, RUNS_FOLDER), 'junction');
+    } catch {
+        return t.skip('no symlink or junction available');
+    }
+
+    assert.throws(() => access.runsPath('20261015-100000-aaaa-app'), /outside the collection/i);
 });
