@@ -205,7 +205,7 @@ describe('fullyrested edit', () => {
     // Record one real run of it, then learn a validation from that case via validation-from-case
     const ran = await fullyrested(['run', '-c', collection, '-a', 'items/ping.frreq', '-r', 'case-renamed', '--record', '--store', dir], dir);
     expect(ran.code).toBe(0);
-    const runId = fs.readdirSync(path.join(dir, '.fullyrested-runs'))[0]!.replace('.json', '');
+    const runId = fs.readdirSync(path.join(dir, '.fullyrested-runs'))[0]!.replace('.frrun', '');
 
     r = await fullyrested(['edit', 'validation-from-case', '-c', collection, '--scope', 'run:items/ping.frreq#case-renamed', '--case', '1', '--store', dir], dir);
     expect(r.code).toBe(0);

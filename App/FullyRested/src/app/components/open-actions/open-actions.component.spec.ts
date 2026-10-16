@@ -129,6 +129,16 @@ describe('OpenActionsComponent folder settings', () => {
     expect(component.selectedEnvironment).toBe(config.environments[0]);
   });
 
+  it('shows the history pane only for the history system row', () => {
+    const { component } = setup();
+    component.openSystem({ type: 'system', subtype: 'headers', key: 'system.settings.headers' } as any);
+    expect(component.historyVisible()).toBeFalse();
+    component.showHistory();
+    expect(component.historyVisible()).toBeTrue();
+    expect(component.headersVisible()).toBeFalse();
+    expect(component.actionsVisible()).toBeFalse();
+  });
+
   it('does not show the headers pane for a folder', () => {
     const { component } = setup();
     component.openFolderSettings(folderHostPath);

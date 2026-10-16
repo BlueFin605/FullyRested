@@ -47,6 +47,13 @@ describe('CollectionExplorerComponent', () => {
     expect(broken.value.error).toBe('bad json');
   });
 
+  it('offers a History row in the collection settings', () => {
+    const { children } = create();
+    const settings = children.find((c) => c.text == 'Collection Settings')!;
+    const history = settings.children!.find((c) => c.text == 'History')!;
+    expect(history.value).toEqual({ type: 'system', subtype: 'history', key: 'system.history' });
+  });
+
   it('offers a Headers row for the collection and for each environment', () => {
     const { children } = create();
     const settings = children.find((c) => c.text == 'Collection Settings')!;

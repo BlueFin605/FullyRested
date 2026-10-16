@@ -172,7 +172,7 @@ describe('mcp server', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-mcp-store-'));
     try {
       const summary = (await call(await connect(), 'run', { collection: fx.collection, action: 'items/ok.frreq', store: dir })).json();
-      expect(fs.existsSync(path.join(dir, '.fullyrested-runs', summary.runId + '.json'))).toBe(true);
+      expect(fs.existsSync(path.join(dir, '.fullyrested-runs', summary.runId + '.frrun'))).toBe(true);
       const fresh = await connect();
       expect((await call(fresh, 'run_summary', { store: dir })).json().runId).toBe(summary.runId);
       expect(JSON.stringify((await call(fresh, 'list_runs', { store: dir })).json())).toContain(summary.runId);
@@ -229,7 +229,7 @@ describe('mcp server', () => {
           request: { method: 'GET', url: 'https://x.test/?k=sk-test-secret', headers: {} },
           response: { status: 200, headers: {}, body: { bytes: 14, text: 'sk-test-secret' } } }]
       };
-      fs.writeFileSync(path.join(dir, '.fullyrested-runs', `${record.runId}.json`), JSON.stringify(record));
+      fs.writeFileSync(path.join(dir, '.fullyrested-runs', `${record.runId}.frrun`), JSON.stringify(record));
       const client = await connect();
       for (const [tool, args] of [
         ['run_summary', {}], ['failures', { runId: record.runId }], ['case_request', { case: 1 }],

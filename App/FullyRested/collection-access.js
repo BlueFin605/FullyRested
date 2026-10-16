@@ -3,7 +3,7 @@
 // every path or secret service outside those, so a renderer can't reach arbitrary files or keychain entries.
 const path = require('node:path');
 const fs = require('node:fs');
-const { REConstants, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, guardedRealTarget, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
+const { REConstants, RUNS_FOLDER, RUN_FILE_EXTENSION, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS, guardedRealTarget, secretServiceForCollection, secretServiceForFolder, secretServiceForRequest } = require('@fullyrested/core');
 
 // Collection guids, request ids and folder ids are app-generated GUIDs; secret names are user-typed keys
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
@@ -117,6 +117,30 @@ class CollectionAccess {
             throw new Error(`${root} is not the open collection`);
         const full = path.resolve(this.root, ...String(relative).split('/').filter(p => p != ''));
         return this.checkInside(full);
+    }
+
+    // The runs folder of the open collection (root is the folder the renderer thinks is open; a stale one is
+    // refused), or one record in it. Run ids are file names, so only a
+    // plain id is allowed -- no separators, no drive, nothing that could resolve elsewhere -- and the
+    // real path is checked the way every other handler's path is, which also catches a runs folder
+    // symlinked out of the collection.
+    runsPath(root, runId) {
+        if (this.root == undefined)
+            throw new Error('There is no collection open, so there is no run history');
+        if (typeof root != 'string' || !this.sameFolder(root))
+            throw new Error(`${root} is not the open collection`);
+
+        if (runId !== undefined && !(typeof runId == 'string' && ID_PATTERN.test(runId)))
+            throw new Error(`${runId} is not a run id`);
+
+        const folder = path.join(this.root, RUNS_FOLDER);
+        const wanted = runId == undefined ? folder : path.join(folder, `${runId}${RUN_FILE_EXTENSION}`);
+
+        const real = realTarget(wanted);
+        if (real == undefined || !isInside(realTarget(this.root) ?? this.root, real))
+            throw new Error(`${wanted} is outside the collection folder`);
+
+        return wanted;
     }
 
     sameFolder(folder) {

@@ -93,6 +93,7 @@
         <button mat-menu-item (click)="layout.toggleOrientation()">
           {{ layout.splitOrientation() == "horizontal" ? "Response Below Request" : "Response Beside Request" }}
         </button>
+        <button mat-menu-item (click)="showHistory()" [disabled]="!collection">Run history</button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="theme.set('system')">
           <mat-icon>brightness_auto</mat-icon> Theme: System
@@ -286,6 +287,10 @@
         <app-settings-manage-secrets
           [(secrets)]="selectedEnvironment.secrets"
         ></app-settings-manage-secrets>
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!historyVisible()">
+        <app-run-history [collection]="collection"></app-run-history>
       </div>
 
       <div class="pane settings-pane" [hidden]="!folderSettingsVisible()">

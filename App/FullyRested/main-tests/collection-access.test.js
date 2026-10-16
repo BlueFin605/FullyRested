@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const { RUNS_FOLDER } = require('@fullyrested/core');
 const { CollectionAccess } = require('../collection-access');
 
 let dir, collection, outside, trustedFile;
@@ -194,4 +195,52 @@ test('a name not created yet is still allowed inside the collection', () => {
     const access = opened();
     assert.equal(access.collectionPath(collection, 'api/new.frreq'), path.join(collection, 'api', 'new.frreq'));
     assert.equal(access.collectionPath(collection, 'fresh/deep/new.frreq'), path.join(collection, 'fresh', 'deep', 'new.frreq'));
+});
+
+test('runsPath is the runs folder inside the open collection', () => {
+    const access = opened();
+
+    assert.equal(access.runsPath(collection), path.join(collection, RUNS_FOLDER));
+    assert.equal(access.runsPath(collection, '20261015-100000-aaaa-app'),
+        path.join(collection, RUNS_FOLDER, '20261015-100000-aaaa-app.frrun'));
+});
+
+test('runsPath refuses a run id that is not a plain id', () => {
+    const access = opened();
+
+    assert.throws(() => access.runsPath(collection, '../../escaped'), /escaped/);
+    assert.throws(() => access.runsPath(collection, 'a/b'), /a\/b/);
+    assert.throws(() => access.runsPath(collection, path.join(dir, 'abs')), /abs/);
+});
+
+test('runsPath refuses when no collection is open', () => {
+    const access = new CollectionAccess(trustedFile);
+
+    assert.throws(() => access.runsPath(collection), /no collection/i);
+});
+
+test('runsPath refuses a runs folder symlinked out of the collection', (t) => {
+    const access = opened();
+    try {
+        fs.symlinkSync(outside, path.join(collection, RUNS_FOLDER), 'junction');
+    } catch {
+        return t.skip('no symlink or junction available');
+    }
+
+    assert.throws(() => access.runsPath(collection, '20261015-100000-aaaa-app'), /outside the collection/i);
+});
+
+test('runsPath refuses a stale root', () => {
+    const access = opened();
+
+    assert.throws(() => access.runsPath(outside), /not the open collection/);
+    assert.throws(() => access.runsPath(undefined, '20261015-100000-aaaa-app'), /not the open collection/);
+});
+
+test('runsPath refuses a run id that is not a string', () => {
+    const access = opened();
+
+    assert.throws(() => access.runsPath(collection, 42), /not a run id/);
+    assert.throws(() => access.runsPath(collection, null), /not a run id/);
+    assert.throws(() => access.runsPath(collection, ['a']), /not a run id/);
 });

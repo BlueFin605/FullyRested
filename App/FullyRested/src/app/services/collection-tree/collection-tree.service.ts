@@ -14,6 +14,10 @@ import { ActionRepositoryService } from '../action-repository/action-repository.
 export class CollectionTreeService {
   tree = new BehaviorSubject<CollectionNode | undefined>(undefined);
   private collection: Collection | undefined;
+  // The collection the tree was built from: the run recorder needs its file path and environments
+  get openCollection(): Collection | undefined {
+    return this.collection;
+  }
   // a newer load supersedes an older one still in flight
   private loadToken = 0;
   // each folder's settings as they were read from disk, to tell unsaved edits from what is on disk

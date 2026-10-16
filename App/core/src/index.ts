@@ -17,6 +17,8 @@ export * from './locator';
 export * from './authoring';
 export * from './run-record';
 export * from './run-store';
+export * from './file-run-store';
+export * from './app-run';
 export * from './redact';
 export * from './query';
 export * from './json-path';

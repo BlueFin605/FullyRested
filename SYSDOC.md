@@ -40,14 +40,15 @@ flowchart TB
     CliHost --> Runs[".fullyrested-runs<br/>run records"]
     CliHost --> Keychain
     Main --> Files
+    Main --> Runs
     Main --> Keychain
 ```
 
 | Layer | Where | Job |
 |---|---|---|
 | Front ends | `App/FullyRested/src` (Angular), `App/cli-command` (CLI commands, plus the MCP server in `mcp.ts`, which shares the CLI host and the same pipeline, and serves the authoring verbs by default) | Collect input and show results. Should hold no request logic of their own |
-| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`, `run-store.ts`, `inspect.ts`) | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` over IPC, and `collection-access.js` limits every file and keychain handler to the open collection's folder, request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host reads collections through `FsCollectionSource` and writes them through `FsCollectionSink` (JSON at 4-space indent, so app-saved and agent-saved files do not churn in `git diff`), which resolves every path against the collection folder and refuses anything that escapes it — the same idea as `collection-access.js`, implemented a second time for the CLI. It also writes run records (`FsRunStore`, in `.fullyrested-runs`), and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain; `secret set` is the only path that writes a secret value, and it exists on the CLI alone |
-| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore`. For AI use: `run-record.ts` (the run record), `redact.ts` (`redactCase`, `secretReplacer`), `run-store.ts` (`RunStore`, `MemoryRunStore`), `query.ts` (summary, failures and case queries, with `json-path.ts` and `query-error.ts`) and `inspect.ts` (tree, environments, settings and show-request views). For authoring: `locator.ts` (parse a scope locator, resolve it against the tree), `collection-sink.ts` (`CollectionSink`, the write sibling of `CollectionSource`, plus `MemoryCollectionSink`), `authoring/` (one file per verb family over the shared `editScope` write path: `edit-scope.ts`, `create.ts`, `settings.ts`, `request-fields.ts`, `validation.ts`, `structure.ts`) with `authoring.ts` as the re-export barrel and only public entry point, and `infer.ts` (JSON Schema inference from a recorded body) |
+| Hosts | `App/FullyRested/main.js` + `preload.js`; `App/cli-command/src` (`files.ts`, `secret-store.ts`, `run-store.ts`, `inspect.ts`); the app's host also has `run-records.js` | Node-only work: reading and writing files, the keychain (`@napi-rs/keyring`), dialogs, and the process that sends requests. Electron main exposes `listDir` / `readText` / `getSecret` / `saveFolder` / `saveRun` / `listRuns` / `loadRun` over IPC (`run-records.js` is the node:fs half of the app's run store), and `collection-access.js` limits every file and keychain handler to the open collection's folder (its `runsPath` resolves the runs folder or one record id), request files chosen in a Save As dialog, and the secret services of files it has served; the CLI host reads collections through `FsCollectionSource` and writes them through `FsCollectionSink` (JSON at 4-space indent, so app-saved and agent-saved files do not churn in `git diff`), which resolves every path against the collection folder and refuses anything that escapes it — the same idea as `collection-access.js`, implemented a second time for the CLI. It also writes run records (`FsRunStore`, in `.fullyrested-runs`), and takes secrets from `FULLYRESTED_SECRET_<NAME>` before the keychain; `secret set` is the only path that writes a secret value, and it exists on the CLI alone |
+| Core | `App/core/src` | The engine: model, the scope tree (`scope.ts`) and its loader (`tree.ts`, over a host `CollectionSource`), request builder, `{{var}}` / `{{$secret}}` substitution, auth, sending, validation, moving secrets in and out of a `SecretStore`. For AI use: `run-record.ts` (the run record), `redact.ts` (`redactCase`, `secretReplacer`), `run-store.ts` (`RunStore`, `MemoryRunStore`), `file-run-store.ts` (`fileRunStore`, a store over host-injected file primitives; records are `<runId>.frrun` files, the extension being the `RUN_FILE_EXTENSION` constant; the `-app` id marker and the app's 200-record cap), `app-run.ts` (`buildAppRunRecord`), `query.ts` (summary, failures and case queries, with `json-path.ts` and `query-error.ts`) and `inspect.ts` (tree, environments, settings and show-request views). For authoring: `locator.ts` (parse a scope locator, resolve it against the tree), `collection-sink.ts` (`CollectionSink`, the write sibling of `CollectionSource`, plus `MemoryCollectionSink`), `authoring/` (one file per verb family over the shared `editScope` write path: `edit-scope.ts`, `create.ts`, `settings.ts`, `request-fields.ts`, `validation.ts`, `structure.ts`) with `authoring.ts` as the re-export barrel and only public entry point, and `infer.ts` (JSON Schema inference from a recorded body) |
 | Storage | Collection folder on disk + OS keychain | The data. Secrets are held as references in files and as values in the keychain |
 
 Core has no `node:` or `fs` imports, because the Angular build bundles its
@@ -68,7 +69,7 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Substitute variables and secrets | core `replaceVariables` / `substituteDeep` |
 | Authenticate and send | core `executeRequest`; the app calls it in `main.js` over the `testRest` IPC channel |
 | Validate the response | core `validateResponse` |
-| Record and query | core `run-record.ts` builds the run record, its cases numbered from 1; core `redact.ts` (`redactCase`) redacts each case, called from the CLI's `run.ts` unless `--include-secrets` is given; a `RunStore` keeps it (`FsRunStore` on disk in the CLI, `MemoryRunStore` in the MCP server); `query.ts` answers run-result (what MCP `run` returns), summary, failures and per-case questions for both the CLI commands and the MCP tools |
+| Record and query | core `run-record.ts` builds the run record, its cases numbered from 1; core `redact.ts` (`redactCase`) redacts each case, called from the CLI's `run.ts` unless `--include-secrets` is given; a `RunStore` keeps it (`FsRunStore`, one `.frrun` file per record, a wrapper over core's `fileRunStore`, on disk in the CLI; `MemoryRunStore` in the MCP server). The app records too: the renderer builds the record with `buildAppRunRecord` and writes it over the `saveRun` IPC channel; `query.ts` answers run-result (what MCP `run` returns), summary, failures and per-case questions for both the CLI commands and the MCP tools |
 | Author: create or change a document | core `authoring/` over `editScope`: resolve the locator, read the document raw through `CollectionSource`, apply the verb, `normalise*`, `storeSecrets`, write through `CollectionSink` — `FsCollectionSink` in the CLI and the MCP server, `MemoryCollectionSink` in tests. The app still has its own write handlers in `main.js` |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
@@ -109,6 +110,9 @@ The `feature/authoring-apis` branch maps to the same **AI First** initiative
 The `feature/ai-first-followups` branch maps to the same **AI First**
 initiative and carries that board's tail: the review and follow-up tickets
 left after the two epics shipped.
+The `feature/app-run-records` branch maps to the same **AI First**
+initiative; its design is
+`docs/superpowers/specs/2026-10-15-app-run-records-design.md`.
 The `feature/desktop-distribution` branch maps to the same **AI First**
 initiative; its design is
 `docs/superpowers/specs/2026-10-15-desktop-distribution-design.md`.
@@ -128,6 +132,8 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Run the desktop app | `App/FullyRested`: `npm run electron` (builds core, runs `ng build`, starts Electron) |
 | UI only, in a browser | `App/FullyRested`: `ng serve`. With no Electron IPC, the repository and execute services return built-in mock data |
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |
+| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` (now also covers `run-records.js`) |
+| Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
 | Test the main process (node:test) | `App/FullyRested`: `npm run test:main` |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Output lands in `out/make/` |
 | Regenerate the icons | `App/FullyRested`: `npm run icons`, after `npm run icons:master` if `icons/source.png` changed. Output is committed |

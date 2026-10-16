@@ -56,7 +56,7 @@ describe('fullyrested run', () => {
       const files = fs.readdirSync(runsFolder(dir));
       expect(files).toHaveLength(1);
       const record = JSON.parse(fs.readFileSync(path.join(runsFolder(dir), files[0]!), 'utf8'));
-      expect(files[0]).toBe(`${record.runId}.json`);
+      expect(files[0]).toBe(`${record.runId}.frrun`);
       expect(r.out).toMatch(/^PASS ok 200 \d+ms\n1 passed, 0 failed\nrecorded run \S+ in .*\.fullyrested-runs\n$/);
       expect(r.out).toContain(`recorded run ${record.runId} in`);
       expect(record.redacted).toBe(true);
@@ -104,7 +104,7 @@ describe('fullyrested run', () => {
     try {
       const r = await fullyrested([...ok(), '--json', '--record', '--store', store]);
       const record = JSON.parse(r.out);
-      expect(fs.readdirSync(runsFolder(store))).toEqual([`${record.runId}.json`]);
+      expect(fs.readdirSync(runsFolder(store))).toEqual([`${record.runId}.frrun`]);
     } finally {
       fs.rmSync(store, { recursive: true, force: true });
     }
@@ -139,7 +139,7 @@ describe('query commands', () => {
   beforeAll(async () => {
     store = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-query-'));
     await fullyrested(['run', '-c', fx.collection, '-f', 'items', '--all', '--record', '--store', store]);
-    runId = fs.readdirSync(runsFolder(store))[0]!.replace('.json', '');
+    runId = fs.readdirSync(runsFolder(store))[0]!.replace('.frrun', '');
   });
 
   afterAll(() => fs.rmSync(store, { recursive: true, force: true }));
@@ -157,7 +157,7 @@ describe('query commands', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-tie-'));
     try {
       fs.mkdirSync(runsFolder(dir));
-      const save = (runId: string, startedAt: string) => fs.writeFileSync(path.join(runsFolder(dir), `${runId}.json`),
+      const save = (runId: string, startedAt: string) => fs.writeFileSync(path.join(runsFolder(dir), `${runId}.frrun`),
         JSON.stringify({ runId, startedAt, collection: 'c', selection: '--all', redacted: true, cases: [] }));
       save('20261011-100000-ffff', '2026-10-11T10:00:00.100Z');
       save('20261011-100000-0000', '2026-10-11T10:00:00.900Z');

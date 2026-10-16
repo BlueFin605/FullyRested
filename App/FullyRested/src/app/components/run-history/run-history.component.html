@@ -1,0 +1,124 @@
+<h2 class="pane-title">
+  Run history <span class="pane-scope">· {{ collection?.name }}</span>
+  <span class="runs-folder">{{ runsFolder }}</span>
+  <button class="fr-icon-btn pane-action" (click)="refresh()" [disabled]="loading || !hasCollection" matTooltip="Refresh" aria-label="Refresh">
+    <mat-icon>refresh</mat-icon>
+  </button>
+</h2>
+
+<div class="run-list">
+  @if (!hasCollection) {
+    <p class="hint">Open a saved collection to see its run history.</p>
+  }
+  @if (loading) { <p class="hint">Loading…</p> }
+  @if (error) { <p class="pane-error">{{ error }}</p> }
+  @if (!loading && runs.length == 0 && hasCollection) {
+    <p class="hint">No runs recorded yet. Every send lands in <code>{{ runsFolder }}</code>, as does <code>fullyrested run --record</code>.</p>
+  }
+  @for (run of runs; track run.runId) {
+    <button class="run-row" [class.selected]="run == selected" (click)="select(run)">
+      <span class="run-outcome" [attr.data-outcome]="outcome(run)"></span>
+      <span class="run-time">{{ run.startedAt | runTime }}</span>
+      <span class="run-selection">{{ run.selection }}</span>
+      @if (!isApp(run)) { <span class="run-chip">cli</span> } @else { <span></span> }
+      <span class="run-status">{{ label(run) }}</span>
+      <span class="run-ms">{{ run.ms }}ms</span>
+    </button>
+  }
+</div>
+
+@if (detailError) { <p class="pane-error">{{ detailError }}</p> }
+
+@if (record && currentCase; as c) {
+  <div class="run-detail">
+    @if (cases.length > 1) {
+      <div class="case-list">
+        @for (k of cases; track k.index) {
+          <button class="run-row case-row" [class.selected]="k.index == caseIndex" (click)="caseIndex = k.index">
+            <span class="run-outcome" [attr.data-outcome]="k.outcome"></span>
+            <span class="run-time">#{{ k.index }}</span>
+            <span class="run-selection">{{ k.name }}</span>
+            <span></span>
+            <span class="run-status">{{ k.status ?? k.outcome }}</span>
+            <span class="run-ms">{{ k.ms }}ms</span>
+          </button>
+        }
+      </div>
+    }
+
+    <div class="case-header">
+      Case {{ c.index }} · {{ c.request.method }} {{ c.request.url }} · {{ c.outcome }}
+    </div>
+    @if (c.error) { <p class="pane-error">{{ c.error }}</p> }
+
+    <mat-tab-group class="fr-subtabs" animationDuration="0ms" [mat-stretch-tabs]="false">
+      <mat-tab label="Request">
+        <div class="tab-body">
+          @if (requestView.value; as r) {
+            <div class="summary">
+              {{ r.method }} {{ r.url }}
+              @if (r.body) { · {{ r.body.bytes }} bytes }
+            </div>
+            <ng-container *ngTemplateOutlet="headersTable; context: { rows: headerRows(r.headers) }"></ng-container>
+          }
+          <ng-container *ngTemplateOutlet="bodyView; context: { b: requestBody }"></ng-container>
+        </div>
+      </mat-tab>
+      <mat-tab label="Response">
+        <div class="tab-body">
+          @if (responseView.value; as r) {
+            <div class="summary">
+              {{ r.status }} {{ r.statusText }} · {{ r.ms }}ms
+              @if (r.body) { · {{ r.body.bytes }} bytes }
+            </div>
+            <ng-container *ngTemplateOutlet="headersTable; context: { rows: headerRows(r.headers) }"></ng-container>
+            <ng-container *ngTemplateOutlet="bodyView; context: { b: responseBody }"></ng-container>
+          } @else {
+            <p class="hint">{{ responseView.message }}</p>
+          }
+        </div>
+      </mat-tab>
+      <mat-tab label="Validation">
+        <div class="tab-body">
+          @if (!c.validation) {
+            <p class="hint">No validation configured for this request.</p>
+          }
+          @for (k of checks; track $index) {
+            <div class="check" [attr.data-passed]="k.passed">
+              <span class="run-outcome" [attr.data-outcome]="k.passed ? 'pass' : 'fail'"></span>
+              <span class="check-name">{{ k.check }}</span>
+              @for (e of k.errors; track $index) { <div class="check-error">{{ e }}</div> }
+            </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+}
+
+<ng-template #headersTable let-rows="rows">
+  @if (rows.length > 0) {
+    <table class="headers-table">
+      @for (h of rows; track $index) {
+        <tr><td class="h-key">{{ h[0] }}</td><td>{{ h[1] }}</td></tr>
+      }
+    </table>
+  } @else {
+    <p class="hint">No headers.</p>
+  }
+</ng-template>
+
+<ng-template #bodyView let-b="b">
+  @if (b.value; as body) {
+    @if (body.encoding == 'base64') {
+      <p class="hint">{{ body.bytes }} bytes, binary body not shown.</p>
+    } @else {
+      @if (body.truncated) {
+        <p class="hint">Showing the first {{ bodyCap }} characters of {{ body.bytes }} bytes.</p>
+      }
+      <app-code-editor [value]="bodyText(body)" [language]="language(body)" [readOnly]="true"></app-code-editor>
+    }
+  } @else if (b.message) {
+    <p class="hint">{{ b.message }}</p>
+  }
+</ng-template>

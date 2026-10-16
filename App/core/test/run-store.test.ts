@@ -22,7 +22,7 @@ describe('listingOf', () => {
   it('summarises a run with outcome counts and environment', () => {
     expect(listingOf(run('r1', { environment: 'prod', selection: 'folder/x' }))).toEqual({
       runId: 'r1', startedAt: '2026-10-11T10:00:00.000Z', selection: 'folder/x', environment: 'prod',
-      passed: 2, failed: 1, errored: 1
+      passed: 2, failed: 1, errored: 1, ms: 4
     });
   });
   it('omits environment when the run has none', () => {
@@ -69,5 +69,47 @@ describe('MemoryRunStore', () => {
     const list = await store.list();
     expect(list).toHaveLength(1);
     expect(list[0].selection).toBe('new');
+  });
+});
+
+const caseOf = (index: number, ms: number, status?: number): CaseRecord => ({
+  index, name: `case ${index}`, requestFile: 'a.frreq', outcome: 'pass', ms,
+  request: { method: 'GET', url: 'https://x/y', headers: {} },
+  ...(status === undefined ? {} : { response: { status, headers: {} } })
+});
+
+const runOf = (cases: CaseRecord[], selection = '--all'): RunRecord => ({
+  runId: 'r', startedAt: '2026-10-15T10:00:00.000Z', collection: 'c.frcol',
+  selection, redacted: true, cases
+});
+
+describe('listingOf ms and status', () => {
+  it('sums the case times into ms', () => {
+    expect(listingOf(runOf([caseOf(1, 40, 200), caseOf(2, 60, 201)])).ms).toBe(100);
+  });
+
+  it('reports status for a single-case run that got a response', () => {
+    const listing = listingOf(runOf([caseOf(1, 42, 422)], 'request:a.frreq'));
+
+    expect(listing.status).toBe(422);
+    expect(listing.ms).toBe(42);
+  });
+
+  it('omits status for a multi-case run', () => {
+    expect(listingOf(runOf([caseOf(1, 10, 200), caseOf(2, 10, 200)])).status).toBeUndefined();
+  });
+
+  it('omits status for a single case that got no response', () => {
+    const listing = listingOf(runOf([caseOf(1, 0)], 'request:a.frreq'));
+
+    expect(listing.status).toBeUndefined();
+    expect(listing.ms).toBe(0);
+  });
+
+  it('reports ms 0 for a run with no cases', () => {
+    const listing = listingOf(runOf([]));
+
+    expect(listing.ms).toBe(0);
+    expect(listing.status).toBeUndefined();
   });
 });

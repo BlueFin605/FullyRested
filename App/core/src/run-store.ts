@@ -8,6 +8,9 @@ export interface RunListing {
   passed: number;
   failed: number;
   errored: number;
+  ms: number;
+  /** only for a run of exactly one case that got a response: a multi-case run has no single status */
+  status?: number;
 }
 
 export interface RunStore {
@@ -21,9 +24,12 @@ export function listingOf(r: RunRecord): RunListing {
     runId: r.runId,
     startedAt: r.startedAt,
     selection: r.selection,
-    ...toCaseOutcomeCounts(r.cases)
+    ...toCaseOutcomeCounts(r.cases),
+    ms: r.cases.reduce((total, c) => total + c.ms, 0)
   };
   if (r.environment !== undefined) listing.environment = r.environment;
+  const only = r.cases.length === 1 ? r.cases[0] : undefined;
+  if (only?.response !== undefined) listing.status = only.response.status;
   return listing;
 }
 
