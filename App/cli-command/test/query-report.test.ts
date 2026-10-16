@@ -13,7 +13,7 @@ const tree = (validation: TreeValidation | undefined): TreeView =>
 describe('query-report', () => {
   it('formats runs, with a message when empty', () => {
     expect(formatRuns([])).toBe('no runs');
-    expect(formatRuns([{ runId: 'r1', startedAt: 't', selection: 'all', passed: 1, failed: 2, errored: 3 }]))
+    expect(formatRuns([{ runId: 'r1', startedAt: 't', selection: 'all', passed: 1, failed: 2, errored: 3, ms: 0 }]))
       .toBe('r1  t  1 passed, 2 failed, 3 errored  all');
   });
 
