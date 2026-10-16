@@ -136,6 +136,7 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
 | Test the main process (node:test) | `App/FullyRested`: `npm run test:main` |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Output lands in `out/make/` |
+| Cut a release | See [RELEASING.md](RELEASING.md): `npm version x.y.z` in `App/FullyRested`, then `git push --follow-tags` |
 | Regenerate the icons | `App/FullyRested`: `npm run icons`, after `npm run icons:master` if `icons/source.png` changed. Output is committed |
 | Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
 | Test the CLI (vitest) | `App/cli-command`: `npm test` |
