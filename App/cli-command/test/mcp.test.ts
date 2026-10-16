@@ -25,7 +25,7 @@ const EDIT_TOOLS = [
   'new_collection', 'new_folder', 'new_request', 'new_run', 'new_environment', 'select_environment',
   'set_header', 'set_param', 'set_variable', 'add_secret_ref', 'set_auth', 'remove_setting',
   'set_url', 'set_method', 'set_body', 'set_validation', 'set_validation_header',
-  'validation_from_case', 'rename', 'delete', 'move', 'settings'
+  'validation_from_case', 'set_type', 'set_message', 'set_expect', 'rename', 'delete', 'move', 'settings'
 ];
 
 const TOOLS = [...QUERY_TOOLS, ...EDIT_TOOLS].sort();

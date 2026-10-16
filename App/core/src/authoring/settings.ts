@@ -115,6 +115,18 @@ export interface AuthFields {
     awsRegion?: string;
     serviceName?: string;
     signUrl?: boolean;
+    // Where the token goes on a websocket handshake: 'header' or the name of a query parameter
+    // (BlueFinWiki's realtime endpoint reads ?token=). Applies to any type.
+    placement?: string;
+}
+
+// A query parameter name: what can go in a url without needing to be escaped.
+const PLACEMENT_PARAM = /^[0-9a-zA-Z_.~-]+$/;
+
+function parsePlacement(placement: string): string {
+    if (typeof placement != 'string' || !PLACEMENT_PARAM.test(placement))
+        throw new QueryError(`placement must be 'header' or a query parameter name like 'token', not '${placement}'`);
+    return placement.toLowerCase() == 'header' ? 'header' : placement;
 }
 
 // One secret reference and nothing else. `[0-9a-zA-Z_-]` is the name substitution.ts actually
@@ -210,12 +222,16 @@ export async function setAuth(
     if (authentication == undefined)
         throw new QueryError(`Unknown authentication type '${type}' (have ${AUTH_TYPES.join(', ')})`);
 
+    const placement = fields.placement == undefined ? undefined : parsePlacement(fields.placement);
+
     return editScope(ctx, 'set_auth', scope, ALL_LOCATORS, target => {
         const before = readAuth(target);
         const auth = JSON.parse(JSON.stringify(before)) as AuthenticationDetails;
 
         auth.authentication = authentication;
         applyAuthFields(auth, authentication, fields);
+        if (placement != undefined)
+            auth.placement = placement;
 
         // Both sides come out of the same normalise + copy path, so their keys are in the same
         // order and comparing the JSON is a deep equality check.

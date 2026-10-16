@@ -6,7 +6,7 @@ import {
   AuthoringContext, EditResult, LOCATOR_FORMS, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
-  setMethod, setParam, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
@@ -237,12 +237,13 @@ export function createServer(opts: McpOptions): McpServer {
       sessionToken: z.string().optional().describe('awssig: session token as a secret reference only, e.g. {{$awsSession}}'),
       awsRegion: z.string().optional().describe('awssig: AWS region'),
       serviceName: z.string().optional().describe('awssig: AWS service name'),
-      signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers')
+      signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers'),
+      placement: z.string().optional().describe("Where the token goes on a websocket handshake: 'header' (default) or a query parameter name such as 'token'")
     }
   }, a => runEdit(a.collection, ctx => setAuth(ctx, a.scope, a.type, {
     userName: a.userName, password: a.password, token: a.token,
     accessKey: a.accessKey, secretKey: a.secretKey, sessionToken: a.sessionToken,
-    awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl
+    awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl, placement: a.placement
   })));
 
   server.registerTool('remove_setting', {
@@ -292,6 +293,31 @@ export function createServer(opts: McpOptions): McpServer {
     description: 'Learn a validation from one recorded case of a run.',
     inputSchema: { collection, scope, case: caseRef, runId, store }
   }, a => runEdit(a.collection, ctx => validationFromCase(ctx, storesFor(a.store), a.scope, a.case, a.runId)));
+
+  server.registerTool('set_type', {
+    description: 'Set whether a request is plain http or a websocket.',
+    inputSchema: { collection, scope, type: z.string().describe('http | websocket') }
+  }, a => runEdit(a.collection, ctx => setType(ctx, a.scope, a.type)));
+
+  server.registerTool('set_message', {
+    description: 'Set the text frame a websocket request sends once the socket opens.',
+    inputSchema: { collection, scope, message: z.string().describe('Message text (may hold {{variables}})') }
+  }, a => runEdit(a.collection, ctx => setMessage(ctx, a.scope, a.message)));
+
+  server.registerTool('set_expect', {
+    description: 'Set what a websocket test waits for; give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      count: z.number().int().optional().describe('Messages to wait for (at least 1)'),
+      match: z.string().optional().describe('all | any'),
+      schema: z.string().optional().describe('JSON Schema each message is checked against, as text; empty clears it'),
+      extras: z.string().optional().describe('ignore | fail'),
+      timeout: z.number().int().optional().describe('Overall time limit in ms'),
+      settle: z.number().int().optional().describe('ms to keep listening after a pass (extras: fail only)')
+    }
+  }, a => runEdit(a.collection, ctx => setExpect(ctx, a.scope, {
+    count: a.count, match: a.match, schema: a.schema, extras: a.extras, timeout: a.timeout, settle: a.settle
+  })));
 
   server.registerTool('rename', {
     description: 'Rename an environment, folder, request or run; use move for a new path.',
