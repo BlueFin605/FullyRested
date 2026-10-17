@@ -132,7 +132,7 @@ describe('the authoring loop over MCP', () => {
 
       // 5. the tree now reports a real body check, with nothing missing
       const after = (await call('tree', { collection: ws.collection })).json();
-      expect(after.children[0].runs).toEqual([{ name: 'not found', validation: { type: 'Body', schema: true } }]);
+      expect(after.children[0].runs).toEqual([{ name: 'not found', validation: { type: 'Body', schema: true, status: 404 } }]);
 
       // 6. and it passes, this time because the response really matches the schema
       const second = (await call('run', { collection: ws.collection })).json();

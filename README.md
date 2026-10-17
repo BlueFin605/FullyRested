@@ -559,7 +559,10 @@ The authoring tools take the same locators the CLI does (see **Editing a
 collection**), and the loop is three steps:
 
 1. `tree` — what exists, and which requests and runs still have no real
-   validation.
+   validation. It also names the selected environment and, per request
+   and run, the expected status and whether a schema or response headers are
+   checked (`[Body(schema) 201]`, `[Headers 200 hdrs:2]`), so a second
+   `environments` call is not needed.
 2. `settings` — only when inheritance is in question: is this header, variable
    or auth already set at a scope above?
 3. Edit, then `run` — and from then on `tree` and `run`.

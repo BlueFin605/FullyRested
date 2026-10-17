@@ -41,6 +41,10 @@ export interface TreeValidation {
   effective?: string;
   schema: boolean;
   incomplete?: true;
+  /** Expected status code of the validation in force; absent when nothing is checked (None) */
+  status?: number;
+  /** Count of active expected response headers; present only when headers are checked */
+  headers?: number;
 }
 
 export interface TreeRun {
@@ -99,6 +103,8 @@ export type TreeNodeView = TreeFolder | TreeRequest | TreeError;
 export interface TreeView {
   collection: string;
   folder?: string;
+  /** Name of the collection's selected environment; absent when none is selected */
+  environment?: string;
   warnings?: string[];
   children: TreeNodeView[];
 }
@@ -106,6 +112,7 @@ export interface TreeView {
 const toError = (e: LoadError): TreeError => ({ type: 'error', file: e.file, message: e.message });
 
 const checksBody = (type: string) => type === ValidationType.Body || type === ValidationType.HeadersBody;
+const checksHeaders = (type: string) => type === ValidationType.Headers || type === ValidationType.HeadersBody;
 const hasSchema = (v: RestActionValidation) => (v.jsonSchema?.schema ?? '').length > 0;
 
 // The two-level inherit chain: a run whose own type is Inherit takes its request's type (own);
@@ -128,6 +135,8 @@ function toTreeValidation(own: RestActionValidation | undefined, above?: RestAct
   const view: TreeValidation = { type: own.type, schema };
   if (checksBody(resolved.type) && !schema) view.incomplete = true;
   if (own.type === ValidationType.Inherit) view.effective = resolved.type;
+  if (resolved.type !== ValidationType.None) view.status = resolved.httpCode;
+  if (checksHeaders(resolved.type)) view.headers = (resolved.headers ?? []).filter(h => h.active).length;
   return view;
 }
 
@@ -198,6 +207,8 @@ export function treeView(root: CollectionNode, folder?: string): TreeView {
     view.folder = found.path;
     view.children = children;
   }
+  const env = root.config.environments.find(e => e.id === root.config.selectedEnvironmentId);
+  if (env) view.environment = env.name;
   if (root.warnings.length > 0) view.warnings = root.warnings;
   return view;
 }

@@ -73,11 +73,15 @@ export function parseRange(text: string): [number, number] | undefined {
 // or Inherit→<effective> when the row's own type is Inherit (the resolved type's own schema
 // completeness is in the TreeValidation data for a programmatic reader, but left out of this
 // one-line marker to keep an inherited row to a single arrow rather than two nested annotations).
+//
+// The expected status follows as a bare number (`Body(schema) 201`), then `hdrs:N` for N active
+// expected response headers when headers are checked. Neither is shown when the data lacks it.
 function validationMarker(v: TreeValidation): string {
-  if (v.type === 'Inherit') return `Inherit→${v.effective}`;
-  if (v.incomplete) return `${v.type}(no schema!)`;
-  if (v.schema) return `${v.type}(schema)`;
-  return v.type;
+  const extra = `${v.status !== undefined ? ` ${v.status}` : ''}${v.headers !== undefined ? ` hdrs:${v.headers}` : ''}`;
+  if (v.type === 'Inherit') return `Inherit→${v.effective}${extra}`;
+  if (v.incomplete) return `${v.type}(no schema!)${extra}`;
+  if (v.schema) return `${v.type}(schema)${extra}`;
+  return `${v.type}${extra}`;
 }
 
 // One line for a websocket request's expect and trigger, shared by tree and show.
@@ -106,7 +110,8 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
 
 export function formatTree(t: TreeView): string {
   const top = t.folder === undefined ? `${t.collection}/` : `${t.collection}/${t.folder}/`;
-  return [top, ...treeLines(t.children, 1)].join('\n');
+  const env = t.environment === undefined ? [] : [`  environment: ${t.environment}`];
+  return [top, ...env, ...treeLines(t.children, 1)].join('\n');
 }
 
 const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');
