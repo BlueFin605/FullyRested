@@ -312,3 +312,93 @@ describe('fullyrested edit', () => {
     expect(r.err).toContain('required option');
   });
 });
+
+describe('fullyrested edit: websocket verbs', () => {
+  let dir = '';
+  let collection = '';
+  const req = 'request:chat.frreq';
+  const readReq = () => JSON.parse(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8'));
+  const edit = (...args: string[]) => fullyrested(['edit', ...args, '-c', collection], dir);
+
+  beforeAll(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fullyrested-edit-ws-'));
+    collection = path.join(dir, 'ws.frcol');
+    let r = await fullyrested(['edit', 'new-collection', '--file', collection], dir);
+    expect(r.code).toBe(0);
+    r = await edit('new-request', '--path', 'chat.frreq', '--method', 'get', '--url', 'ws://localhost/x');
+    expect(r.code).toBe(0);
+  });
+
+  afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  it('set-type switches a request to websocket and back, and refuses an unknown type', async () => {
+    let r = await edit('set-type', 'websocket', '--scope', req);
+    expect(r.code).toBe(0);
+    expect(readReq().type).toBe('websocket');
+
+    const before = fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8');
+    r = await edit('set-type', 'carrier-pigeon', '--scope', req);
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/request type/);
+    expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
+
+    r = await edit('set-type', 'http', '--scope', req);
+    expect(r.code).toBe(0);
+    expect(readReq().type).toBe('http');
+  });
+
+  it('set-message writes the message of a websocket request, and refuses an http one', async () => {
+    let r = await edit('set-message', 'hello', '--scope', req);
+    expect(r.code).toBe(2); // still http
+    expect(r.err).toMatch(/websocket/);
+    expect(readReq().message ?? '').toBe('');
+
+    await edit('set-type', 'websocket', '--scope', req);
+    r = await edit('set-message', '{"op":"{{name}}"}', '--scope', req);
+    expect(r.code).toBe(0);
+    expect(readReq().message).toBe('{"op":"{{name}}"}');
+  });
+
+  it('set-expect changes only the options given and refuses invalid values', async () => {
+    await edit('set-type', 'websocket', '--scope', req);
+    let r = await edit('set-expect', '--scope', req, '--count', '3', '--match', 'any', '--extras', 'fail',
+      '--timeout', '5000', '--settle', '200');
+    expect(r.code).toBe(0);
+    expect(readReq().expect).toMatchObject({ count: 3, match: 'any', extras: 'fail', timeout: 5000, settle: 200 });
+
+    r = await edit('set-expect', '--scope', req, '--timeout', '9000');
+    expect(r.code).toBe(0);
+    expect(readReq().expect).toMatchObject({ count: 3, match: 'any', extras: 'fail', timeout: 9000, settle: 200 });
+
+    const schemaFile = path.join(dir, 'schema.json');
+    fs.writeFileSync(schemaFile, '{"type":"object"}');
+    r = await edit('set-expect', '--scope', req, '--schema', `@${schemaFile}`);
+    expect(r.code).toBe(0);
+    expect(JSON.stringify(readReq().expect.schema)).toContain('object');
+    expect(readReq().expect).toMatchObject({ count: 3, timeout: 9000 });
+
+    const before = fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8');
+    for (const bad of [['--timeout', '0'], ['--timeout', 'soon'], ['--count', '0'], ['--match', 'some'], ['--extras', 'x'], ['--schema', '{nope']]) {
+      r = await edit('set-expect', '--scope', req, ...bad);
+      expect(r.code, bad.join(' ')).toBe(2);
+    }
+    expect((await edit('set-expect', '--scope', req, '--timeout', '0')).err).toMatch(/timeout must be a positive whole number/);
+    expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
+  });
+
+  it('set-auth --placement stores where the token goes, and refuses a bad name', async () => {
+    let r = await edit('set-auth', '--scope', req, '--type', 'bearertoken', '--token', 'abc', '--placement', 'token');
+    expect(r.code).toBe(0);
+    expect(readReq().authentication.placement).toBe('token');
+
+    r = await edit('set-auth', '--scope', req, '--type', 'bearertoken', '--placement', 'header');
+    expect(r.code).toBe(0);
+    expect(readReq().authentication.placement).toBe('header');
+
+    const before = fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8');
+    r = await edit('set-auth', '--scope', req, '--type', 'bearertoken', '--placement', 'not valid!');
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/placement must be/);
+    expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
+  });
+});

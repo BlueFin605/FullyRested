@@ -8,7 +8,8 @@ import {
   AuthFields, AuthoringContext, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody,
-  setHeader, setMethod, setParam, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
+  setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
 import { edit } from './authoring';
@@ -380,13 +381,49 @@ withScope(editCommand('set-auth', 'Set the authentication of a scope'))
   .option('--aws-region <region>', 'awssig: AWS region')
   .option('--service-name <name>', 'awssig: AWS service name')
   .option('--sign-url <true|false>', 'awssig: sign the url (query string) instead of headers', (v: string) => parseBool('--sign-url', v))
+  .option('--placement <header|param-name>', "websocket handshake: where the token goes, 'header' (default) or a query parameter name such as 'token'")
   .action(queryAction(async (options: EditOptions & { scope: string; type: string } & AuthFields) => {
     const fields: AuthFields = {
       userName: options.userName, password: options.password, token: options.token,
       accessKey: options.accessKey, secretKey: options.secretKey, sessionToken: options.sessionToken,
-      awsRegion: options.awsRegion, serviceName: options.serviceName, signUrl: options.signUrl
+      awsRegion: options.awsRegion, serviceName: options.serviceName, signUrl: options.signUrl,
+      placement: options.placement
     };
     await runEdit(options, ctx => setAuth(ctx, options.scope, options.type, fields));
+  }));
+
+withScope(editCommand('set-type', 'Set whether a request is plain HTTP or a websocket'))
+  .argument('<type>', 'http | websocket')
+  .action(queryAction(async (type: string, options: EditOptions & { scope: string }) =>
+    runEdit(options, ctx => setType(ctx, options.scope, type))));
+
+withScope(editCommand('set-message', 'Set the text frame a websocket request sends once the socket opens'))
+  .argument('<text>', 'message text (may hold {{variables}})')
+  .action(queryAction(async (text: string, options: EditOptions & { scope: string }) =>
+    runEdit(options, ctx => setMessage(ctx, options.scope, text))));
+
+// Numbers are passed through as Number(text) so a non-number reaches core as NaN and is rejected
+// there with the one shared message, rather than being re-validated here.
+const toNumber = (value: string): number => Number(value);
+
+withScope(editCommand('set-expect', 'Set what a websocket test waits for; only the options given change'))
+  .option('--count <n>', 'number of messages to wait for', toNumber)
+  .option('--match <all|any>', 'whether all or any received messages must match the schema')
+  .option('--extras <ignore|fail>', 'what to do with messages beyond the count')
+  .option('--timeout <ms>', 'give up after this many milliseconds', toNumber)
+  .option('--settle <ms>', 'quiet time in milliseconds before the test ends', toNumber)
+  .option('--schema <json|@file>', "JSON Schema each message is checked against, as JSON text or @path to a file; '' clears it")
+  .action(queryAction(async (options: EditOptions & { scope: string; count?: number; match?: string; extras?: string; timeout?: number; settle?: number; schema?: string }) => {
+    let schema = options.schema;
+    if (schema !== undefined && schema.startsWith('@')) {
+      const file = schema.slice(1);
+      try { schema = fs.readFileSync(file, 'utf8'); }
+      catch { throw new UsageError(`--schema file '${file}' cannot be read`); }
+    }
+    await runEdit(options, ctx => setExpect(ctx, options.scope, {
+      count: options.count, match: options.match, extras: options.extras,
+      timeout: options.timeout, settle: options.settle, schema
+    }));
   }));
 
 withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference or validation header'))
