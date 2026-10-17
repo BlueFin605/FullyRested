@@ -97,7 +97,7 @@ function toExecute(action: RestAction, run: RestActionRun | undefined, layers: S
     return ExecuteRestAction.NewExecuteRestAction()
         .setVerb(action.verb)
         .setProtocol(action.protocol)
-        .setBody(action.body)
+        .setBody(run?.body ?? action.body)
         .setUrl(buildRequestUrl(action.url, params))
         .setHeaders(Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value])))
         .authentication_pushBack(effective.auth?.value)

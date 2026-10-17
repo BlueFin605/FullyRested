@@ -169,6 +169,15 @@ describe('request and run resolution', () => {
         expect(secrets?.find(x => x.$secret == 'only')?.$value).toBe('collection');
     });
 
+    it('sends the run body in place of the request body, and no body when the run says none', () => {
+        const { request } = build();
+        request.action.body = { contentType: 'application/json', body: '{"a":1}' };
+        expect(request.run('r1').resolve().body).toEqual({ contentType: 'application/json', body: '{"a":1}' });
+        request.action.runs[0].body = { contentType: 'none', body: undefined };
+        expect(request.run('r1').resolve().body.contentType).toBe('none');
+        expect(request.resolve().body.contentType).toBe('application/json');
+    });
+
     it('finds a run by name', () => {
         expect(build().request.run('one').run.id).toBe('r1');
     });

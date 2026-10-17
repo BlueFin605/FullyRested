@@ -465,8 +465,8 @@ withScope(editCommand('set-method', 'Set the method of a request'))
   .action(queryAction(async (options: EditOptions & { scope: string; method: string }) =>
     runEdit(options, ctx => setMethod(ctx, options.scope, options.method))));
 
-withScope(editCommand('set-body', 'Set the body of a request'))
-  .requiredOption('--content-type <type>', "content type, or 'none' to clear the body")
+withScope(editCommand('set-body', "Set the body of a request, or of a run (which overrides its request's)"))
+  .requiredOption('--content-type <type>', "content type; 'none' clears the body (on a run: sends no body); 'inherit' (runs only) removes the run's override")
   .option('--text <text>', 'body text (every content type but the form one)')
   .option('--field <name=value>', 'form field, for the form content type (repeatable; splits on the first \'=\')', collectField, [] as string[])
   .action(queryAction(async (options: EditOptions & { scope: string; contentType: string; text?: string; field: string[] }) => {

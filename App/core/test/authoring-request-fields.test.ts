@@ -66,7 +66,7 @@ describe('setUrl', () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y')).rejects.toThrow(QueryError);
     await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y'))
-      .rejects.toThrow(/set_url accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the url/);
+      .rejects.toThrow(/set_url accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules and the body, not the url/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 });
@@ -107,7 +107,7 @@ describe('setMethod', () => {
   it('refuses a run: locator, saying what a run does override', async () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setMethod(ctxFor(sink), 'run:users/get.frreq#not found', 'post'))
-      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the method/);
+      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules and the body, not the method/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 });
@@ -209,10 +209,37 @@ describe('setBody', () => {
     expect(sink.files.get('users/get.frreq')).toBe(before);
   });
 
-  it('refuses a run: locator, saying what a run does override', async () => {
+  it('overrides the body on a run, leaving the request body alone', async () => {
     const sink = new MemoryCollectionSink(files);
-    await expect(setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'application/json', { text: '{}' }))
-      .rejects.toThrow(/set_body accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the body/);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'application/json', { text: '{"a":1}' });
+    const result = await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'none');
+
+    expect(result).toMatchObject({ changed: true });
+    const action = written(sink, 'users/get.frreq');
+    expect(action.body).toEqual({ contentType: 'application/json', body: '{"a":1}' });
+    expect(action.runs[0].body).toEqual({ contentType: 'none' });
+    expect((await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'none')).changed).toBe(false);
+  });
+
+  it('sets a text body on a run and removes the override with inherit', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'application/json', { text: '{}' });
+    expect(written(sink, 'users/get.frreq').runs[0].body).toEqual({ contentType: 'application/json', body: '{}' });
+
+    const result = await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'inherit');
+    expect(result.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runs[0].body).toBeUndefined();
+    expect((await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'inherit')).changed).toBe(false);
+  });
+
+  it('refuses inherit on a request', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setBody(ctxFor(sink), 'request:users/get.frreq', 'inherit')).rejects.toThrow(/for a run/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+  });
+
+  it('refuses a collection locator', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setBody(ctxFor(sink), 'collection', 'none')).rejects.toThrow(/set_body accepts/);
   });
 });

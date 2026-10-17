@@ -329,10 +329,10 @@ export function createServer(opts: McpOptions): McpServer {
   }, a => runEdit(a.collection, ctx => setMethod(ctx, a.scope, a.method)));
 
   server.registerTool('set_body', {
-    description: "Set the body of a request; content type 'none' clears it.",
+    description: "Set the body of a request or run (a run's overrides). 'none' sends no body; 'inherit' (runs only) drops a run's override.",
     inputSchema: {
       collection, scope,
-      contentType: z.string().describe("Content type, or 'none' to clear the body"),
+      contentType: z.string().describe("Content type, 'none' to send no body, or 'inherit' to drop a run's override"),
       text: z.string().optional().describe('Body text (every content type but the form one)'),
       fields: z.array(z.object({ name: z.string(), value: z.string() })).optional().describe('Form fields, for the form content type')
     }

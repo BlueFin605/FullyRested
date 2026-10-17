@@ -416,6 +416,27 @@ fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --n
 - Capture works in `run`, the MCP `run` tool and the desktop app's run-folder and
   run-collection. Sending one request alone has nothing earlier to capture from.
 
+### Setup inside the run, empty bodies and cleanup
+
+A case that consumes its fixture (a `DELETE` that succeeds once) or leaves data
+behind (every create) needs no per-case setup verb: capture does it. Put the
+create first, capture its id, delete with it, and the run owns its fixture end to end.
+
+```
+fullyrested edit set-capture -c api.frcol --scope request:comments/1-create.frreq --name commentId --from body --path '$.id'
+# comments/2-delete.frreq: DELETE {{host}}/comments/{{commentId}}, expects 200
+# comments/3-delete again.frreq: the same url, expects 404 (proves the delete took)
+```
+
+Several create/delete pairs in one run work the same way: a later capture of the same
+name replaces the earlier one, and the case in between sees the newer value. A create
+whose product the endpoint under test does not delete is cleaned up by a trailing
+request that deletes `{{commentId}}`.
+
+`set-body` (MCP `set_body`) also takes a run: a run's body replaces its request's.
+`--content-type none` on a run sends no body at all (to test a "Request body is required"
+400 beside the happy-path run of the same request); `--content-type inherit` removes the override.
+
 ### Known gaps
 
 - **Deleting a scope leaves its keychain entries behind.** `delete` removes the

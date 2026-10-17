@@ -154,6 +154,8 @@ export interface RestActionRun {
     validation: RestActionValidation;
     // Absent in files written before capture existed
     capture?: CaptureRule[];
+    // Replaces the request's body for this run; absent = the request's. contentType 'none' sends no body.
+    body?: RestActionBody;
 }
 
 export interface RestAction {
