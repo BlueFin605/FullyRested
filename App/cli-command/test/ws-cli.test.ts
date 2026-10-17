@@ -244,6 +244,12 @@ describe('ws watch', () => {
     await expect(watchSession('chat.frreq', {}, store, quiet, new AbortController().signal)).rejects.toBeInstanceOf(UsageError);
   });
 
+  it('tells the user how to fix an http request passed to ws watch', async () => {
+    fs.writeFileSync(path.join(folder, 'plain.frreq'), JSON.stringify(request('h1', 'plain', '{{base}}/x')));
+    await expect(watchSession('plain.frreq', { collection: collection() }, store, quiet, new AbortController().signal))
+      .rejects.toThrow(/edit set-type/);
+  });
+
   it('reports a failed connect without the url', async () => {
     await expect(watchSession('ws://127.0.0.1:1/never?token=abc', {}, store, quiet, new AbortController().signal))
       .rejects.toThrow(/^Could not connect: (?!.*token=abc)/);
