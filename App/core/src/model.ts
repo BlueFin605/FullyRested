@@ -3,7 +3,9 @@ export const REConstants = {
     ActionExtension: ".frreq",
     LegacyCollectionExtension: ".reasycol",
     LegacyActionExtension: ".reasyreq",
-    FolderSettingsFile: "folder.frfolder"
+    FolderSettingsFile: "folder.frfolder",
+    // empty marker new_folder writes so git keeps an otherwise-empty folder; the loader ignores it
+    FolderKeepFile: ".gitkeep"
 };
 
 // Extensions to accept when opening files: new first, then the old Rest Easy ones

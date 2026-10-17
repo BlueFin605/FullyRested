@@ -407,7 +407,12 @@ before you reach for `--help`:
   does not fail the check.
 - **Nothing is overwritten silently.** `new-*`, `rename` and `move` onto an
   existing path are refused, and `delete folder:` only goes ahead when the
-  folder holds nothing but `.frreq` and `folder.frfolder` files.
+  folder holds nothing but `.frreq`, `folder.frfolder` and `.gitkeep` files.
+- **Empty folders survive git.** The `.frcol` has no folder list, and git does
+  not track empty directories, so `new-folder` / `new_folder` writes an empty
+  `.gitkeep` in the new folder. The loader ignores it (it is not a request), and
+  `move`, `rename` and `delete` carry or remove it with the folder. Folders
+  created by hand need their own `.gitkeep` to be committed.
 - **`--json`** prints the result as JSON. Usage and locator errors exit 2.
 
 ### Secrets, end to end

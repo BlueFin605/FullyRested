@@ -315,7 +315,7 @@ const DELETE_COLLECTION_HINT = 'the collection file itself is not something dele
 // settings file, wherever in the sub-tree it sits. Anything else is reported back to the caller
 // rather than silently removed — an agent should never delete something it did not put there.
 function isDeletableFolderFile(path: string): boolean {
-    if (basenameOf(path) == REConstants.FolderSettingsFile)
+    if (basenameOf(path) == REConstants.FolderSettingsFile || basenameOf(path) == REConstants.FolderKeepFile)
         return true;
 
     const ext = extensionOf(path);

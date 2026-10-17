@@ -69,7 +69,9 @@ export async function selectEnvironment(ctx: AuthoringContext, name: string): Pr
 }
 
 // Makes a folder on disk. Writes no folder.frfolder: a folder needs one only once it has
-// settings, and editScope creates it on demand (see readDocument).
+// settings, and editScope creates it on demand (see readDocument). It does write an empty
+// .gitkeep, because the .frcol has no folder manifest and git drops an empty directory, so
+// without a file in it the folder would vanish on the first commit/clone. The loader ignores it.
 export async function newFolder(ctx: AuthoringContext, path: string): Promise<EditResult> {
     if (path == '' || path == '.')
         throw new QueryError(`new_folder needs a path (given '${path}')`);
@@ -77,6 +79,7 @@ export async function newFolder(ctx: AuthoringContext, path: string): Promise<Ed
         throw new QueryError(`${path} already exists`);
 
     await ctx.sink.mkdir(path);
+    await ctx.sink.writeText(`${path.replace(/\/+$/, '')}/${REConstants.FolderKeepFile}`, '');
     return { file: path, scope: path, changed: true, message: `Created folder ${path}` };
 }
 
