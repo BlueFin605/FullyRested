@@ -1,8 +1,9 @@
 import { Locator, resolveLocator, ResolvedScope } from './locator';
 import {
-  AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestActionRun, RestActionValidation, ScopeSettings, SecretTable,
+  AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestAction, RestActionRun, RestActionValidation, ScopeSettings, SecretTable,
   ValidationType,
 } from './model';
+import { normaliseExpect, normaliseTrigger } from './normalise';
 import { QueryError } from './query-error';
 import { maskPresignedUrl, secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
@@ -46,6 +47,30 @@ export interface TreeRun {
   validation: TreeValidation | undefined;
 }
 
+// A websocket request's expectation and trigger as the tree and show report them. The schema is
+// reported as present or not, never inlined.
+export interface WebSocketExpectView {
+  count: number;
+  match: string;
+  extras: string;
+  timeout: number;
+  settle: number;
+  schema: boolean;
+}
+
+export interface WebSocketTriggerView {
+  request: string;
+  run?: string;
+  repeat: string;
+  interval: number;
+  delay: number;
+}
+
+export interface WebSocketView {
+  expect: WebSocketExpectView;
+  trigger?: WebSocketTriggerView;
+}
+
 export interface TreeRequest {
   type: 'request';
   name: string;
@@ -53,6 +78,9 @@ export interface TreeRequest {
   method: string;
   url: string;
   validation: TreeValidation | undefined;
+  /** Present on a websocket request only */
+  requestType?: 'websocket';
+  websocket?: WebSocketView;
   runs?: TreeRun[];
 }
 
@@ -100,6 +128,21 @@ function toTreeValidation(own: RestActionValidation | undefined, above?: RestAct
   return view;
 }
 
+export function webSocketView(action: RestAction): WebSocketView {
+  const expect = normaliseExpect(action.expect);
+  const view: WebSocketView = {
+    expect: {
+      count: expect.count, match: expect.match, extras: expect.extras, timeout: expect.timeout, settle: expect.settle,
+      schema: (expect.schema?.schema ?? '').length > 0
+    }
+  };
+  if (action.trigger) {
+    const t = normaliseTrigger(action.trigger);
+    view.trigger = { request: t.request, ...(t.run !== undefined && { run: t.run }), repeat: t.repeat, interval: t.interval, delay: t.delay };
+  }
+  return view;
+}
+
 function childrenOf(container: ContainerNode): TreeNodeView[] {
   return container.children.flatMap((child): TreeNodeView[] => {
     if (child instanceof FolderNode) {
@@ -115,6 +158,10 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
       type: 'request', name: child.name, path: child.path,
       method: action.verb, url: action.url, validation: toTreeValidation(action.validation),
     };
+    if (action.type == 'websocket') {
+      view.requestType = 'websocket';
+      view.websocket = webSocketView(action);
+    }
     const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
     return [view];
@@ -266,6 +313,10 @@ export interface ShownRequest {
   secrets: { name: string; source: string; overridden: boolean }[];
   auth: { type: string; source: string } | undefined;
   validation: unknown;
+  /** Present on a websocket request only */
+  requestType?: 'websocket';
+  message?: string;
+  websocket?: WebSocketView;
 }
 
 export const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
@@ -296,7 +347,7 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
       return secretNames.reduce((out, name, i) => out.split(sentinel(i)).join(`{{$secret:${name}}}`), replace(marked));
     };
     const auth: EffectiveValue<AuthenticationDetails> | undefined = eff.auth;
-    return {
+    const shown: ShownRequest = {
       name: node.name,
       method: request.action.verb,
       url: replace(maskPresignedUrl(`${resolved.protocol}://${resolved.url}`)),
@@ -306,6 +357,12 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
       auth: auth ? { type: auth.value.authentication, source: sourceOf(auth.source) } : undefined,
       validation: redactDeep(resolved.validation, replace),
     };
+    if (request.action.type == 'websocket') {
+      shown.requestType = 'websocket';
+      shown.message = label(request.action.message ?? '');
+      shown.websocket = webSocketView(request.action);
+    }
+    return shown;
   } catch (e) {
     if (e instanceof TypeError || e instanceof ReferenceError) throw e;
     throw new QueryError((e as Error).message);

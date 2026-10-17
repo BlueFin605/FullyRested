@@ -7,7 +7,7 @@ import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
-  setExpect, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setTrigger, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
@@ -374,6 +374,21 @@ export function createServer(opts: McpOptions): McpServer {
     }
   }, a => runEdit(a.collection, ctx => setExpect(ctx, a.scope, {
     count: a.count, match: a.match, schema: a.schema, extras: a.extras, timeout: a.timeout, settle: a.settle
+  })));
+
+  server.registerTool('set_trigger', {
+    description: 'Set or clear the http request a websocket request fires to provoke its messages; give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      request: z.string().optional().describe('The http request to fire, a path in this collection (e.g. orders/list.frreq)'),
+      run: z.string().optional().describe('A run of that request; empty clears it'),
+      repeat: z.string().optional().describe('once | until-done'),
+      interval: z.number().int().optional().describe('ms between firings when repeating (at least 100)'),
+      delay: z.number().int().optional().describe('ms to wait after the message is sent before the first firing'),
+      clear: z.boolean().optional().describe('Remove the trigger (give nothing else)')
+    }
+  }, a => runEdit(a.collection, ctx => setTrigger(ctx, a.scope, {
+    request: a.request, run: a.run, repeat: a.repeat, interval: a.interval, delay: a.delay, clear: a.clear
   })));
 
   server.registerTool('rename', {

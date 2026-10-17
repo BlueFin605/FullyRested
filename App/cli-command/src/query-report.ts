@@ -1,4 +1,4 @@
-import { BodyResult, EditResult, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EditResult, WebSocketView, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -80,6 +80,17 @@ function validationMarker(v: TreeValidation): string {
   return v.type;
 }
 
+// One line for a websocket request's expect and trigger, shared by tree and show.
+function webSocketSummary(w: WebSocketView): string[] {
+  const e = w.expect;
+  const lines = [`expect: count ${e.count}, match ${e.match}, extras ${e.extras}, timeout ${e.timeout}ms, settle ${e.settle}ms, schema ${e.schema ? 'yes' : 'no'}`];
+  if (w.trigger) {
+    const t = w.trigger;
+    lines.push(`trigger: ${t.request}${t.run !== undefined ? ` › ${t.run}` : ''}, ${t.repeat}, interval ${t.interval}ms, delay ${t.delay}ms`);
+  }
+  return lines;
+}
+
 function treeLines(nodes: TreeNodeView[], depth: number): string[] {
   const pad = '  '.repeat(depth);
   return nodes.flatMap(n => {
@@ -88,7 +99,8 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
     const validation = n.validation ? `  [${validationMarker(n.validation)}]` : '';
     const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
       `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(runLine)];
+    const ws = n.websocket ? webSocketSummary(n.websocket).map(l => `${pad}  ${l}`) : [];
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...ws, ...(n.runs ?? []).map(runLine)];
   });
 }
 
@@ -139,6 +151,7 @@ export function formatShown(r: ShownRequest): string {
   section('headers', r.headers.map(h => `${h.key} = ${h.value}   ${tag(h.source, h.overridden)}`));
   section('variables', r.variables.map(v => `${v.variable} = ${v.value}   ${tag(v.source, v.overridden)}`));
   section('secrets', r.secrets.map(s => `${s.name}   ${tag(s.source, s.overridden)}`));
+  if (r.websocket) section('websocket', [...(r.message !== undefined ? [`message: ${r.message}`] : []), ...webSocketSummary(r.websocket)]);
   if (r.auth) section('auth', [`${r.auth.type}   (${r.auth.source})`]);
   if (r.validation !== undefined && r.validation !== null) section('validation', JSON.stringify(r.validation, null, 2).split('\n'));
   return lines.join('\n');

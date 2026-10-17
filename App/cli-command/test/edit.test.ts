@@ -386,6 +386,47 @@ describe('fullyrested edit: websocket verbs', () => {
     expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
   }, 60000); // about a dozen CLI spawns; Windows CI runs them well over the 5s default
 
+  it('set-trigger round-trips, shows in tree and show, clears, and refuses bad values', async () => {
+    let r = await edit('new-request', '--path', 'touch.frreq', '--method', 'put', '--url', 'http://localhost/touch');
+    expect(r.code).toBe(0);
+    r = await edit('new-run', '--request', 'touch.frreq', '--name', 'fixture');
+    expect(r.code).toBe(0);
+    await edit('set-type', 'websocket', '--scope', req);
+
+    r = await edit('set-trigger', '--scope', req, '--request', 'touch.frreq', '--run', 'fixture', '--repeat', 'once', '--interval', '250', '--delay', '50');
+    expect(r.code, r.err).toBe(0);
+    expect(readReq().trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', interval: 250, delay: 50 });
+    expect(readReq().trigger.run).toBe('fixture');
+
+    // only the options given change
+    r = await edit('set-trigger', '--scope', req, '--delay', '75');
+    expect(r.code).toBe(0);
+    expect(readReq().trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', interval: 250, delay: 75, run: 'fixture' });
+
+    const tree = await fullyrested(['tree', '-c', collection], dir);
+    expect(tree.out).toContain('trigger: touch.frreq › fixture, once, interval 250ms, delay 75ms');
+    expect(tree.out).toContain('expect: count 3, match any, extras fail, timeout 9000ms, settle 200ms, schema yes');
+    const shown = JSON.parse((await fullyrested(['show', '-c', collection, '-a', 'chat.frreq', '--json'], dir)).out);
+    expect(shown.websocket.trigger).toMatchObject({ request: 'touch.frreq', run: 'fixture', delay: 75 });
+    expect(shown.websocket.expect).toMatchObject({ count: 3, schema: true });
+    expect(shown.requestType).toBe('websocket');
+
+    const before = fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8');
+    for (const bad of [['--request', 'nope.frreq'], ['--request', 'chat.frreq'], ['--repeat', 'twice'], ['--interval', '5'], ['--delay', '-1'], ['--interval', 'soon'], ['--run', 'missing'], ['--clear', '--delay', '5'], []]) {
+      r = await edit('set-trigger', '--scope', req, ...bad);
+      expect(r.code, bad.join(' ')).toBe(2);
+    }
+    expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
+
+    r = await edit('set-trigger', '--scope', req, '--clear');
+    expect(r.code).toBe(0);
+    expect(readReq().trigger).toBeUndefined();
+    await edit('set-type', 'http', '--scope', req);
+    r = await edit('set-trigger', '--scope', req, '--request', 'touch.frreq');
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/websocket/);
+  }, 60000);
+
   it('set-auth --placement stores where the token goes, and refuses a bad name', async () => {
     let r = await edit('set-auth', '--scope', req, '--type', 'bearertoken', '--token', 'abc', '--placement', 'token');
     expect(r.code).toBe(0);

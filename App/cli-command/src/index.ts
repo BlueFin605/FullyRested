@@ -8,7 +8,7 @@ import {
   AuthFields, AuthoringContext, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody,
-  setExpect, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
+  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
@@ -425,6 +425,19 @@ withScope(editCommand('set-expect', 'Set what a websocket test waits for; only t
       timeout: options.timeout, settle: options.settle, schema
     }));
   }));
+
+withScope(editCommand('set-trigger', 'Set or clear the http request a websocket request fires to provoke its messages; only the options given change'))
+  .option('--request <locator>', 'the http request to fire, a path in this collection (e.g. orders/list.frreq)')
+  .option('--run <name>', "a run of that request; '' clears it")
+  .option('--repeat <once|until-done>', 'fire once, or keep firing until the test is done')
+  .option('--interval <ms>', 'milliseconds between firings when repeating', toNumber)
+  .option('--delay <ms>', 'milliseconds to wait after the message is sent before the first firing', toNumber)
+  .option('--clear', 'remove the trigger')
+  .action(queryAction(async (options: EditOptions & { scope: string; request?: string; run?: string; repeat?: string; interval?: number; delay?: number; clear?: boolean }) =>
+    runEdit(options, ctx => setTrigger(ctx, options.scope, {
+      request: options.request, run: options.run, repeat: options.repeat,
+      interval: options.interval, delay: options.delay, clear: options.clear
+    }))));
 
 withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference or validation header'))
   .requiredOption('--kind <kind>', `setting kind (${SETTING_KINDS.join(', ')})`)

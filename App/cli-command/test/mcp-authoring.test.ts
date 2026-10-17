@@ -46,6 +46,43 @@ function memoryKeychain() {
   };
 }
 
+describe('websocket trigger over MCP', () => {
+  it('sets, shows and clears a trigger', async () => {
+    const ws = workspace();
+    const client = await connectMcp({ secrets: createSecretStore({}, undefined) });
+    const call = (name: string, args: Record<string, unknown> = {}) => callTool(client, name, args);
+    const c = ws.collection;
+    try {
+      await call('new_collection', { file: c });
+      await call('new_request', { collection: c, path: 'touch.frreq', method: 'put', url: 'http://localhost/touch' });
+      await call('new_request', { collection: c, path: 'feed.frreq', method: 'get', url: 'ws://localhost/feed' });
+      await call('set_type', { collection: c, scope: 'request:feed.frreq', type: 'websocket' });
+
+      const set = await call('set_trigger', { collection: c, scope: 'request:feed.frreq', request: 'touch.frreq', repeat: 'once', delay: 20 });
+      expect(set.isError, set.text).toBe(false);
+      expect(readAction(path.join(ws.folder, 'feed.frreq')).trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', delay: 20 });
+
+      const tree = (await call('tree', { collection: c })).json();
+      const feed = tree.children.find((n: { name: string }) => n.name === 'feed');
+      expect(feed.websocket.trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', delay: 20 });
+      expect(feed.websocket.expect).toMatchObject({ count: 1, match: 'all', schema: false });
+      expect(tree.children.find((n: { name: string }) => n.name === 'touch').websocket).toBeUndefined();
+
+      const shown = (await call('show_request', { collection: c, action: 'feed.frreq' })).json();
+      expect(shown.websocket.trigger.request).toBe('touch.frreq');
+      expect(shown.websocket.expect.timeout).toBeGreaterThan(0);
+
+      const bad = await call('set_trigger', { collection: c, scope: 'request:feed.frreq', request: 'feed.frreq' });
+      expect(bad.isError).toBe(true);
+
+      expect((await call('set_trigger', { collection: c, scope: 'request:feed.frreq', clear: true })).isError).toBe(false);
+      expect(readAction(path.join(ws.folder, 'feed.frreq')).trigger).toBeUndefined();
+    } finally {
+      ws.cleanup();
+    }
+  });
+});
+
 describe('the authoring loop over MCP', () => {
   it('creates a collection, learns a validation from a run, and the learnt check then catches a change', async () => {
     const ws = workspace();
