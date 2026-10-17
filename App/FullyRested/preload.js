@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld(
             }
         },
         receive: (channel, func) => {
-            let validChannels = ["loadCollectionResponse", "savedAsCompleted"];
+            let validChannels = ["loadCollectionResponse", "savedAsCompleted", "wsSessionEvent"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
                 ipcRenderer.on(channel, (event, ...args) => {
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld(
             }
         },
         invoke: (channel, args) => {
-            let validChannels = ["testRest", "readState", "loadRequest", "listDir", "readText", "getSecret", "saveFolder", "saveRun", "listRuns", "loadRun"];
+            let validChannels = ["testRest", "readState", "loadRequest", "listDir", "readText", "getSecret", "saveFolder", "saveRun", "listRuns", "loadRun", "runWsTest", "openWsSession", "wsSessionEvents", "sendWsSession", "closeWsSession"];
             if (validChannels.includes(channel)) {
                 return ipcRenderer.invoke(channel, args);
             }

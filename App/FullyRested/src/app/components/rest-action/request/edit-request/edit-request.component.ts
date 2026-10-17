@@ -65,6 +65,11 @@ export class EditRequestComponent implements OnInit {
   // never while typing, so the caret doesn't jump.
   urlText: string = '';
 
+  // A websocket request is run as a test rather than sent
+  get isWebSocket(): boolean {
+    return this.action.type == 'websocket';
+  }
+
   readonly verbs = VERBS;
   readonly authLabel = authLabel;
   readonly bodyLabel = bodyLabel;

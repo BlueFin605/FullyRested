@@ -410,4 +410,83 @@ describe('ExecuteRestCallsService', () => {
       expect(saves[0].cases.length).toBe(1);
     });
   });
+
+  describe('websocket requests', () => {
+    let calls: { channel: string; args: any }[];
+    let wsOutcome: () => Promise<any>;
+
+    const wsNode = (extra: Partial<ReturnType<typeof CreateEmptyAction>> = {}) =>
+      rootNode().attach({
+        ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed', message: 'hello {{version}}', ...extra,
+      }, 'ws/feed.frreq');
+
+    beforeEach(() => {
+      calls = [];
+      wsOutcome = async () => ({ passed: true, errors: [], messages: [{ text: '{"a":1}', matched: true }] });
+      (window as any).ipc = {
+        invoke: async (channel: string, args: any) => {
+          calls.push({ channel, args });
+          if (channel == 'runWsTest') return wsOutcome();
+          if (channel == 'saveRun') return;
+          throw new Error('unexpected channel ' + channel);
+        },
+      };
+      const trees = TestBed.inject(CollectionTreeService) as any;
+      Object.defineProperty(trees, 'openCollection', {
+        get: () => ({ name: 'api', filename: 'C:/c/api.frcol', path: 'C:/c', config: rootNode().config }),
+        configurable: true,
+      });
+    });
+
+    const flush = () => new Promise(r => setTimeout(r));
+
+    it('runs through runWsTest, not testRest, with the substituted url, message and the collection root', async () => {
+      const result = await service.executeNode(wsNode(), 'prod');
+
+      const run = calls.find(c => c.channel == 'runWsTest')!;
+      expect(calls.some(c => c.channel == 'testRest')).toBeFalse();
+      expect(run.args.root).toBe('C:/c');
+      expect(run.args.request.url).toBe('wss://prod.example/feed');
+      expect(run.args.message).toBe('hello v1');
+      expect(result.status).toBe('PASS');
+    });
+
+    it('shows a failed test as FAIL with its errors', async () => {
+      wsOutcome = async () => ({ passed: false, errors: ['timed out'], messages: [] });
+
+      const result = await service.executeNode(wsNode());
+
+      expect(result.status).toBe('FAIL');
+      expect(result.statusText).toBe('timed out');
+    });
+
+    it('shows an ipc failure as an error result instead of throwing', async () => {
+      wsOutcome = async () => { throw new Error('guard says no'); };
+
+      const result = await service.executeNode(wsNode());
+
+      expect(result.status).toBe('error');
+      expect(result.statusText).toBe('guard says no');
+    });
+
+    it('records the run in run history as a WS case', async () => {
+      await service.executeNode(wsNode());
+      await flush();
+
+      const saved = calls.filter(c => c.channel == 'saveRun');
+      expect(saved.length).toBe(1);
+      const record: RunRecord = saved[0].args.record;
+      expect(record.redacted).toBeTrue();
+      expect(record.selection).toBe('request:ws/feed.frreq');
+      expect(record.cases[0].outcome).toBe('pass');
+      expect(record.cases[0].request?.method).toBe('WS');
+    });
+
+    it('puts the result in the latest results for the tab', async () => {
+      const latest = TestBed.inject(LatestResultsService);
+      await service.executeNode(wsNode());
+
+      expect(latest.get(resultKey('C:/c/api.frcol', 'ws/feed.frreq'))?.status).toBe('PASS');
+    });
+  });
 });

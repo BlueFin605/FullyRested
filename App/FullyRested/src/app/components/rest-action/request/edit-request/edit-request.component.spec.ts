@@ -57,4 +57,25 @@ describe('EditRequestComponent', () => {
 
     expect(sent.length).toBe(1);
   });
+
+  it('shows Send and the method picker for an HTTP request', () => {
+    const { element } = create({ url: 'x.example' });
+
+    expect(element.querySelector('button.send')?.textContent?.trim()).toBe('Send');
+    expect(element.querySelector('mat-select.verb-select')).not.toBeNull();
+  });
+
+  it('shows a Run button and a WS tag for a websocket request, and Run emits execute', () => {
+    const { element, component } = create({ type: 'websocket', url: 'wss://x.example/feed' });
+    const sent: unknown[] = [];
+    component.execute.subscribe((a) => sent.push(a));
+
+    const button = element.querySelector('button.send') as HTMLButtonElement;
+    button.click();
+
+    expect(button.textContent?.trim()).toBe('Run');
+    expect(element.querySelector('mat-select.verb-select')).toBeNull();
+    expect(element.querySelector('.fr-method')?.textContent?.trim()).toBe('WS');
+    expect(sent.length).toBe(1);
+  });
 });

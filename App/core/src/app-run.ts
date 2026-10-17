@@ -3,7 +3,8 @@ import { RestActionResult } from './builder';
 import { ResponseValidation, SecretTable } from './model';
 import { newAppRunId } from './file-run-store';
 import { redactCase } from './redact';
-import { RunRecord, buildCaseRecord } from './run-record';
+import { RunRecord, buildCaseRecord, buildWebSocketCaseRecord } from './run-record';
+import { WebSocketTestResult } from './websocket/test-run';
 
 // What the app knows about the node it just sent. kind picks the locator; path is the request's
 // collection-relative file path, which both RequestNode.path and RunNode.path already give.
@@ -98,6 +99,49 @@ export function buildScopeRunRecord(input: AppScopeInput): RunRecord {
     selection: input.selection,
     redacted: true,
     cases
+  };
+  if (input.environment !== undefined) record.environment = input.environment;
+  return record;
+}
+
+export interface AppWebSocketInput {
+  collection: string;
+  environment?: string;
+  node: AppSendNode;
+  /** The url without any query-string token. */
+  url: string;
+  headers: Record<string, string>;
+  message?: string;
+  result?: WebSocketTestResult;       // undefined when resolve or the run itself failed
+  error?: string;
+  ms: number;
+  secrets: SecretTable[] | undefined;
+  runId?: string;
+  startedAt?: string;
+}
+
+// One Run of a websocket request is one case, recorded and redacted the way an HTTP send is.
+export function buildAppWebSocketRunRecord(input: AppWebSocketInput): RunRecord {
+  const built = buildWebSocketCaseRecord({
+    index: 1,
+    name: input.node.name,
+    requestFile: input.node.path,
+    runName: input.node.runName,
+    ms: input.ms,
+    url: input.url,
+    headers: input.headers,
+    message: input.message,
+    result: input.result,
+    error: input.error
+  });
+
+  const record: RunRecord = {
+    runId: input.runId ?? newAppRunId(),
+    startedAt: input.startedAt ?? new Date().toISOString(),
+    collection: input.collection,
+    selection: appSelection(input.node),
+    redacted: true,
+    cases: [redactCase(built, input.secrets)]
   };
   if (input.environment !== undefined) record.environment = input.environment;
   return record;

@@ -27,7 +27,8 @@
     "@fullyrested/core": "file:../core",
     "@napi-rs/keyring": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
-    "update-electron-app": "^3.3.0"
+    "update-electron-app": "^3.3.0",
+    "ws": "8.22.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^22.2.2",
