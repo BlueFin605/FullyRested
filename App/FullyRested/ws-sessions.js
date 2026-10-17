@@ -6,7 +6,7 @@
 // where request is the renderer's resolved, variable-substituted request (as testRest receives it) and
 // root is the open collection's folder, checked by collection-access.js like every file handler's.
 // The query-placed token is added here and never leaves: every string sent back is scrubbed of it.
-const { LiveSession, applyAuthentication, normaliseExpect, runWebSocketTest, withQueryToken } = require('@fullyrested/core');
+const { LiveSession, applyAuthentication, executeRequest, normaliseExpect, normaliseTrigger, runWebSocketTest, withQueryToken } = require('@fullyrested/core');
 const { WsTransport } = require('./ws-transport');
 
 const MAX_SESSIONS = 10;
@@ -61,6 +61,7 @@ class WsSessions {
     // Runs one bounded test and returns its WebSocketTestResult. A failed test is a result, not a rejection.
     async runWsTest(payload) {
         this.guard(payload?.root);
+        const trigger = this.triggerFirer(payload.trigger);
         const target = await connectTarget(payload.request);
         const scrub = scrubber(target, payload.request);
         let result;
@@ -69,17 +70,44 @@ class WsSessions {
                 url: target.connectUrl,
                 headers: target.headers,
                 message: payload.message,
-                expect: normaliseExpect(payload.expect)
+                expect: normaliseExpect(payload.expect),
+                trigger
             });
         } catch (error) {
             throw new Error(scrub(error.message));
         }
         return {
             ...result,
+            ...(result.triggerCalls === undefined ? {} : {
+                triggerCalls: result.triggerCalls.map(c => c.error === undefined ? c : { ...c, error: scrub(c.error) })
+            }),
             errors: result.errors.map(scrub),
             messages: result.messages.map(m => ({ ...m, text: scrub(m.text) })),
             ...(result.closeReason === undefined ? {} : { closeReason: scrub(result.closeReason) })
         };
+    }
+
+    // A TriggerFirer around core's executeRequest for payload.trigger ({ request: <resolved ExecuteRestAction>,
+    // repeat, interval, delay }), or undefined. Fired by main; its calls come back as triggerCalls.
+    triggerFirer(trigger) {
+        if (trigger == undefined) return undefined;
+        if (trigger.request == undefined) throw new Error('The trigger has no request');
+        const { request, ...timing } = trigger;
+        const { repeat, interval, delay } = normaliseTrigger({ request: '', ...timing });
+        const fire = async () => {
+            const at = Date.now();
+            let response;
+            try {
+                response = await executeRequest(request);
+            } catch (error) {
+                return { at, error: String(error?.message ?? error), ms: Date.now() - at };
+            }
+            const ms = Date.now() - at;
+            return typeof response.status == 'number' && response.status >= 0
+                ? { at, status: response.status, ms }
+                : { at, error: String(response.statusText || response.status), ms };
+        };
+        return { repeat, interval, delay, fire };
     }
 
     // Opens a live session and returns { sessionId } or { error }. Events are pushed on 'wsSessionEvent'
