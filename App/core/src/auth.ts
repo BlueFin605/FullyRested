@@ -7,7 +7,10 @@ export interface PreparedRequest {
   method: string;                          // upper-case, e.g. 'POST'
   url: string;                             // absolute, e.g. 'https://api.example.com/items?x=1'
   headers: { [header: string]: string };
-  body: string | undefined;                // exactly the bytes that will be sent
+  body: string | undefined;                // exactly the bytes that will be sent, as text
+  // Set when the body is not text (multipart with a binary part): the bytes to send and sign, while
+  // body is the readable form kept in run records.
+  bodyBytes?: Uint8Array;
 }
 
 // Returns a copy of request with the authentication applied. 'inherit' must already have been resolved.
@@ -56,7 +59,7 @@ async function signAwsSigV4(request: PreparedRequest, aws: AuthenticationDetails
     path: url.pathname,
     query,
     headers: { ...request.headers, host: url.host },
-    body: request.body
+    body: request.bodyBytes ?? request.body
   };
 
   if (!aws.signUrl) {

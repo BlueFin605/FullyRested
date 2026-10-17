@@ -75,7 +75,7 @@ function toBase64(buffer: ArrayBuffer): string {
 
 function requestBody(request: PreparedRequest): RecordBody | undefined {
   if (request.body === undefined || request.body === '') return undefined;
-  const body: RecordBody = { bytes: new TextEncoder().encode(request.body).length, text: request.body };
+  const body: RecordBody = { bytes: request.bodyBytes?.length ?? new TextEncoder().encode(request.body).length, text: request.body };
   const contentType = headerValue(request.headers, 'content-type');
   if (contentType !== undefined) body.contentType = contentType;
   return body;

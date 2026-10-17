@@ -237,3 +237,32 @@ describe('the authoring loop over MCP', () => {
     }
   });
 });
+
+describe('multipart body and run url over MCP', () => {
+  it('sets file parts (base64, size, local path) and a run url override', async () => {
+    const ws = workspace();
+    const client = await connectMcp({ secrets: createSecretStore({}, undefined) });
+    const c = ws.collection;
+    try {
+      await callTool(client, 'new_collection', { file: c });
+      await callTool(client, 'new_request', { collection: c, path: 'up.frreq', method: 'post', url: 'http://localhost/up' });
+      await callTool(client, 'new_run', { collection: c, request: 'up.frreq', name: 'bad' });
+      fs.writeFileSync(path.join(ws.folder, 'a.bin'), Buffer.from([1, 2, 3]));
+      const body = await callTool(client, 'set_body', {
+        collection: c, scope: 'request:up.frreq', contentType: 'multipart/form-data',
+        fields: [{ name: 'k', value: 'v' }, { name: 'f', value: '', path: path.join(ws.folder, 'a.bin') }, { name: 'g', value: '', size: 9, filename: 'g.bin' }]
+      });
+      expect(body.isError).toBe(false);
+      const parts = readAction(path.join(ws.folder, 'up.frreq')).body.body as { key: string; base64?: string; size?: number; filename?: string }[];
+      expect(parts.map(p => p.key)).toEqual(['k', 'f', 'g']);
+      expect(parts[1]).toMatchObject({ filename: 'a.bin', base64: 'AQID' });
+      expect(parts[2]).toMatchObject({ filename: 'g.bin', size: 9 });
+
+      const url = await callTool(client, 'set_url', { collection: c, scope: 'run:up.frreq#bad', url: 'http://localhost/other' });
+      expect(url.isError).toBe(false);
+      expect(readAction(path.join(ws.folder, 'up.frreq')).runs[0]).toMatchObject({ url: 'localhost/other', protocol: 'http' });
+    } finally {
+      ws.cleanup();
+    }
+  });
+});

@@ -76,6 +76,20 @@ export const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
 
 export type FormField = ParamTable;
 
+// multipart/form-data: body is a MultipartPart[]. The boundary and CRLF framing are generated when the
+// request is sent, so nothing here depends on line endings.
+export const MULTIPART_CONTENT_TYPE = 'multipart/form-data';
+
+// One part. With neither filename, base64 nor size it is a plain text field (value is its text).
+// A filename makes it a file part: value is its text content, unless base64 gives binary content or
+// size asks for that many generated filler bytes (to exceed a size limit without a big file on disk).
+export interface MultipartPart extends ParamTable {
+    filename?: string;
+    contentType?: string;   // a file part's own Content-Type; default application/octet-stream (text/plain for a text file part)
+    base64?: string;        // binary content
+    size?: number;          // generated content of this many bytes
+}
+
 export enum ValidationType {
     Inherit = "Inherit",
     None = "None",
@@ -156,6 +170,10 @@ export interface RestActionRun {
     capture?: CaptureRule[];
     // Replaces the request's body for this run; absent = the request's. contentType 'none' sends no body.
     body?: RestActionBody;
+    // Replaces the request's url (and protocol, if it names one) for this run; absent = the request's.
+    // Query parameters still come from the request and the run.
+    url?: string;
+    protocol?: HttpProtocol;
 }
 
 export interface RestAction {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setBody, setMethod, setUrl } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
-import { FORM_CONTENT_TYPE } from '../src/model';
+import { FORM_CONTENT_TYPE, MULTIPART_CONTENT_TYPE } from '../src/model';
 import { QueryError } from '../src/query-error';
 import { files } from './fixtures/collection';
 
@@ -62,12 +62,54 @@ describe('setUrl', () => {
     expect(written(sink, 'users/get.frreq')).toMatchObject({ protocol: 'http', url: 'example.com/users' });
   });
 
-  it('refuses a run: locator, saying what a run does override', async () => {
+  it('overrides the url on a run, leaving the request alone, and removes the override with an empty url', async () => {
     const sink = new MemoryCollectionSink(files);
-    await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y')).rejects.toThrow(QueryError);
-    await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y'))
-      .rejects.toThrow(/set_url accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules and the body, not the url/);
-    expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+    const run = 'run:users/get.frreq#not found';
+    const result = await setUrl(ctxFor(sink), run, 'http://{{host}}/users/not-a-guid');
+
+    expect(result.changed).toBe(true);
+    const action = written(sink, 'users/get.frreq');
+    expect(action.url).toBe('https://x/u');
+    expect(action.runs[0]).toMatchObject({ url: '{{host}}/users/not-a-guid', protocol: 'http' });
+    expect((await setUrl(ctxFor(sink), run, 'http://{{host}}/users/not-a-guid')).changed).toBe(false);
+
+    expect((await setUrl(ctxFor(sink), run, '')).changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runs[0].url).toBeUndefined();
+    expect(written(sink, 'users/get.frreq').runs[0].protocol).toBeUndefined();
+    expect((await setUrl(ctxFor(sink), run, '')).changed).toBe(false);
+  });
+});
+
+describe('setBody multipart', () => {
+  const run = 'run:users/get.frreq#not found';
+
+  it('stores text, text-file, binary and generated parts', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', MULTIPART_CONTENT_TYPE, { fields: [
+      { name: 'note', value: 'hi' },
+      { name: 'doc', value: 'abc', filename: 'a.txt', contentType: 'text/plain' },
+      { name: 'bin', value: '', filename: 'b.bin', base64: 'AAEC' },
+      { name: 'big', value: '', size: 10 }
+    ] });
+
+    expect(written(sink, 'users/get.frreq').body).toEqual({ contentType: MULTIPART_CONTENT_TYPE, body: [
+      { key: 'note', value: 'hi', active: true, id: expect.any(String) },
+      { key: 'doc', value: 'abc', active: true, id: expect.any(String), filename: 'a.txt', contentType: 'text/plain' },
+      { key: 'bin', value: '', active: true, id: expect.any(String), filename: 'b.bin', base64: 'AAEC' },
+      { key: 'big', value: '', active: true, id: expect.any(String), filename: 'file', size: 10 }
+    ] });
+  });
+
+  it('works as a run override and rejects bad input', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: 'AAEC' }] });
+    expect(written(sink, 'users/get.frreq').runs[0].body.contentType).toBe(MULTIPART_CONTENT_TYPE);
+
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { text: 'x' })).rejects.toThrow(/takes fields/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: '!!' }] })).rejects.toThrow(/not valid base64/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: 'AA==', size: 3 }] })).rejects.toThrow(/not both/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', size: -1 }] })).rejects.toThrow(/whole number/);
+    await expect(setBody(ctxFor(sink), run, 'application/json', { fields: [{ name: 'f', value: '', size: 1 }] })).rejects.toThrow(/Only multipart/);
   });
 });
 
@@ -107,7 +149,7 @@ describe('setMethod', () => {
   it('refuses a run: locator, saying what a run does override', async () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setMethod(ctxFor(sink), 'run:users/get.frreq#not found', 'post'))
-      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules and the body, not the method/);
+      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules, the body and the url, not the method/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 });

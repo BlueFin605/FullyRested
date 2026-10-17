@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { FORM_CONTENT_TYPE, FormField, RestActionBody, RestTypeVerb } from './model';
+import { FORM_CONTENT_TYPE, FormField, MULTIPART_CONTENT_TYPE, RestActionBody, RestTypeVerb } from './model';
+import { buildMultipart } from './multipart';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { applyAuthentication, PreparedRequest } from './auth';
 
@@ -26,7 +27,7 @@ export async function executeRequest(action: IExecuteRestAction, options: { sign
       method: request.method,
       url: request.url,
       headers: request.headers,
-      data: request.body,
+      data: request.bodyBytes ?? request.body,
       signal: options.signal,
       responseType: 'arraybuffer',
       transformResponse: (data: unknown) => data,
@@ -57,11 +58,22 @@ export async function executeRequest(action: IExecuteRestAction, options: { sign
 export function prepareRequest(action: IExecuteRestAction): PreparedRequest {
   const method = (action.verb == RestTypeVerb.option ? 'options' : action.verb).toUpperCase();
   const bodyDetails = action.body as RestActionBody | undefined;
-  const body = serializeBody(bodyDetails);
   const headers = { ...action.headers };
+  const contentTypeHeader = Object.keys(headers).find(h => h.toLowerCase() == 'content-type');
 
-  const hasContentType = Object.keys(headers).some(h => h.toLowerCase() == 'content-type');
-  if (body !== undefined && !hasContentType && bodyDetails)
+  if (bodyDetails && bodyDetails.contentType == MULTIPART_CONTENT_TYPE) {
+    // The boundary is generated here, so a content-type header that names multipart/form-data without
+    // one gets it; any other header (say application/json, to see a 415) is left as written and the
+    // multipart bytes are sent under it.
+    const multipart = buildMultipart(bodyDetails.body);
+    const declared = contentTypeHeader == undefined ? undefined : headers[contentTypeHeader];
+    if (declared == undefined || (/^\s*multipart\/form-data\s*(;|$)/i.test(declared) && !/boundary=/i.test(declared)))
+      headers[contentTypeHeader ?? 'content-type'] = `${MULTIPART_CONTENT_TYPE}; boundary=${multipart.boundary}`;
+    return { method, url: requestUrl(action.protocol, action.url), headers, body: multipart.text, bodyBytes: multipart.bytes };
+  }
+
+  const body = serializeBody(bodyDetails);
+  if (body !== undefined && contentTypeHeader == undefined && bodyDetails)
     headers['content-type'] = bodyDetails.contentType;
 
   return { method, url: requestUrl(action.protocol, action.url), headers, body };
