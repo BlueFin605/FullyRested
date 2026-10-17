@@ -80,6 +80,60 @@ body.
 
 **Response viewers:** JSON, XML, HTML and images.
 
+## WebSocket requests
+
+A request with `"type": "websocket"` (`http` is the default, so every existing
+file means what it did) takes a `ws://` or `wss://` URL and opens a socket
+instead of sending an HTTP call. It reuses the URL variables, headers, auth,
+folder inheritance, environments, secrets and runs of an HTTP request; headers
+and auth go on the handshake. Binary frames are not supported.
+
+| Field | Meaning |
+|---|---|
+| `message` | The text frame sent once the socket opens. `{{variables}}` and `{{$secrets}}` are substituted |
+| `expect.count` | How many messages to wait for. Default 1 |
+| `expect.match` | `all` (default): each of the first `count` messages must match the schema, and a mismatch fails at once. `any`: pass when one message matches; earlier mismatches are extras |
+| `expect.schema` | A JSON Schema, stored as text as for HTTP validation (`{ "schema": "..." }`), checked against each message. A message that is not JSON does not match |
+| `expect.extras` | `ignore` (default) or `fail`. An extra is a message past the count, or a mismatch under `any` |
+| `expect.timeout` | Overall time limit in milliseconds. Default 5000 |
+| `expect.settle` | Milliseconds to keep listening after a pass so a late extra is caught. Default 500; used only with `extras: fail` |
+
+HTTP validation fields are not used, and a run overrides variables, secrets,
+headers, parameters and auth but not `message` or `expect`.
+
+```json
+{
+  "type": "websocket",
+  "url": "{{wsBase}}/realtime",
+  "message": "{\"action\":\"subscribe\",\"board\":\"main\"}",
+  "authentication": { "authentication": "bearertoken", "placement": "token",
+                      "bearerToken": { "token": "{{$idToken}}" } },
+  "expect": { "count": 1, "match": "all", "timeout": 5000,
+              "schema": { "schema": "{\"type\":\"object\",\"required\":[\"type\"]}" } }
+}
+```
+
+**Auth placement.** A browser cannot set headers on a WebSocket, so some
+servers (BlueFinWiki's realtime endpoint) read the token from the query string.
+Bearer-token auth has a `placement`: `header` (the default, as for HTTP) or the
+name of a query parameter, such as `token`. The token is URL-encoded into the
+connect URL. Run records, output and errors show the URL without it, and a
+failed connect never prints it.
+
+**Two ways to use a socket.**
+
+- **A test is bounded.** **Run** in the app, `fullyrested run` and the MCP
+  `run` tool send `message`, check what comes back against `expect`, and
+  close the socket. It passes or fails (on a mismatch, a timeout, a close or a
+  rejected handshake) and is recorded like any other case, with the received
+  messages and the close code. It runs in a suite beside HTTP requests.
+- **A live session is open-ended.** It stays open until you close it, shows
+  each message with a sequence number and time, and lets you send more frames.
+  It holds the newest 1,000 events in memory and writes nothing to disk. In the
+  app, press **Live** on a websocket request, or type a URL into the panel.
+  From a terminal use `fullyrested ws watch`; for an agent, the `ws_session_*`
+  MCP tools.
+
 ## Installing
 
 Download the latest build from
@@ -176,6 +230,7 @@ fullyrested run -c api.frcol --all --junit results.xml
 | `-f, --folder <path>` | Every request under that folder; `.` is the whole collection. Cannot be combined with `--action` |
 | `--all` | Every run of `--action`, or every request under the collection's folder. A request with no runs is sent as it is |
 | `--junit <file>` | Also write a JUnit XML report |
+| `--timeout <ms>` | Websocket tests: wait this long instead of the request's `expect.timeout`, for this run only (the file is not changed). A positive whole number; ignored with a warning for HTTP requests |
 
 It prints one line per test, `PASS|FAIL <name> <status> <time>`, with any
 validation errors under it, then a summary. A request with no validation
@@ -186,6 +241,32 @@ when anything fails, and 2 for bad options.
 `FULLYRESTED_SECRET_<NAME>` (upper-cased, with anything not a letter or digit
 turned into `_`), then from the OS keychain the desktop app saves to. On CI,
 set the environment variables.
+
+### Live websocket sessions
+
+```sh
+# watch a websocket request, sending a frame once it opens
+fullyrested ws watch -c api.frcol "events/feed.frreq" --send '{"action":"subscribe"}'
+
+# or a bare URL, one JSON line per event
+fullyrested ws watch wss://example.com/socket --json
+```
+
+`ws watch <target>` takes a websocket request file (with `-c`, and optionally
+`-e` and `-r`) or a `ws://` / `wss://` URL. It prints each message to stdout
+until the server closes the socket or you press Ctrl+C, and nothing else goes to
+stdout; warnings and errors go to stderr. `--send <message...>` sends frames
+once the session opens. `--json` prints each event as a JSON line, including a
+`close` event with its code and reason; otherwise a close prints as
+`[closed <code> <reason>]`. `--timeout` is validated but ignored with a
+warning, as a session has nothing to time out. The exit code is 0 after a
+normal close or Ctrl+C, 1 after an abnormal close or a failed connect, and 2
+for bad options.
+
+`ws send <message>` sends into the session its own process holds. Every CLI
+invocation is its own process and a session lives only while `ws watch` runs, so
+run on its own it exits 2 with "No open session". To send from the command line,
+use `ws watch --send`; to keep a session open between sends, use the MCP tools.
 
 ## Editing a collection
 
@@ -317,6 +398,14 @@ has:
 | `set_url`, `set_method`, `set_body` | A request's own fields |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |
+| `set_type`, `set_message`, `set_expect` | Websocket requests: switch a request between `http` and `websocket` (switching back keeps `message` and `expect`), set the frame to send, and set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`; give only the fields to change). `set_auth` also takes `placement`. The CLI's `edit` command does not have these |
+| `ws_session_open` | Open a live websocket session on a websocket request (`target` plus `collection`, optionally `environment` and `run`) or a `ws://` / `wss://` URL. Returns a `sessionId`. A failed connect never reveals the URL or token |
+| `ws_session_events` | Read a session's events after a cursor (`after`, default 0). Returns `events`, the new `cursor` and `closed`; pass the cursor back to read only what is new |
+| `ws_session_send` | Send a text frame. A session the server has closed returns an error result |
+| `ws_session_close` | Close a session and return its close code and reason |
+
+`run` also takes `timeoutMs`, the same override as the CLI's `--timeout`.
+Sessions live in the MCP server's memory until closed or the server exits.
 
 The authoring tools take the same locators the CLI does (see **Editing a
 collection**), and the loop is three steps:
