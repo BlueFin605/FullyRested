@@ -120,6 +120,33 @@ name of a query parameter, such as `token`. The token is URL-encoded into the
 connect URL. Run records, output and errors show the URL without it, and a
 failed connect never prints it.
 
+**Trigger.** A server often pushes a message only after something else
+happens, such as an HTTP call that changes data. A websocket request can name
+an HTTP request in the same collection to fire after the message is sent:
+
+| Field | Meaning |
+|---|---|
+| `trigger.request` | The HTTP request to fire, as a path relative to the collection (for example `pages/touch.frreq`). It must exist, be `http`, and not be the websocket request itself |
+| `trigger.run` | A run of that request, by name or id. Default: the request itself |
+| `trigger.repeat` | `until-done` (default): fire again every `interval` until the test finishes, which avoids racing the server's subscription of the new socket. `once`: fire a single time |
+| `trigger.interval` | Milliseconds between firings. Default 1000, at least 100 |
+| `trigger.delay` | Milliseconds to wait after the message is sent before the first firing. Default 0 |
+
+The trigger fires with the same environment and secrets as the test and only
+during a test (**Run**, `fullyrested run`, the MCP `run` tool), never in a live
+session. A failing trigger does not fail the test by itself; the `expect`
+rules decide. A timeout where every trigger call failed names the trigger, for
+example "trigger returned 401 on all 7 calls". Each firing is recorded as a
+trigger call (time, status or error, duration) in the run record and shown in
+the app's response pane. In the app, the websocket editor has a **Trigger**
+section, and the live panel has a **Fire request** button that sends any
+request of the collection once into a running session.
+
+Set it from a terminal with `fullyrested edit set-trigger` (flags `--request`,
+`--run`, `--repeat`, `--interval`, `--delay`, `--clear`; give only what changes)
+or from an agent with `set_trigger`. `tree` and `show` print a websocket
+request's `expect:` and `trigger:` lines.
+
 **Two ways to use a socket.**
 
 - **A test is bounded.** **Run** in the app, `fullyrested run` and the MCP
@@ -406,6 +433,13 @@ has:
 
 `run` also takes `timeoutMs`, the same override as the CLI's `--timeout`.
 Sessions live in the MCP server's memory until closed or the server exits.
+
+**Provoking a message in a live session.** To watch what an HTTP call causes,
+open the session first, make the call, then read the events:
+`ws_session_open` (a websocket request or URL) -> `run` the HTTP request ->
+`ws_session_events` (with the cursor from the last read) -> `ws_session_close`.
+For a repeatable test, put the HTTP request in the websocket request's trigger
+with `set_trigger` and `run` the websocket request instead.
 
 The authoring tools take the same locators the CLI does (see **Editing a
 collection**), and the loop is three steps:
