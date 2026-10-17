@@ -1,9 +1,10 @@
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  AuthoringContext, EditResult, LOCATOR_FORMS, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
+  AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
   setExpect, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
@@ -12,6 +13,7 @@ import { edit } from './authoring';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
 import { runCollection } from './run';
+import { connectSession } from './ws';
 
 // The SDK's CJS entry points resolve under module node16, so plain static imports are used.
 export interface McpOptions { defaultStore?: string; secrets: SecretStore }
@@ -32,6 +34,14 @@ const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-head
 export function createServer(opts: McpOptions): McpServer {
   const server = new McpServer({ name: 'fullyrested', version: require('../package.json').version });
   const memory = new MemoryRunStore(20);
+  // Live websocket sessions live in this process, like the run store, until closed or the server exits
+  const sessions = new Map<string, LiveSession>();
+  const sessionFor = (id: string): LiveSession => {
+    const session = sessions.get(id);
+    if (session === undefined)
+      throw new Error(`No open session '${id}' (it was never opened, or has been closed)`);
+    return session;
+  };
 
   const fsStore = (dir?: string): FsRunStore | undefined => {
     const d = dir ?? opts.defaultStore;
@@ -108,6 +118,51 @@ export function createServer(opts: McpOptions): McpServer {
       }
     }
     return runResult(record);
+  }));
+
+  // Websocket sessions. Websocket tests go through `run`; these hold a connection open to read and send.
+  const sessionId = z.string().describe('Session id from ws_session_open');
+
+  server.registerTool('ws_session_open', {
+    description: 'Open a live websocket session on a websocket request (with collection) or a ws:// or wss:// url; returns a session id.',
+    inputSchema: {
+      target: z.string().describe('A ws:// or wss:// url, or a websocket request file (.frreq) with collection'),
+      collection: collection.optional(), environment: z.string().optional(), run: z.string().optional()
+    }
+  }, a => respond(async () => {
+    const session = await connectSession(a.target, { collection: a.collection, environment: a.environment, run: a.run }, opts.secrets);
+    const id = randomUUID();
+    sessions.set(id, session);
+    return { sessionId: id };
+  }));
+
+  server.registerTool('ws_session_events', {
+    description: 'Read the events of a session after a cursor (default 0, all held); returns the events, the new cursor and whether it is closed.',
+    inputSchema: { sessionId, after: z.number().int().min(0).optional().describe('Cursor from the previous read') }
+  }, a => respond(() => {
+    const read = sessionFor(a.sessionId).readEvents(a.after ?? 0);
+    return { events: read.events, cursor: read.lastSeq, closed: read.closed };
+  }));
+
+  server.registerTool('ws_session_send', {
+    description: 'Send a text frame into an open session; a closed session returns an error result.',
+    inputSchema: { sessionId, message: z.string().describe('Text frame to send') }
+  }, a => respond(() => {
+    const result = sessionFor(a.sessionId).send(a.message);
+    if (!result.ok)
+      throw new Error(result.error);
+    return { sent: true };
+  }));
+
+  server.registerTool('ws_session_close', {
+    description: 'Close a session and return its close code and reason.',
+    inputSchema: { sessionId }
+  }, a => respond(() => {
+    const session = sessionFor(a.sessionId);
+    session.close();
+    sessions.delete(a.sessionId);
+    const close = session.readEvents(0).events.reverse().find(e => e.kind === 'close');
+    return close?.kind === 'close' ? { closed: true, code: close.code, reason: close.reason } : { closed: true };
   }));
 
   server.registerTool('list_runs', {

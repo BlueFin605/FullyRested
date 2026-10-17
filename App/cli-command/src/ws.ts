@@ -50,6 +50,19 @@ export function formatEvent(event: SessionEvent, json: boolean): string {
 
 const isUrl = (target: string) => /^wss?:\/\//i.test(target);
 
+/**
+ * Resolves a websocket request or url and connects a live session. The url may carry a token, so a
+ * connect error is reported without it.
+ */
+export async function connectSession(target: string, options: WatchOptions, store: SecretStore, factory: SocketFactory = newTransport): Promise<LiveSession> {
+  const { connectUrl, headers } = await resolveTarget(target, options, store);
+  try {
+    return await LiveSession.open(factory(), connectUrl, headers);
+  } catch (error) {
+    throw new Error(`Could not connect: ${(error as Error).message.split(connectUrl).join('<url>')}`);
+  }
+}
+
 async function resolveTarget(target: string, options: WatchOptions, store: SecretStore): Promise<{ connectUrl: string; headers: { [h: string]: string } }> {
   if (isUrl(target))
     return { connectUrl: target, headers: {} };
@@ -83,14 +96,7 @@ export async function watchSession(
   stop: AbortSignal,
   factory: SocketFactory = newTransport
 ): Promise<boolean> {
-  const { connectUrl, headers } = await resolveTarget(target, options, store);
-  // The url may carry a token, so the connect error is reported without it
-  let session: LiveSession;
-  try {
-    session = await LiveSession.open(factory(), connectUrl, headers);
-  } catch (error) {
-    throw new Error(`Could not connect: ${(error as Error).message.split(connectUrl).join('<url>')}`);
-  }
+  const session = await connectSession(target, options, store, factory);
   active = session;
 
   try {
