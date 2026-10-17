@@ -265,7 +265,8 @@ describe('inspect commands', () => {
     const r = await fullyrested(['tree', '-c', fx.collection]);
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/^ {2}items\/$/m);
-    expect(r.out).toMatch(/^ {4}ok {2}GET \{\{host\}\}\/ok {2}\[ResponseCode\]$/m);
+    expect(r.out).toMatch(/^ {4}ok {2}GET \{\{host\}\}\/ok {2}\[ResponseCode 200]$/m);
+    expect(r.out).toMatch(/^ {2}environment: Dev$/m);
     expect(r.out).toContain('› expects 404');
     expect(JSON.parse((await fullyrested(['tree', '-c', fx.collection, '--json'])).out).collection).toBe('api');
   });

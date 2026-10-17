@@ -224,3 +224,87 @@ test('no more than ten sessions can be open', async () => {
 
     assert.match(eleventh.error, /At most 10/);
 });
+
+// A server that pushes a websocket message only when its HTTP /touch endpoint is hit (status 401 when `touchStatus` says so).
+async function startTriggerServer(touchStatus = 200) {
+    server = http.createServer((req, res) => {
+        if (req.url == '/touch') {
+            res.statusCode = touchStatus;
+            if (touchStatus == 200) for (const c of wss.clients) c.send('{"event":"touched"}');
+        } else {
+            res.statusCode = 404;
+        }
+        res.end();
+    });
+    wss = new WebSocketServer({ server });
+    await new Promise(r => server.listen(0, '127.0.0.1', r));
+    base = `127.0.0.1:${server.address().port}`;
+}
+
+const touch = (overrides = {}) => ({
+    request: { verb: 'get', protocol: 'http', url: `${base}/touch`, headers: {}, ...overrides.request },
+    repeat: 'until-done', interval: 100, delay: 0, ...overrides.timing
+});
+
+test('runWsTest fires its trigger and passes on the event it causes', async () => {
+    await startTriggerServer();
+
+    const result = await sessions.runWsTest({
+        root: collection, request: { url: `ws://${base}` }, expect: expectOne, trigger: touch()
+    });
+
+    assert.equal(result.passed, true);
+    assert.deepEqual(result.messages.map(m => m.text), ['{"event":"touched"}']);
+    // the call that caused the event is recorded even though it was still in flight when the message arrived
+    assert.ok(result.triggerCalls.length >= 1);
+    assert.ok(result.triggerCalls.every(c => c.status == 200));
+    assert.ok(result.triggerCalls.every(c => c.at >= 0 && c.at < 5000), 'at is ms since the test started');
+});
+
+test('runWsTest shows a failing trigger in triggerCalls', async () => {
+    await startTriggerServer(401);
+
+    const result = await sessions.runWsTest({
+        root: collection, request: { url: `ws://${base}` }, expect: { ...expectOne, timeout: 500 }, trigger: touch()
+    });
+
+    assert.equal(result.passed, false);
+    assert.ok(result.triggerCalls.length >= 1);
+    assert.ok(result.triggerCalls.every(c => c.status == 401));
+});
+
+test('runWsTest scrubs a trigger error of the query token, the trigger secret and a presigned url', async () => {
+    await startTriggerServer();
+    const connectUrl = `ws://${base}/feed?token=${encodeURIComponent(TOKEN)}`;
+    const leaky = new WsSessions(access, {
+        // a failing call whose text echoes everything that must not reach the renderer
+        executeRequest: async () => ({
+            status: -1,
+            statusText: `refused ${connectUrl} bearer ${TOKEN} key hunter2-key https://h/p?X-Amz-Signature=abcdef123`
+        })
+    });
+    const trigger = touch({ request: { secrets: [{ $secret: 'apikey', $value: 'hunter2-key', active: true, id: 's' }] } });
+
+    const result = await leaky.runWsTest({
+        root: collection,
+        request: { url: `ws://${base}/feed`, authentication: bearerInQuery },
+        expect: { ...expectOne, timeout: 400 },
+        trigger
+    });
+
+    assert.ok(result.triggerCalls.length >= 1);
+    const text = result.triggerCalls[0].error;
+    assert.match(text, /refused/);
+    for (const leak of [TOKEN, encodeURIComponent(TOKEN), 'hunter2-key', 'abcdef123'])
+        assert.ok(!JSON.stringify(result).includes(leak), `leaked ${leak} in ${JSON.stringify(result)}`);
+    assert.ok(text.includes('{{$secret:apikey}}'));
+    assert.ok(text.includes('X-Amz-Signature=***'));
+});
+
+test('runWsTest with a trigger still refuses a root that is not the open collection', async () => {
+    const other = path.join(dir, 'other');
+    fs.mkdirSync(other);
+    await assert.rejects(
+        () => sessions.runWsTest({ root: other, request: { url: 'ws://x' }, trigger: touch() }),
+        /not the open collection/);
+});

@@ -1,4 +1,4 @@
-import { BodyResult, EditResult, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EditResult, McpView, WebSocketView, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -73,11 +73,33 @@ export function parseRange(text: string): [number, number] | undefined {
 // or Inherit→<effective> when the row's own type is Inherit (the resolved type's own schema
 // completeness is in the TreeValidation data for a programmatic reader, but left out of this
 // one-line marker to keep an inherited row to a single arrow rather than two nested annotations).
+//
+// The expected status follows as a bare number (`Body(schema) 201`), then `hdrs:N` for N active
+// expected response headers when headers are checked. Neither is shown when the data lacks it.
 function validationMarker(v: TreeValidation): string {
-  if (v.type === 'Inherit') return `Inherit→${v.effective}`;
-  if (v.incomplete) return `${v.type}(no schema!)`;
-  if (v.schema) return `${v.type}(schema)`;
-  return v.type;
+  const extra = `${v.status !== undefined ? ` ${v.status}` : ''}${v.headers !== undefined ? ` hdrs:${v.headers}` : ''}`;
+  if (v.type === 'Inherit') return `Inherit→${v.effective}${extra}`;
+  if (v.incomplete) return `${v.type}(no schema!)${extra}`;
+  if (v.schema) return `${v.type}(schema)${extra}`;
+  return `${v.type}${extra}`;
+}
+
+// One line for a websocket request's expect and trigger, shared by tree and show.
+function webSocketSummary(w: WebSocketView): string[] {
+  const e = w.expect;
+  const lines = [`expect: count ${e.count}, match ${e.match}, extras ${e.extras}, timeout ${e.timeout}ms, settle ${e.settle}ms, schema ${e.schema ? 'yes' : 'no'}`];
+  if (w.trigger) {
+    const t = w.trigger;
+    lines.push(`trigger: ${t.request}${t.run !== undefined ? ` › ${t.run}` : ''}, ${t.repeat}, interval ${t.interval}ms, delay ${t.delay}ms`);
+  }
+  return lines;
+}
+
+// One line for an MCP request's call and expect, shared by tree and show.
+function mcpSummary(m: McpView): string {
+  const e = m.expect;
+  const expect = [e.outcome, e.code !== undefined ? `code ${e.code}` : undefined, e.text !== undefined ? `text '${e.text}'` : undefined].filter(p => p !== undefined).join(', ');
+  return `mcp: ${m.method}${m.tool !== undefined ? ' ' + m.tool : ''}${m.handshake ? ', handshake' : ''}; expect ${expect}`;
 }
 
 function treeLines(nodes: TreeNodeView[], depth: number): string[] {
@@ -88,13 +110,16 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
     const validation = n.validation ? `  [${validationMarker(n.validation)}]` : '';
     const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
       `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...(n.runs ?? []).map(runLine)];
+    const ws = n.websocket ? webSocketSummary(n.websocket).map(l => `${pad}  ${l}`) : [];
+    const mcp = n.mcp ? [`${pad}  ${mcpSummary(n.mcp)}`] : [];
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}${n.runsOnly ? '  [runs-only]' : ''}`, ...ws, ...mcp, ...(n.runs ?? []).map(runLine)];
   });
 }
 
 export function formatTree(t: TreeView): string {
   const top = t.folder === undefined ? `${t.collection}/` : `${t.collection}/${t.folder}/`;
-  return [top, ...treeLines(t.children, 1)].join('\n');
+  const env = t.environment === undefined ? [] : [`  environment: ${t.environment}`];
+  return [top, ...env, ...treeLines(t.children, 1)].join('\n');
 }
 
 const list = (names: string[]) => names.length === 0 ? '-' : names.join(', ');
@@ -139,6 +164,9 @@ export function formatShown(r: ShownRequest): string {
   section('headers', r.headers.map(h => `${h.key} = ${h.value}   ${tag(h.source, h.overridden)}`));
   section('variables', r.variables.map(v => `${v.variable} = ${v.value}   ${tag(v.source, v.overridden)}`));
   section('secrets', r.secrets.map(s => `${s.name}   ${tag(s.source, s.overridden)}`));
+  if (r.websocket) section('websocket', [...(r.message !== undefined ? [`message: ${r.message}`] : []), ...webSocketSummary(r.websocket)]);
+  if (r.mcp) section('mcp', [mcpSummary(r.mcp).replace(/^mcp: /, ''), ...(r.mcp.params !== '' ? [`params: ${r.mcp.params}`] : [])]);
+  if (r.capture) section('capture', r.capture.map(c => `{{${c.variable}}} = ${c.from}${c.path ? ' ' + c.path : ''}`));
   if (r.auth) section('auth', [`${r.auth.type}   (${r.auth.source})`]);
   if (r.validation !== undefined && r.validation !== null) section('validation', JSON.stringify(r.validation, null, 2).split('\n'));
   return lines.join('\n');

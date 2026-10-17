@@ -246,3 +246,28 @@ describe('maskPresignedUrl', () => {
     expect(request.url).toBe('https://x.test/?key={{$secret:k}}&X-Amz-Signature=***');
   });
 });
+
+describe('redactCase on a websocket case with trigger calls', () => {
+  const wsCase = (error: string): CaseRecord => ({
+    ...base(),
+    request: { method: 'WS', url: 'wss://x.test/feed', headers: {} },
+    websocket: {
+      messages: [],
+      errors: [`trigger returned ${error}`],
+      triggerCalls: [{ at: 5, ms: 1, error }],
+    },
+  } as CaseRecord);
+
+  it('masks the secrets of both the websocket and the trigger request, and presigned parameters', () => {
+    const error = 'refused wsKeyValue and trigKeyValue at https://h/p?X-Amz-Signature=abc123&X-Amz-Credential=AKIDEXAMPLE%2F20261017%2Fus%2Fs&k=v';
+    const out = redactCase(wsCase(error), [secret('ws', 'wsKeyValue'), secret('trig', 'trigKeyValue')]);
+
+    const text = JSON.stringify(out.websocket);
+    for (const leak of ['wsKeyValue', 'trigKeyValue', 'abc123', '20261017'])
+      expect(text).not.toContain(leak);
+    expect(out.websocket!.triggerCalls![0]!.error).toContain('{{$secret:trig}}');
+    expect(out.websocket!.triggerCalls![0]!.error).toContain('X-Amz-Signature=***');
+    expect(out.websocket!.triggerCalls![0]!.error).toContain('AKIDEXAMPLE');
+    expect(out.websocket!.triggerCalls![0]!.error).toContain('&k=v');
+  });
+});

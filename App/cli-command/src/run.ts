@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
-  CaseRecord, RunRecord, TestCase, basenameOf, casesFor, casesForScope, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
+  CaseRecord, RunRecord, TestCase, Captured, addCaptured, captureFromResponse, basenameOf, casesFor, casesForScope, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
   redactCase, relativePath, validateResponse, validateTimeoutMs
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
@@ -129,6 +129,9 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     return [{ node: run, name: run.name }];
   }
 
+  if (request.action.runsOnly == true && !options.all)
+    throw new UsageError(`'${request.name}' is runs-only: give --run <name> or --all (sending it bare is refused)`);
+
   return options.all ? casesFor(request) : [{ node: request, name: request.name }];
 }
 
@@ -136,7 +139,7 @@ function requestNodeOf(node: RequestNode | RunNode): RequestNode {
   return node instanceof RunNode ? node.request : node;
 }
 
-async function runCase(test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean, timeoutMs?: number): Promise<CaseRecord> {
+async function runCase(root: CollectionNode, test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean, timeoutMs?: number, captured: Captured = []): Promise<CaseRecord> {
   const base = {
     index,
     name: test.name,
@@ -145,11 +148,11 @@ async function runCase(test: TestCase, index: number, environmentId: string | un
   };
 
   if (isWebSocketRequest(requestNodeOf(test.node)))
-    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs);
+    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs, root, captured);
 
   let request;
   try {
-    request = test.node.resolve({ environmentId }).replaceVariables();
+    request = test.node.resolve({ environmentId, captured }).replaceVariables();
   } catch (error) {
     return buildCaseRecord({ ...base, ms: 0, error: (error as Error).message });
   }
@@ -165,6 +168,16 @@ async function runCase(test: TestCase, index: number, environmentId: string | un
   const validation = gotResponse ? validateResponse(request, response) : undefined;
   const built = buildCaseRecord({ ...base, ms, request: prepared, response, validation });
   const record = includeSecrets ? built : redactCase(built, request.secrets);
+  const rules = gotResponse ? test.node.captureRules() : [];
+  if (rules.length > 0) {
+    const outcome = captureFromResponse(rules, response);
+    addCaptured(captured, outcome.values);
+    if (outcome.values.length > 0) record.captured = outcome.values.map(v => v.variable);
+    if (outcome.errors.length > 0 && record.outcome == 'pass') {
+      record.outcome = 'error';
+      record.error = outcome.errors.join('; ');
+    }
+  }
   if (!gotResponse)
     noResponseStatus.set(record, response.status);
   return record;
@@ -210,8 +223,10 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
   if (environment.name != undefined)
     record.environment = environment.name;
 
+  // Values captured by one case, for the cases after it in this run only
+  const captured: Captured = [];
   for (const [i, test] of cases.entries()) {
-    const c = await runCase(test, i + 1, environment.id, includeSecrets, timeoutMs); // case indexes are 1-based
+    const c = await runCase(root, test, i + 1, environment.id, includeSecrets, timeoutMs, captured); // case indexes are 1-based
     record.cases.push(c);
     hooks.onCase?.(c);
   }

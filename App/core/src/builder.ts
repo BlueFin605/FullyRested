@@ -1,5 +1,5 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
-import { substituteDeep } from './substitution';
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, McpExpect, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
+import { newBuiltIns, substituteDeep } from './substitution';
 
 // https://wallis.dev/blog/typescript-project-references
 // https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
@@ -14,7 +14,16 @@ export interface IExecuteRestAction {
   secrets: SecretTable[] | undefined;
   variables: VariableTable[] | undefined;
   validation: RestActionValidation | undefined;
+  // Set for an MCP request: the body already holds the JSON-RPC envelope; this drives the handshake
+  // and the MCP check. Absent for http.
+  mcp?: ExecuteMcp;
 };
+
+export interface ExecuteMcp {
+  method: string;
+  handshake: boolean;
+  expect: McpExpect;
+}
 
 export class ExecuteRestAction implements IExecuteRestAction {
   verb: RestTypeVerb;
@@ -26,6 +35,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
   secrets: SecretTable[] | undefined;
   variables: VariableTable[] | undefined;
   validation: RestActionValidation | undefined;
+  mcp?: ExecuteMcp;
 
   constructor(copy: IExecuteRestAction) {
     this.verb = copy.verb;
@@ -37,6 +47,8 @@ export class ExecuteRestAction implements IExecuteRestAction {
     this.secrets = copy.secrets;
     this.variables = copy.variables;
     this.validation = copy.validation;
+    if (copy.mcp != undefined)
+      this.mcp = copy.mcp;
   }
 
 
@@ -167,6 +179,11 @@ export class ExecuteRestAction implements IExecuteRestAction {
     return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
   }
 
+  public setMcp(mcp: ExecuteMcp | undefined): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({ ...me, mcp });
+  }
+
   public setValidation(validation: RestActionValidation | undefined): ExecuteRestAction {
     var me: ExecuteRestAction = this;
     return new ExecuteRestAction({ ...me, validation: validation });
@@ -176,13 +193,14 @@ export class ExecuteRestAction implements IExecuteRestAction {
   // The variable and secret tables themselves are left as-is.
   public replaceVariables(): ExecuteRestAction {
     var me: ExecuteRestAction = this;
+    const builtins = newBuiltIns();   // one {{$guid}} per request, the same in url, body and validation
     return new ExecuteRestAction({
       ...me,
-      url: substituteDeep(this.url, this.variables, this.secrets),
-      headers: substituteDeep(this.headers, this.variables, this.secrets),
-      body: substituteDeep(this.body, this.variables, this.secrets),
-      authentication: substituteDeep(this.authentication, this.variables, this.secrets),
-      validation: substituteDeep(this.validation, this.variables, this.secrets)
+      url: substituteDeep(this.url, this.variables, this.secrets, builtins),
+      headers: substituteDeep(this.headers, this.variables, this.secrets, builtins),
+      body: substituteDeep(this.body, this.variables, this.secrets, builtins),
+      authentication: substituteDeep(this.authentication, this.variables, this.secrets, builtins),
+      validation: substituteDeep(this.validation, this.variables, this.secrets, builtins)
     });
   }
 }

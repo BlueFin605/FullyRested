@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { ExecuteRestAction, HttpProtocol, NETWORK_ERROR_STATUS, RestTypeVerb, bodyToString, executeRequest } from '../src';
+import { ExecuteRestAction, HttpProtocol, NETWORK_ERROR_STATUS, RestTypeVerb, bodyToString, executeRequest, prepareRequest } from '../src';
 
 let server: Server;
 let host = '';
@@ -127,5 +127,24 @@ describe('executeRequest', () => {
     expect(result.status).toBe(NETWORK_ERROR_STATUS['ECONNREFUSED']);
     expect(result.status).toBe(-4);
     expect(result.statusText).toBe('ECONNREFUSED');
+  });
+
+  it('explains an https handshake against a plain-http server (EPROTO) and how to fix the protocol', async () => {
+    const result = await executeRequest(to('/ok').setProtocol(HttpProtocol.https));
+
+    expect(result.status).toBe(-99);
+    expect(result.statusText).toMatch(/EPROTO/);
+    expect(result.statusText).toMatch(/protocol is https/);
+    expect(result.statusText).toMatch(/set-protocol --protocol http/);
+  });
+});
+
+describe('prepareRequest content type shorthand', () => {
+  it("sends a stored 'json' body as Content-Type application/json", async () => {
+    const action = new ExecuteRestAction({
+      name: 'x', verb: RestTypeVerb.post, protocol: HttpProtocol.http, url: 'h/x', headers: {}, parameters: {},
+      body: { contentType: 'json', body: '{}' }
+    } as any);
+    expect(prepareRequest(action).headers['content-type']).toBe('application/json');
   });
 });

@@ -17,6 +17,7 @@ import {
   HttpProtocol,
   RequestType,
   applyRequestType,
+  mcpView,
   normaliseAction,
   RestTypeVerb,
   buildRequestUrl,
@@ -79,6 +80,20 @@ export class EditRequestComponent implements OnInit {
   // A websocket request is run as a test rather than sent
   get isWebSocket(): boolean {
     return this.action.type == 'websocket';
+  }
+
+  // An MCP request is sent as a POST of its JSON-RPC call; the call itself is authored with
+  // set_mcp / set_mcp_expect (CLI or MCP), so the editor only describes it.
+  get isMcp(): boolean {
+    return this.action.type == 'mcp';
+  }
+
+  get mcpSummary(): string {
+    const view = mcpView(this.action);
+    const e = view.expect;
+    const expect = [e.outcome, e.code !== undefined ? `code ${e.code}` : undefined, e.text ? `text '${e.text}'` : undefined]
+      .filter((p) => p !== undefined).join(', ');
+    return `${view.method}${view.tool ? ' ' + view.tool : ''}${view.handshake ? ', handshake' : ''}; expect ${expect}`;
   }
 
   readonly verbs = VERBS;
@@ -249,11 +264,11 @@ export class EditRequestComponent implements OnInit {
     this.actionChange.emit(this.action);
   }
 
-  // Switch between HTTP and websocket. Message and expect stay in the request when going back to HTTP.
+  // Switch between HTTP, websocket and MCP. The other types' fields stay in the request.
   onTypeChange(event: { value: RequestType }) {
     if (!applyRequestType(this.action, event.value)) return;
     normaliseAction(this.action);
-    if (event.value == 'http') this.invalidChange.emit(false);
+    if (event.value != 'websocket') this.invalidChange.emit(false);
     this.actionChange.emit(this.action);
   }
 

@@ -1,6 +1,10 @@
-import { ExpectExtras, ExpectMatch, RequestType, RestAction, WebSocketExpect } from '../model';
-import { normaliseExpect } from '../normalise';
+import { parseLocator } from '../locator';
+import { ExpectExtras, ExpectMatch, RequestType, RestAction, TriggerRepeat, WebSocketExpect } from '../model';
+import { normaliseExpect, normaliseTrigger } from '../normalise';
+import { normaliseMcpCall } from '../mcp';
 import { QueryError } from '../query-error';
+import { RequestNode } from '../scope';
+import { loadCollectionTree } from '../tree';
 import { validateTimeoutMs } from '../websocket/timeout';
 import { AuthoringContext, EditResult, editScope, requestAction } from './edit-scope';
 import { parseJsonSchema } from './validation';
@@ -12,7 +16,7 @@ import { parseJsonSchema } from './validation';
 const runOverrideHint = (field: string): string =>
     `a run overrides variables, secrets, headers, parameters, auth and validation, not the ${field}`;
 
-const REQUEST_TYPES: RequestType[] = ['http', 'websocket'];
+const REQUEST_TYPES: RequestType[] = ['http', 'websocket', 'mcp'];
 const MATCHES: ExpectMatch[] = ['all', 'any'];
 const EXTRAS: ExpectExtras[] = ['ignore', 'fail'];
 
@@ -25,7 +29,7 @@ function matchValue<T extends string>(values: T[], given: string, label: string)
 
 function requireWebsocket(action: RestAction, verb: string): void {
     if (action.type != 'websocket')
-        throw new QueryError(`${verb} applies to a websocket request; this one is http (use set_type websocket first)`);
+        throw new QueryError(`${verb} applies to a websocket request; this one is ${action.type ?? 'http'} (use set_type websocket first)`);
 }
 
 function requireInt(field: string, value: number, min: number): number {
@@ -46,10 +50,12 @@ export function applyRequestType(action: RestAction, wanted: RequestType): boole
         action.message = action.message ?? '';
         action.expect = normaliseExpect(action.expect);
     }
+    if (wanted == 'mcp')
+        action.mcp = normaliseMcpCall(action.mcp);
     return true;
 }
 
-// Sets whether a request is plain HTTP or a websocket. Switching to websocket fills the websocket
+// Sets whether a request is plain HTTP, a websocket or an MCP call. Switching to websocket fills the websocket
 // defaults (normaliseAction runs after apply); switching back leaves message and expect in the
 // file, so flipping the type is not destructive.
 export async function setType(ctx: AuthoringContext, scope: string, type: string): Promise<EditResult> {
@@ -136,4 +142,97 @@ export async function setExpect(ctx: AuthoringContext, scope: string, fields: Ex
         action.expect = expect;
         return `Set expect on ${scope}`;
     }, runOverrideHint('expect'));
+}
+
+// --- set_trigger --------------------------------------------------------------------------------
+
+const REPEATS: TriggerRepeat[] = ['once', 'until-done'];
+
+// The fields of a websocket request's trigger. Each is optional so one call changes only what it
+// names; `clear` removes the trigger and takes nothing else.
+export interface TriggerFields {
+    request?: string;    // an http request in the same collection, e.g. 'pages/touch.frreq'
+    run?: string;        // a run of that request; '' clears it
+    repeat?: string;     // 'once' | 'until-done'
+    interval?: number;   // ms, at least 100
+    delay?: number;      // ms, at least 0
+    clear?: boolean;
+}
+
+// Accepts 'pages/touch.frreq' or 'request:pages/touch.frreq' and returns the collection-relative path.
+function triggerPath(request: string): string {
+    if (typeof request != 'string' || request.trim() == '')
+        throw new QueryError('request must name an http request in this collection, e.g. pages/touch.frreq');
+    const text = request.trim();
+    return parseLocator(/^request:/i.test(text) ? text : `request:${text}`).path!;
+}
+
+// Sets, changes or clears the trigger of a websocket request: an http request in the same collection
+// that a run fires after the message is sent. Every value is checked before anything is written.
+export async function setTrigger(ctx: AuthoringContext, scope: string, fields: TriggerFields): Promise<EditResult> {
+    const clear = fields.clear == true;
+    const given = [fields.request, fields.run, fields.repeat, fields.interval, fields.delay].some(v => v !== undefined);
+    if (clear && given)
+        throw new QueryError('clear removes the trigger and cannot be combined with request, run, repeat, interval or delay');
+    if (!clear && !given)
+        throw new QueryError('set_trigger needs at least one of request, run, repeat, interval, delay or clear');
+
+    const repeat = fields.repeat == undefined ? undefined : matchValue(REPEATS, fields.repeat, 'repeat');
+    const interval = fields.interval == undefined ? undefined : requireInt('interval', fields.interval, 100);
+    const delay = fields.delay == undefined ? undefined : requireInt('delay', fields.delay, 0);
+    const path = fields.request == undefined ? undefined : triggerPath(fields.request);
+    if (fields.run !== undefined && typeof fields.run != 'string')
+        throw new QueryError('run must be text');
+
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+
+    return editScope(ctx, 'set_trigger', scope, ['request'], (target, resolved) => {
+        const action = requestAction(target);
+        requireWebsocket(action, 'set_trigger');
+
+        if (clear) {
+            if (action.trigger == undefined)
+                return '';
+            delete action.trigger;
+            return `Cleared trigger on ${scope}`;
+        }
+
+        const current = action.trigger;
+        const requestPath = path ?? current?.request;
+        if (requestPath == undefined)
+            throw new QueryError('a new trigger needs a request (an http request in this collection)');
+
+        const node = root.find(requestPath);
+        if (!(node instanceof RequestNode)) {
+            const known = root.requestNodes().map(r => r.path).join(', ') || 'none';
+            throw new QueryError(`Trigger request '${requestPath}' not found (known: ${known})`);
+        }
+        if (node.path == resolved.file)
+            throw new QueryError(`Trigger request '${requestPath}' is the websocket request itself`);
+        if ((node.action.type ?? 'http') != 'http')
+            throw new QueryError(`Trigger request '${requestPath}' is a websocket request; a trigger must be http`);
+
+        // Pointing at a different request drops the old run unless a run is given with it.
+        const run = fields.run !== undefined ? (fields.run == '' ? undefined : fields.run)
+            : (path != undefined && path != current?.request ? undefined : current?.run);
+        // Stored as given (a name or an id); the resolvers and the editor's picker accept either.
+        if (run != undefined && !node.action.runs.some(r => r.id == run || r.name == run)) {
+            const known = node.action.runs.map(r => r.name).join(', ') || 'none';
+            throw new QueryError(`Run '${run}' not found in '${node.name}' (known: ${known})`);
+        }
+
+        const next = normaliseTrigger({
+            ...current, request: requestPath, run,
+            ...(repeat != undefined && { repeat }),
+            ...(interval != undefined && { interval }),
+            ...(delay != undefined && { delay })
+        });
+        if (next.run === undefined)
+            delete next.run;
+        if (JSON.stringify(next) == JSON.stringify(current))
+            return '';
+
+        action.trigger = next;
+        return `Set trigger on ${scope}`;
+    }, runOverrideHint('trigger'));
 }

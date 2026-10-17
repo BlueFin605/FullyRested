@@ -29,3 +29,20 @@ export function bodyToString(contentType: string | undefined, body: ArrayBuffer 
     return new TextDecoder('utf-8').decode(body);
   }
 }
+
+const CONTENT_TYPE_SHORTHANDS: { [name: string]: string } = {
+  json: 'application/json',
+  xml: 'application/xml',
+  text: 'text/plain',
+  txt: 'text/plain',
+  html: 'text/html',
+  form: 'application/x-www-form-urlencoded',
+  urlencoded: 'application/x-www-form-urlencoded',
+  multipart: 'multipart/form-data'
+};
+
+// A bare shorthand ('json', 'xml', 'text', 'html', 'form', 'multipart', any case) becomes the real media
+// type; anything else (including 'none' and 'inherit', which are not media types) is returned as it is.
+export function normaliseContentType(contentType: string): string {
+  return CONTENT_TYPE_SHORTHANDS[contentType.trim().toLowerCase()] ?? contentType;
+}

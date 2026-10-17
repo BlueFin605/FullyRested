@@ -1,7 +1,10 @@
 import axios from 'axios';
-import { FORM_CONTENT_TYPE, FormField, RestActionBody, RestTypeVerb } from './model';
+import { FORM_CONTENT_TYPE, FormField, MULTIPART_CONTENT_TYPE, RestActionBody, RestTypeVerb } from './model';
+import { normaliseContentType } from './content-type';
+import { buildMultipart } from './multipart';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { applyAuthentication, PreparedRequest } from './auth';
+import { executeMcp } from './mcp';
 
 // Status reported in RestActionResult when no HTTP response was received
 export const NETWORK_ERROR_STATUS: { [code: string]: number } = {
@@ -17,8 +20,14 @@ export const NETWORK_ERROR_STATUS: { [code: string]: number } = {
 export const UNKNOWN_ERROR_STATUS = -99;
 
 // Sends a request whose variables have already been substituted (ExecuteRestAction.replaceVariables).
-// Never throws: network failures come back as a negative status.
-export async function executeRequest(action: IExecuteRestAction): Promise<RestActionResult> {
+// Never throws: network failures (and an abort through options.signal) come back as a negative status.
+// An MCP request (action.mcp set) goes through executeMcp: the optional handshake, then the call,
+// with an SSE reply turned into its JSON-RPC message.
+export async function executeRequest(action: IExecuteRestAction, options: { signal?: AbortSignal } = {}): Promise<RestActionResult> {
+  return action.mcp != undefined ? executeMcp(action, options, sendHttp) : sendHttp(action, options);
+}
+
+async function sendHttp(action: IExecuteRestAction, options: { signal?: AbortSignal }): Promise<RestActionResult> {
   try {
     const request = await applyAuthentication(prepareRequest(action), action.authentication);
 
@@ -26,7 +35,8 @@ export async function executeRequest(action: IExecuteRestAction): Promise<RestAc
       method: request.method,
       url: request.url,
       headers: request.headers,
-      data: request.body,
+      data: request.bodyBytes ?? request.body,
+      signal: options.signal,
       responseType: 'arraybuffer',
       transformResponse: (data: unknown) => data,
       validateStatus: () => true
@@ -44,7 +54,7 @@ export async function executeRequest(action: IExecuteRestAction): Promise<RestAc
     const code = (error as { code?: string }).code;
     return {
       status: (code && NETWORK_ERROR_STATUS[code]) || UNKNOWN_ERROR_STATUS,
-      statusText: code ?? (error as Error).message,
+      statusText: protocolMismatchHint(error, action) ?? code ?? (error as Error).message,
       headers: {},
       headersSent: {},
       body: undefined,
@@ -53,17 +63,45 @@ export async function executeRequest(action: IExecuteRestAction): Promise<RestAc
   }
 }
 
+// A TLS handshake against a plain-http server fails with EPROTO ("wrong version number"). Say
+// what that means for the request, and the fix, rather than a bare error code.
+function protocolMismatchHint(error: unknown, action: IExecuteRestAction): string | undefined {
+  const e = error as { code?: string; message?: string };
+  if (e.code != 'EPROTO' && !/wrong version number/i.test(e.message ?? ''))
+    return undefined;
+  if (!/^https:/i.test(requestUrl(action.protocol, action.url)))
+    return undefined;
+  return 'EPROTO: TLS handshake failed (wrong version number) -- the request\'s protocol is https but the server looks like plain http; set the request\'s protocol to http (edit set-protocol --protocol http, or MCP set_protocol)';
+}
+
 export function prepareRequest(action: IExecuteRestAction): PreparedRequest {
   const method = (action.verb == RestTypeVerb.option ? 'options' : action.verb).toUpperCase();
   const bodyDetails = action.body as RestActionBody | undefined;
-  const body = serializeBody(bodyDetails);
   const headers = { ...action.headers };
+  const contentTypeHeader = Object.keys(headers).find(h => h.toLowerCase() == 'content-type');
 
-  const hasContentType = Object.keys(headers).some(h => h.toLowerCase() == 'content-type');
-  if (body !== undefined && !hasContentType && bodyDetails)
-    headers['content-type'] = bodyDetails.contentType;
+  if (bodyDetails && bodyDetails.contentType == MULTIPART_CONTENT_TYPE) {
+    // The boundary is generated here, so a content-type header that names multipart/form-data without
+    // one gets it; any other header (say application/json, to see a 415) is left as written and the
+    // multipart bytes are sent under it.
+    const multipart = buildMultipart(bodyDetails.body);
+    const declared = contentTypeHeader == undefined ? undefined : headers[contentTypeHeader];
+    if (declared == undefined || (/^\s*multipart\/form-data\s*(;|$)/i.test(declared) && !/boundary=/i.test(declared)))
+      headers[contentTypeHeader ?? 'content-type'] = `${MULTIPART_CONTENT_TYPE}; boundary=${multipart.boundary}`;
+    return { method, url: requestUrl(action.protocol, action.url), headers, body: multipart.text, bodyBytes: multipart.bytes };
+  }
 
-  return { method, url: `${action.protocol}://${action.url}`, headers, body };
+  const body = serializeBody(bodyDetails);
+  if (body !== undefined && contentTypeHeader == undefined && bodyDetails)
+    headers['content-type'] = normaliseContentType(bodyDetails.contentType);
+
+  return { method, url: requestUrl(action.protocol, action.url), headers, body };
+}
+
+// The url a request is sent to. A url that already carries its scheme -- a captured presigned
+// uploadUrl, say -- is used as it is; otherwise the request's protocol is put in front.
+export function requestUrl(protocol: string, url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `${protocol}://${url}`;
 }
 
 function serializeBody(body: RestActionBody | undefined): string | undefined {

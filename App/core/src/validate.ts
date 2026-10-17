@@ -4,14 +4,18 @@ import { ResponseValidation, RestActionValidation, ValidationCheck, ValidationTy
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { substituteDeep } from './substitution';
 import { bodyToString } from './content-type';
+import { validateMcp } from './mcp';
 
 const valid = (): ResponseValidation => ({ information: [], errors: [], valid: true });
 const invalid = (errors: string[]): ResponseValidation => ({ information: [], errors, valid: false });
 
 // undefined means "no validation configured"
+// An MCP request (action.mcp set) also gets an 'mcp' check of its JSON-RPC reply, unless its
+// expect.outcome is 'any'; that check runs even when HTTP validation is None.
 export function validateResponse(action: IExecuteRestAction, response: RestActionResult): ResponseValidation | undefined {
+  const mcp = mcpCheck(action, response);
   if (action.validation == undefined || action.validation.type == ValidationType.None)
-    return undefined;
+    return mcp == undefined ? undefined : { information: [], errors: mcp.errors, valid: mcp.passed, checks: [mcp] };
 
   const validation = substituteDeep(action.validation, action.variables, action.secrets);
 
@@ -31,7 +35,18 @@ export function validateResponse(action: IExecuteRestAction, response: RestActio
     checks.push({ check: 'headers', passed: headers.valid, errors: headers.errors });
   }
 
+  if (mcp != undefined)
+    checks.push(mcp);
+
   return { information: [], errors: checks.flatMap(c => c.errors), valid: checks.every(c => c.passed), checks };
+}
+
+function mcpCheck(action: IExecuteRestAction, response: RestActionResult): ValidationCheck | undefined {
+  if (action.mcp == undefined || action.mcp.expect.outcome == 'any')
+    return undefined;
+  const expect = substituteDeep(action.mcp.expect, action.variables, action.secrets);
+  const result = validateMcp(action.mcp.method, expect, response);
+  return { check: 'mcp', passed: result.valid, errors: result.errors };
 }
 
 export function validateBody(validation: RestActionValidation, response: RestActionResult): ResponseValidation {

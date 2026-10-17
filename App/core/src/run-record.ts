@@ -1,7 +1,7 @@
 import { ResponseValidation, ValidationCheck } from './model';
 import { RestActionResult } from './builder';
 import { PreparedRequest } from './auth';
-import type { ReceivedMessage, WebSocketTestResult } from './websocket/test-run';
+import type { ReceivedMessage, TriggerCall, WebSocketTestResult } from './websocket/test-run';
 
 export interface RecordBody { contentType?: string; bytes: number; text?: string; base64?: string }
 
@@ -15,6 +15,8 @@ export interface CaseRecord {
   request: { method: string; url: string; headers: Record<string, string>; body?: RecordBody };
   response?: { status: number; statusText?: string; headers: Record<string, string>; body?: RecordBody };
   validation?: { valid: boolean; checks: ValidationCheck[] };
+  /** Names of the variables this case captured for later cases (never their values) */
+  captured?: string[];
   error?: string;
   /** Set for a websocket case: what the socket received and how it ended. */
   websocket?: WebSocketRecord;
@@ -28,6 +30,8 @@ export interface WebSocketRecord {
   connectStatus?: number;
   /** Why the test failed; empty when it passed. */
   errors: string[];
+  /** Every trigger firing, in order; omitted when the case has no trigger. */
+  triggerCalls?: TriggerCall[];
 }
 
 export interface RunRecord {
@@ -71,7 +75,7 @@ function toBase64(buffer: ArrayBuffer): string {
 
 function requestBody(request: PreparedRequest): RecordBody | undefined {
   if (request.body === undefined || request.body === '') return undefined;
-  const body: RecordBody = { bytes: new TextEncoder().encode(request.body).length, text: request.body };
+  const body: RecordBody = { bytes: request.bodyBytes?.length ?? new TextEncoder().encode(request.body).length, text: request.body };
   const contentType = headerValue(request.headers, 'content-type');
   if (contentType !== undefined) body.contentType = contentType;
   return body;
@@ -157,6 +161,7 @@ export function buildWebSocketCaseRecord(input: WebSocketCaseInput): CaseRecord 
     if (result.closeCode !== undefined) ws.closeCode = result.closeCode;
     if (result.closeReason !== undefined) ws.closeReason = result.closeReason;
     if (result.connectStatus !== undefined) ws.connectStatus = result.connectStatus;
+    if (result.triggerCalls?.length) ws.triggerCalls = result.triggerCalls.map(t => ({ ...t }));
     record.websocket = ws;
   }
 

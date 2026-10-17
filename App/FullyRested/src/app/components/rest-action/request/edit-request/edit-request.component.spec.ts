@@ -121,6 +121,33 @@ describe('EditRequestComponent', () => {
     expect(fixture.nativeElement.querySelector('app-edit-request-websocket')).toBeNull();
   });
 
+  it('shows an MCP tag and the call, keeps Validation and drops Body for an MCP request', () => {
+    const { element } = create({
+      type: 'mcp', url: '{{host}}/mcp',
+      mcp: { method: 'tools/call', params: '{"name":"kanban_get","arguments":{}}', handshake: true, expect: { outcome: 'tool-error', text: 'boom' } },
+    });
+
+    expect(element.querySelector('mat-select.verb-select')).toBeNull();
+    expect(element.querySelector('.fr-method')?.textContent?.trim()).toBe('MCP');
+    expect(element.querySelector('.mcp-summary')?.textContent?.trim()).toBe("tools/call kanban_get, handshake; expect tool-error, text 'boom'");
+    expect(element.querySelector('button.send')?.textContent?.trim()).toBe('Send');
+    const tabs = [...element.querySelectorAll('.mat-mdc-tab')].map((t) => t.textContent?.trim() ?? '');
+    expect(tabs.some((t) => t.startsWith('Body'))).toBeFalse();
+    expect(tabs).toContain('Validation');
+  });
+
+  it('switches HTTP to MCP with the call defaults, like set_type', () => {
+    const { component } = create({ url: 'x.example' });
+    const invalid: boolean[] = [];
+    component.invalidChange.subscribe((v) => invalid.push(v));
+
+    component.onTypeChange({ value: 'mcp' });
+
+    expect(component.action.type).toBe('mcp');
+    expect(component.action.mcp).toEqual({ method: 'tools/list', params: '', handshake: false, expect: { outcome: 'result' } });
+    expect(invalid).toEqual([false]);
+  });
+
   it('does nothing when the chosen type is already set', () => {
     const { component } = create({ url: 'x.example' });
     const changed: unknown[] = [];

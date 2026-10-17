@@ -8,3 +8,4 @@ export * from './authoring/request-fields';
 export * from './authoring/validation';
 export * from './authoring/structure';
 export * from './authoring/websocket';
+export * from './authoring/mcp';

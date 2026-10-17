@@ -23,9 +23,9 @@ const QUERY_TOOLS = [
 // One tool per authoring verb, named as the spec names them, plus the read tool `settings`.
 const EDIT_TOOLS = [
   'new_collection', 'new_folder', 'new_request', 'new_run', 'new_environment', 'select_environment',
-  'set_header', 'set_param', 'set_variable', 'add_secret_ref', 'set_auth', 'remove_setting',
-  'set_url', 'set_method', 'set_body', 'set_validation', 'set_validation_header',
-  'validation_from_case', 'set_type', 'set_message', 'set_expect', 'rename', 'delete', 'move', 'settings'
+  'set_header', 'set_param', 'set_variable', 'add_secret_ref', 'set_auth', 'set_capture', 'remove_setting',
+  'set_url', 'set_protocol', 'set_method', 'set_body', 'set_validation', 'set_validation_header',
+  'validation_from_case', 'set_runs_only', 'set_type', 'set_message', 'set_expect', 'set_trigger', 'set_mcp', 'set_mcp_expect', 'rename', 'delete', 'move', 'settings'
 ];
 
 const WS_TOOLS = ['ws_session_open', 'ws_session_events', 'ws_session_send', 'ws_session_close'];

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { RequestNode, RunNode, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
-import type { AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, WebSocketTestResult } from '@fullyrested/core';
+import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, addCaptured, captureFromResponse, substituteDeep, validateResponse } from '@fullyrested/core';
+import type { Captured, RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, SecretTable, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import { RunHistoryService } from '../run-history/run-history.service';
@@ -13,6 +13,8 @@ export const EmptyActionResult: RestActionResult = { status: "", statusText: und
 
 // What the UI shows about a response beyond what core returns: how long it took and how big it was
 export interface TimedActionResult extends RestActionResult {
+  // the trigger requests a websocket test fired, in order
+  triggerCalls?: TriggerCall[];
   durationMs?: number;
   sizeBytes?: number;
 }
@@ -26,6 +28,8 @@ export interface ScopeOutcome { total: number; ran: number; cancelled: boolean; 
 interface SentWebSocket {
   resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
   result?: WebSocketTestResult; error?: string; ms: number; shown: TimedActionResult;
+  /** The websocket request's secrets plus its trigger request's, for redacting the record. */
+  secrets?: SecretTable[];
 }
 
 interface SentCase {
@@ -49,7 +53,8 @@ export const webSocketResult = (test: WebSocketTestResult, ms: number): TimedAct
     body: { contentType: 'text/plain', body: bytes.buffer as ArrayBuffer },
     validated: { valid: test.passed, errors: test.errors, information: [] },
     durationMs: ms,
-    sizeBytes: bytes.byteLength
+    sizeBytes: bytes.byteLength,
+    ...(test.triggerCalls?.length ? { triggerCalls: test.triggerCalls } : {})
   };
 };
 
@@ -92,6 +97,33 @@ export class ExecuteRestCallsService {
     return resultKey(collection?.filename || collection?.path, node.path, runIdOf(node));
   }
 
+  // The http request a websocket request's trigger names, resolved like any send (folders, environment, variables),
+  // with its timing, ready for the runWsTest payload. In a batch, `captured` holds the values earlier cases
+  // captured. undefined when there is no trigger; throws, naming the locator, when it cannot be resolved.
+  resolveTrigger(action: RestAction, environmentId: string | undefined, captured?: Captured) {
+    if (action.trigger == undefined) return undefined;
+    const trigger = normaliseTrigger(action.trigger);
+    const target = this.trees.tree.value?.find(trigger.request);
+    if (!(target instanceof RequestNode)) throw new Error(`Trigger request '${trigger.request}' not found in the collection`);
+    if ((target.action.type ?? 'http') != 'http') throw new Error(`Trigger request '${trigger.request}' is a websocket request; a trigger must be http`);
+    let node: RequestNode | RunNode = target;
+    if (trigger.run != undefined) {
+      const run = target.runs().find(r => r.run.id == trigger.run || r.run.name == trigger.run);
+      if (run == undefined) throw new Error(`Trigger run '${trigger.run}' not found in '${trigger.request}'`);
+      node = run;
+    }
+    const request = node.resolve({ environmentId, captured }).replaceVariables();
+    return { request, repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay };
+  }
+
+  // Sends one http request of the open collection (optionally one of its runs) through the normal send
+  // path; used by the live panel's Fire request. Throws when it cannot be found or sent.
+  async fireRequest(path: string, runId: string | undefined, environmentId: string | undefined): Promise<TimedActionResult> {
+    const target = this.trees.tree.value?.find(path);
+    if (!(target instanceof RequestNode)) throw new Error(`Request '${path}' not found in the collection`);
+    return this.executeNode(runId ? target.run(runId) : target, environmentId);
+  }
+
   // Resolves the node through its folders, environment and collection, sends it and checks the response:
   // the same steps the CLI runs
   async executeNode(node: RequestNode | RunNode, environmentId?: string): Promise<TimedActionResult> {
@@ -118,7 +150,9 @@ export class ExecuteRestCallsService {
   }
 
   // The one websocket run, shared by a single Run and by a folder or collection run. Never throws.
-  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentWebSocket> {
+  // In a batch, `captured` (read, never added to: a websocket case does not capture) reaches the url,
+  // headers, message, expect and the trigger request.
+  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, captured?: Captured): Promise<SentWebSocket> {
     const started = performance.now();
     const action = (node instanceof RunNode ? node.request : node).action;
     let resolved: ExecuteRestAction | undefined;
@@ -127,19 +161,25 @@ export class ExecuteRestCallsService {
     let message: string | undefined;
     let result: WebSocketTestResult | undefined;
     let error: string | undefined;
+    let secrets: SecretTable[] | undefined;
     try {
-      resolved = node.resolve({ environmentId });
+      resolved = node.resolve({ environmentId, captured });
+      secrets = resolved.secrets;
       const request = resolved.replaceVariables();
       url = request.url;
       headers = request.headers;
       message = substituteDeep(action.message ?? '', request.variables, request.secrets);
+      const expect = substituteDeep(action.expect, request.variables, request.secrets);
+      const trigger = this.resolveTrigger(action, environmentId, captured);
+      if (trigger != undefined) secrets = [...(secrets ?? []), ...(trigger.request.secrets ?? [])];
       const ipc = this.getIpcRenderer();
       if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
       result = await ipc.invoke('runWsTest', {
         root: this.trees.openCollection?.path,
         request: { url, headers, authentication: request.authentication },
         message,
-        expect: action.expect
+        expect,
+        ...(trigger == undefined ? {} : { trigger })
       });
     } catch (e) {
       error = (e as Error)?.message ?? String(e);
@@ -147,12 +187,12 @@ export class ExecuteRestCallsService {
 
     const ms = Math.round(performance.now() - started);
     const shown = result == undefined ? errorResult(error ?? 'The websocket test failed', ms) : webSocketResult(result, ms);
-    return { resolved, url, headers, message, result, error, ms, shown };
+    return { resolved, url, headers, message, result, error, ms, shown, secrets };
   }
 
   private async recordWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, outcome: {
     resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
-    result?: WebSocketTestResult; error?: string; ms: number;
+    result?: WebSocketTestResult; error?: string; ms: number; secrets?: SecretTable[];
   }): Promise<void> {
     try {
       const collection = this.trees.openCollection;
@@ -167,7 +207,7 @@ export class ExecuteRestCallsService {
         result: outcome.result,
         error: outcome.error,
         ms: outcome.ms,
-        secrets: outcome.resolved?.secrets
+        secrets: outcome.secrets ?? outcome.resolved?.secrets
       }));
     } catch (error) {
       console.warn(`[FullyRested] the websocket run was not recorded: ${(error as Error).message}`);
@@ -187,6 +227,8 @@ export class ExecuteRestCallsService {
     this.running = true;
     this.cancelled = false;
     const done: AppScopeCase[] = [];
+    // Values captured by one case, for the cases after it in this batch only
+    const captured: Captured = [];
     let passed = 0;
     let failed = 0;
     let recorded = false;
@@ -195,7 +237,7 @@ export class ExecuteRestCallsService {
       for (const c of cases) {
         if (this.cancelled) break;
         if (isWebSocketNode(c.node)) {
-          const ws = await this.sendWebSocket(c.node, environmentId);
+          const ws = await this.sendWebSocket(c.node, environmentId, captured);
           this.latest.set(this.keyOf(c.node), ws.shown);
           if (ws.result?.passed === true) passed++; else failed++;
           done.push({
@@ -203,12 +245,12 @@ export class ExecuteRestCallsService {
             webSocket: { url: ws.url, headers: ws.headers, message: ws.message, result: ws.result },
             error: ws.error,
             ms: ws.ms,
-            secrets: ws.resolved?.secrets
+            secrets: ws.secrets ?? ws.resolved?.secrets
           });
           this.progress.next({ done: done.length, total: cases.length, passed, failed });
           continue;
         }
-        const sent = await this.sendNode(c.node, environmentId);
+        const sent = await this.sendNode(c.node, environmentId, captured);
         this.latest.set(this.keyOf(c.node), sent.result ?? errorResult(sent.error ?? 'The request failed', sent.ms));
         const ok = sent.error == undefined && sent.result?.validated?.valid !== false;
         if (ok) passed++; else failed++;
@@ -252,11 +294,11 @@ export class ExecuteRestCallsService {
   }
 
   // Never throws: a send that could not be resolved or sent comes back as an error
-  private async sendNode(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentCase> {
+  private async sendNode(node: RequestNode | RunNode, environmentId: string | undefined, captured?: Captured): Promise<SentCase> {
     const started = performance.now();
     let resolved: ExecuteRestAction | undefined;
     try {
-      resolved = node.resolve({ environmentId });
+      resolved = node.resolve({ environmentId, captured });
       const request = resolved.replaceVariables();
       const response: RestActionResult = this.getIpcRenderer() == undefined
         ? await mockRestResult(request)
@@ -267,6 +309,14 @@ export class ExecuteRestCallsService {
         durationMs: Math.round(performance.now() - started),
         sizeBytes: response.body?.body?.byteLength,
       };
+      // A value captured here is for the cases after this one; one that finds nothing fails this case
+      const rules = captured != undefined && typeof response.status == 'number' && response.status >= 0 ? node.captureRules() : [];
+      if (captured != undefined && rules.length > 0) {
+        const outcome = captureFromResponse(rules, response);
+        addCaptured(captured, outcome.values);
+        if (outcome.errors.length > 0)
+          return { resolved, substituted: request, result, error: outcome.errors.join('; '), ms: result.durationMs ?? 0 };
+      }
       return { resolved, substituted: request, result, ms: result.durationMs ?? 0 };
     } catch (error) {
       return { error: (error as Error)?.message ?? String(error), thrown: error, ms: Math.round(performance.now() - started) };

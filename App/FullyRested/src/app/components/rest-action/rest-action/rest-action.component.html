@@ -27,6 +27,7 @@
         splitSecond
         [request]="liveRequest"
         [message]="liveMessage"
+        [environmentId]="collection?.config?.selectedEnvironmentId"
         (dismiss)="liveRequest = undefined"
       ></app-live-session>
     } @else {

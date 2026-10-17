@@ -5,6 +5,7 @@ import { normaliseCollectionConfig } from '../normalise';
 import { basenameOf, dirnameOf, extensionOf } from '../paths';
 import { QueryError } from '../query-error';
 import { AuthoringContext, EditResult, editScope, writeDocument, splitScheme } from './edit-scope';
+import { parseProtocol } from './request-fields';
 
 
 // Writes a brand-new .frcol. This is the one verb that runs with no collection loaded, so it
@@ -68,7 +69,9 @@ export async function selectEnvironment(ctx: AuthoringContext, name: string): Pr
 }
 
 // Makes a folder on disk. Writes no folder.frfolder: a folder needs one only once it has
-// settings, and editScope creates it on demand (see readDocument).
+// settings, and editScope creates it on demand (see readDocument). It does write an empty
+// .gitkeep, because the .frcol has no folder manifest and git drops an empty directory, so
+// without a file in it the folder would vanish on the first commit/clone. The loader ignores it.
 export async function newFolder(ctx: AuthoringContext, path: string): Promise<EditResult> {
     if (path == '' || path == '.')
         throw new QueryError(`new_folder needs a path (given '${path}')`);
@@ -76,12 +79,16 @@ export async function newFolder(ctx: AuthoringContext, path: string): Promise<Ed
         throw new QueryError(`${path} already exists`);
 
     await ctx.sink.mkdir(path);
+    await ctx.sink.writeText(`${path.replace(/\/+$/, '')}/${REConstants.FolderKeepFile}`, '');
     return { file: path, scope: path, changed: true, message: `Created folder ${path}` };
 }
 
 
 // firing or displaying the request, so leaving the scheme in url would double it up).
-export async function newRequest(ctx: AuthoringContext, path: string, method: string, url: string): Promise<EditResult> {
+export async function newRequest(ctx: AuthoringContext, path: string, method: string, url: string, protocol?: string): Promise<EditResult> {
+    // An explicit protocol (for a url like {{baseUrl}}/pages whose scheme a variable cannot carry)
+    // wins over a scheme in the url.
+    const explicit = protocol == undefined || protocol == '' ? undefined : parseProtocol(protocol);
     if (extensionOf(path) != REConstants.ActionExtension)
         throw new QueryError(`new_request needs a name ending in ${REConstants.ActionExtension} (given ${path})`);
     if (await ctx.sink.exists(path))
@@ -99,6 +106,8 @@ export async function newRequest(ctx: AuthoringContext, path: string, method: st
     const split = splitScheme(url);
     if (split.protocol != undefined)
         action.protocol = split.protocol;
+    if (explicit != undefined)
+        action.protocol = explicit;
     action.url = split.url;
 
     const dir = dirnameOf(path);

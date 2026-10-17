@@ -1,5 +1,6 @@
+import { validateCaptureRule } from '../capture';
 import {
-    AuthenticationDetails, Environment, FolderConfig, HeaderTable, ParamTable, RestAction, RestActionRun, SecretTable, VariableTable
+    AuthenticationDetails, CaptureRule, Environment, FolderConfig, HeaderTable, ParamTable, RestAction, RestActionRun, SecretTable, VariableTable
 } from '../model';
 import { normaliseAuthentication } from '../normalise';
 import { QueryError } from '../query-error';
@@ -56,6 +57,26 @@ export async function setParam(
             return '';
 
         return `Set parameter '${name}' on ${scope}`;
+    });
+}
+
+// Sets (or adds) a capture rule: after the request or run is sent, the value at `path` in the response
+// (from: body = a JSONPath, header = a header name, status = the status code) is held in {{variable}}
+// for every case that runs after it in the same run. A run's rule for a variable replaces the request's.
+export async function setCapture(
+    ctx: AuthoringContext, scope: string, variable: string, from: string, path?: string
+): Promise<EditResult> {
+    const rule = validateCaptureRule(variable, from, path);
+    return editScope(ctx, 'set_capture', scope, SETTING_LOCATORS['capture'], target => {
+        const settings = requestSettings(target);
+        const rules = settings.capture ?? (settings.capture = []);
+        const existing = rules.findIndex(c => c.variable == variable);
+        if (existing >= 0 && rules[existing].from == rule.from && rules[existing].path == rule.path)
+            return '';
+
+        const entry: CaptureRule = { variable, from: rule.from, path: rule.path, id: existing >= 0 ? rules[existing].id : ctx.guid.generateGUID() };
+        if (existing >= 0) rules[existing] = entry; else rules.push(entry);
+        return `Set capture '${variable}' (${rule.from}${rule.path ? ' ' + rule.path : ''}) on ${scope}`;
     });
 }
 
@@ -274,5 +295,7 @@ function removeNamedSetting(target: ScopeTarget, kind: SettingKind, name: string
             return removeWhere(scopeSettings(target).variables, v => v.variable == name);
         case 'secret':
             return removeWhere(scopeSettings(target).secrets, s => s.$secret == name);
+        case 'capture':
+            return removeWhere(requestSettings(target).capture ?? [], c => c.variable == name);
     }
 }
