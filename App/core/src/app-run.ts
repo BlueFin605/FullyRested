@@ -67,6 +67,8 @@ export interface AppScopeCase {
   error?: string;
   ms: number;
   secrets: SecretTable[] | undefined; // this case's own secrets; redactCase masks only these
+  /** Set for a websocket case: recorded as a WS case from this instead of request/result/validation. */
+  webSocket?: { url: string; headers: Record<string, string>; message?: string; result?: WebSocketTestResult };
 }
 
 export interface AppScopeInput {
@@ -80,7 +82,18 @@ export interface AppScopeInput {
 
 // A branch run from the app: one record, one case per request sent, each redacted with its own secrets.
 export function buildScopeRunRecord(input: AppScopeInput): RunRecord {
-  const cases = input.cases.map((c, i) => redactCase(buildCaseRecord({
+  const cases = input.cases.map((c, i) => redactCase(c.webSocket ? buildWebSocketCaseRecord({
+    index: i + 1,
+    name: c.node.name,
+    requestFile: c.node.path,
+    runName: c.node.runName,
+    ms: c.ms,
+    url: c.webSocket.url,
+    headers: c.webSocket.headers,
+    message: c.webSocket.message,
+    result: c.webSocket.result,
+    error: c.error
+  }) : buildCaseRecord({
     index: i + 1,
     name: c.node.name,
     requestFile: c.node.path,

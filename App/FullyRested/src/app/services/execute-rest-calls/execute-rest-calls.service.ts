@@ -23,6 +23,11 @@ export interface ScopeProgress { done: number; total: number; passed: number; fa
 // sent, `recorded` whether a history record was saved (an unsaved collection runs but writes none)
 export interface ScopeOutcome { total: number; ran: number; cancelled: boolean; recorded: boolean; }
 
+interface SentWebSocket {
+  resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
+  result?: WebSocketTestResult; error?: string; ms: number; shown: TimedActionResult;
+}
+
 interface SentCase {
   resolved?: ExecuteRestAction; substituted?: ExecuteRestAction; result?: TimedActionResult; error?: string; thrown?: unknown; ms: number;
 }
@@ -106,13 +111,21 @@ export class ExecuteRestCallsService {
   // so this only resolves the request and sends it over IPC. Never throws; a failure is shown as an error
   // result. Recorded in run history like an HTTP send.
   private async executeWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<TimedActionResult> {
+    const sent = await this.sendWebSocket(node, environmentId);
+    this.latest.set(this.keyOf(node), sent.shown);
+    void this.recordWebSocket(node, environmentId, sent);
+    return sent.shown;
+  }
+
+  // The one websocket run, shared by a single Run and by a folder or collection run. Never throws.
+  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentWebSocket> {
     const started = performance.now();
     const action = (node instanceof RunNode ? node.request : node).action;
     let resolved: ExecuteRestAction | undefined;
     let url = '';
     let headers: { [header: string]: string } = {};
     let message: string | undefined;
-    let wsResult: WebSocketTestResult | undefined;
+    let result: WebSocketTestResult | undefined;
     let error: string | undefined;
     try {
       resolved = node.resolve({ environmentId });
@@ -122,7 +135,7 @@ export class ExecuteRestCallsService {
       message = substituteDeep(action.message ?? '', request.variables, request.secrets);
       const ipc = this.getIpcRenderer();
       if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
-      wsResult = await ipc.invoke('runWsTest', {
+      result = await ipc.invoke('runWsTest', {
         root: this.trees.openCollection?.path,
         request: { url, headers, authentication: request.authentication },
         message,
@@ -133,10 +146,8 @@ export class ExecuteRestCallsService {
     }
 
     const ms = Math.round(performance.now() - started);
-    const result = wsResult == undefined ? errorResult(error ?? 'The websocket test failed', ms) : webSocketResult(wsResult, ms);
-    this.latest.set(this.keyOf(node), result);
-    void this.recordWebSocket(node, environmentId, { resolved, url, headers, message, result: wsResult, error, ms });
-    return result;
+    const shown = result == undefined ? errorResult(error ?? 'The websocket test failed', ms) : webSocketResult(result, ms);
+    return { resolved, url, headers, message, result, error, ms, shown };
   }
 
   private async recordWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, outcome: {
@@ -183,6 +194,20 @@ export class ExecuteRestCallsService {
       this.progress.next({ done: 0, total: cases.length, passed, failed });
       for (const c of cases) {
         if (this.cancelled) break;
+        if (isWebSocketNode(c.node)) {
+          const ws = await this.sendWebSocket(c.node, environmentId);
+          this.latest.set(this.keyOf(c.node), ws.shown);
+          if (ws.result?.passed === true) passed++; else failed++;
+          done.push({
+            node: sendNodeOf(c.node),
+            webSocket: { url: ws.url, headers: ws.headers, message: ws.message, result: ws.result },
+            error: ws.error,
+            ms: ws.ms,
+            secrets: ws.resolved?.secrets
+          });
+          this.progress.next({ done: done.length, total: cases.length, passed, failed });
+          continue;
+        }
         const sent = await this.sendNode(c.node, environmentId);
         this.latest.set(this.keyOf(c.node), sent.result ?? errorResult(sent.error ?? 'The request failed', sent.ms));
         const ok = sent.error == undefined && sent.result?.validated?.valid !== false;
