@@ -25,3 +25,4 @@ export * from './json-path';
 export * from './inspect';
 export * from './infer';
 export * from './scope-cases';
+export * from './websocket';

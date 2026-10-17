@@ -40,7 +40,7 @@ function matchEnumValue<T extends string>(values: T[], given: string, label: str
 // gets as far as a half-written document. Reuses validate.ts's Ajv setup (compileSchema) rather
 // than building a second one; an uncompilable schema would otherwise make every run of the request
 // fail with a confusing error at send time instead of a clear one now, at the point it was set.
-function parseJsonSchema(text: string): RestActionValidationJsonSchema {
+export function parseJsonSchema(text: string): RestActionValidationJsonSchema {
     let parsed: unknown;
     try {
         parsed = JSON.parse(text);

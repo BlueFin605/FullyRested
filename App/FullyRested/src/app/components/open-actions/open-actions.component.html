@@ -201,6 +201,7 @@
                 [runId]="runIdFor(action)"
                 (actionChange)="onActionChange(action)"
                 (dirtyChange)="onDirtyChange(action, $event)"
+                (invalidChange)="onInvalidChange(action, $event)"
                 (nameChange)="onNameChange(action, $event)"
               >
               </app-rest-action>

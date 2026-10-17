@@ -1,0 +1,77 @@
+<section class="group">
+  <div class="group-label">Message</div>
+  <p class="help">Sent once the socket opens. Variables in double braces are filled in when it runs.</p>
+  <app-code-editor
+    class="editor message-editor"
+    language="json"
+    [value]="messageText"
+    (valueChange)="onMessageChange($event)"
+    placeholder="{ }"
+  ></app-code-editor>
+</section>
+
+<section class="group">
+  <div class="group-label">Expect</div>
+  <div class="fields">
+    <label class="field">
+      <span>Count</span>
+      <input class="num" type="text" inputmode="numeric" name="count" aria-label="Expected message count"
+        [(ngModel)]="countText" (ngModelChange)="onFieldChange()" />
+      @if (errors.count) {
+        <span class="field-error" role="alert" data-field="count">{{ errors.count }}</span>
+      }
+    </label>
+
+    <div class="field">
+      <span>Match</span>
+      <mat-button-toggle-group class="fr-segmented" [(ngModel)]="match" (ngModelChange)="onFieldChange()"
+        hideSingleSelectionIndicator aria-label="Match">
+        <mat-button-toggle value="all">All</mat-button-toggle>
+        <mat-button-toggle value="any">Any</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <div class="field">
+      <span>Extras</span>
+      <mat-button-toggle-group class="fr-segmented" [(ngModel)]="extras" (ngModelChange)="onFieldChange()"
+        hideSingleSelectionIndicator aria-label="Extras">
+        <mat-button-toggle value="ignore">Ignore</mat-button-toggle>
+        <mat-button-toggle value="fail">Fail</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <label class="field">
+      <span>Timeout (ms)</span>
+      <input class="num" type="text" inputmode="numeric" name="timeout" aria-label="Timeout in milliseconds"
+        [(ngModel)]="timeoutText" (ngModelChange)="onFieldChange()" />
+      @if (errors.timeout) {
+        <span class="field-error" role="alert" data-field="timeout">{{ errors.timeout }}</span>
+      }
+    </label>
+
+    <label class="field">
+      <span>Settle (ms)</span>
+      <input class="num" type="text" inputmode="numeric" name="settle" aria-label="Settle in milliseconds"
+        [(ngModel)]="settleText" (ngModelChange)="onFieldChange()" />
+      @if (errors.settle) {
+        <span class="field-error" role="alert" data-field="settle">{{ errors.settle }}</span>
+      }
+    </label>
+  </div>
+  @if (extras == 'ignore') {
+    <p class="help">Settle only applies when Extras is Fail.</p>
+  }
+
+  <div class="group-label">Schema</div>
+  <p class="help">Optional JSON Schema each received message must match.</p>
+  <app-code-editor
+    class="editor schema-editor"
+    language="json"
+    [value]="schemaText"
+    (valueChange)="onSchemaChange($event)"
+    placeholder="{ }"
+  ></app-code-editor>
+  @if (errors.schema) {
+    <span class="field-error" role="alert" data-field="schema">{{ errors.schema }}</span>
+  }
+</section>

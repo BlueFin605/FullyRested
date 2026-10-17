@@ -6,7 +6,7 @@ import {
 } from '@fullyrested/core';
 
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
-import { ExecuteRestCallsService } from './execute-rest-calls.service';
+import { ExecuteRestCallsService, ScopeProgress } from './execute-rest-calls.service';
 
 const variable = (name: string, value: string) => ({ variable: name, value, active: true, id: name });
 
@@ -402,12 +402,181 @@ describe('ExecuteRestCallsService', () => {
       expect(service.lastScope).toEqual({ total: 1, ran: 1, cancelled: false, recorded: false });
     });
 
+    describe('with websocket cases mixed in', () => {
+      let channels: string[];
+      let wsPass: boolean;
+      let afterWs: () => void;
+
+      function mixedTree(): CollectionNode {
+        const root = rootNode();
+        root.children.push(new RequestNode(root, 'a.frreq', { ...CreateEmptyAction(), url: 'a.example' }));
+        root.children.push(new RequestNode(root, 'ws.frreq', {
+          ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed', message: 'hello {{version}}',
+        }));
+        root.children.push(new RequestNode(root, 'c.frreq', { ...CreateEmptyAction(), url: 'c.example' }));
+        return root;
+      }
+
+      beforeEach(() => {
+        stub();
+        channels = [];
+        wsPass = true;
+        afterWs = () => undefined;
+        const http = (window as any).ipc.invoke;
+        (window as any).ipc = {
+          invoke: async (channel: string, args: any) => {
+            channels.push(channel);
+            if (channel == 'runWsTest') {
+              sentUrls.push(args.request.url);
+              afterWs();
+              return wsPass
+                ? { passed: true, errors: [], messages: [{ text: 'hi', matched: true }] }
+                : { passed: false, errors: ['timed out'], messages: [] };
+            }
+            return http(channel, args);
+          },
+        };
+      });
+
+      it('routes websocket cases to runWsTest with the substituted url and message, HTTP to testRest', async () => {
+        let message: string | undefined;
+        const invoke = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => {
+          if (channel == 'runWsTest') message = args.message;
+          return invoke(channel, args);
+        };
+        await service.executeScope(mixedTree(), 'prod');
+        expect(channels.filter(c => c != 'saveRun')).toEqual(['testRest', 'runWsTest', 'testRest']);
+        expect(sentUrls).toEqual(['a.example', 'wss://prod.example/feed', 'c.example']);
+        expect(message).toBe('hello v1');
+      });
+
+      it('records the websocket case in the scope record beside the HTTP cases', async () => {
+        wsPass = false;
+        const record = await service.executeScope(mixedTree());
+        expect(saves.length).toBe(1);
+        expect(record!.cases.map(c => c.request?.method)).toEqual(['GET', 'WS', 'GET']);
+        expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'fail', 'pass']);
+        expect(record!.cases[1].name).toBe('ws');
+        expect(record!.cases[1].request?.url).toBe('wss://prod.example/feed');
+      });
+
+      it('counts websocket cases in progress and shows their result', async () => {
+        wsPass = false;
+        const seen: (ScopeProgress | undefined)[] = [];
+        const sub = service.scopeProgress$.subscribe(p => seen.push(p));
+        await service.executeScope(mixedTree());
+        sub.unsubscribe();
+        expect(seen.filter(p => p).map(p => `${p!.done}/${p!.total}:${p!.passed}p${p!.failed}f`))
+          .toEqual(['0/3:0p0f', '1/3:1p0f', '2/3:1p1f', '3/3:2p1f']);
+        const latest = TestBed.inject(LatestResultsService);
+        expect(latest.get(resultKey('C:/c/api.frcol', 'ws.frreq'))?.status).toBe('FAIL');
+      });
+
+      it('cancels after a websocket case in flight and keeps it in the record', async () => {
+        afterWs = () => service.cancelScope();
+        const record = await service.executeScope(mixedTree());
+        expect(sentUrls).toEqual(['a.example', 'wss://prod.example/feed']);
+        expect(record!.cases.map(c => c.request?.method)).toEqual(['GET', 'WS']);
+        expect(service.lastScope).toEqual({ total: 3, ran: 2, cancelled: true, recorded: true });
+      });
+
+      it('records a websocket case that errors and carries on', async () => {
+        (window as any).ipc.invoke = async (channel: string, args: any) => {
+          if (channel == 'runWsTest') throw new Error('guard says no');
+          return (async () => { if (channel == 'saveRun') { saves.push(args.record); return; } sentUrls.push(args.url); return { status: 200, statusText: 'OK', headers: {}, headersSent: {}, body: undefined, validated: undefined }; })();
+        };
+        const record = await service.executeScope(mixedTree());
+        expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'error', 'pass']);
+        expect(record!.cases[1].error).toBe('guard says no');
+      });
+    });
+
     it('leaves executeNode throwing and recording a failed send', async () => {
       stub('a.example');
       await expectAsync(service.executeNode(treeOf('a.frreq').children[0] as RequestNode)).toBeRejectedWithError('ipc down');
       await new Promise(r => setTimeout(r));
       expect(saves.length).toBe(1);
       expect(saves[0].cases.length).toBe(1);
+    });
+  });
+
+  describe('websocket requests', () => {
+    let calls: { channel: string; args: any }[];
+    let wsOutcome: () => Promise<any>;
+
+    const wsNode = (extra: Partial<ReturnType<typeof CreateEmptyAction>> = {}) =>
+      rootNode().attach({
+        ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed', message: 'hello {{version}}', ...extra,
+      }, 'ws/feed.frreq');
+
+    beforeEach(() => {
+      calls = [];
+      wsOutcome = async () => ({ passed: true, errors: [], messages: [{ text: '{"a":1}', matched: true }] });
+      (window as any).ipc = {
+        invoke: async (channel: string, args: any) => {
+          calls.push({ channel, args });
+          if (channel == 'runWsTest') return wsOutcome();
+          if (channel == 'saveRun') return;
+          throw new Error('unexpected channel ' + channel);
+        },
+      };
+      const trees = TestBed.inject(CollectionTreeService) as any;
+      Object.defineProperty(trees, 'openCollection', {
+        get: () => ({ name: 'api', filename: 'C:/c/api.frcol', path: 'C:/c', config: rootNode().config }),
+        configurable: true,
+      });
+    });
+
+    const flush = () => new Promise(r => setTimeout(r));
+
+    it('runs through runWsTest, not testRest, with the substituted url, message and the collection root', async () => {
+      const result = await service.executeNode(wsNode(), 'prod');
+
+      const run = calls.find(c => c.channel == 'runWsTest')!;
+      expect(calls.some(c => c.channel == 'testRest')).toBeFalse();
+      expect(run.args.root).toBe('C:/c');
+      expect(run.args.request.url).toBe('wss://prod.example/feed');
+      expect(run.args.message).toBe('hello v1');
+      expect(result.status).toBe('PASS');
+    });
+
+    it('shows a failed test as FAIL with its errors', async () => {
+      wsOutcome = async () => ({ passed: false, errors: ['timed out'], messages: [] });
+
+      const result = await service.executeNode(wsNode());
+
+      expect(result.status).toBe('FAIL');
+      expect(result.statusText).toBe('timed out');
+    });
+
+    it('shows an ipc failure as an error result instead of throwing', async () => {
+      wsOutcome = async () => { throw new Error('guard says no'); };
+
+      const result = await service.executeNode(wsNode());
+
+      expect(result.status).toBe('error');
+      expect(result.statusText).toBe('guard says no');
+    });
+
+    it('records the run in run history as a WS case', async () => {
+      await service.executeNode(wsNode());
+      await flush();
+
+      const saved = calls.filter(c => c.channel == 'saveRun');
+      expect(saved.length).toBe(1);
+      const record: RunRecord = saved[0].args.record;
+      expect(record.redacted).toBeTrue();
+      expect(record.selection).toBe('request:ws/feed.frreq');
+      expect(record.cases[0].outcome).toBe('pass');
+      expect(record.cases[0].request?.method).toBe('WS');
+    });
+
+    it('puts the result in the latest results for the tab', async () => {
+      const latest = TestBed.inject(LatestResultsService);
+      await service.executeNode(wsNode());
+
+      expect(latest.get(resultKey('C:/c/api.frcol', 'ws/feed.frreq'))?.status).toBe('PASS');
     });
   });
 });

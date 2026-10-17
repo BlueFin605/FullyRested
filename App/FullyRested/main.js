@@ -5,6 +5,7 @@ const fs = require('fs');
 const { AsyncEntry } = require('@napi-rs/keyring');
 const { CollectionAccess } = require('./collection-access');
 const { handleSaveRun, handleListRuns, handleLoadRun } = require('./run-records');
+const { WsSessions } = require('./ws-sessions');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
@@ -44,6 +45,7 @@ const keychain = {
 
 let win;
 let access;
+let wsSessions;
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -88,6 +90,7 @@ const appMenu = () => Menu.buildFromTemplate([
 
 app.whenReady().then(() => {
     access = new CollectionAccess(path.join(app.getPath("userData"), "trusted_requests.json"), openTabFiles);
+    wsSessions = new WsSessions(access, { emit: (channel, payload) => win?.webContents.send(channel, payload) });
     Menu.setApplicationMenu(appMenu())
     createWindow()
     startUpdateChecks()
@@ -124,6 +127,13 @@ app.whenReady().then(() => {
     ipcMain.handle("saveRun", (event, request) => handleSaveRun(access, request));
     ipcMain.handle("listRuns", (event, request) => handleListRuns(access, request));
     ipcMain.handle("loadRun", (event, request) => handleLoadRun(access, request));
+
+    // Websocket tests and live sessions: main owns the sockets. Each payload carries root, checked like the file handlers'.
+    ipcMain.handle("runWsTest", (event, request) => wsSessions.runWsTest(request));
+    ipcMain.handle("openWsSession", (event, request) => wsSessions.openSession(request));
+    ipcMain.handle("wsSessionEvents", (event, request) => wsSessions.sessionEvents(request));
+    ipcMain.handle("sendWsSession", (event, request) => wsSessions.sendToSession(request));
+    ipcMain.handle("closeWsSession", (event, request) => wsSessions.closeSession(request));
 
     ipcMain.handle("getSecret", (event, request) => {
         access.checkSecret(request.service, request.account);
@@ -162,6 +172,8 @@ app.whenReady().then(() => {
         saveRequest(request).catch(err => console.log(`saveRequest failed: ${err.message}`));
     });
 })
+
+app.on('before-quit', () => wsSessions?.closeAll());
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()

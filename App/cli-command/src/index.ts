@@ -8,7 +8,8 @@ import {
   AuthFields, AuthoringContext, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody,
-  setHeader, setMethod, setParam, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
+  setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
 import { edit } from './authoring';
@@ -21,6 +22,7 @@ import {
 } from './query-report';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { startMcp } from './mcp';
+import { sendToActiveSession, watchSession } from './ws';
 import { createSecretStore, createSecretWriter, secretEnvironmentVariable, secretServiceForScope, stripTrailingNewline } from './secret-store';
 
 const program = new Command();
@@ -43,6 +45,7 @@ program
   .option('--record', 'save the run record to <store>/.fullyrested-runs')
   .option('--store <dir>', 'folder holding .fullyrested-runs for --record (default: the current directory)')
   .option('--include-secrets', 'keep secret values in the run record instead of redacting them')
+  .option('--timeout <ms>', 'websocket tests: wait this many milliseconds instead of the expect.timeout of the request (this run only, not saved)', (v: string) => Number(v))
   .option('--json', 'print only the run record as JSON on stdout')
   .addHelpText('after', `
 Secrets come from environment variables first, then the OS keychain the
@@ -76,6 +79,49 @@ desktop app uses. A secret named "api key" is read from ${secretEnvironmentVaria
         fs.writeFileSync(options.junit, toJUnit(path.basename(options.collection), results));
 
       process.exitCode = results.every(r => r.passed) ? 0 : 1;
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = error instanceof UsageError ? 2 : 1;
+    }
+  });
+
+const wsNamespace = program
+  .command('ws')
+  .description('Live websocket sessions. A session lives only while `ws watch` runs in this process.');
+
+wsNamespace
+  .command('watch <target>')
+  .description('Open a session on a websocket request (-c <collection>) or a ws:// / wss:// url and stream its events to stdout until interrupted (Ctrl+C) or the server closes it. Warnings go to stderr.')
+  .option('-c, --collection <file>', 'collection file (.frcol), needed when the target is a request file')
+  .option('-e, --environment <name>', 'environment name or id (default: the selected one)')
+  .option('-r, --run <name>', 'one run of the request, by name or id')
+  .option('--send <message...>', 'send these text frames once the session opens')
+  .option('--json', 'print each event as one JSON line')
+  .option('--timeout <ms>', 'accepted for symmetry with `run`; a live session has no expect to time out, so it is ignored with a warning', (v: string) => Number(v))
+  .action(async (target: string, options: { collection?: string; environment?: string; run?: string; send?: string[]; json?: boolean; timeout?: number }) => {
+    const stop = new AbortController();
+    const interrupt = () => stop.abort();
+    process.once('SIGINT', interrupt);
+    try {
+      const clean = await watchSession(
+        target, options, createSecretStore(),
+        { out: line => console.log(line), warn: line => console.error(line) },
+        stop.signal);
+      process.exitCode = clean ? 0 : 1;
+    } catch (error) {
+      console.error(`error: ${(error as Error).message}`);
+      process.exitCode = error instanceof UsageError ? 2 : 1;
+    } finally {
+      process.off('SIGINT', interrupt);
+    }
+  });
+
+wsNamespace
+  .command('send <message>')
+  .description('Send a text frame into the session this process holds. Each CLI invocation is its own process, so on its own this reports that no session is open; use `ws watch --send <message>` to send from the command line.')
+  .action(async (message: string) => {
+    try {
+      sendToActiveSession(message);
     } catch (error) {
       console.error(`error: ${(error as Error).message}`);
       process.exitCode = error instanceof UsageError ? 2 : 1;
@@ -335,13 +381,49 @@ withScope(editCommand('set-auth', 'Set the authentication of a scope'))
   .option('--aws-region <region>', 'awssig: AWS region')
   .option('--service-name <name>', 'awssig: AWS service name')
   .option('--sign-url <true|false>', 'awssig: sign the url (query string) instead of headers', (v: string) => parseBool('--sign-url', v))
+  .option('--placement <header|param-name>', "websocket handshake: where the token goes, 'header' (default) or a query parameter name such as 'token'")
   .action(queryAction(async (options: EditOptions & { scope: string; type: string } & AuthFields) => {
     const fields: AuthFields = {
       userName: options.userName, password: options.password, token: options.token,
       accessKey: options.accessKey, secretKey: options.secretKey, sessionToken: options.sessionToken,
-      awsRegion: options.awsRegion, serviceName: options.serviceName, signUrl: options.signUrl
+      awsRegion: options.awsRegion, serviceName: options.serviceName, signUrl: options.signUrl,
+      placement: options.placement
     };
     await runEdit(options, ctx => setAuth(ctx, options.scope, options.type, fields));
+  }));
+
+withScope(editCommand('set-type', 'Set whether a request is plain HTTP or a websocket'))
+  .argument('<type>', 'http | websocket')
+  .action(queryAction(async (type: string, options: EditOptions & { scope: string }) =>
+    runEdit(options, ctx => setType(ctx, options.scope, type))));
+
+withScope(editCommand('set-message', 'Set the text frame a websocket request sends once the socket opens'))
+  .argument('<text>', 'message text (may hold {{variables}})')
+  .action(queryAction(async (text: string, options: EditOptions & { scope: string }) =>
+    runEdit(options, ctx => setMessage(ctx, options.scope, text))));
+
+// Numbers are passed through as Number(text) so a non-number reaches core as NaN and is rejected
+// there with the one shared message, rather than being re-validated here.
+const toNumber = (value: string): number => Number(value);
+
+withScope(editCommand('set-expect', 'Set what a websocket test waits for; only the options given change'))
+  .option('--count <n>', 'number of messages to wait for', toNumber)
+  .option('--match <all|any>', 'whether all or any received messages must match the schema')
+  .option('--extras <ignore|fail>', 'what to do with messages beyond the count')
+  .option('--timeout <ms>', 'give up after this many milliseconds', toNumber)
+  .option('--settle <ms>', 'quiet time in milliseconds before the test ends', toNumber)
+  .option('--schema <json|@file>', "JSON Schema each message is checked against, as JSON text or @path to a file; '' clears it")
+  .action(queryAction(async (options: EditOptions & { scope: string; count?: number; match?: string; extras?: string; timeout?: number; settle?: number; schema?: string }) => {
+    let schema = options.schema;
+    if (schema !== undefined && schema.startsWith('@')) {
+      const file = schema.slice(1);
+      try { schema = fs.readFileSync(file, 'utf8'); }
+      catch { throw new UsageError(`--schema file '${file}' cannot be read`); }
+    }
+    await runEdit(options, ctx => setExpect(ctx, options.scope, {
+      count: options.count, match: options.match, extras: options.extras,
+      timeout: options.timeout, settle: options.settle, schema
+    }));
   }));
 
 withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference or validation header'))

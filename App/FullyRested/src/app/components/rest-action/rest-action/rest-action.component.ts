@@ -14,6 +14,7 @@ import { RestActionRunComponent } from '../rest-action-run/rest-action-run.compo
 import { CollectionTreeService } from 'src/app/services/collection-tree/collection-tree.service';
 import { ActionRepositoryService } from 'src/app/services/action-repository/action-repository.service';
 import { Subscription } from 'rxjs';
+import { WsConnectRequest, WsSessionService } from 'src/app/services/ws-session/ws-session.service';
 import { LatestResultsService, resultKey } from 'src/app/services/latest-results/latest-results.service';
 import { CreateEmptyAction } from '@fullyrested/core';
 import { RestAction, Collection } from '@fullyrested/core';
@@ -49,6 +50,10 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
   @Output()
   nameChange = new EventEmitter<string>();
 
+  // A websocket field holds a value that cannot be saved; the request is not saved while true
+  @Output()
+  invalidChange = new EventEmitter<boolean>();
+
   @Output()
   dirtyChange = new EventEmitter<boolean>();
 
@@ -72,12 +77,16 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
 
   response: TimedActionResult = EmptyActionResult;
   sending = false;
+  // set while the live session panel replaces the response pane
+  liveRequest: WsConnectRequest | undefined;
+  liveMessage: string | undefined;
 
   constructor(
     private era: ExecuteRestCallsService,
     private repository: ActionRepositoryService,
     private trees: CollectionTreeService,
     private latest: LatestResultsService,
+    private wsSessions: WsSessionService,
   ) {}
 
   @ViewChild(EditRequestComponent) requestEditor: EditRequestComponent | undefined;
@@ -152,6 +161,19 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
       this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
     } finally {
       this.sending = false;
+    }
+  }
+
+  // Opens a live session on this websocket request; a fresh request object each time connects again
+  openLiveSession() {
+    try {
+      const node = this.trees.nodeFor(this._action, this._fullFilename);
+      const { request, message } = this.wsSessions.requestFor(node, this.collection?.config.selectedEnvironmentId);
+      this.liveMessage = message;
+      this.liveRequest = request;
+    } catch (error) {
+      this.response = { ...EmptyActionResult, status: 'error', statusText: (error as Error).message };
+      this.liveRequest = undefined;
     }
   }
 

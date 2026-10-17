@@ -3,9 +3,10 @@ import * as path from 'path';
 import {
   CollectionConfig, CollectionNode, ContainerNode, RequestNode, RunNode, SecretStore,
   CaseRecord, RunRecord, TestCase, basenameOf, casesFor, casesForScope, buildCaseRecord, executeRequest, joinPath, newRunId, prepareRequest,
-  redactCase, relativePath, validateResponse
+  redactCase, relativePath, validateResponse, validateTimeoutMs
 } from '@fullyrested/core';
 import { loadAction, loadTree } from './files';
+import { isWebSocketRequest, runWebSocketCase } from './ws-run';
 
 export interface RunOptions {
   collection: string;
@@ -14,6 +15,8 @@ export interface RunOptions {
   run?: string;
   folder?: string;
   all?: boolean;
+  /** Overrides expect.timeout (ms) of websocket tests for this run only; nothing is saved. */
+  timeout?: number;
 }
 
 export interface TestResult {
@@ -133,13 +136,16 @@ function requestNodeOf(node: RequestNode | RunNode): RequestNode {
   return node instanceof RunNode ? node.request : node;
 }
 
-async function runCase(test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean): Promise<CaseRecord> {
+async function runCase(test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean, timeoutMs?: number): Promise<CaseRecord> {
   const base = {
     index,
     name: test.name,
     requestFile: requestNodeOf(test.node).path,
     ...(test.node instanceof RunNode ? { runName: test.node.run.name } : {})
   };
+
+  if (isWebSocketRequest(requestNodeOf(test.node)))
+    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs);
 
   let request;
   try {
@@ -184,11 +190,14 @@ export interface RunHooks {
 }
 
 export async function runCollection(options: RunOptions, store: SecretStore, hooks: RunHooks = {}): Promise<RunRecord> {
+  const timeoutMs = options.timeout == undefined ? undefined : await setup(async () => validateTimeoutMs(options.timeout, '--timeout'));
   const root = await setup(() => loadTree(options.collection, store));
   root.warnings.forEach(w => hooks.onWarning?.(w));
   const environment = findEnvironment(root.config, options.environment);
   const cases = await setup(() => selectCases(options, root, path.dirname(path.resolve(options.collection)), store));
   const includeSecrets = hooks.includeSecrets ?? false;
+  if (timeoutMs != undefined && cases.some(c => !isWebSocketRequest(requestNodeOf(c.node))))
+    hooks.onWarning?.('--timeout applies to websocket requests only; it is ignored for http requests');
 
   const record: RunRecord = {
     runId: newRunId(),
@@ -202,7 +211,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
     record.environment = environment.name;
 
   for (const [i, test] of cases.entries()) {
-    const c = await runCase(test, i + 1, environment.id, includeSecrets); // case indexes are 1-based
+    const c = await runCase(test, i + 1, environment.id, includeSecrets, timeoutMs); // case indexes are 1-based
     record.cases.push(c);
     hooks.onCase?.(c);
   }
@@ -212,7 +221,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
 export function toTestResult(c: CaseRecord): TestResult {
   return {
     name: c.name,
-    status: c.response?.status ?? noResponseStatus.get(c) ?? 'error',
+    status: c.response?.status ?? noResponseStatus.get(c) ?? (c.websocket ? 'WS' : 'error'),
     ms: c.ms,
     passed: c.outcome == 'pass',
     errors: c.error ? [c.error] : c.validation?.checks.flatMap(x => x.errors) ?? []

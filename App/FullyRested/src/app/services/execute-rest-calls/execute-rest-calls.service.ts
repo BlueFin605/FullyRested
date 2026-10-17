@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { RequestNode, RunNode, buildAppRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, validateResponse } from '@fullyrested/core';
-import type { AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord } from '@fullyrested/core';
+import { RequestNode, RunNode, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
+import type { AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import { RunHistoryService } from '../run-history/run-history.service';
@@ -23,6 +23,11 @@ export interface ScopeProgress { done: number; total: number; passed: number; fa
 // sent, `recorded` whether a history record was saved (an unsaved collection runs but writes none)
 export interface ScopeOutcome { total: number; ran: number; cancelled: boolean; recorded: boolean; }
 
+interface SentWebSocket {
+  resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
+  result?: WebSocketTestResult; error?: string; ms: number; shown: TimedActionResult;
+}
+
 interface SentCase {
   resolved?: ExecuteRestAction; substituted?: ExecuteRestAction; result?: TimedActionResult; error?: string; thrown?: unknown; ms: number;
 }
@@ -32,6 +37,24 @@ const errorResult = (message: string, ms: number): TimedActionResult =>
   ({ ...EmptyActionResult, status: 'error', statusText: message, durationMs: ms });
 
 const runIdOf = (node: RequestNode | RunNode): string | undefined => node instanceof RunNode ? node.run.id : undefined;
+
+// A websocket test shown in the response panel: PASS or FAIL, the received messages as the body
+export const webSocketResult = (test: WebSocketTestResult, ms: number): TimedActionResult => {
+  const bytes = new TextEncoder().encode(test.messages.map(m => m.text).join('\n'));
+  return {
+    status: test.passed ? 'PASS' : 'FAIL',
+    statusText: test.passed ? `${test.messages.length} message(s) received` : test.errors.join('; '),
+    headers: {},
+    headersSent: {},
+    body: { contentType: 'text/plain', body: bytes.buffer as ArrayBuffer },
+    validated: { valid: test.passed, errors: test.errors, information: [] },
+    durationMs: ms,
+    sizeBytes: bytes.byteLength
+  };
+};
+
+const isWebSocketNode =(node: RequestNode | RunNode): boolean =>
+  (node instanceof RunNode ? node.request : node).action.type == 'websocket';
 
 const sendNodeOf = (node: RequestNode | RunNode): AppSendNode => node instanceof RunNode
   ? { kind: 'run', name: node.name, path: node.path, runName: node.run.name }
@@ -73,6 +96,7 @@ export class ExecuteRestCallsService {
   // the same steps the CLI runs
   async executeNode(node: RequestNode | RunNode, environmentId?: string): Promise<TimedActionResult> {
     this.sent.next();
+    if (isWebSocketNode(node)) return this.executeWebSocket(node, environmentId);
     const sent = await this.sendNode(node, environmentId);
     void this.record(node, environmentId, sent);
     if (sent.result == undefined) {
@@ -81,6 +105,73 @@ export class ExecuteRestCallsService {
     }
     this.latest.set(this.keyOf(node), sent.result);
     return sent.result;
+  }
+
+  // Runs a websocket request as a test: the main process owns the socket and adds any query-placed token,
+  // so this only resolves the request and sends it over IPC. Never throws; a failure is shown as an error
+  // result. Recorded in run history like an HTTP send.
+  private async executeWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<TimedActionResult> {
+    const sent = await this.sendWebSocket(node, environmentId);
+    this.latest.set(this.keyOf(node), sent.shown);
+    void this.recordWebSocket(node, environmentId, sent);
+    return sent.shown;
+  }
+
+  // The one websocket run, shared by a single Run and by a folder or collection run. Never throws.
+  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentWebSocket> {
+    const started = performance.now();
+    const action = (node instanceof RunNode ? node.request : node).action;
+    let resolved: ExecuteRestAction | undefined;
+    let url = '';
+    let headers: { [header: string]: string } = {};
+    let message: string | undefined;
+    let result: WebSocketTestResult | undefined;
+    let error: string | undefined;
+    try {
+      resolved = node.resolve({ environmentId });
+      const request = resolved.replaceVariables();
+      url = request.url;
+      headers = request.headers;
+      message = substituteDeep(action.message ?? '', request.variables, request.secrets);
+      const ipc = this.getIpcRenderer();
+      if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
+      result = await ipc.invoke('runWsTest', {
+        root: this.trees.openCollection?.path,
+        request: { url, headers, authentication: request.authentication },
+        message,
+        expect: action.expect
+      });
+    } catch (e) {
+      error = (e as Error)?.message ?? String(e);
+    }
+
+    const ms = Math.round(performance.now() - started);
+    const shown = result == undefined ? errorResult(error ?? 'The websocket test failed', ms) : webSocketResult(result, ms);
+    return { resolved, url, headers, message, result, error, ms, shown };
+  }
+
+  private async recordWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, outcome: {
+    resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
+    result?: WebSocketTestResult; error?: string; ms: number;
+  }): Promise<void> {
+    try {
+      const collection = this.trees.openCollection;
+      if (collection == undefined || !collection.filename) return;
+      await this.history.save(collection.path, buildAppWebSocketRunRecord({
+        collection: collection.filename,
+        environment: this.environmentNameOf(collection, environmentId),
+        node: sendNodeOf(node),
+        url: outcome.url,
+        headers: outcome.headers,
+        message: outcome.message,
+        result: outcome.result,
+        error: outcome.error,
+        ms: outcome.ms,
+        secrets: outcome.resolved?.secrets
+      }));
+    } catch (error) {
+      console.warn(`[FullyRested] the websocket run was not recorded: ${(error as Error).message}`);
+    }
   }
 
   // Runs every case under a folder or the collection, in tree order, and saves ONE record for the batch.
@@ -103,6 +194,20 @@ export class ExecuteRestCallsService {
       this.progress.next({ done: 0, total: cases.length, passed, failed });
       for (const c of cases) {
         if (this.cancelled) break;
+        if (isWebSocketNode(c.node)) {
+          const ws = await this.sendWebSocket(c.node, environmentId);
+          this.latest.set(this.keyOf(c.node), ws.shown);
+          if (ws.result?.passed === true) passed++; else failed++;
+          done.push({
+            node: sendNodeOf(c.node),
+            webSocket: { url: ws.url, headers: ws.headers, message: ws.message, result: ws.result },
+            error: ws.error,
+            ms: ws.ms,
+            secrets: ws.resolved?.secrets
+          });
+          this.progress.next({ done: done.length, total: cases.length, passed, failed });
+          continue;
+        }
         const sent = await this.sendNode(c.node, environmentId);
         this.latest.set(this.keyOf(c.node), sent.result ?? errorResult(sent.error ?? 'The request failed', sent.ms));
         const ok = sent.error == undefined && sent.result?.validated?.valid !== false;

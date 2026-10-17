@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PreparedRequest } from '../src/auth';
 import { RestActionResult } from '../src/builder';
 import { SecretTable } from '../src/model';
-import { AppSendInput, AppScopeCase, appSelection, buildAppRunRecord, buildScopeRunRecord } from '../src/app-run';
+import { AppSendInput, AppScopeCase, appSelection, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord } from '../src/app-run';
 
 const prepared: PreparedRequest = {
   method: 'POST', url: 'https://api.example.com/users?key=sw0rdf1sh-secret',
@@ -162,5 +162,38 @@ describe('buildScopeRunRecord', () => {
 
     expect(run.cases[0].request.url).toContain('sw0rdf1sh-secret');
     expect(run.cases[1].request.url).toBe('https://api.example.com/users?key={{$secret:API_KEY}}');
+  });
+});
+
+describe('buildAppWebSocketRunRecord', () => {
+  const wsInput = {
+    collection: 'C:/work/api/api.frcol',
+    node: { kind: 'request' as const, name: 'Feed', path: 'ws/feed.frreq' },
+    url: 'wss://example.com/feed',
+    headers: { authorization: 'Bearer sw0rdf1sh-secret' },
+    message: 'hello sw0rdf1sh-secret',
+    secrets,
+    ms: 40,
+    runId: '20261017-100000-ab12-app',
+    startedAt: '2026-10-17T10:00:00.000Z'
+  };
+
+  it('records a passing run as one redacted WS case', () => {
+    const run = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: true, errors: [], messages: [{ text: '{"a":1}', matched: true }] } });
+
+    expect(run.redacted).toBe(true);
+    expect(run.selection).toBe('request:ws/feed.frreq');
+    expect(run.cases).toHaveLength(1);
+    expect(run.cases[0].outcome).toBe('pass');
+    expect(run.cases[0].request.method).toBe('WS');
+    expect(JSON.stringify(run)).not.toContain('sw0rdf1sh-secret');
+  });
+
+  it('records a failed test as fail and a thrown error as error', () => {
+    const failed = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: false, errors: ['timed out'], messages: [] } });
+    const errored = buildAppWebSocketRunRecord({ ...wsInput, error: 'no main process' });
+
+    expect(failed.cases[0].outcome).toBe('fail');
+    expect(errored.cases[0].outcome).toBe('error');
   });
 });

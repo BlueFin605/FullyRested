@@ -8,6 +8,9 @@
     spellcheck="false"
   />
   <div class="url-bar">
+    @if (isWebSocket) {
+      <span class="fr-method" data-verb="ws" aria-label="Websocket request">WS</span>
+    } @else {
     <mat-select
       class="verb-select"
       [(value)]="action.verb"
@@ -24,6 +27,7 @@
         </mat-option>
       }
     </mat-select>
+    }
     <app-code-editor
       #urlEditor
       class="url-input"
@@ -33,13 +37,41 @@
       (enter)="test()"
       placeholder="Enter a URL, e.g. https://api.example.com/users"
     ></app-code-editor>
-    <button mat-flat-button class="send" (click)="test()" matTooltip="Send (Ctrl+Enter)">
-      Send
+    @if (isWebSocket) {
+      <button mat-stroked-button class="open-live" (click)="openLive.emit()" matTooltip="Open live session">Live</button>
+    }
+    <button mat-flat-button class="send" (click)="test()" [matTooltip]="isWebSocket ? 'Run (Ctrl+Enter)' : 'Send (Ctrl+Enter)'">
+      {{ isWebSocket ? 'Run' : 'Send' }}
     </button>
   </div>
 </div>
 
+<div class="type-bar">
+  <mat-button-toggle-group
+    class="fr-segmented"
+    [value]="action.type ?? 'http'"
+    (change)="onTypeChange($event)"
+    hideSingleSelectionIndicator
+    aria-label="Request type"
+  >
+    <mat-button-toggle value="http">HTTP</mat-button-toggle>
+    <mat-button-toggle value="websocket">WebSocket</mat-button-toggle>
+  </mat-button-toggle-group>
+</div>
+
 <mat-tab-group class="fr-subtabs request-tabs" animationDuration="0ms" [mat-stretch-tabs]="false">
+  @if (isWebSocket) {
+    <mat-tab>
+      <ng-template mat-tab-label>Message / Expect</ng-template>
+      <div class="tab-body">
+        <app-edit-request-websocket
+          [action]="action"
+          (actionChange)="onWebsocketChange()"
+          (invalidChange)="invalidChange.emit($event)"
+        ></app-edit-request-websocket>
+      </div>
+    </mat-tab>
+  }
   <mat-tab>
     <ng-template mat-tab-label>
       Params
@@ -79,6 +111,7 @@
       ></app-edit-request-headers>
     </div>
   </mat-tab>
+  @if (!isWebSocket) {
   <mat-tab>
     <ng-template mat-tab-label>
       Body<span class="count">{{ bodyLabel(action.body.contentType) }}</span>
@@ -99,4 +132,5 @@
       ></app-edit-request-validation>
     </div>
   </mat-tab>
+  }
 </mat-tab-group>

@@ -38,6 +38,7 @@ import { DisplayResponseHeadersComponent } from './components/rest-action/respon
 import { EditRequestComponent } from './components/rest-action/request/edit-request/edit-request.component';
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
 import { EditRequestParametersComponent } from './components/rest-action/request/edit-request-parameters/edit-request-parameters.component';
+import { EditRequestWebsocketComponent } from './components/rest-action/request/edit-request-websocket/edit-request-websocket.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
@@ -55,6 +56,7 @@ import { SettingsManageAuthenticationBearerTokenComponent } from './components/s
 import { InheritedSettingsComponent } from './components/rest-action/inherited-settings/inherited-settings.component';
 import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
 import { EditRequestRunComponent } from './components/rest-action/request/edit-request-run/edit-request-run.component';
+import { LiveSessionComponent } from './components/live-session/live-session.component';
 import { EditRequestValidationComponent } from './components/rest-action/request/edit-request-validation/edit-request-validation.component';
 
 @NgModule({
@@ -77,6 +79,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     EditRequestHeadersComponent,
     EditRequestParametersComponent,
     EditRequestBodyComponent,
+    EditRequestWebsocketComponent,
     DisplayResponseBodyImageComponent,
     OpenActionsComponent,
     CollectionExplorerComponent,
@@ -92,7 +95,8 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     SettingsManageAuthenticationBearerTokenComponent,
     RestActionRunComponent,
     EditRequestRunComponent,
-    EditRequestValidationComponent
+    EditRequestValidationComponent,
+    LiveSessionComponent
   ],
   imports: [
     ScopeRunStatusComponent,

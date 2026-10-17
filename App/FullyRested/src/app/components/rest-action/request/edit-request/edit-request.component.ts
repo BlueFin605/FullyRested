@@ -15,6 +15,9 @@ import { SystemSupportService } from 'src/app/services/system-support/system-sup
 import {
   CreateEmptyAction,
   HttpProtocol,
+  RequestType,
+  applyRequestType,
+  normaliseAction,
   RestTypeVerb,
   buildRequestUrl,
 } from '@fullyrested/core';
@@ -60,10 +63,23 @@ export class EditRequestComponent implements OnInit {
   @Output()
   execute = new EventEmitter<void>();
 
+  // Websocket requests only: open a live session on this request
+  @Output()
+  openLive = new EventEmitter<void>();
+
+  // Set by the websocket editor while a field holds a value that cannot be saved
+  @Output()
+  invalidChange = new EventEmitter<boolean>();
+
   displayUrl: string = '';
   // What the URL editor shows: protocol + url + query. Only reset from outside (load, params table),
   // never while typing, so the caret doesn't jump.
   urlText: string = '';
+
+  // A websocket request is run as a test rather than sent
+  get isWebSocket(): boolean {
+    return this.action.type == 'websocket';
+  }
 
   readonly verbs = VERBS;
   readonly authLabel = authLabel;
@@ -230,6 +246,18 @@ export class EditRequestComponent implements OnInit {
 
   onNameChange(value: any) {
     this.action.name = value;
+    this.actionChange.emit(this.action);
+  }
+
+  // Switch between HTTP and websocket. Message and expect stay in the request when going back to HTTP.
+  onTypeChange(event: { value: RequestType }) {
+    if (!applyRequestType(this.action, event.value)) return;
+    normaliseAction(this.action);
+    if (event.value == 'http') this.invalidChange.emit(false);
+    this.actionChange.emit(this.action);
+  }
+
+  onWebsocketChange() {
     this.actionChange.emit(this.action);
   }
 

@@ -1,17 +1,19 @@
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  AuthoringContext, EditResult, LOCATOR_FORMS, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
+  AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
-  setMethod, setParam, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
 import { runCollection } from './run';
+import { connectSession } from './ws';
 
 // The SDK's CJS entry points resolve under module node16, so plain static imports are used.
 export interface McpOptions { defaultStore?: string; secrets: SecretStore }
@@ -32,6 +34,14 @@ const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-head
 export function createServer(opts: McpOptions): McpServer {
   const server = new McpServer({ name: 'fullyrested', version: require('../package.json').version });
   const memory = new MemoryRunStore(20);
+  // Live websocket sessions live in this process, like the run store, until closed or the server exits
+  const sessions = new Map<string, LiveSession>();
+  const sessionFor = (id: string): LiveSession => {
+    const session = sessions.get(id);
+    if (session === undefined)
+      throw new Error(`No open session '${id}' (it was never opened, or has been closed)`);
+    return session;
+  };
 
   const fsStore = (dir?: string): FsRunStore | undefined => {
     const d = dir ?? opts.defaultStore;
@@ -92,9 +102,11 @@ export function createServer(opts: McpOptions): McpServer {
     description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body. Authoring loop: tree, edit, run.',
     inputSchema: {
       collection, environment: z.string().optional(), action: z.string().optional(),
-      run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
+      run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store,
+      timeoutMs: z.number().optional().describe('Websocket tests: wait this many ms instead of the request expect.timeout, for this run only (the file is not changed). A positive whole number.')
     }
-  }, ({ store: dir, ...options }) => respond(async () => {
+  }, ({ store: dir, timeoutMs, ...rest }) => respond(async () => {
+    const options = { ...rest, ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }) };
     // Unlike the CLI, no selection means the whole collection, so an agent's first call is not wasted
     const selected = options.action !== undefined || options.folder !== undefined || options.all !== undefined;
     const record = await runCollection(selected ? options : { ...options, all: true }, opts.secrets, { onWarning: warn, includeSecrets: false });
@@ -108,6 +120,51 @@ export function createServer(opts: McpOptions): McpServer {
       }
     }
     return runResult(record);
+  }));
+
+  // Websocket sessions. Websocket tests go through `run`; these hold a connection open to read and send.
+  const sessionId = z.string().describe('Session id from ws_session_open');
+
+  server.registerTool('ws_session_open', {
+    description: 'Open a live websocket session on a websocket request (with collection) or a ws:// or wss:// url; returns a session id.',
+    inputSchema: {
+      target: z.string().describe('A ws:// or wss:// url, or a websocket request file (.frreq) with collection'),
+      collection: collection.optional(), environment: z.string().optional(), run: z.string().optional()
+    }
+  }, a => respond(async () => {
+    const session = await connectSession(a.target, { collection: a.collection, environment: a.environment, run: a.run }, opts.secrets);
+    const id = randomUUID();
+    sessions.set(id, session);
+    return { sessionId: id };
+  }));
+
+  server.registerTool('ws_session_events', {
+    description: 'Read the events of a session after a cursor (default 0, all held); returns the events, the new cursor and whether it is closed.',
+    inputSchema: { sessionId, after: z.number().int().min(0).optional().describe('Cursor from the previous read') }
+  }, a => respond(() => {
+    const read = sessionFor(a.sessionId).readEvents(a.after ?? 0);
+    return { events: read.events, cursor: read.lastSeq, closed: read.closed };
+  }));
+
+  server.registerTool('ws_session_send', {
+    description: 'Send a text frame into an open session; a closed session returns an error result.',
+    inputSchema: { sessionId, message: z.string().describe('Text frame to send') }
+  }, a => respond(() => {
+    const result = sessionFor(a.sessionId).send(a.message);
+    if (!result.ok)
+      throw new Error(result.error);
+    return { sent: true };
+  }));
+
+  server.registerTool('ws_session_close', {
+    description: 'Close a session and return its close code and reason.',
+    inputSchema: { sessionId }
+  }, a => respond(() => {
+    const session = sessionFor(a.sessionId);
+    session.close();
+    sessions.delete(a.sessionId);
+    const close = session.readEvents(0).events.reverse().find(e => e.kind === 'close');
+    return close?.kind === 'close' ? { closed: true, code: close.code, reason: close.reason } : { closed: true };
   }));
 
   server.registerTool('list_runs', {
@@ -237,12 +294,13 @@ export function createServer(opts: McpOptions): McpServer {
       sessionToken: z.string().optional().describe('awssig: session token as a secret reference only, e.g. {{$awsSession}}'),
       awsRegion: z.string().optional().describe('awssig: AWS region'),
       serviceName: z.string().optional().describe('awssig: AWS service name'),
-      signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers')
+      signUrl: z.boolean().optional().describe('awssig: sign the url instead of headers'),
+      placement: z.string().optional().describe("Where the token goes on a websocket handshake: 'header' (default) or a query parameter name such as 'token'")
     }
   }, a => runEdit(a.collection, ctx => setAuth(ctx, a.scope, a.type, {
     userName: a.userName, password: a.password, token: a.token,
     accessKey: a.accessKey, secretKey: a.secretKey, sessionToken: a.sessionToken,
-    awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl
+    awsRegion: a.awsRegion, serviceName: a.serviceName, signUrl: a.signUrl, placement: a.placement
   })));
 
   server.registerTool('remove_setting', {
@@ -292,6 +350,31 @@ export function createServer(opts: McpOptions): McpServer {
     description: 'Learn a validation from one recorded case of a run.',
     inputSchema: { collection, scope, case: caseRef, runId, store }
   }, a => runEdit(a.collection, ctx => validationFromCase(ctx, storesFor(a.store), a.scope, a.case, a.runId)));
+
+  server.registerTool('set_type', {
+    description: 'Set whether a request is plain http or a websocket.',
+    inputSchema: { collection, scope, type: z.string().describe('http | websocket') }
+  }, a => runEdit(a.collection, ctx => setType(ctx, a.scope, a.type)));
+
+  server.registerTool('set_message', {
+    description: 'Set the text frame a websocket request sends once the socket opens.',
+    inputSchema: { collection, scope, message: z.string().describe('Message text (may hold {{variables}})') }
+  }, a => runEdit(a.collection, ctx => setMessage(ctx, a.scope, a.message)));
+
+  server.registerTool('set_expect', {
+    description: 'Set what a websocket test waits for; give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      count: z.number().int().optional().describe('Messages to wait for (at least 1)'),
+      match: z.string().optional().describe('all | any'),
+      schema: z.string().optional().describe('JSON Schema each message is checked against, as text; empty clears it'),
+      extras: z.string().optional().describe('ignore | fail'),
+      timeout: z.number().int().optional().describe('Overall time limit in ms'),
+      settle: z.number().int().optional().describe('ms to keep listening after a pass (extras: fail only)')
+    }
+  }, a => runEdit(a.collection, ctx => setExpect(ctx, a.scope, {
+    count: a.count, match: a.match, schema: a.schema, extras: a.extras, timeout: a.timeout, settle: a.settle
+  })));
 
   server.registerTool('rename', {
     description: 'Rename an environment, folder, request or run; use move for a new path.',

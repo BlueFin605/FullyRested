@@ -25,10 +25,12 @@ const EDIT_TOOLS = [
   'new_collection', 'new_folder', 'new_request', 'new_run', 'new_environment', 'select_environment',
   'set_header', 'set_param', 'set_variable', 'add_secret_ref', 'set_auth', 'remove_setting',
   'set_url', 'set_method', 'set_body', 'set_validation', 'set_validation_header',
-  'validation_from_case', 'rename', 'delete', 'move', 'settings'
+  'validation_from_case', 'set_type', 'set_message', 'set_expect', 'rename', 'delete', 'move', 'settings'
 ];
 
-const TOOLS = [...QUERY_TOOLS, ...EDIT_TOOLS].sort();
+const WS_TOOLS = ['ws_session_open', 'ws_session_events', 'ws_session_send', 'ws_session_close'];
+
+const TOOLS = [...QUERY_TOOLS, ...EDIT_TOOLS, ...WS_TOOLS].sort();
 
 describe('mcp server', () => {
   it('lists exactly the query and authoring tools, and no query tool mentions secrets or include', async () => {
