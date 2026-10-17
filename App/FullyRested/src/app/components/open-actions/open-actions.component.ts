@@ -258,10 +258,23 @@ export class OpenActionsComponent implements OnInit {
     });
   }
 
+  // Requests whose editor shows a validation error (an invalid websocket timeout or schema)
+  private invalidActions = new Set<string>();
+
+  onInvalidChange(event: LocalRestAction, invalid: boolean) {
+    if (invalid) this.invalidActions.add(event.action.id);
+    else this.invalidActions.delete(event.action.id);
+  }
+
+  isSaveBlocked(action: LocalRestAction): boolean {
+    return this.invalidActions.has(action.action.id);
+  }
+
   saveAsRequest() {
     if (this.tabs?.selectedIndex == null) return;
 
     var action = this.currentSession().actions[this.tabs.selectedIndex];
+    if (this.isSaveBlocked(action)) return;
     this.repo.saveAsRequest(action);
   }
 
@@ -269,6 +282,7 @@ export class OpenActionsComponent implements OnInit {
     if (this.tabs?.selectedIndex == null) return;
 
     var action = this.currentSession().actions[this.tabs.selectedIndex];
+    if (this.isSaveBlocked(action)) return;
     this.repo.saveRequest(action);
   }
 

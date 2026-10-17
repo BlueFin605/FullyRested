@@ -15,6 +15,7 @@
       (actionChange)="onActionChange($event)"
       (execute)="executeAction()"
       (openLive)="openLiveSession()"
+      (invalidChange)="invalidChange.emit($event)"
     ></app-edit-request>
     <app-inherited-settings
       splitFirst

@@ -1,0 +1,68 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fr-text-faint);
+}
+
+.help {
+  margin: 0;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-text-muted);
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-start;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-text-muted);
+}
+
+.num {
+  width: 110px;
+  padding: 4px 8px;
+  border: 1px solid var(--fr-border-strong);
+  border-radius: var(--fr-radius);
+  background: var(--fr-bg);
+  color: var(--fr-text);
+  font: inherit;
+}
+
+.num:focus {
+  outline: 0;
+  border-color: var(--fr-accent);
+}
+
+.field-error {
+  max-width: 260px;
+  font-size: var(--fr-font-size-sm);
+  color: var(--fr-error);
+}
+
+.editor {
+  min-height: 120px;
+  border: 1px solid var(--fr-border);
+  border-radius: var(--fr-radius);
+  overflow: hidden;
+}

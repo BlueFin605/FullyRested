@@ -50,6 +50,10 @@ export class RestActionComponent implements OnInit, DoCheck, OnDestroy {
   @Output()
   nameChange = new EventEmitter<string>();
 
+  // A websocket field holds a value that cannot be saved; the request is not saved while true
+  @Output()
+  invalidChange = new EventEmitter<boolean>();
+
   @Output()
   dirtyChange = new EventEmitter<boolean>();
 

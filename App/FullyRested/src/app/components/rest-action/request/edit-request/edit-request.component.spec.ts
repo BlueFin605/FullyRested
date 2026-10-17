@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { CreateEmptyAction, HttpProtocol, RestAction } from '@fullyrested/core';
 import { AppModule } from 'src/app/app.module';
@@ -77,5 +78,56 @@ describe('EditRequestComponent', () => {
     expect(element.querySelector('mat-select.verb-select')).toBeNull();
     expect(element.querySelector('.fr-method')?.textContent?.trim()).toBe('WS');
     expect(sent.length).toBe(1);
+  });
+
+  it('shows the message and expect editor instead of Body and Validation for a websocket request', () => {
+    const { element } = create({ type: 'websocket', url: 'wss://x.example/feed', message: '{}' });
+
+    expect(element.querySelector('app-edit-request-websocket')).not.toBeNull();
+    expect(element.querySelector('app-edit-request-body')).toBeNull();
+    expect(element.querySelector('app-edit-request-validation')).toBeNull();
+  });
+
+  it('switches HTTP to websocket with the websocket defaults, like set_type', () => {
+    const { component, fixture } = create({ url: 'x.example' });
+    const changed: unknown[] = [];
+    component.actionChange.subscribe((a) => changed.push(a));
+
+    component.onTypeChange({ value: 'websocket' });
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+
+    expect(component.action.type).toBe('websocket');
+    expect(component.action.message).toBe('');
+    expect(component.action.expect).toEqual(jasmine.objectContaining({ count: 1, match: 'all', extras: 'ignore', timeout: 5000, settle: 500 }));
+    expect(changed.length).toBe(1);
+    expect(fixture.nativeElement.querySelector('app-edit-request-websocket')).not.toBeNull();
+  });
+
+  it('keeps message and expect when switching back to HTTP, and clears a pending validation error', () => {
+    const expect_ = { count: 2, match: 'any' as const, extras: 'fail' as const, timeout: 1000, settle: 10, schema: undefined };
+    const { component, fixture } = create({ type: 'websocket', message: '{"a":1}', expect: expect_ });
+    const invalid: boolean[] = [];
+    component.invalidChange.subscribe((v) => invalid.push(v));
+
+    component.onTypeChange({ value: 'http' });
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+
+    expect(component.action.type).toBe('http');
+    expect(component.action.message).toBe('{"a":1}');
+    expect(component.action.expect).toEqual(expect_);
+    expect(invalid).toEqual([false]);
+    expect(fixture.nativeElement.querySelector('app-edit-request-websocket')).toBeNull();
+  });
+
+  it('does nothing when the chosen type is already set', () => {
+    const { component } = create({ url: 'x.example' });
+    const changed: unknown[] = [];
+    component.actionChange.subscribe((a) => changed.push(a));
+
+    component.onTypeChange({ value: 'http' });
+
+    expect(changed.length).toBe(0);
   });
 });

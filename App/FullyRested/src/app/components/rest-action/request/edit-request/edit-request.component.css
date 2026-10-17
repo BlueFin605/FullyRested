@@ -98,3 +98,8 @@
 .tab-body.fill {
   height: 100%;
 }
+
+.type-bar {
+  padding: 6px 12px;
+  flex: none;
+}

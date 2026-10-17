@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { setAuth, setExpect, setMessage, setType } from '../src/authoring';
+import { applyExpectFields, applyRequestType, setAuth, setExpect, setMessage, setType } from '../src/authoring';
+import { CreateEmptyAction } from '../src/model';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { QueryError } from '../src/query-error';
 import { files } from './fixtures/collection';
@@ -183,4 +184,35 @@ describe('setAuth placement', () => {
     await expect(setAuth(ctxFor(sink), REQ, 'bearertoken', { placement: 'a b&c' })).rejects.toThrow(/placement must be/);
     expect(sink.files.get(FILE)).toBe(before);
   });
+});
+
+describe('applyExpectFields and applyRequestType (shared with the Electron editor)', () => {
+    it('applies valid fields to a copy and leaves the input alone', () => {
+        const before = { count: 1, match: 'all' as const, schema: undefined, extras: 'ignore' as const, timeout: 5000, settle: 500 };
+        const next = applyExpectFields(before, { count: 3, timeout: 100, schema: '{"type":"object"}' });
+
+        expect(next).toEqual({ ...before, count: 3, timeout: 100, schema: { schema: '{"type":"object"}' } });
+        expect(before.count).toBe(1);
+    });
+
+    it('rejects what set_expect rejects', () => {
+        expect(() => applyExpectFields(undefined, { timeout: 0 })).toThrow(/positive whole number/);
+        expect(() => applyExpectFields(undefined, { count: 0 })).toThrow(/at least 1/);
+        expect(() => applyExpectFields(undefined, { settle: -1 })).toThrow(/at least 0/);
+        expect(() => applyExpectFields(undefined, { schema: '{' })).toThrow(/not valid JSON/);
+        expect(() => applyExpectFields(undefined, { schema: '{"type":"nonsense"}' })).toThrow(/does not compile/);
+    });
+
+    it('applyRequestType fills websocket defaults and keeps message and expect when going back', () => {
+        const action = CreateEmptyAction();
+        expect(applyRequestType(action, 'websocket')).toBe(true);
+        expect(action.message).toBe('');
+        expect(action.expect?.timeout).toBe(5000);
+        action.message = 'hi';
+
+        expect(applyRequestType(action, 'http')).toBe(true);
+        expect(action.message).toBe('hi');
+        expect(action.expect).toBeDefined();
+        expect(applyRequestType(action, 'http')).toBe(false);
+    });
 });

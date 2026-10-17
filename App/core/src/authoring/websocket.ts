@@ -1,4 +1,4 @@
-import { ExpectExtras, ExpectMatch, RequestType, RestAction } from '../model';
+import { ExpectExtras, ExpectMatch, RequestType, RestAction, WebSocketExpect } from '../model';
 import { normaliseExpect } from '../normalise';
 import { QueryError } from '../query-error';
 import { validateTimeoutMs } from '../websocket/timeout';
@@ -34,6 +34,21 @@ function requireInt(field: string, value: number, min: number): number {
     return value;
 }
 
+// The pure part of set_type, shared with the Electron request editor: changes the type, fills the
+// websocket defaults when switching to websocket, and leaves message and expect alone when switching
+// back. Returns false when the request already had that type.
+export function applyRequestType(action: RestAction, wanted: RequestType): boolean {
+    if ((action.type ?? 'http') == wanted)
+        return false;
+
+    action.type = wanted;
+    if (wanted == 'websocket') {
+        action.message = action.message ?? '';
+        action.expect = normaliseExpect(action.expect);
+    }
+    return true;
+}
+
 // Sets whether a request is plain HTTP or a websocket. Switching to websocket fills the websocket
 // defaults (normaliseAction runs after apply); switching back leaves message and expect in the
 // file, so flipping the type is not destructive.
@@ -41,11 +56,9 @@ export async function setType(ctx: AuthoringContext, scope: string, type: string
     const wanted = matchValue(REQUEST_TYPES, type, 'request type');
 
     return editScope(ctx, 'set_type', scope, ['request'], target => {
-        const action = requestAction(target);
-        if ((action.type ?? 'http') == wanted)
+        if (!applyRequestType(requestAction(target), wanted))
             return '';
 
-        action.type = wanted;
         return `Set type '${wanted}' on ${scope}`;
     }, runOverrideHint('type'));
 }
@@ -78,9 +91,10 @@ export interface ExpectFields {
     settle?: number;     // ms
 }
 
-// Sets what a websocket test waits for. Everything is validated before editScope runs, so a
-// rejection (including a schema that is not JSON or does not compile) never touches a file.
-export async function setExpect(ctx: AuthoringContext, scope: string, fields: ExpectFields): Promise<EditResult> {
+// Validates ExpectFields and applies them to a copy of `current`, returning the new expect. Pure and
+// shared: set_expect writes the result to the file, and the Electron request editor writes it to the
+// open request, so both produce the same shape and reject the same values. Throws QueryError.
+export function applyExpectFields(current: Partial<WebSocketExpect> | undefined, fields: ExpectFields): WebSocketExpect {
     const count = fields.count == undefined ? undefined : requireInt('count', fields.count, 1);
     const match = fields.match == undefined ? undefined : matchValue(MATCHES, fields.match, 'match');
     const extras = fields.extras == undefined ? undefined : matchValue(EXTRAS, fields.extras, 'extras');
@@ -88,25 +102,33 @@ export async function setExpect(ctx: AuthoringContext, scope: string, fields: Ex
     const settle = fields.settle == undefined ? undefined : requireInt('settle', fields.settle, 0);
     const schema = fields.schema == undefined || fields.schema == '' ? undefined : parseJsonSchema(fields.schema);
 
+    const expect = normaliseExpect(JSON.parse(JSON.stringify(normaliseExpect(current))));
+    if (count != undefined)
+        expect.count = count;
+    if (match != undefined)
+        expect.match = match;
+    if (extras != undefined)
+        expect.extras = extras;
+    if (timeout != undefined)
+        expect.timeout = timeout;
+    if (settle != undefined)
+        expect.settle = settle;
+    if (fields.schema != undefined)
+        expect.schema = schema;
+    return expect;
+}
+
+// Sets what a websocket test waits for. Everything is validated before editScope runs, so a
+// rejection (including a schema that is not JSON or does not compile) never touches a file.
+export async function setExpect(ctx: AuthoringContext, scope: string, fields: ExpectFields): Promise<EditResult> {
+    applyExpectFields(undefined, fields);
+
     return editScope(ctx, 'set_expect', scope, ['request'], target => {
         const action = requestAction(target);
         requireWebsocket(action, 'set_expect');
 
         const before = JSON.stringify(normaliseExpect(action.expect));
-        const expect = normaliseExpect(JSON.parse(before));
-
-        if (count != undefined)
-            expect.count = count;
-        if (match != undefined)
-            expect.match = match;
-        if (extras != undefined)
-            expect.extras = extras;
-        if (timeout != undefined)
-            expect.timeout = timeout;
-        if (settle != undefined)
-            expect.settle = settle;
-        if (fields.schema != undefined)
-            expect.schema = schema;
+        const expect = applyExpectFields(action.expect, fields);
 
         if (JSON.stringify(expect) == before)
             return '';

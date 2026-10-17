@@ -38,6 +38,7 @@ import { DisplayResponseHeadersComponent } from './components/rest-action/respon
 import { EditRequestComponent } from './components/rest-action/request/edit-request/edit-request.component';
 import { EditRequestHeadersComponent } from './components/rest-action/request/edit-request-headers/edit-request-headers.component';
 import { EditRequestParametersComponent } from './components/rest-action/request/edit-request-parameters/edit-request-parameters.component';
+import { EditRequestWebsocketComponent } from './components/rest-action/request/edit-request-websocket/edit-request-websocket.component';
 import { EditRequestBodyComponent } from './components/rest-action/request/edit-request-body/edit-request-body.component';
 import { DisplayResponseBodyImageComponent } from './components/rest-action/response/display-response-body-image/display-response-body-image.component';
 import { OpenActionsComponent } from './components/open-actions/open-actions.component';
@@ -78,6 +79,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     EditRequestHeadersComponent,
     EditRequestParametersComponent,
     EditRequestBodyComponent,
+    EditRequestWebsocketComponent,
     DisplayResponseBodyImageComponent,
     OpenActionsComponent,
     CollectionExplorerComponent,
