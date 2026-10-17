@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { RequestNode, RunNode, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
-import type { AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, WebSocketTestResult } from '@fullyrested/core';
+import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
+import type { RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import { RunHistoryService } from '../run-history/run-history.service';
@@ -13,6 +13,8 @@ export const EmptyActionResult: RestActionResult = { status: "", statusText: und
 
 // What the UI shows about a response beyond what core returns: how long it took and how big it was
 export interface TimedActionResult extends RestActionResult {
+  // the trigger requests a websocket test fired, in order
+  triggerCalls?: TriggerCall[];
   durationMs?: number;
   sizeBytes?: number;
 }
@@ -49,7 +51,8 @@ export const webSocketResult = (test: WebSocketTestResult, ms: number): TimedAct
     body: { contentType: 'text/plain', body: bytes.buffer as ArrayBuffer },
     validated: { valid: test.passed, errors: test.errors, information: [] },
     durationMs: ms,
-    sizeBytes: bytes.byteLength
+    sizeBytes: bytes.byteLength,
+    ...(test.triggerCalls?.length ? { triggerCalls: test.triggerCalls } : {})
   };
 };
 
@@ -90,6 +93,33 @@ export class ExecuteRestCallsService {
   private keyOf(node: RequestNode | RunNode): string {
     const collection = this.trees.openCollection;
     return resultKey(collection?.filename || collection?.path, node.path, runIdOf(node));
+  }
+
+  // The http request a websocket request's trigger names, resolved like any send (folders, environment, variables),
+  // with its timing, ready for the runWsTest payload. undefined when there is no trigger; throws, naming the
+  // locator, when it cannot be resolved.
+  resolveTrigger(action: RestAction, environmentId: string | undefined) {
+    if (action.trigger == undefined) return undefined;
+    const trigger = normaliseTrigger(action.trigger);
+    const target = this.trees.tree.value?.find(trigger.request);
+    if (!(target instanceof RequestNode)) throw new Error(`Trigger request '${trigger.request}' not found in the collection`);
+    if ((target.action.type ?? 'http') != 'http') throw new Error(`Trigger request '${trigger.request}' is a websocket request; a trigger must be http`);
+    let node: RequestNode | RunNode = target;
+    if (trigger.run != undefined) {
+      const run = target.runs().find(r => r.run.id == trigger.run || r.run.name == trigger.run);
+      if (run == undefined) throw new Error(`Trigger run '${trigger.run}' not found in '${trigger.request}'`);
+      node = run;
+    }
+    const request = node.resolve({ environmentId }).replaceVariables();
+    return { request, repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay };
+  }
+
+  // Sends one http request of the open collection (optionally one of its runs) through the normal send
+  // path; used by the live panel's Fire request. Throws when it cannot be found or sent.
+  async fireRequest(path: string, runId: string | undefined, environmentId: string | undefined): Promise<TimedActionResult> {
+    const target = this.trees.tree.value?.find(path);
+    if (!(target instanceof RequestNode)) throw new Error(`Request '${path}' not found in the collection`);
+    return this.executeNode(runId ? target.run(runId) : target, environmentId);
   }
 
   // Resolves the node through its folders, environment and collection, sends it and checks the response:
@@ -133,13 +163,15 @@ export class ExecuteRestCallsService {
       url = request.url;
       headers = request.headers;
       message = substituteDeep(action.message ?? '', request.variables, request.secrets);
+      const trigger = this.resolveTrigger(action, environmentId);
       const ipc = this.getIpcRenderer();
       if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
       result = await ipc.invoke('runWsTest', {
         root: this.trees.openCollection?.path,
         request: { url, headers, authentication: request.authentication },
         message,
-        expect: action.expect
+        expect: action.expect,
+        ...(trigger == undefined ? {} : { trigger })
       });
     } catch (e) {
       error = (e as Error)?.message ?? String(e);

@@ -6,6 +6,9 @@ import {
 } from '@fullyrested/core';
 import { ActionRepositoryService } from '../action-repository/action-repository.service';
 
+// An http request a websocket trigger (or a live-session Fire request) can send, with its runs
+export interface HttpRequestChoice { path: string; name: string; runs: { id: string; name: string }[]; }
+
 // The open collection as core's scope tree: its folders, their settings and the requests below them.
 // The CLI builds the same tree, so a request sends the same thing from either.
 @Injectable({
@@ -90,6 +93,13 @@ export class CollectionTreeService {
     // the settings panes edit the collection's own config object; settings edits may have swapped it mid-load
     root.config = this.collection!.config;
     this.tree.next(root);
+  }
+
+  // The collection's http requests with their runs, in explorer order; `exceptId` leaves one request out
+  httpRequests(exceptId?: string): HttpRequestChoice[] {
+    return (this.tree.value?.requestNodes() ?? [])
+      .filter(r => (r.action.type ?? 'http') == 'http' && r.action.id != exceptId)
+      .map(r => ({ path: r.path, name: r.name, runs: r.action.runs.map(run => ({ id: run.id, name: run.name })) }));
   }
 
   // A folder whose settings differ from what was read for it

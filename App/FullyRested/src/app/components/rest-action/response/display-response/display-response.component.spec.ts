@@ -48,3 +48,33 @@ describe('DisplayResponseComponent validation', () => {
     expect(el.querySelectorAll('.validation-errors li').length).toBe(2);
   });
 });
+
+describe('DisplayResponseComponent trigger calls', () => {
+  function render(triggerCalls?: { at: number; status?: number; error?: string; ms: number }[]): HTMLElement {
+    TestBed.configureTestingModule({
+      declarations: [DisplayResponseComponent],
+      schemas: [NO_ERRORS_SCHEMA],
+    });
+    const fixture = TestBed.createComponent(DisplayResponseComponent);
+    fixture.componentInstance.response = { ...EmptyActionResult, status: 'PASS', statusText: '1 message(s) received', triggerCalls };
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('lists each call with its time, status or error and duration', () => {
+    const el = render([{ at: Date.UTC(2026, 0, 1, 12, 0, 1), status: 200, ms: 12 }, { at: Date.UTC(2026, 0, 1, 12, 0, 2), error: 'ECONNREFUSED', ms: 3 }]);
+
+    const rows = Array.from(el.querySelectorAll('.trigger-call'));
+    expect(rows.length).toBe(2);
+    expect(rows[0].querySelector('.at')!.textContent).toMatch(/^\d\d:\d\d:\d\d\.\d{3}$/);
+    expect(rows[0].querySelector('.outcome')!.textContent).toBe('200');
+    expect(rows[0].getAttribute('data-level')).toBe('ok');
+    expect(rows[1].querySelector('.outcome')!.textContent).toBe('ECONNREFUSED');
+    expect(rows[1].getAttribute('data-level')).toBe('error');
+    expect(rows[1].querySelector('.ms')!.textContent).toBe('3 ms');
+  });
+
+  it('shows no trigger section without calls', () => {
+    expect(render().querySelector('.trigger-calls')).toBeNull();
+  });
+});
