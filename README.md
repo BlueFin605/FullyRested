@@ -336,7 +336,7 @@ write landing outside the collection's folder.
 |---|---|
 | Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
 | Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `set-capture`, `remove-setting` |
-| Request | `set-url`, `set-method`, `set-body`, `set-runs-only` |
+| Request | `set-url`, `set-protocol`, `set-method`, `set-body`, `set-runs-only` |
 | Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
 | Structure | `rename`, `delete`, `move` |
 
@@ -447,7 +447,7 @@ app has an endpoint that creates one; FullyRested adds nothing for a target that
 ### Content types, protocols and a request with runs
 
 - `set-body --content-type json` (also `xml`, `text`, `html`, `form`, `multipart`, any case) is stored as the media type (`application/json`...), so the header is never a bare `json`. A full media type is kept as written; `none` and `inherit` are not media types.
-- A url is https unless it says otherwise: `new-request ... "http://{{host}}/x"` and `set-url` with an `http://` prefix set the protocol to http and keep the `{{host}}` placeholder in the url. A variable cannot carry the scheme.
+- A url is https unless it says otherwise: `new-request ... "http://{{host}}/x"` and `set-url` with an `http://` prefix set the protocol to http and keep the `{{host}}` placeholder in the url. A variable cannot carry the scheme. For `{{baseUrl}}/pages` (host from a variable) there is no scheme to split, so pass `new-request --protocol http` or run `edit set-protocol --protocol http` (MCP: `new_request` `protocol`, `set_protocol`). A request that fails with EPROTO (https handshake against a plain-http server) says so and names this fix.
 - A request with runs is tested through its runs; the bare request is the base they override and is not a case of its own. Write the happy path as a run (it can change nothing), or run the bare request alone with `--action`.
 - A target app that answers a malformed body with an HTML error (Express's default) is the app's to fix; validation cannot assert JSON on a reply that is not JSON.
 
@@ -536,7 +536,7 @@ has:
 | `set_header`, `set_param`, `set_variable`, `add_secret_ref`, `set_auth`, `remove_setting` | Settings, at any scope the locator allows |
 | `set_capture` | Capture a response value (`body` JSONPath, `header` or `status`) into a `{{variable}}` for later requests in the same run; requests and runs only |
 | `set_runs_only` | Mark a request runs-only (`runsOnly` true/false): suite runs test only its runs |
-| `set_url`, `set_method`, `set_body` | A request's own fields. `set_url` and `set_body` also take a `run:` scope, to override the url or body for that run. `set_body` takes multipart parts (`fields` with `filename`, `base64`, `size` or `path`) |
+| `set_url`, `set_protocol`, `set_method`, `set_body` | A request's own fields. `set_url` and `set_body` also take a `run:` scope, to override the url or body for that run. `set_protocol` takes `http` or `https` (request only). `set_body` takes multipart parts (`fields` with `filename`, `base64`, `size` or `path`) |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |
 | `set_type`, `set_message`, `set_expect`, `set_trigger` | Websocket requests: switch a request between `http` and `websocket` (switching back keeps `message`, `expect` and `trigger`), set the frame to send, set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`), and set the trigger, an http request in the collection fired to provoke messages (`request`, `run`, `repeat`, `interval`, `delay`, or `clear`); give only the fields to change. `set_auth` also takes `placement`. The CLI has the same as `edit set-type`, `set-message`, `set-expect` and `set-trigger`. `tree` and `show_request` report a websocket request's expect and trigger |

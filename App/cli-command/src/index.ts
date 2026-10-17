@@ -8,7 +8,7 @@ import {
   AuthFields, AuthoringContext, BodyField, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody, setCapture,
-  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
+  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
@@ -327,8 +327,9 @@ editCommand('new-request', 'Create a request file')
   .requiredOption('--path <path>', 'request path, relative to the collection (.frreq)')
   .requiredOption('--method <verb>', 'HTTP method (get, post, patch, option, delete, put)')
   .requiredOption('--url <url>', 'request url (may hold {{variables}})')
-  .action(queryAction(async (options: EditOptions & { path: string; method: string; url: string }) =>
-    runEdit(options, ctx => newRequest(ctx, options.path, options.method, options.url))));
+  .option('--protocol <http|https>', 'protocol; use it when the url is {{baseUrl}}/path, since a variable cannot carry the scheme (default https)')
+  .action(queryAction(async (options: EditOptions & { path: string; method: string; url: string; protocol?: string }) =>
+    runEdit(options, ctx => newRequest(ctx, options.path, options.method, options.url, options.protocol))));
 
 editCommand('new-run', 'Add a run to a request')
   .requiredOption('--request <path>', 'request path, relative to the collection (.frreq)')
@@ -469,7 +470,12 @@ withScope(editCommand('set-url', "Set the url of a request, or of a run (which o
   .action(queryAction(async (options: EditOptions & { scope: string; url: string }) =>
     runEdit(options, ctx => setUrl(ctx, options.scope, options.url))));
 
-withScope(editCommand('set-method', 'Set the method of a request'))
+withScope(editCommand('set-protocol', 'Set the protocol (http or https) of a request, for a url whose host comes from a variable'))
+  .requiredOption('--protocol <http|https>', 'http or https')
+  .action(queryAction(async (options: EditOptions & { scope: string; protocol: string }) =>
+    runEdit(options, ctx => setProtocol(ctx, options.scope, options.protocol))));
+
+withScope(editCommand('set-method','Set the method of a request'))
   .requiredOption('--method <verb>', 'HTTP method (get, post, patch, option, delete, put)')
   .action(queryAction(async (options: EditOptions & { scope: string; method: string }) =>
     runEdit(options, ctx => setMethod(ctx, options.scope, options.method))));

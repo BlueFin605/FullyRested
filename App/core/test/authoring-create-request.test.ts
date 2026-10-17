@@ -48,6 +48,13 @@ describe('newFolder / newRequest', () => {
     expect(JSON.parse(sink.files.get('users/get.frreq')!)).toMatchObject({ protocol: 'http', url: '{{host}}/users' });
   });
 
+  it('newRequest takes an explicit protocol for a variable-hosted url, and rejects an unknown one', async () => {
+    const sink = new MemoryCollectionSink(base);
+    await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', '{{baseUrl}}/pages', 'http');
+    expect(JSON.parse(sink.files.get('users/get.frreq') as string)).toMatchObject({ protocol: 'http', url: '{{baseUrl}}/pages' });
+    await expect(newRequest(ctxFor(sink), 'users/b.frreq', 'GET', '{{baseUrl}}/pages', 'ftp')).rejects.toThrow(/Unknown protocol 'ftp' \(have http, https\)/);
+  });
+
   it('newRequest leaves a {{var}} placeholder in the url untouched', async () => {
     const sink = new MemoryCollectionSink(base);
     await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'https://{{host}}/users');

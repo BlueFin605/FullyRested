@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newRun, setBody, setMethod, setRunsOnly, setUrl } from '../src/authoring';
+import { newRun, setBody, setMethod, setProtocol, setRunsOnly, setUrl } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { FORM_CONTENT_TYPE, MULTIPART_CONTENT_TYPE } from '../src/model';
 import { QueryError } from '../src/query-error';
@@ -110,6 +110,22 @@ describe('setBody multipart', () => {
     await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: 'AA==', size: 3 }] })).rejects.toThrow(/not both/);
     await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', size: -1 }] })).rejects.toThrow(/whole number/);
     await expect(setBody(ctxFor(sink), run, 'application/json', { fields: [{ name: 'f', value: '', size: 1 }] })).rejects.toThrow(/Only multipart/);
+  });
+});
+
+describe('setProtocol', () => {
+  it('sets the protocol, matching case-insensitively, and reports no change when it already is', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const result = await setProtocol(ctxFor(sink), 'request:users/get.frreq', 'HTTP');
+    expect(result).toMatchObject({ file: 'users/get.frreq', changed: true });
+    expect(written(sink, 'users/get.frreq')).toMatchObject({ protocol: 'http', url: 'https://x/u' });
+    expect((await setProtocol(ctxFor(sink), 'request:users/get.frreq', 'http')).changed).toBe(false);
+  });
+
+  it('rejects an unknown protocol and a run scope', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setProtocol(ctxFor(sink), 'request:users/get.frreq', 'ftp')).rejects.toThrow(/Unknown protocol 'ftp' \(have http, https\)/);
+    await expect(setProtocol(ctxFor(sink), 'run:users/get.frreq#not found', 'http')).rejects.toThrow(/set_protocol accepts request: only/);
   });
 });
 

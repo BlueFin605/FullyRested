@@ -128,6 +128,15 @@ describe('executeRequest', () => {
     expect(result.status).toBe(-4);
     expect(result.statusText).toBe('ECONNREFUSED');
   });
+
+  it('explains an https handshake against a plain-http server (EPROTO) and how to fix the protocol', async () => {
+    const result = await executeRequest(to('/ok').setProtocol(HttpProtocol.https));
+
+    expect(result.status).toBe(-99);
+    expect(result.statusText).toMatch(/EPROTO/);
+    expect(result.statusText).toMatch(/protocol is https/);
+    expect(result.statusText).toMatch(/set-protocol --protocol http/);
+  });
 });
 
 describe('prepareRequest content type shorthand', () => {

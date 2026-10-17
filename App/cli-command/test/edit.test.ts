@@ -103,6 +103,19 @@ describe('fullyrested edit', () => {
     expect(action.protocol).toBe('http');
     expect(action.url).toBe(`127.0.0.1:${port}/ping`);
 
+    // set-protocol: a variable-hosted url carries no scheme, so the protocol is authored explicitly
+    r = await fullyrested(['edit', 'new-request', '-c', collection, '--path', 'items/var.frreq', '--method', 'get', '--url', '{{baseUrl}}/pages', '--protocol', 'http'], dir);
+    expect(r.code).toBe(0);
+    let varAction = JSON.parse(fs.readFileSync(path.join(dir, 'items', 'var.frreq'), 'utf8'));
+    expect(varAction).toMatchObject({ protocol: 'http', url: '{{baseUrl}}/pages' });
+    r = await fullyrested(['edit', 'set-protocol', '-c', collection, '--scope', 'request:items/var.frreq', '--protocol', 'HTTPS'], dir);
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("Set protocol 'https' on request:items/var.frreq\n");
+    varAction = JSON.parse(fs.readFileSync(path.join(dir, 'items', 'var.frreq'), 'utf8'));
+    expect(varAction.protocol).toBe('https');
+    r = await fullyrested(['edit', 'set-protocol', '-c', collection, '--scope', 'request:items/var.frreq', '--protocol', 'ftp'], dir);
+    expect(r.code).not.toBe(0);
+
     // set-method / set-url: both re-resolve the file through request:<path>
     r = await fullyrested(['edit', 'set-method', '-c', collection, '--scope', 'request:items/ping.frreq', '--method', 'post'], dir);
     expect(r.code).toBe(0);

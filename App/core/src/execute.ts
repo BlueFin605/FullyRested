@@ -47,13 +47,24 @@ export async function executeRequest(action: IExecuteRestAction, options: { sign
     const code = (error as { code?: string }).code;
     return {
       status: (code && NETWORK_ERROR_STATUS[code]) || UNKNOWN_ERROR_STATUS,
-      statusText: code ?? (error as Error).message,
+      statusText: protocolMismatchHint(error, action) ?? code ?? (error as Error).message,
       headers: {},
       headersSent: {},
       body: undefined,
       validated: undefined
     };
   }
+}
+
+// A TLS handshake against a plain-http server fails with EPROTO ("wrong version number"). Say
+// what that means for the request, and the fix, rather than a bare error code.
+function protocolMismatchHint(error: unknown, action: IExecuteRestAction): string | undefined {
+  const e = error as { code?: string; message?: string };
+  if (e.code != 'EPROTO' && !/wrong version number/i.test(e.message ?? ''))
+    return undefined;
+  if (!/^https:/i.test(requestUrl(action.protocol, action.url)))
+    return undefined;
+  return 'EPROTO: TLS handshake failed (wrong version number) -- the request\'s protocol is https but the server looks like plain http; set the request\'s protocol to http (edit set-protocol --protocol http, or MCP set_protocol)';
 }
 
 export function prepareRequest(action: IExecuteRestAction): PreparedRequest {

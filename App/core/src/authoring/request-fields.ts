@@ -1,4 +1,4 @@
-import { CreateEmptyActionBody, FORM_CONTENT_TYPE, FormField, MULTIPART_CONTENT_TYPE, MultipartPart, RestActionBody, RestActionRun, RestTypeVerb } from '../model';
+import { CreateEmptyActionBody, FORM_CONTENT_TYPE, HttpProtocol, FormField, MULTIPART_CONTENT_TYPE, MultipartPart, RestActionBody, RestActionRun, RestTypeVerb } from '../model';
 import { normaliseContentType } from '../content-type';
 import { QueryError } from '../query-error';
 import { AuthoringContext, EditResult, editScope, requestAction, upsertNamed, splitScheme } from './edit-scope';
@@ -47,6 +47,27 @@ export async function setUrl(ctx: AuthoringContext, scope: string, url: string):
         action.url = split.url;
         return `Set url '${split.url}' on ${scope}`;
     });
+}
+
+// Sets the protocol of a request (http or https), for a url whose host comes from a variable
+// ({{baseUrl}}/pages): a variable cannot carry the scheme, so the protocol is authored explicitly.
+export async function setProtocol(ctx: AuthoringContext, scope: string, protocol: string): Promise<EditResult> {
+    return editScope(ctx, 'set_protocol', scope, ['request'], target => {
+        const action = requestAction(target);
+        const value = parseProtocol(protocol);
+        if (action.protocol == value)
+            return '';
+        action.protocol = value;
+        return `Set protocol '${value}' on ${scope}`;
+    }, runOverrideHint('protocol (give a scheme to set_url on the run instead)'));
+}
+
+// Matches http/https case-insensitively; anything else is a QueryError naming the two choices.
+export function parseProtocol(protocol: string): HttpProtocol {
+    const found = Object.values(HttpProtocol).find(p => p.toLowerCase() == protocol.trim().toLowerCase());
+    if (found == undefined)
+        throw new QueryError(`Unknown protocol '${protocol}' (have ${Object.values(HttpProtocol).join(', ')})`);
+    return found;
 }
 
 // Sets the method of a request. Matched case-insensitively against RestTypeVerb, same as

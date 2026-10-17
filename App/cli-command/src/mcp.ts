@@ -7,7 +7,7 @@ import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setCapture, setHeader,
-  setExpect, setTrigger, setMessage, setMethod, setParam, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setTrigger, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { readFileField } from './body-parts';
@@ -238,9 +238,10 @@ export function createServer(opts: McpOptions): McpServer {
       collection,
       path: z.string().describe('Request path, relative to the collection (.frreq)'),
       method: z.string().describe('HTTP method (get, post, patch, option, delete, put)'),
-      url: z.string().describe('Request url (may hold {{variables}})')
+      url: z.string().describe('Request url (may hold {{variables}})'),
+      protocol: z.string().optional().describe('http or https; set it when the url is {{baseUrl}}/path, since a variable cannot carry the scheme (default https)')
     }
-  }, a => runEdit(a.collection, ctx => newRequest(ctx, a.path, a.method, a.url)));
+  }, a => runEdit(a.collection, ctx => newRequest(ctx, a.path, a.method, a.url, a.protocol)));
 
   server.registerTool('new_run', {
     description: 'Add a run to a request.',
@@ -323,6 +324,11 @@ export function createServer(opts: McpOptions): McpServer {
     description: "Set the url of a request, or of a run (which overrides its request's for that run).",
     inputSchema: { collection, scope, url: z.string().describe("Url (may hold {{variables}}); on a run, '' removes the override") }
   }, a => runEdit(a.collection, ctx => setUrl(ctx, a.scope, a.url)));
+
+  server.registerTool('set_protocol', {
+    description: 'Set the protocol (http or https) of a request, for a url whose host comes from a variable such as {{baseUrl}}.',
+    inputSchema: { collection, scope, protocol: z.string().describe('http or https') }
+  }, a => runEdit(a.collection, ctx => setProtocol(ctx, a.scope, a.protocol)));
 
   server.registerTool('set_method', {
     description: 'Set the HTTP method of a request.',
