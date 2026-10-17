@@ -1,6 +1,7 @@
 import { parseLocator } from '../locator';
 import { ExpectExtras, ExpectMatch, RequestType, RestAction, TriggerRepeat, WebSocketExpect } from '../model';
 import { normaliseExpect, normaliseTrigger } from '../normalise';
+import { normaliseMcpCall } from '../mcp';
 import { QueryError } from '../query-error';
 import { RequestNode } from '../scope';
 import { loadCollectionTree } from '../tree';
@@ -15,7 +16,7 @@ import { parseJsonSchema } from './validation';
 const runOverrideHint = (field: string): string =>
     `a run overrides variables, secrets, headers, parameters, auth and validation, not the ${field}`;
 
-const REQUEST_TYPES: RequestType[] = ['http', 'websocket'];
+const REQUEST_TYPES: RequestType[] = ['http', 'websocket', 'mcp'];
 const MATCHES: ExpectMatch[] = ['all', 'any'];
 const EXTRAS: ExpectExtras[] = ['ignore', 'fail'];
 
@@ -28,7 +29,7 @@ function matchValue<T extends string>(values: T[], given: string, label: string)
 
 function requireWebsocket(action: RestAction, verb: string): void {
     if (action.type != 'websocket')
-        throw new QueryError(`${verb} applies to a websocket request; this one is http (use set_type websocket first)`);
+        throw new QueryError(`${verb} applies to a websocket request; this one is ${action.type ?? 'http'} (use set_type websocket first)`);
 }
 
 function requireInt(field: string, value: number, min: number): number {
@@ -49,10 +50,12 @@ export function applyRequestType(action: RestAction, wanted: RequestType): boole
         action.message = action.message ?? '';
         action.expect = normaliseExpect(action.expect);
     }
+    if (wanted == 'mcp')
+        action.mcp = normaliseMcpCall(action.mcp);
     return true;
 }
 
-// Sets whether a request is plain HTTP or a websocket. Switching to websocket fills the websocket
+// Sets whether a request is plain HTTP, a websocket or an MCP call. Switching to websocket fills the websocket
 // defaults (normaliseAction runs after apply); switching back leaves message and expect in the
 // file, so flipping the type is not destructive.
 export async function setType(ctx: AuthoringContext, scope: string, type: string): Promise<EditResult> {

@@ -5,6 +5,7 @@ import {
     CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation,
     WebSocketExpect, CreateEmptyWebSocketExpect, WebSocketTrigger, DEFAULT_TRIGGER_INTERVAL_MS
 } from './model';
+import { normaliseMcpCall } from './mcp';
 
 // Older .frreq / .frcol files (and the saved session state) can be missing fields that
 // newer versions added. These functions fill them in place and return the same object,
@@ -72,6 +73,8 @@ export function normaliseAction(action: RestAction): RestAction {
             action.trigger = normaliseTrigger(action.trigger);
         action.authentication.placement = action.authentication.placement ?? 'header';
     }
+    if (action.type == 'mcp')
+        action.mcp = normaliseMcpCall(action.mcp);
 
     return action;
 }

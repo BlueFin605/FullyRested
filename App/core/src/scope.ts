@@ -6,7 +6,8 @@ import {
 import { basenameOf, dirnameOf, extensionOf, joinPath } from './paths';
 import { buildRequestUrl } from './resolve';
 import { Captured, mergeCaptureRules } from './capture';
-import { CaptureRule } from './model';
+import { CaptureRule, McpCall, RestTypeVerb } from './model';
+import { MCP_ACCEPT, mcpEnvelope, normaliseMcpCall, toExecuteMcp } from './mcp';
 
 // A collection is a tree: the collection, its folders, their requests and each request's runs.
 // Every level can set variables, secrets, auth and headers; a request inherits from the levels above it,
@@ -94,17 +95,32 @@ function toExecute(action: RestAction, run: RestActionRun | undefined, layers: S
         ? run.validation
         : (action.validation ?? CreateEmptyRestActionValidation(undefined));
 
-    return ExecuteRestAction.NewExecuteRestAction()
+    const headers = Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value]));
+    const resolved = ExecuteRestAction.NewExecuteRestAction()
         .setVerb(action.verb)
         .setProtocol(run?.protocol ?? action.protocol)
         .setBody(run?.body ?? action.body)
         .setUrl(buildRequestUrl(run?.url ?? action.url, params))
-        .setHeaders(Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value])))
+        .setHeaders(headers)
         .authentication_pushBack(effective.auth?.value)
         .variables_pushBack(winners(effective.variables))
         .variables_pushFront(captured)
         .secrets_pushBack(winners(effective.secrets))
         .setValidation(validation);
+    return action.type == 'mcp' ? asMcp(resolved, normaliseMcpCall(action.mcp), headers) : resolved;
+}
+
+// An MCP call is a POST of its JSON-RPC envelope, accepting JSON or an SSE stream. The request's own
+// verb and body are not used (a run's body override neither); a header set anywhere still wins.
+function asMcp(resolved: ExecuteRestAction, call: McpCall, headers: { [h: string]: string }): ExecuteRestAction {
+    const has = (name: string) => Object.keys(headers).some(k => k.toLowerCase() == name);
+    const mcpHeaders = { ...headers };
+    if (!has('accept')) mcpHeaders['Accept'] = MCP_ACCEPT;
+    return resolved
+        .setVerb(RestTypeVerb.post)
+        .setBody({ contentType: 'application/json', body: mcpEnvelope(call.method, call.params) })
+        .setHeaders(mcpHeaders)
+        .setMcp(toExecuteMcp(call));
 }
 
 export abstract class ScopeNode {

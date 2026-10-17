@@ -1,4 +1,4 @@
-import { AuthenticationDetails, CreateEmptyAuthenticationDetails, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
+import { AuthenticationDetails, CreateEmptyAuthenticationDetails, McpExpect, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
 import { newBuiltIns, substituteDeep } from './substitution';
 
 // https://wallis.dev/blog/typescript-project-references
@@ -14,7 +14,16 @@ export interface IExecuteRestAction {
   secrets: SecretTable[] | undefined;
   variables: VariableTable[] | undefined;
   validation: RestActionValidation | undefined;
+  // Set for an MCP request: the body already holds the JSON-RPC envelope; this drives the handshake
+  // and the MCP check. Absent for http.
+  mcp?: ExecuteMcp;
 };
+
+export interface ExecuteMcp {
+  method: string;
+  handshake: boolean;
+  expect: McpExpect;
+}
 
 export class ExecuteRestAction implements IExecuteRestAction {
   verb: RestTypeVerb;
@@ -26,6 +35,7 @@ export class ExecuteRestAction implements IExecuteRestAction {
   secrets: SecretTable[] | undefined;
   variables: VariableTable[] | undefined;
   validation: RestActionValidation | undefined;
+  mcp?: ExecuteMcp;
 
   constructor(copy: IExecuteRestAction) {
     this.verb = copy.verb;
@@ -37,6 +47,8 @@ export class ExecuteRestAction implements IExecuteRestAction {
     this.secrets = copy.secrets;
     this.variables = copy.variables;
     this.validation = copy.validation;
+    if (copy.mcp != undefined)
+      this.mcp = copy.mcp;
   }
 
 
@@ -165,6 +177,11 @@ export class ExecuteRestAction implements IExecuteRestAction {
         mergedSecrets[foundIndex] = v;
     });
     return new ExecuteRestAction({ ...me, secrets: mergedSecrets });
+  }
+
+  public setMcp(mcp: ExecuteMcp | undefined): ExecuteRestAction {
+    var me: ExecuteRestAction = this;
+    return new ExecuteRestAction({ ...me, mcp });
   }
 
   public setValidation(validation: RestActionValidation | undefined): ExecuteRestAction {

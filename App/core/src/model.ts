@@ -116,7 +116,27 @@ export interface RestActionValidation {
     jsonSchema: RestActionValidationJsonSchema | undefined;
 }
 
-export type RequestType = 'http' | 'websocket';
+export type RequestType = 'http' | 'websocket' | 'mcp';
+
+// What an MCP call's JSON-RPC reply must be. 'result': a result, and not a tool result with
+// isError. 'tool-error': a tool result with isError true. 'rpc-error': a JSON-RPC error (of `code`,
+// when given). 'any': no MCP check (HTTP validation only, e.g. a 401 test).
+export type McpOutcome = 'result' | 'tool-error' | 'rpc-error' | 'any';
+
+export interface McpExpect {
+    outcome: McpOutcome;
+    code?: number;     // rpc-error only: the JSON-RPC error code
+    text?: string;     // the tool result text (or the error message) must contain this
+}
+
+// An MCP request (type 'mcp'): one JSON-RPC call sent as an HTTP POST to the request's url
+// (MCP streamable HTTP). The envelope, id, Accept header and content type are generated.
+export interface McpCall {
+    method: string;      // initialize, tools/list, tools/call, or any other JSON-RPC method
+    params: string;      // JSON text of the params; '' sends none (initialize gets default params)
+    handshake: boolean;  // send initialize + notifications/initialized first and carry Mcp-Session-Id
+    expect: McpExpect;
+}
 
 export type ExpectMatch = 'all' | 'any';
 export type ExpectExtras = 'ignore' | 'fail';
@@ -198,6 +218,8 @@ export interface RestAction {
     message?: string;
     expect?: WebSocketExpect;
     trigger?: WebSocketTrigger;
+    // MCP requests only
+    mcp?: McpCall;
 }
 
 
@@ -303,6 +325,10 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     return { count: 1, match: 'all', schema: undefined, extras: 'ignore', timeout: 5000, settle: DEFAULT_EXPECT_SETTLE_MS };
   }
 
+  export function CreateEmptyMcpCall(): McpCall {
+    return { method: 'tools/list', params: '', handshake: false, expect: { outcome: 'result' } };
+  }
+
   export function CreateEmptyActionBody(): RestActionBody {
     return { contentType: 'none', body: undefined };
   }
@@ -392,7 +418,7 @@ export function CreateEmptyLocalAction(): LocalRestAction {
     generateGUID(): string;
   }
 
-export interface ValidationCheck { check: 'status' | 'body' | 'headers'; passed: boolean; errors: string[] }
+export interface ValidationCheck { check: 'status' | 'body' | 'headers' | 'mcp'; passed: boolean; errors: string[] }
 
 export interface ResponseValidation {
   information: string[];

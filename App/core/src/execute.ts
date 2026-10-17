@@ -4,6 +4,7 @@ import { normaliseContentType } from './content-type';
 import { buildMultipart } from './multipart';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { applyAuthentication, PreparedRequest } from './auth';
+import { executeMcp } from './mcp';
 
 // Status reported in RestActionResult when no HTTP response was received
 export const NETWORK_ERROR_STATUS: { [code: string]: number } = {
@@ -20,7 +21,13 @@ export const UNKNOWN_ERROR_STATUS = -99;
 
 // Sends a request whose variables have already been substituted (ExecuteRestAction.replaceVariables).
 // Never throws: network failures (and an abort through options.signal) come back as a negative status.
+// An MCP request (action.mcp set) goes through executeMcp: the optional handshake, then the call,
+// with an SSE reply turned into its JSON-RPC message.
 export async function executeRequest(action: IExecuteRestAction, options: { signal?: AbortSignal } = {}): Promise<RestActionResult> {
+  return action.mcp != undefined ? executeMcp(action, options, sendHttp) : sendHttp(action, options);
+}
+
+async function sendHttp(action: IExecuteRestAction, options: { signal?: AbortSignal }): Promise<RestActionResult> {
   try {
     const request = await applyAuthentication(prepareRequest(action), action.authentication);
 

@@ -4,6 +4,7 @@ import {
   ValidationType,
 } from './model';
 import { normaliseExpect, normaliseTrigger } from './normalise';
+import { mcpToolName, normaliseMcpCall } from './mcp';
 import { requestUrl } from './execute';
 import { QueryError } from './query-error';
 import { maskPresignedUrl, secretReplacer } from './redact';
@@ -76,6 +77,14 @@ export interface WebSocketView {
   trigger?: WebSocketTriggerView;
 }
 
+export interface McpView {
+  method: string;
+  /** tools/call only: the tool it calls */
+  tool?: string;
+  handshake: boolean;
+  expect: { outcome: string; code?: number; text?: string };
+}
+
 export interface TreeRequest {
   type: 'request';
   name: string;
@@ -83,9 +92,10 @@ export interface TreeRequest {
   method: string;
   url: string;
   validation: TreeValidation | undefined;
-  /** Present on a websocket request only */
-  requestType?: 'websocket';
+  /** Present on a websocket or MCP request only */
+  requestType?: 'websocket' | 'mcp';
   websocket?: WebSocketView;
+  mcp?: McpView;
   runs?: TreeRun[];
   /** Present (true) when suite runs test only this request's runs, never the bare request */
   runsOnly?: true;
@@ -155,6 +165,14 @@ export function webSocketView(action: RestAction): WebSocketView {
   return view;
 }
 
+export function mcpView(action: RestAction): McpView {
+  const call = normaliseMcpCall(action.mcp);
+  const view: McpView = { method: call.method, handshake: call.handshake, expect: { ...call.expect } };
+  const tool = mcpToolName(call);
+  if (tool != undefined) view.tool = tool;
+  return view;
+}
+
 function childrenOf(container: ContainerNode): TreeNodeView[] {
   return container.children.flatMap((child): TreeNodeView[] => {
     if (child instanceof FolderNode) {
@@ -173,6 +191,11 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
     if (action.type == 'websocket') {
       view.requestType = 'websocket';
       view.websocket = webSocketView(action);
+    }
+    if (action.type == 'mcp') {
+      view.requestType = 'mcp';
+      view.method = 'mcp';
+      view.mcp = mcpView(action);
     }
     const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
@@ -330,10 +353,11 @@ export interface ShownRequest {
   validation: unknown;
   /** What this request (or run) takes from its response for later requests */
   capture?: { variable: string; from: string; path: string }[];
-  /** Present on a websocket request only */
-  requestType?: 'websocket';
+  /** Present on a websocket or MCP request only */
+  requestType?: 'websocket' | 'mcp';
   message?: string;
   websocket?: WebSocketView;
+  mcp?: McpView & { params: string };
 }
 
 export const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
@@ -380,6 +404,11 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
       shown.requestType = 'websocket';
       shown.message = label(request.action.message ?? '');
       shown.websocket = webSocketView(request.action);
+    }
+    if (request.action.type == 'mcp') {
+      shown.requestType = 'mcp';
+      shown.method = 'mcp';
+      shown.mcp = { ...mcpView(request.action), params: label(normaliseMcpCall(request.action.mcp).params) };
     }
     return shown;
   } catch (e) {
