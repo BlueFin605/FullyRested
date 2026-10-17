@@ -34,11 +34,13 @@ export const TRIGGER_CALL_TIMEOUT_MS = 10000;
 export const TRIGGER_FINISH_GRACE_MS = 1500;
 
 /** Sends a resolved http request once as a trigger firing. Never throws. */
-export async function fireTriggerRequest(request: IExecuteRestAction, signal?: AbortSignal): Promise<TriggerOutcome> {
+export async function fireTriggerRequest(
+  request: IExecuteRestAction, signal?: AbortSignal, execute: typeof executeRequest = executeRequest
+): Promise<TriggerOutcome> {
   const started = Date.now();
   let response;
   try {
-    response = await executeRequest(request, { signal });
+    response = await execute(request, { signal });
   } catch (error) {
     return { error: String((error as Error)?.message ?? error), ms: Date.now() - started };
   }

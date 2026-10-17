@@ -72,6 +72,13 @@ export class EditRequestWebsocketComponent {
     return this.triggerRequest != '' && !this.triggerChoices.some(c => c.path == this.triggerRequest);
   }
 
+  // The trigger's run may be stored as a name or an id, but the picker's options are ids: match either and
+  // give back the id (the raw text when no such run is known, so a stale value is still shown and kept)
+  private runIdOf(request: string, run: string): string {
+    const runs = this.triggerChoices.find(c => c.path == request)?.runs ?? [];
+    return (runs.find(r => r.id == run) ?? runs.find(r => r.name == run))?.id ?? run;
+  }
+
   private load() {
     const expect = normaliseExpect(this._action.expect);
     this.countText = String(expect.count);
@@ -83,7 +90,7 @@ export class EditRequestWebsocketComponent {
     this.messageText = this._action.message ?? '';
     const trigger = this._action.trigger ? normaliseTrigger(this._action.trigger) : undefined;
     this.triggerRequest = trigger?.request ?? '';
-    this.triggerRun = trigger?.run ?? '';
+    this.triggerRun = this.runIdOf(this.triggerRequest, trigger?.run ?? '');
     this.triggerRepeat = trigger?.repeat ?? 'until-done';
     this.intervalText = String(trigger?.interval ?? DEFAULT_TRIGGER_INTERVAL_MS);
     this.delayText = String(trigger?.delay ?? 0);
@@ -156,7 +163,7 @@ export class EditRequestWebsocketComponent {
     } else {
       const next = normaliseTrigger({
         request: this.triggerRequest,
-        run: this.triggerRun || undefined,
+        run: this.runIdOf(this.triggerRequest, this.triggerRun) || undefined,
         repeat: this.triggerRepeat as 'once' | 'until-done',
         interval: errors.interval ? current?.interval : interval,
         delay: errors.delay ? current?.delay : delay,

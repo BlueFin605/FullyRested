@@ -129,7 +129,7 @@ export interface WebSocketTrigger {
     run?: string;
     repeat: TriggerRepeat;
     interval: number;  // ms between firings when repeat is 'until-done'
-    delay: number;     // ms to wait after the socket opens before the first firing
+    delay: number;     // ms to wait after the message is sent before the first firing
 }
 
 export interface RestActionRun {

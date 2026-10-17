@@ -144,7 +144,7 @@ seconds to answer before it is aborted. Each firing is recorded as a trigger
 call (start in ms since the test began, status or error, duration) in the run record and shown in
 the app's response pane. In the app, the websocket editor has a **Trigger**
 section, and the live panel has a **Fire request** button that sends any
-request of the collection once into a running session.
+http request of the collection once into a running session.
 
 Set it from a terminal with `fullyrested edit set-trigger` (flags `--request`,
 `--run`, `--repeat`, `--interval`, `--delay`, `--clear`; give only what changes)

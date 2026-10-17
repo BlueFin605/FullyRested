@@ -96,6 +96,13 @@ export function maskPresignedUrl(url: string): string {
   return masked === query ? url : url.slice(0, start + 1) + masked + url.slice(end);
 }
 
+// maskPresignedUrl for free text (an error message that quotes a url): masks the same parameters wherever
+// they appear, up to the next '&', quote or whitespace.
+export function maskPresignedText(text: string): string {
+  return text.replace(/(x-amz-(?:signature|security-token|credential)=)([^&s"'<>]*)/gi, (_m, name: string, value: string) =>
+    name.toLowerCase() === 'x-amz-credential=' ? `${name}${maskCredentialScope(value)}` : `${name}***`);
+}
+
 // Keeps the access key id, which identifies the caller but is not a credential, and masks the scope after
 // it. The separator may be encoded (%2F) or literal depending on who built the URL.
 function maskCredentialScope(value: string): string {
@@ -168,10 +175,10 @@ export function redactCase(c: CaseRecord, secrets: SecretTable[] | undefined): C
     out.websocket = {
       ...c.websocket,
       messages: c.websocket.messages.map(m => ({ ...m, text: replace(m.text) })),
-      errors: c.websocket.errors.map(replace),
+      errors: c.websocket.errors.map(e => replace(maskPresignedText(e))),
     };
     if (c.websocket.triggerCalls) {
-      out.websocket.triggerCalls = c.websocket.triggerCalls.map(t => t.error === undefined ? { ...t } : { ...t, error: replace(t.error) });
+      out.websocket.triggerCalls = c.websocket.triggerCalls.map(t => t.error === undefined ? { ...t } : { ...t, error: replace(maskPresignedText(t.error)) });
     }
     if (c.websocket.closeReason !== undefined) out.websocket.closeReason = replace(c.websocket.closeReason);
   }

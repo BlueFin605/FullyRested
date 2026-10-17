@@ -273,19 +273,32 @@ test('runWsTest shows a failing trigger in triggerCalls', async () => {
     assert.ok(result.triggerCalls.every(c => c.status == 401));
 });
 
-test('runWsTest scrubs a trigger error of the query token', async () => {
+test('runWsTest scrubs a trigger error of the query token, the trigger secret and a presigned url', async () => {
     await startTriggerServer();
+    const connectUrl = `ws://${base}/feed?token=${encodeURIComponent(TOKEN)}`;
+    const leaky = new WsSessions(access, {
+        // a failing call whose text echoes everything that must not reach the renderer
+        executeRequest: async () => ({
+            status: -1,
+            statusText: `refused ${connectUrl} bearer ${TOKEN} key hunter2-key https://h/p?X-Amz-Signature=abcdef123`
+        })
+    });
+    const trigger = touch({ request: { secrets: [{ $secret: 'apikey', $value: 'hunter2-key', active: true, id: 's' }] } });
 
-    const result = await sessions.runWsTest({
+    const result = await leaky.runWsTest({
         root: collection,
         request: { url: `ws://${base}/feed`, authentication: bearerInQuery },
         expect: { ...expectOne, timeout: 400 },
-        trigger: touch({ request: { url: '127.0.0.1:1/' + encodeURIComponent(TOKEN) } })
+        trigger
     });
 
     assert.ok(result.triggerCalls.length >= 1);
-    assert.ok(result.triggerCalls.every(c => c.error !== undefined));
-    assert.ok(!JSON.stringify(result).includes(TOKEN));
+    const text = result.triggerCalls[0].error;
+    assert.match(text, /refused/);
+    for (const leak of [TOKEN, encodeURIComponent(TOKEN), 'hunter2-key', 'abcdef123'])
+        assert.ok(!JSON.stringify(result).includes(leak), `leaked ${leak} in ${JSON.stringify(result)}`);
+    assert.ok(text.includes('{{$secret:apikey}}'));
+    assert.ok(text.includes('X-Amz-Signature=***'));
 });
 
 test('runWsTest with a trigger still refuses a root that is not the open collection', async () => {

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
-import type { RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, WebSocketTestResult } from '@fullyrested/core';
+import type { RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, SecretTable, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import { RunHistoryService } from '../run-history/run-history.service';
@@ -28,6 +28,8 @@ export interface ScopeOutcome { total: number; ran: number; cancelled: boolean; 
 interface SentWebSocket {
   resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
   result?: WebSocketTestResult; error?: string; ms: number; shown: TimedActionResult;
+  /** The websocket request's secrets plus its trigger request's, for redacting the record. */
+  secrets?: SecretTable[];
 }
 
 interface SentCase {
@@ -157,13 +159,16 @@ export class ExecuteRestCallsService {
     let message: string | undefined;
     let result: WebSocketTestResult | undefined;
     let error: string | undefined;
+    let secrets: SecretTable[] | undefined;
     try {
       resolved = node.resolve({ environmentId });
+      secrets = resolved.secrets;
       const request = resolved.replaceVariables();
       url = request.url;
       headers = request.headers;
       message = substituteDeep(action.message ?? '', request.variables, request.secrets);
       const trigger = this.resolveTrigger(action, environmentId);
+      if (trigger != undefined) secrets = [...(secrets ?? []), ...(trigger.request.secrets ?? [])];
       const ipc = this.getIpcRenderer();
       if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
       result = await ipc.invoke('runWsTest', {
@@ -179,12 +184,12 @@ export class ExecuteRestCallsService {
 
     const ms = Math.round(performance.now() - started);
     const shown = result == undefined ? errorResult(error ?? 'The websocket test failed', ms) : webSocketResult(result, ms);
-    return { resolved, url, headers, message, result, error, ms, shown };
+    return { resolved, url, headers, message, result, error, ms, shown, secrets };
   }
 
   private async recordWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, outcome: {
     resolved?: ExecuteRestAction; url: string; headers: { [header: string]: string }; message?: string;
-    result?: WebSocketTestResult; error?: string; ms: number;
+    result?: WebSocketTestResult; error?: string; ms: number; secrets?: SecretTable[];
   }): Promise<void> {
     try {
       const collection = this.trees.openCollection;
@@ -199,7 +204,7 @@ export class ExecuteRestCallsService {
         result: outcome.result,
         error: outcome.error,
         ms: outcome.ms,
-        secrets: outcome.resolved?.secrets
+        secrets: outcome.secrets ?? outcome.resolved?.secrets
       }));
     } catch (error) {
       console.warn(`[FullyRested] the websocket run was not recorded: ${(error as Error).message}`);
@@ -235,7 +240,7 @@ export class ExecuteRestCallsService {
             webSocket: { url: ws.url, headers: ws.headers, message: ws.message, result: ws.result },
             error: ws.error,
             ms: ws.ms,
-            secrets: ws.resolved?.secrets
+            secrets: ws.secrets ?? ws.resolved?.secrets
           });
           this.progress.next({ done: done.length, total: cases.length, passed, failed });
           continue;

@@ -212,6 +212,7 @@ export async function setTrigger(ctx: AuthoringContext, scope: string, fields: T
         // Pointing at a different request drops the old run unless a run is given with it.
         const run = fields.run !== undefined ? (fields.run == '' ? undefined : fields.run)
             : (path != undefined && path != current?.request ? undefined : current?.run);
+        // Stored as given (a name or an id); the resolvers and the editor's picker accept either.
         if (run != undefined && !node.action.runs.some(r => r.id == run || r.name == run)) {
             const known = node.action.runs.map(r => r.name).join(', ') || 'none';
             throw new QueryError(`Run '${run}' not found in '${node.name}' (known: ${known})`);

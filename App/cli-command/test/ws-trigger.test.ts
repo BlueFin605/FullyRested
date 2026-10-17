@@ -84,6 +84,7 @@ describe('websocket trigger in run', () => {
     const record = await runCollection({ collection: collection(), action: 'watch-touch.frreq' }, secrets);
     const c = record.cases[0]!;
     expect(c.outcome).toBe('pass');
+    expect(record.redacted).toBe(true);
     expect(hits).toBeGreaterThanOrEqual(1);
     // the call that caused the pass is recorded, stamped in ms since the test started
     const calls = c.websocket?.triggerCalls ?? [];
@@ -104,6 +105,11 @@ describe('websocket trigger in run', () => {
     const c = record.cases[0]!;
     expect(c.outcome).toBe('fail');
     expect(c.error).toContain('trigger returned 401');
+    // every recorded call has the 401, in firing order
+    const calls = c.websocket?.triggerCalls ?? [];
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    expect(calls.every(t => t.status == 401)).toBe(true);
+    expect(calls.map(t => t.at)).toEqual([...calls.map(t => t.at)].sort((a, b) => a - b));
   });
 
   it('returns an error case naming the trigger request when it cannot be resolved', { timeout: 60000 }, async () => {

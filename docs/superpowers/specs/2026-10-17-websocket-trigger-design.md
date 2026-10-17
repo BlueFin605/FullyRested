@@ -66,20 +66,25 @@ export interface TriggerFirer {
     repeat: TriggerRepeat;
     interval: number;
     delay: number;
-    /** Sends the trigger request once and returns what happened. Never throws. */
-    fire(): Promise<TriggerCall>;
+    /** Sends the trigger request once and returns what happened. Never throws.
+     *  The signal aborts when the call times out or is still pending after the test finished. */
+    fire(signal?: AbortSignal): Promise<TriggerOutcome>;
 }
 
-export interface TriggerCall {
-    at: number;            // ms since the test started
+/** What a firer reports; the runner stamps `at` to make a TriggerCall. */
+export interface TriggerOutcome {
     status?: number;       // HTTP status, when a response came back
     error?: string;        // network error or resolve failure
     ms: number;
 }
+
+export interface TriggerCall extends TriggerOutcome {
+    at: number;            // ms since the test started, when the call was fired
+}
 ```
 
 After the socket opens and the message is sent, the runner waits `delay`, calls
-`fire()`, and — for `until-done` — calls it again every `interval` ms until the test
+`fire(signal)`, and — for `until-done` — calls it again every `interval` ms until the test
 finishes (pass, fail, or timeout). It never fires after the test finishes, and never
 has two firings in flight at once. `TriggerCall`s are returned on the result as
 `triggerCalls`.
@@ -102,7 +107,7 @@ Both already share `ws-run.ts`. `runWebSocketCase` gains:
 
 1. Resolve the trigger locator against the loaded tree (`requestFor`/locator lookup,
    as `run --action` does), with the same environment, and `replaceVariables()`.
-2. Build `fire()` around core's `executeRequest`, returning a `TriggerCall`.
+2. Build `fire(signal)` around core's `fireTriggerRequest`, returning a `TriggerOutcome`.
 3. Pass it to `runWebSocketTest`.
 
 `run` itself needs no change: a websocket case with a trigger is still one case.
@@ -121,7 +126,7 @@ Authoring:
 
 The renderer resolves requests and sends them to the main process over IPC
 (`runWsTest`). It adds the resolved trigger request to the payload; `ws-sessions.js`
-builds `fire()` with core's `executeRequest` in the main process (where Node HTTP is
+builds `fire(signal)` with core's `fireTriggerRequest` in the main process (where Node HTTP is
 available) and passes it to `runWebSocketTest`. The existing `collection-access.js`
 guard applies to the payload's `root` as today.
 

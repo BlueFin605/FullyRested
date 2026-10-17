@@ -221,6 +221,17 @@ describe('EditRequestWebsocketComponent trigger', () => {
     expect(action.trigger?.run).toBeUndefined();
   });
 
+  it('shows a trigger run stored by name as the run id, which is what the picker offers, and writes the id back', () => {
+    const { component, action } = create({ trigger: { request: 'pages/touch.frreq', run: 'loud', repeat: 'once', interval: 300, delay: 20 } });
+    expect(component.triggerRun).toBe('r1');
+    expect(component.triggerRuns.some(r => r.id == component.triggerRun)).toBeTrue();
+
+    component.delayText = '30';
+    component.onTriggerChange();
+
+    expect(action.trigger?.run).toBe('r1');
+  });
+
   it('shows the values of an existing trigger', () => {
     const { component } = create({ trigger: { request: 'pages/touch.frreq', run: 'r1', repeat: 'once', interval: 300, delay: 20 } });
 

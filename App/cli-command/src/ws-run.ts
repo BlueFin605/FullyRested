@@ -1,6 +1,6 @@
 import {
   CaseRecord, CollectionNode, ExecuteRestAction, RequestNode, RunNode, SocketFactory, SocketTransport, TriggerFirer,
-  WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, fireTriggerRequest, normaliseExpect, normaliseTrigger, redactCase,
+  SecretTable, WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, fireTriggerRequest, normaliseExpect, normaliseTrigger, redactCase,
   runWebSocketTest, substituteDeep, validateTimeoutMs, withQueryToken
 } from '@fullyrested/core';
 import { WsTransport } from './ws-transport';
@@ -54,7 +54,10 @@ export async function resolveWebSocketTarget(node: RequestNode | RunNode, enviro
  * Resolves the websocket request's trigger against the loaded tree with the same environment and
  * returns a firer around core's fireTriggerRequest (executeRequest with the runner's abort signal). Throws, naming the locator, when it cannot be resolved.
  */
-export function buildTriggerFirer(action: RequestNode['action'], root: CollectionNode, environmentId: string | undefined): TriggerFirer | undefined {
+/** A TriggerFirer that also carries the trigger request's secret tables, so its error text can be redacted with them. */
+export type SecretBearingFirer = TriggerFirer & { secrets: SecretTable[] };
+
+export function buildTriggerFirer(action: RequestNode['action'], root: CollectionNode, environmentId: string | undefined): SecretBearingFirer | undefined {
   if (action.trigger == undefined)
     return undefined;
 
@@ -75,7 +78,7 @@ export function buildTriggerFirer(action: RequestNode['action'], root: Collectio
   const request = node.resolve({ environmentId }).replaceVariables();
 
   const fire = (signal?: AbortSignal) => fireTriggerRequest(request, signal);
-  return { repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay, fire };
+  return { repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay, fire, secrets: request.secrets ?? [] };
 }
 
 /** Runs one websocket request as a test case and returns its (redacted unless includeSecrets) record. */
@@ -90,7 +93,7 @@ export async function runWebSocketCase(
 ): Promise<CaseRecord> {
   let target: WebSocketTarget;
   let secrets;
-  let trigger: TriggerFirer | undefined;
+  let trigger: SecretBearingFirer | undefined;
   try {
     target = await resolveWebSocketTarget(node, environmentId);
     // A run-time override only: the saved request is not touched
@@ -110,5 +113,6 @@ export async function runWebSocketCase(
   const record = buildWebSocketCaseRecord({
     ...base, ms: Date.now() - started, url: target.url, headers: target.headers, message: target.message, result
   });
-  return includeSecrets ? record : redactCase(record, secrets);
+  // trigger errors may echo the trigger request's secrets, so redact with both tables
+  return includeSecrets ? record : redactCase(record, [...(secrets ?? []), ...(trigger?.secrets ?? [])]);
 }

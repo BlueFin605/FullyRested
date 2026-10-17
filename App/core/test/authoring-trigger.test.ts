@@ -39,6 +39,14 @@ describe('setTrigger', () => {
         expect(trigger(sink).run).toBeUndefined();
     });
 
+    it('accepts a run by name or by id and stores it as given', async () => {
+        const sink = await setup();
+        await setTrigger(ctxFor(sink), WS, { request: HTTP, run: 'n1' });
+        expect(trigger(sink).run).toBe('n1');
+        await setTrigger(ctxFor(sink), WS, { run: 'not found' });
+        expect(trigger(sink).run).toBe('not found');
+    });
+
     it('accepts a request: prefix and reports no change when nothing differs', async () => {
         const sink = await setup();
         await setTrigger(ctxFor(sink), WS, { request: `request:${HTTP}` });

@@ -587,7 +587,7 @@ describe('ExecuteRestCallsService', () => {
         root = rootNode();
         root.children.push(new RequestNode(root, 'touch.frreq', {
           ...CreateEmptyAction(), url: '{{host}}/touch',
-          runs: [{ ...CreateEmptyRestActionRun({ generateGUID: () => 'r1' }, undefined), name: 'loud' }],
+          runs: [{ ...CreateEmptyRestActionRun({ generateGUID: () => 'r1' }, undefined), name: 'loud', headers: [{ key: 'x-run', value: 'loud', active: true, id: 'h1' }] }],
         }));
         root.children.push(new RequestNode(root, 'other.frws', { ...CreateEmptyAction(), type: 'websocket', url: 'wss://x' }));
         TestBed.inject(CollectionTreeService).tree.next(root);
@@ -666,10 +666,21 @@ describe('ExecuteRestCallsService', () => {
       });
 
       it('fires a run of the request', async () => {
+        const sent: any[] = [];
+        const base = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => {
+          if (channel == 'testRest') sent.push(args);
+          return base(channel, args);
+        };
+
         const result = await service.fireRequest('touch.frreq', 'r1', 'prod');
+        await service.fireRequest('touch.frreq', undefined, 'prod');
 
         expect(result.status).toBe(200);
-        expect(touch()).toBeDefined();
+        expect(sent.length).toBe(2);
+        // run r1 adds its own header; the request itself does not
+        expect(sent[0].headers['x-run']).toBe('loud');
+        expect(sent[1].headers['x-run']).toBeUndefined();
       });
     });
   });
