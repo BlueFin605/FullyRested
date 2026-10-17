@@ -37,6 +37,9 @@
       (enter)="test()"
       placeholder="Enter a URL, e.g. https://api.example.com/users"
     ></app-code-editor>
+    @if (isWebSocket) {
+      <button mat-stroked-button class="open-live" (click)="openLive.emit()" matTooltip="Open live session">Live</button>
+    }
     <button mat-flat-button class="send" (click)="test()" [matTooltip]="isWebSocket ? 'Run (Ctrl+Enter)' : 'Send (Ctrl+Enter)'">
       {{ isWebSocket ? 'Run' : 'Send' }}
     </button>

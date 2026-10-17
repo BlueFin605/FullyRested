@@ -14,16 +14,26 @@
       [(action)]="_action"
       (actionChange)="onActionChange($event)"
       (execute)="executeAction()"
+      (openLive)="openLiveSession()"
     ></app-edit-request>
     <app-inherited-settings
       splitFirst
       [node]="inheritedNode"
       [environmentId]="collection?.config?.selectedEnvironmentId"
     ></app-inherited-settings>
-    <app-display-response
-      splitSecond
-      [response]="response"
-      [sending]="sending"
-    ></app-display-response>
+    @if (liveRequest) {
+      <app-live-session
+        splitSecond
+        [request]="liveRequest"
+        [message]="liveMessage"
+        (dismiss)="liveRequest = undefined"
+      ></app-live-session>
+    } @else {
+      <app-display-response
+        splitSecond
+        [response]="response"
+        [sending]="sending"
+      ></app-display-response>
+    }
   </app-split-pane>
 }

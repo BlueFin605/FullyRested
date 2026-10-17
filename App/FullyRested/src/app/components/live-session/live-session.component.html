@@ -1,0 +1,45 @@
+<h2 class="pane-title">
+  Live session
+  @if (live) { <span class="state open">open</span> }
+  @else if (connecting) { <span class="state">connecting</span> }
+  @else if (closed) { <span class="state closed">closed</span> }
+  <span class="pane-action">
+    @if (live) {
+      <button mat-stroked-button class="close-session" (click)="close()">Close</button>
+    }
+    <button mat-button class="dismiss" (click)="dismiss.emit()">Hide</button>
+  </span>
+</h2>
+
+@if (!request && !live && !connecting) {
+  <div class="connect-bar">
+    <input class="url" [(ngModel)]="typedUrl" (keydown.enter)="connect()" placeholder="ws://localhost:8080/socket" aria-label="Websocket URL" spellcheck="false" />
+    <button mat-flat-button class="connect" [disabled]="!canConnect" (click)="connect()">{{ closed ? 'Reconnect' : 'Connect' }}</button>
+  </div>
+}
+
+@if (error) { <p class="pane-error">{{ error }}</p> }
+
+<ol class="feed" aria-label="Received messages">
+  @for (e of events; track trackSeq($index, e)) {
+    @if (e.kind == 'message') {
+      <li class="event message"><span class="seq">#{{ e.seq }}</span><span class="at">{{ time(e.at) }}</span><pre class="text">{{ e.text }}</pre></li>
+    } @else {
+      <li class="event close-event"><span class="seq">#{{ e.seq }}</span><span class="at">{{ time(e.at) }}</span><span class="text">Closed: code {{ e.code }}{{ e.reason ? ', ' + e.reason : '' }}</span></li>
+    }
+  } @empty {
+    @if (live) { <li class="empty">Waiting for messages.</li> }
+  }
+</ol>
+
+@if (closeEvent; as c) {
+  <p class="closed-note">Session closed with code {{ c.code }}{{ c.reason ? ': ' + c.reason : '' }}.</p>
+} @else if (closed) {
+  <p class="closed-note">Session closed.</p>
+}
+
+<div class="send-bar">
+  <input class="draft" [(ngModel)]="draft" [disabled]="!live" (keydown.enter)="send()" placeholder="Message to send" aria-label="Message to send" spellcheck="false" />
+  <button mat-flat-button class="send" [disabled]="!live || draft == ''" (click)="send()">Send</button>
+</div>
+@if (sendError) { <p class="pane-error">{{ sendError }}</p> }

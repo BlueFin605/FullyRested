@@ -55,6 +55,7 @@ import { SettingsManageAuthenticationBearerTokenComponent } from './components/s
 import { InheritedSettingsComponent } from './components/rest-action/inherited-settings/inherited-settings.component';
 import { RestActionRunComponent } from './components/rest-action/rest-action-run/rest-action-run.component';
 import { EditRequestRunComponent } from './components/rest-action/request/edit-request-run/edit-request-run.component';
+import { LiveSessionComponent } from './components/live-session/live-session.component';
 import { EditRequestValidationComponent } from './components/rest-action/request/edit-request-validation/edit-request-validation.component';
 
 @NgModule({
@@ -92,7 +93,8 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     SettingsManageAuthenticationBearerTokenComponent,
     RestActionRunComponent,
     EditRequestRunComponent,
-    EditRequestValidationComponent
+    EditRequestValidationComponent,
+    LiveSessionComponent
   ],
   imports: [
     ScopeRunStatusComponent,

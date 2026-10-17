@@ -60,6 +60,10 @@ export class EditRequestComponent implements OnInit {
   @Output()
   execute = new EventEmitter<void>();
 
+  // Websocket requests only: open a live session on this request
+  @Output()
+  openLive = new EventEmitter<void>();
+
   displayUrl: string = '';
   // What the URL editor shows: protocol + url + query. Only reset from outside (load, params table),
   // never while typing, so the caret doesn't jump.
