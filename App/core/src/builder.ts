@@ -1,5 +1,5 @@
 import { AuthenticationDetails, CreateEmptyAuthenticationDetails, McpExpect, CreateEmptyRestActionValidation, HeaderTable, HttpProtocol, ResponseValidation, RestActionValidation, RestTypeVerb, SecretTable, ValidationType, VariableTable } from './model';
-import { newBuiltIns, substituteDeep } from './substitution';
+import { BuiltIns, newBuiltIns, substituteDeep } from './substitution';
 
 // https://wallis.dev/blog/typescript-project-references
 // https://github.com/ashleydavis/sharing-typescript-code-libraries/tree/main/nodejs-example
@@ -191,9 +191,9 @@ export class ExecuteRestAction implements IExecuteRestAction {
 
   // Substitutes {{variables}} and {{$secrets}} everywhere a request value can appear.
   // The variable and secret tables themselves are left as-is.
-  public replaceVariables(): ExecuteRestAction {
+  // Pass `builtins` to share one {{$guid}} / {{$timestamp}} with other values of the same case.
+  public replaceVariables(builtins: BuiltIns = newBuiltIns()): ExecuteRestAction {
     var me: ExecuteRestAction = this;
-    const builtins = newBuiltIns();   // one {{$guid}} per request, the same in url, body and validation
     return new ExecuteRestAction({
       ...me,
       url: substituteDeep(this.url, this.variables, this.secrets, builtins),

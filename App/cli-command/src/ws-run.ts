@@ -1,6 +1,6 @@
 import {
   Captured, CaseRecord, CollectionNode, ExecuteRestAction, RequestNode, RunNode, SocketFactory, SocketTransport, TriggerFirer,
-  SecretTable, WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, fireTriggerRequest, normaliseExpect, normaliseTrigger, redactCase,
+  SecretTable, WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, fireTriggerRequest, newBuiltIns, normaliseExpect, normaliseTrigger, redactCase,
   runWebSocketTest, substituteDeep, validateTimeoutMs, withQueryToken
 } from '@fullyrested/core';
 import { WsTransport } from './ws-transport';
@@ -19,17 +19,21 @@ export interface WebSocketTarget {
   headers: { [header: string]: string };
   message: string;
   expect: WebSocketExpect;
+  /** The request's resolved secret tables, for redacting the record. */
+  secrets: SecretTable[] | undefined;
 }
 
 /**
  * Resolves a websocket request (or one of its runs) into what the transport needs: variables and
  * secrets substituted, header auth applied, and a query-placed token added to the connect url.
  * Values captured earlier in the run override every other level, as for an http request; the url,
- * headers, auth, message and expect (its schema) are each substituted in one pass.
+ * headers, auth, message and expect (its schema) share one set of built-ins, so a {{$guid}} is the same in all of them.
  * Throws when the request cannot be resolved.
  */
 export async function resolveWebSocketTarget(node: RequestNode | RunNode, environmentId: string | undefined, captured?: Captured): Promise<WebSocketTarget> {
-  const request: ExecuteRestAction = node.resolve({ environmentId, captured }).replaceVariables();
+  const resolved = node.resolve({ environmentId, captured });
+  const builtins = newBuiltIns();
+  const request: ExecuteRestAction = resolved.replaceVariables(builtins);
   const action = (node instanceof RunNode ? node.request : node).action;
   const url = request.url;
   const auth = request.authentication;
@@ -47,8 +51,9 @@ export async function resolveWebSocketTarget(node: RequestNode | RunNode, enviro
     url,
     connectUrl,
     headers,
-    message: substituteDeep(action.message ?? '', request.variables, request.secrets),
-    expect: normaliseExpect(substituteDeep(action.expect, request.variables, request.secrets))
+    message: substituteDeep(action.message ?? '', request.variables, request.secrets, builtins),
+    expect: normaliseExpect(substituteDeep(action.expect, request.variables, request.secrets, builtins)),
+    secrets: resolved.secrets
   };
 }
 
@@ -69,7 +74,7 @@ export function buildTriggerFirer(action: RequestNode['action'], root: Collectio
   if (!(target instanceof RequestNode))
     throw new Error(`Trigger request '${trigger.request}' not found in the collection`);
   if ((target.action.type ?? 'http') != 'http')
-    throw new Error(`Trigger request '${trigger.request}' is a websocket request; a trigger must be http`);
+    throw new Error(`Trigger request '${trigger.request}' is a ${target.action.type} request; a trigger must be http`);
 
   let node: RequestNode | RunNode = target;
   if (trigger.run != undefined) {
@@ -78,7 +83,8 @@ export function buildTriggerFirer(action: RequestNode['action'], root: Collectio
       throw new Error(`Trigger run '${trigger.run}' not found in '${trigger.request}'`);
     node = run;
   }
-  const request = node.resolve({ environmentId, captured }).replaceVariables();
+  // Not substituted here: each firing substitutes afresh, so {{$guid}} and {{$timestamp}} change per firing
+  const request = node.resolve({ environmentId, captured });
 
   const fire = (signal?: AbortSignal) => fireTriggerRequest(request, signal);
   return { repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay, fire, secrets: request.secrets ?? [] };
@@ -100,14 +106,12 @@ export async function runWebSocketCase(
   captured?: Captured
 ): Promise<CaseRecord> {
   let target: WebSocketTarget;
-  let secrets;
   let trigger: SecretBearingFirer | undefined;
   try {
     target = await resolveWebSocketTarget(node, environmentId, captured);
     // A run-time override only: the saved request is not touched
     if (timeoutMs != undefined)
       target.expect = { ...target.expect, timeout: validateTimeoutMs(timeoutMs, 'timeout') };
-    secrets = node.resolve({ environmentId, captured }).secrets;
     if (root != undefined)
       trigger = buildTriggerFirer((node instanceof RunNode ? node.request : node).action, root, environmentId, captured);
   } catch (error) {
@@ -122,5 +126,5 @@ export async function runWebSocketCase(
     ...base, ms: Date.now() - started, url: target.url, headers: target.headers, message: target.message, result
   });
   // trigger errors may echo the trigger request's secrets, so redact with both tables
-  return includeSecrets ? record : redactCase(record, [...(secrets ?? []), ...(trigger?.secrets ?? [])]);
+  return includeSecrets ? record : redactCase(record, [...(target.secrets ?? []), ...(trigger?.secrets ?? [])]);
 }

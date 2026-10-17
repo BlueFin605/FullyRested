@@ -645,7 +645,7 @@ describe('ExecuteRestCallsService', () => {
         await service.executeNode(withTrigger({ request: 'touch.frreq', repeat: 'once', interval: 250, delay: 50 }), 'prod');
 
         const trigger = calls.find(c => c.channel == 'runWsTest')!.args.trigger;
-        expect(trigger.request.url).toBe('prod.example/touch');
+        expect(trigger.request.replaceVariables().url).toBe('prod.example/touch');
         expect([trigger.repeat, trigger.interval, trigger.delay]).toEqual(['once', 250, 50]);
       });
 
@@ -674,8 +674,42 @@ describe('ExecuteRestCallsService', () => {
         expect(run.request.headers['x-id']).toBe('g-7');
         expect(run.message).toBe('hi g-7');
         expect(run.expect.schema.schema).toBe('{"properties":{"id":{"const":"g-7"}}}');
-        expect(run.trigger.request.url).toBe('prod.example/touch/g-7');
+        expect(run.trigger.request.replaceVariables().url).toBe('prod.example/touch/g-7');
         expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'pass']);
+      });
+
+      it('sends the trigger request unsubstituted so each firing gets fresh built-ins', async () => {
+        root.children.push(new RequestNode(root, 'guid.frreq', { ...CreateEmptyAction(), url: '{{host}}/touch/{{$guid}}' }));
+        await service.executeNode(withTrigger({ request: 'guid.frreq', repeat: 'once' }), 'prod');
+
+        const request = calls.find(c => c.channel == 'runWsTest')!.args.trigger.request;
+        expect(request.url).toBe('{{host}}/touch/{{$guid}}');
+        const [first, second] = [request.replaceVariables().url, request.replaceVariables().url];
+        expect(first).toMatch(/^prod\.example\/touch\/[0-9a-f-]{36}$/);
+        expect(first).not.toBe(second);
+      });
+
+      it('uses one {{$guid}} for the url, headers, message and expect of a websocket case', async () => {
+        const node = root.attach({
+          ...CreateEmptyAction(), type: 'websocket', url: 'wss://x/{{$guid}}', message: 'm {{$guid}}',
+          headers: [{ key: 'x-id', value: '{{$guid}}', active: true, id: 'xh' }],
+          expect: { count: 1, schema: { schema: '{"const":"{{$guid}}"}' } } as any,
+        }, 'ws/guid.frreq');
+        await service.executeNode(node, 'prod');
+
+        const args = calls.find(c => c.channel == 'runWsTest')!.args;
+        const guid = /[0-9a-f-]{36}/.exec(args.request.url)![0];
+        expect(args.request.headers['x-id']).toBe(guid);
+        expect(args.message).toBe('m ' + guid);
+        expect(args.expect.schema.schema).toBe(`{"const":"${guid}"}`);
+      });
+
+      it('names the real type when the trigger request is an mcp request', async () => {
+        root.children.push(new RequestNode(root, 'mcp.frreq', { ...CreateEmptyAction(), type: 'mcp', url: 'x/mcp' }));
+        const result = await service.executeNode(withTrigger({ request: 'mcp.frreq' }));
+
+        expect(result.status).toBe('error');
+        expect(result.statusText).toContain('is a mcp request; a trigger must be http');
       });
 
       it('sends no trigger when the request has none', async () => {
@@ -686,9 +720,9 @@ describe('ExecuteRestCallsService', () => {
 
       it('resolves a trigger run by id or name', () => {
         const action = withTrigger({ request: 'touch.frreq', run: 'loud' }).action;
-        expect(service.resolveTrigger(action, 'prod')?.request.url).toBe('prod.example/touch');
+        expect(service.resolveTrigger(action, 'prod')?.request.replaceVariables().url).toBe('prod.example/touch');
         action.trigger!.run = 'r1';
-        expect(service.resolveTrigger(action, 'prod')?.request.url).toBe('prod.example/touch');
+        expect(service.resolveTrigger(action, 'prod')?.request.replaceVariables().url).toBe('prod.example/touch');
       });
 
       for (const [name, trigger, message] of [

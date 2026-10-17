@@ -1,5 +1,5 @@
-import { TriggerRepeat, WebSocketExpect } from '../model';
-import { IExecuteRestAction } from '../builder';
+import { MIN_TRIGGER_INTERVAL_MS, TriggerRepeat, WebSocketExpect } from '../model';
+import { ExecuteRestAction, IExecuteRestAction } from '../builder';
 import { executeRequest } from '../execute';
 import { compileSchema } from '../validate';
 import { SocketConnectError, SocketTransport } from './socket';
@@ -33,14 +33,18 @@ export const TRIGGER_CALL_TIMEOUT_MS = 10000;
 /** How long a finished test waits for an in-flight trigger call to settle so it can be recorded. */
 export const TRIGGER_FINISH_GRACE_MS = 1500;
 
-/** Sends a resolved http request once as a trigger firing. Never throws. */
+/**
+ * Sends an http request once as a trigger firing. Never throws. Pass the request as resolved (merged
+ * variables and secrets) but NOT yet substituted: it is substituted here on every firing, so each
+ * firing gets fresh {{$guid}} / {{$timestamp}} values.
+ */
 export async function fireTriggerRequest(
   request: IExecuteRestAction, signal?: AbortSignal, execute: typeof executeRequest = executeRequest
 ): Promise<TriggerOutcome> {
   const started = Date.now();
   let response;
   try {
-    response = await execute(request, { signal });
+    response = await execute(new ExecuteRestAction(request).replaceVariables(), { signal });
   } catch (error) {
     return { error: String((error as Error)?.message ?? error), ms: Date.now() - started };
   }
@@ -186,12 +190,16 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
     const startTrigger = () => {
       const trigger = input.trigger;
       if (!trigger) return;
+      // The spec's minimum, enforced here whatever built the firer (a non-number counts as the minimum)
+      const interval = Math.max(MIN_TRIGGER_INTERVAL_MS, Number(trigger.interval) || 0);
       const schedule = (wait: number) => {
         triggerTimer = setTimeout(async () => {
           if (done || triggerStopped) return;
+          const firedAt = Date.now();
           await fireOnce(trigger);
           if (done || triggerStopped || trigger.repeat != 'until-done') return;
-          schedule(trigger.interval);
+          // A fixed beat from the start of this firing; an overrun fires straight after the call settles
+          schedule(Math.max(0, firedAt + interval - Date.now()));
         }, wait);
       };
       schedule(trigger.delay);
@@ -201,8 +209,15 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
       const calls = result.triggerCalls;
       const stillPending = pending ? '; trigger call still pending' : '';
       if (calls.length == 0 || !calls.every(c => c.error != undefined || (c.status ?? 0) >= 400)) return stillPending;
-      const last = calls[calls.length - 1];
-      return '; trigger returned ' + (last.error != undefined ? last.error : last.status) + ' on all ' + calls.length + ' calls' + stillPending;
+      const counts = new Map<string, number>();
+      for (const c of calls) {
+        const label = String(c.error != undefined ? c.error : c.status);
+        counts.set(label, (counts.get(label) ?? 0) + 1);
+      }
+      if (counts.size == 1)
+        return '; trigger returned ' + [...counts.keys()][0] + ' on all ' + calls.length + ' calls' + stillPending;
+      const summary = [...counts].map(([label, n]) => label + ' ×' + n).join(', ');
+      return '; trigger returned ' + summary + ' across ' + calls.length + ' calls' + stillPending;
     };
 
     const reached = () => {

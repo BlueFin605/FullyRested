@@ -255,6 +255,25 @@ describe('EditRequestWebsocketComponent trigger', () => {
     });
   }
 
+  it('does not validate the interval when repeat is once, and clears its error on switching to once', () => {
+    const { component, action, invalid } = create({ trigger: { ...existing, interval: 500 } });
+
+    component.intervalText = '5';
+    component.onTriggerChange();
+    expect(component.invalid).toBeTrue();
+
+    component.triggerRepeat = 'once';
+    component.onTriggerChange();
+    expect(component.invalid).toBeFalse();
+    expect(component.triggerErrors.interval).toBeUndefined();
+    expect(action.trigger).toEqual({ request: 'pages/touch.frreq', repeat: 'once', interval: 500, delay: 0 });
+    expect(invalid).toEqual([true, false]);
+
+    component.intervalText = '1';
+    component.onTriggerChange();
+    expect(component.invalid).toBeFalse();
+  });
+
   it('rejects a negative delay and recovers when fixed', () => {
     const { component, action, invalid } = create({ trigger: { ...existing } });
 

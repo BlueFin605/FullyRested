@@ -210,7 +210,7 @@ export async function setTrigger(ctx: AuthoringContext, scope: string, fields: T
         if (node.path == resolved.file)
             throw new QueryError(`Trigger request '${requestPath}' is the websocket request itself`);
         if ((node.action.type ?? 'http') != 'http')
-            throw new QueryError(`Trigger request '${requestPath}' is a websocket request; a trigger must be http`);
+            throw new QueryError(`Trigger request '${requestPath}' is a ${node.action.type} request; a trigger must be http`);
 
         // Pointing at a different request drops the old run unless a run is given with it.
         const run = fields.run !== undefined ? (fields.run == '' ? undefined : fields.run)

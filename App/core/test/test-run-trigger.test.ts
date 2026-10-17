@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { FakeSocket, TRIGGER_FINISH_GRACE_MS, TriggerFirer, TriggerOutcome, runWebSocketTest } from '../src/websocket';
+import { FakeSocket, TRIGGER_FINISH_GRACE_MS, TriggerFirer, TriggerOutcome, fireTriggerRequest, runWebSocketTest } from '../src/websocket';
+import { ExecuteRestAction } from '../src/builder';
+import { HttpProtocol, RestTypeVerb } from '../src/model';
+import { newBuiltIns, substituteDeep } from '../src/substitution';
 import { CreateEmptyWebSocketExpect, WebSocketExpect } from '../src/model';
 
 const schema = { schema: JSON.stringify({ type: 'object', required: ['ok'], properties: { ok: { type: 'boolean' } } }) };
@@ -160,7 +163,36 @@ describe('runWebSocketTest trigger loop', () => {
     expect(f.fire).toHaveBeenCalledTimes(n);
   });
 
-  it('never overlaps a slow fire and waits the interval after it settles', async () => {
+  it('keeps a fixed beat: the next firing is interval after the previous one started', async () => {
+    const s = new FakeSocket();
+    const f = firer({ interval: 1000 }, async () => { await sleep(300); return { status: 200, ms: 300 }; });
+    const p = start(s, f, ex({ timeout: 10000 }));
+    await tick(3500);
+    s.push(good);
+    await tick(500);
+    const r = await p;
+    expect(r.triggerCalls.map(c => c.at)).toEqual([0, 1000, 2000, 3000]);
+  });
+
+  it('clamps an interval below 100ms at run time', async () => {
+    const s = new FakeSocket();
+    const f = firer({ interval: 1 });
+    const p = start(s, f, ex({ timeout: 1000 }));
+    await tick(1000);
+    await p;
+    expect(f.fire.mock.calls.length).toBeLessThanOrEqual(11);
+  });
+
+  it('treats a non-numeric interval as the minimum', async () => {
+    const s = new FakeSocket();
+    const f = firer({ interval: NaN });
+    const p = start(s, f, ex({ timeout: 500 }));
+    await tick(500);
+    await p;
+    expect(f.fire.mock.calls.length).toBeLessThanOrEqual(6);
+  });
+
+  it('never overlaps a slow fire and fires right after an overrun', async () => {
     const s = new FakeSocket();
     let inFlight = 0, maxInFlight = 0;
     const f = firer({ interval: 100 }, async () => {
@@ -171,11 +203,10 @@ describe('runWebSocketTest trigger loop', () => {
     });
     const p = start(s, f);
     await tick(0);
-    await tick(1000);
-    expect(f.fire).toHaveBeenCalledTimes(1);
-    await tick(99);
+    await tick(999);
     expect(f.fire).toHaveBeenCalledTimes(1);
     await tick(1);
+    await tick(5);
     expect(f.fire).toHaveBeenCalledTimes(2);
     await tick(3000);
     expect(maxInFlight).toBe(1);
@@ -224,6 +255,18 @@ describe('runWebSocketTest trigger loop', () => {
     expect((await p).errors[0]).toContain('trigger returned ECONNREFUSED on all 1 calls');
   });
 
+  it('summarises mixed failures by count per status or error', async () => {
+    const s = new FakeSocket();
+    const results = [{ status: 500, ms: 1 }, { status: 401, ms: 1 }, { status: 500, ms: 1 }];
+    let n = 0;
+    const f = firer({}, async () => results[n++]);
+    const p = start(s, f, ex({ timeout: 2500 }));
+    await tick(2500);
+    const r = await p;
+    expect(r.errors[0]).toContain('trigger returned 500 ×2, 401 ×1 across 3 calls');
+    expect(r.errors[0]).not.toContain('on all');
+  });
+
   it('does not blame the trigger when some calls succeeded', async () => {
     const s = new FakeSocket();
     let n = 0;
@@ -240,5 +283,34 @@ describe('runWebSocketTest trigger loop', () => {
     const r = await p;
     expect(r.triggerCalls).toEqual([]);
     expect(r.errors[0]).toBe('Timed out after 100ms with 0 of 1 expected messages');
+  });
+});
+
+describe('fireTriggerRequest', () => {
+  it('substitutes the request afresh on every firing, so built-ins differ', async () => {
+    const urls: string[] = [];
+    const execute = (async (r: { url: string }) => { urls.push(r.url); return { status: 200 }; }) as any;
+    const request = new ExecuteRestAction({
+      verb: RestTypeVerb.get, protocol: HttpProtocol.https, url: 'x.test/{{$guid}}', headers: {}, body: {},
+      authentication: undefined, secrets: undefined, variables: undefined, validation: undefined
+    });
+    await fireTriggerRequest(request, undefined, execute);
+    await fireTriggerRequest(request, undefined, execute);
+    expect(urls[0]).toMatch(/^x\.test\/[0-9a-f-]{36}$/);
+    expect(urls[1]).toMatch(/^x\.test\/[0-9a-f-]{36}$/);
+    expect(urls[0]).not.toBe(urls[1]);
+  });
+});
+
+describe('replaceVariables', () => {
+  it('shares one guid with other values when given the same built-ins', () => {
+    const request = new ExecuteRestAction({
+      verb: RestTypeVerb.get, protocol: HttpProtocol.https, url: 'x/{{$guid}}', headers: { h: '{{$guid}}' }, body: {},
+      authentication: undefined, secrets: undefined, variables: undefined, validation: undefined
+    });
+    const builtins = newBuiltIns();
+    const replaced = request.replaceVariables(builtins);
+    expect(substituteDeep('{{$guid}}', undefined, undefined, builtins)).toBe(replaced.headers['h']);
+    expect(replaced.url).toBe('x/' + replaced.headers['h']);
   });
 });

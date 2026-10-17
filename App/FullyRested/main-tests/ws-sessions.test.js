@@ -308,3 +308,18 @@ test('runWsTest with a trigger still refuses a root that is not the open collect
         () => sessions.runWsTest({ root: other, request: { url: 'ws://x' }, trigger: touch() }),
         /not the open collection/);
 });
+
+test('runWsTest substitutes the trigger request afresh on every firing', async () => {
+    await startTriggerServer(401);
+    const urls = [];
+    sessions.executeRequest = async request => { urls.push(request.url); return { status: 200 }; };
+
+    await sessions.runWsTest({
+        root: collection, request: { url: `ws://${base}` }, expect: { ...expectOne, timeout: 450 },
+        trigger: touch({ request: { url: 'x/{{$guid}}' } })
+    });
+
+    assert.ok(urls.length >= 2);
+    assert.match(urls[0], /^x\/[0-9a-f-]{36}$/);
+    assert.equal(new Set(urls).size, urls.length, 'every firing has its own guid');
+});

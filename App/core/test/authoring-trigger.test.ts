@@ -23,6 +23,12 @@ async function setup() {
 const trigger = (sink: MemoryCollectionSink) => JSON.parse(sink.files.get(WS_FILE)!).trigger;
 
 describe('setTrigger', () => {
+    it('names the real type when the trigger request is not http', async () => {
+        const sink = await setup();
+        await setType(ctxFor(sink), 'request:orders/other.frreq', 'mcp');
+        await expect(setTrigger(ctxFor(sink), WS, { request: 'orders/other.frreq' })).rejects.toThrow('is a mcp request; a trigger must be http');
+    });
+
     it('sets a trigger with defaults, then updates only the given fields', async () => {
         const sink = await setup();
         const result = await setTrigger(ctxFor(sink), WS, { request: HTTP });

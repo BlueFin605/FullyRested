@@ -91,7 +91,7 @@ class WsSessions {
         };
     }
 
-    // A TriggerFirer around core's fireTriggerRequest for payload.trigger ({ request: <resolved ExecuteRestAction>,
+    // A TriggerFirer around core's fireTriggerRequest for payload.trigger ({ request: <resolved, unsubstituted ExecuteRestAction>,
     // repeat, interval, delay }), or undefined. Fired by main; its calls come back as triggerCalls.
     triggerFirer(trigger) {
         if (trigger == undefined) return undefined;

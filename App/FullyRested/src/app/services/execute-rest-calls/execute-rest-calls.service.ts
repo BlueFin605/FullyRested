@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, addCaptured, captureFromResponse, substituteDeep, validateResponse } from '@fullyrested/core';
+import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, newBuiltIns, addCaptured, captureFromResponse, substituteDeep, validateResponse } from '@fullyrested/core';
 import type { Captured, RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, SecretTable, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
@@ -98,21 +98,22 @@ export class ExecuteRestCallsService {
   }
 
   // The http request a websocket request's trigger names, resolved like any send (folders, environment, variables),
-  // with its timing, ready for the runWsTest payload. In a batch, `captured` holds the values earlier cases
+  // with its timing, ready for the runWsTest payload (substituted by the runner on each firing). In a batch, `captured` holds the values earlier cases
   // captured. undefined when there is no trigger; throws, naming the locator, when it cannot be resolved.
   resolveTrigger(action: RestAction, environmentId: string | undefined, captured?: Captured) {
     if (action.trigger == undefined) return undefined;
     const trigger = normaliseTrigger(action.trigger);
     const target = this.trees.tree.value?.find(trigger.request);
     if (!(target instanceof RequestNode)) throw new Error(`Trigger request '${trigger.request}' not found in the collection`);
-    if ((target.action.type ?? 'http') != 'http') throw new Error(`Trigger request '${trigger.request}' is a websocket request; a trigger must be http`);
+    if ((target.action.type ?? 'http') != 'http') throw new Error(`Trigger request '${trigger.request}' is a ${target.action.type} request; a trigger must be http`);
     let node: RequestNode | RunNode = target;
     if (trigger.run != undefined) {
       const run = target.runs().find(r => r.run.id == trigger.run || r.run.name == trigger.run);
       if (run == undefined) throw new Error(`Trigger run '${trigger.run}' not found in '${trigger.request}'`);
       node = run;
     }
-    const request = node.resolve({ environmentId, captured }).replaceVariables();
+    // Left unsubstituted: the runner substitutes it on every firing, so {{$guid}} and {{$timestamp}} change per firing
+    const request = node.resolve({ environmentId, captured });
     return { request, repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay };
   }
 
@@ -165,11 +166,12 @@ export class ExecuteRestCallsService {
     try {
       resolved = node.resolve({ environmentId, captured });
       secrets = resolved.secrets;
-      const request = resolved.replaceVariables();
+      const builtins = newBuiltIns();   // one {{$guid}} for the url, headers, message and expect
+      const request = resolved.replaceVariables(builtins);
       url = request.url;
       headers = request.headers;
-      message = substituteDeep(action.message ?? '', request.variables, request.secrets);
-      const expect = substituteDeep(action.expect, request.variables, request.secrets);
+      message = substituteDeep(action.message ?? '', request.variables, request.secrets, builtins);
+      const expect = substituteDeep(action.expect, request.variables, request.secrets, builtins);
       const trigger = this.resolveTrigger(action, environmentId, captured);
       if (trigger != undefined) secrets = [...(secrets ?? []), ...(trigger.request.secrets ?? [])];
       const ipc = this.getIpcRenderer();

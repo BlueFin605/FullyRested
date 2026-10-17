@@ -158,6 +158,7 @@ export interface WebSocketExpect {
 export type TriggerRepeat = 'once' | 'until-done';
 
 export const DEFAULT_TRIGGER_INTERVAL_MS = 1000;
+export const MIN_TRIGGER_INTERVAL_MS = 100;
 
 // A request to fire (optionally with one of its runs) to provoke a websocket message
 export interface WebSocketTrigger {

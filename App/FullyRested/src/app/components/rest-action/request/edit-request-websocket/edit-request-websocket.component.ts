@@ -150,7 +150,9 @@ export class EditRequestWebsocketComponent {
     const errors: Partial<Record<TriggerField, string>> = {};
     const interval = this.parseWhole(this.intervalText);
     const delay = this.parseWhole(this.delayText);
-    if (!Number.isInteger(interval) || interval < MIN_TRIGGER_INTERVAL_MS) errors.interval = `interval must be a whole number of at least ${MIN_TRIGGER_INTERVAL_MS}ms`;
+    // The interval only matters while repeating; with 'once' a hidden bad value must not block saving
+    const intervalOk = Number.isInteger(interval) && interval >= MIN_TRIGGER_INTERVAL_MS;
+    if (this.triggerRepeat == 'until-done' && !intervalOk) errors.interval = `interval must be a whole number of at least ${MIN_TRIGGER_INTERVAL_MS}ms`;
     if (!Number.isInteger(delay) || delay < 0) errors.delay = 'delay must be a whole number of 0 or more';
     this.triggerErrors = errors;
 
@@ -165,7 +167,7 @@ export class EditRequestWebsocketComponent {
         request: this.triggerRequest,
         run: this.runIdOf(this.triggerRequest, this.triggerRun) || undefined,
         repeat: this.triggerRepeat as 'once' | 'until-done',
-        interval: errors.interval ? current?.interval : interval,
+        interval: intervalOk ? interval : current?.interval,
         delay: errors.delay ? current?.delay : delay,
       });
       if (next.run === undefined) delete next.run;
