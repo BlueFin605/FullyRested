@@ -128,6 +128,8 @@ describe('setExpect', () => {
   it.each([
     [{ count: 0 }, /count must be/],
     [{ timeout: 1.5 }, /timeout must be/],
+    [{ timeout: 0 }, /timeout must be/],
+    [{ timeout: -5 }, /timeout must be/],
     [{ settle: -1 }, /settle must be/],
     [{ match: 'some' }, /Unknown match 'some' \(have all, any\)/],
     [{ extras: 'maybe' }, /Unknown extras 'maybe' \(have ignore, fail\)/]

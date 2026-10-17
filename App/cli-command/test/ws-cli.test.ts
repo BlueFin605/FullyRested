@@ -33,6 +33,11 @@ beforeAll(async () => {
   server.on('upgrade', (req, socket, head) => {
     upgradeUrls.push(req.url ?? '');
     upgradeHeaders.push(req.headers);
+    // A server that accepts the socket and never says a word, to time a test out
+    if ((req.url ?? '').startsWith('/silent')) {
+      wss.handleUpgrade(req, socket, head, () => { });
+      return;
+    }
     wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
       ws.send(GREETING);
       ws.on('message', data => {
@@ -73,6 +78,10 @@ beforeAll(async () => {
   fs.writeFileSync(path.join(folder, 'strict.frreq'), JSON.stringify(request('w3', 'strict', '{{base}}/chat', {
     type: 'websocket', message: PING, headers: [], authentication: { authentication: 'inherit' },
     expect: { count: 1, match: 'all', timeout: 3000, schema: { schema: '{"type":"array"}' } }
+  })));
+  fs.writeFileSync(path.join(folder, 'silent.frreq'), JSON.stringify(request('w9', 'silent', '{{base}}/silent', {
+    type: 'websocket', message: PING, headers: [], authentication: { authentication: 'inherit' },
+    expect: { count: 1, timeout: 20000 }
   })));
 });
 
@@ -140,7 +149,64 @@ describe('run on a websocket request', () => {
   });
 });
 
+describe('run --timeout on a websocket request', () => {
+  const silentFile = () => path.join(folder, 'silent.frreq');
+
+  it('shortens the wait for this run only: the test times out fast and the file is unchanged', async () => {
+    const before = fs.readFileSync(silentFile(), 'utf8');
+    const started = Date.now();
+    const record = await runCollection({ collection: collection(), action: 'silent.frreq', timeout: 150 }, store);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(record.cases[0]!.outcome).toBe('fail');
+    expect(record.cases[0]!.error).toContain('Timed out');
+    expect(fs.readFileSync(silentFile(), 'utf8')).toBe(before);
+  });
+
+  it('can also lengthen it: a generous override lets a normal test pass', async () => {
+    const record = await runCollection({ collection: collection(), action: 'chat.frreq', timeout: 10000 }, store);
+    expect(record.cases[0]!.outcome).toBe('pass');
+  });
+
+  it.each([0, -5, 1.5, NaN])('rejects %s as a usage error before anything runs', async timeout => {
+    await expect(runCollection({ collection: collection(), action: 'silent.frreq', timeout }, store))
+      .rejects.toBeInstanceOf(UsageError);
+    await expect(runCollection({ collection: collection(), action: 'silent.frreq', timeout }, store))
+      .rejects.toThrow(/--timeout must be a positive whole number/);
+  });
+
+  it('warns that --timeout is ignored for an http request', async () => {
+    fs.writeFileSync(path.join(folder, 'plain-t.frreq'), JSON.stringify(request('h2', 'plain-t', 'http://127.0.0.1:1/x')));
+    const warnings: string[] = [];
+    await runCollection({ collection: collection(), action: 'plain-t.frreq', timeout: 100 }, store, { onWarning: w => warnings.push(w) });
+    expect(warnings).toContain('--timeout applies to websocket requests only; it is ignored for http requests');
+  });
+
+  it('works from the built CLI, and a bad value exits 2', async () => {
+    const started = Date.now();
+    const slow = await fullyrested(['run', '-c', collection(), '-a', 'silent.frreq', '--timeout', '150']);
+    expect(Date.now() - started).toBeLessThan(8000);
+    expect(slow.code).toBe(1);
+    expect(slow.out).toContain('Timed out');
+
+    for (const bad of ['0', '-3', '1.5', 'abc']) {
+      const r = await fullyrested(['run', '-c', collection(), '-a', 'silent.frreq', '--timeout=' + bad]);
+      expect(r.code, bad).toBe(2);
+      expect(r.err, bad).toMatch(/--timeout must be a positive whole number/);
+    }
+  });
+});
+
 describe('ws watch', () => {
+  it('ignores --timeout with a warning on stderr, and rejects a non-positive one', async () => {
+    const warnings: string[] = [];
+    await watchSession(`${base}/live`, { send: ['bye'], timeout: 100 }, store,
+      { out: () => { }, warn: l => warnings.push(l) }, new AbortController().signal);
+    expect(warnings).toEqual(['warning: --timeout ignored: ws watch is a live session with no expect to time out']);
+
+    await expect(watchSession(`${base}/live`, { timeout: 0 }, store, quiet, new AbortController().signal))
+      .rejects.toBeInstanceOf(UsageError);
+  });
+
   it('streams events to out until the server closes the session', async () => {
     const lines: string[] = [];
     const warnings: string[] = [];

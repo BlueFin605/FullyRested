@@ -24,6 +24,11 @@ beforeAll(async () => {
   wss = new WebSocketServer({ noServer: true });
   server.on('upgrade', (req, socket, head) => {
     upgradeUrls.push(req.url ?? '');
+    // A server that accepts the socket and never says a word, to time a test out
+    if ((req.url ?? '').startsWith('/silent')) {
+      wss.handleUpgrade(req, socket, head, () => { });
+      return;
+    }
     wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
       ws.send(GREETING);
       ws.on('message', data => {
@@ -52,6 +57,10 @@ beforeAll(async () => {
     type: 'websocket', message: '{"ping":1}', headers: [],
     authentication: { authentication: 'bearertoken', bearerToken: { token: '{{$tok}}' }, placement: 'token' },
     expect: { count: 2, timeout: 3000 }
+  })));
+  fs.writeFileSync(path.join(folder, 'silent.frreq'), JSON.stringify(request('w9', 'silent', '{{base}}/silent', {
+    type: 'websocket', message: '{"ping":1}', headers: [], authentication: { authentication: 'inherit' },
+    expect: { count: 1, timeout: 20000 }
   })));
 });
 
@@ -147,5 +156,25 @@ describe('mcp websocket session tools', () => {
     expect(run.isError).toBe(false);
     expect(run.text).not.toContain(TOKEN);
     expect(run.json()).toMatchObject({ passed: 1, failed: 0 });
+  });
+
+  it('timeoutMs overrides the wait for one run, without changing the saved request', async () => {
+    const client = await connect();
+    const file = path.join(folder, 'silent.frreq');
+    const before = fs.readFileSync(file, 'utf8');
+    const started = Date.now();
+    const run = await call(client, 'run', { collection: collection(), action: 'silent.frreq', timeoutMs: 150 });
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(run.isError).toBe(false);
+    expect(run.json()).toMatchObject({ passed: 0, failed: 1 });
+    expect(run.text).toContain('Timed out');
+    expect(fs.readFileSync(file, 'utf8')).toBe(before);
+  });
+
+  it.each([0, -1, 1.5])('rejects timeoutMs %s as an error result', async timeoutMs => {
+    const client = await connect();
+    const run = await call(client, 'run', { collection: collection(), action: 'silent.frreq', timeoutMs });
+    expect(run.isError).toBe(true);
+    expect(run.text).toMatch(/--timeout must be a positive whole number/);
   });
 });

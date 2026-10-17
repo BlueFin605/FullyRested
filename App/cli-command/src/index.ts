@@ -44,6 +44,7 @@ program
   .option('--record', 'save the run record to <store>/.fullyrested-runs')
   .option('--store <dir>', 'folder holding .fullyrested-runs for --record (default: the current directory)')
   .option('--include-secrets', 'keep secret values in the run record instead of redacting them')
+  .option('--timeout <ms>', 'websocket tests: wait this many milliseconds instead of the expect.timeout of the request (this run only, not saved)', (v: string) => Number(v))
   .option('--json', 'print only the run record as JSON on stdout')
   .addHelpText('after', `
 Secrets come from environment variables first, then the OS keychain the
@@ -95,7 +96,8 @@ wsNamespace
   .option('-r, --run <name>', 'one run of the request, by name or id')
   .option('--send <message...>', 'send these text frames once the session opens')
   .option('--json', 'print each event as one JSON line')
-  .action(async (target: string, options: { collection?: string; environment?: string; run?: string; send?: string[]; json?: boolean }) => {
+  .option('--timeout <ms>', 'accepted for symmetry with `run`; a live session has no expect to time out, so it is ignored with a warning', (v: string) => Number(v))
+  .action(async (target: string, options: { collection?: string; environment?: string; run?: string; send?: string[]; json?: boolean; timeout?: number }) => {
     const stop = new AbortController();
     const interrupt = () => stop.abort();
     process.once('SIGINT', interrupt);

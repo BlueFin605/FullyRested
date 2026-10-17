@@ -1,6 +1,6 @@
 import {
   CaseRecord, ExecuteRestAction, RequestNode, RunNode, SocketFactory, SocketTransport, WebSocketExpect, applyAuthentication,
-  buildWebSocketCaseRecord, normaliseExpect, redactCase, runWebSocketTest, substituteDeep, withQueryToken
+  buildWebSocketCaseRecord, normaliseExpect, redactCase, runWebSocketTest, substituteDeep, validateTimeoutMs, withQueryToken
 } from '@fullyrested/core';
 import { WsTransport } from './ws-transport';
 
@@ -55,12 +55,16 @@ export async function runWebSocketCase(
   node: RequestNode | RunNode,
   environmentId: string | undefined,
   includeSecrets: boolean,
-  transport: SocketTransport = newTransport()
+  transport: SocketTransport = newTransport(),
+  timeoutMs?: number
 ): Promise<CaseRecord> {
   let target: WebSocketTarget;
   let secrets;
   try {
     target = await resolveWebSocketTarget(node, environmentId);
+    // A run-time override only: the saved request is not touched
+    if (timeoutMs != undefined)
+      target.expect = { ...target.expect, timeout: validateTimeoutMs(timeoutMs, 'timeout') };
     secrets = node.resolve({ environmentId }).secrets;
   } catch (error) {
     return buildWebSocketCaseRecord({ ...base, ms: 0, url: '', headers: {}, error: (error as Error).message });

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import {
-  LiveSession, RequestNode, SecretStore, SessionEvent, SocketFactory
+  LiveSession, RequestNode, SecretStore, SessionEvent, SocketFactory, validateTimeoutMs
 } from '@fullyrested/core';
 import { loadTree } from './files';
 import { findEnvironment, requestFor, setup, UsageError } from './run';
@@ -13,6 +13,8 @@ export interface WatchOptions {
   /** Messages to send as soon as the session opens, in order. */
   send?: string[];
   json?: boolean;
+  /** Accepted and validated, but a live session has no expect to time out, so it only warns. */
+  timeout?: number;
 }
 
 export interface WatchIo {
@@ -96,6 +98,15 @@ export async function watchSession(
   stop: AbortSignal,
   factory: SocketFactory = newTransport
 ): Promise<boolean> {
+  if (options.timeout != undefined) {
+    try {
+      validateTimeoutMs(options.timeout, '--timeout');
+    } catch (error) {
+      throw new UsageError((error as Error).message);
+    }
+    io.warn('warning: --timeout ignored: ws watch is a live session with no expect to time out');
+  }
+
   const session = await connectSession(target, options, store, factory);
   active = session;
 

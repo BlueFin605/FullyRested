@@ -102,9 +102,11 @@ export function createServer(opts: McpOptions): McpServer {
     description: 'Send requests of a collection: one request file (action, optionally one of its runs), a folder, or everything (the default). Returns the pass/fail/error counts plus only the cases that did not pass, with their failed checks; run_summary lists every case, and case_* drill into one. Bodies are only returned by case_body. Authoring loop: tree, edit, run.',
     inputSchema: {
       collection, environment: z.string().optional(), action: z.string().optional(),
-      run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store
+      run: z.string().optional(), folder: z.string().optional(), all: z.boolean().optional(), store,
+      timeoutMs: z.number().optional().describe('Websocket tests: wait this many ms instead of the request expect.timeout, for this run only (the file is not changed). A positive whole number.')
     }
-  }, ({ store: dir, ...options }) => respond(async () => {
+  }, ({ store: dir, timeoutMs, ...rest }) => respond(async () => {
+    const options = { ...rest, ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }) };
     // Unlike the CLI, no selection means the whole collection, so an agent's first call is not wasted
     const selected = options.action !== undefined || options.folder !== undefined || options.all !== undefined;
     const record = await runCollection(selected ? options : { ...options, all: true }, opts.secrets, { onWarning: warn, includeSecrets: false });

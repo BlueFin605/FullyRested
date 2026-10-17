@@ -1,6 +1,7 @@
 import { ExpectExtras, ExpectMatch, RequestType, RestAction } from '../model';
 import { normaliseExpect } from '../normalise';
 import { QueryError } from '../query-error';
+import { validateTimeoutMs } from '../websocket/timeout';
 import { AuthoringContext, EditResult, editScope, requestAction } from './edit-scope';
 import { parseJsonSchema } from './validation';
 
@@ -83,7 +84,7 @@ export async function setExpect(ctx: AuthoringContext, scope: string, fields: Ex
     const count = fields.count == undefined ? undefined : requireInt('count', fields.count, 1);
     const match = fields.match == undefined ? undefined : matchValue(MATCHES, fields.match, 'match');
     const extras = fields.extras == undefined ? undefined : matchValue(EXTRAS, fields.extras, 'extras');
-    const timeout = fields.timeout == undefined ? undefined : requireInt('timeout', fields.timeout, 1);
+    const timeout = fields.timeout == undefined ? undefined : validateTimeoutMs(fields.timeout);
     const settle = fields.settle == undefined ? undefined : requireInt('settle', fields.settle, 0);
     const schema = fields.schema == undefined || fields.schema == '' ? undefined : parseJsonSchema(fields.schema);
 
