@@ -444,6 +444,13 @@ app has an endpoint that creates one; FullyRested adds nothing for a target that
 `--content-type none` on a run sends no body at all (to test a "Request body is required"
 400 beside the happy-path run of the same request); `--content-type inherit` removes the override.
 
+### Content types, protocols and a request with runs
+
+- `set-body --content-type json` (also `xml`, `text`, `html`, `form`, `multipart`, any case) is stored as the media type (`application/json`...), so the header is never a bare `json`. A full media type is kept as written; `none` and `inherit` are not media types.
+- A url is https unless it says otherwise: `new-request ... "http://{{host}}/x"` and `set-url` with an `http://` prefix set the protocol to http and keep the `{{host}}` placeholder in the url. A variable cannot carry the scheme.
+- A request with runs is tested through its runs; the bare request is the base they override and is not a case of its own. Write the happy path as a run (it can change nothing), or run the bare request alone with `--action`.
+- A target app that answers a malformed body with an HTML error (Express's default) is the app's to fix; validation cannot assert JSON on a reply that is not JSON.
+
 ### Unique values and runs-only requests
 
 `{{$guid}}` (a fresh uuid) and `{{$timestamp}}` (epoch milliseconds) are built in. They are written like a secret,

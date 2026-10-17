@@ -1,4 +1,5 @@
 import { CreateEmptyActionBody, FORM_CONTENT_TYPE, FormField, MULTIPART_CONTENT_TYPE, MultipartPart, RestActionBody, RestActionRun, RestTypeVerb } from '../model';
+import { normaliseContentType } from '../content-type';
 import { QueryError } from '../query-error';
 import { AuthoringContext, EditResult, editScope, requestAction, upsertNamed, splitScheme } from './edit-scope';
 
@@ -89,6 +90,8 @@ export async function setBody(
 ): Promise<EditResult> {
     if (typeof contentType != 'string' || contentType == '')
         throw new QueryError('set_body needs a content type');
+    // 'json' is stored (and later sent as the Content-Type header) as application/json
+    contentType = normaliseContentType(contentType);
 
     return editScope(ctx, 'set_body', scope, ['request', 'run'], target => {
         // A request always has a body (maybe 'none'); a run's is an override that may be absent,

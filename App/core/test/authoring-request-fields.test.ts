@@ -307,3 +307,23 @@ describe('setRunsOnly', () => {
     await expect(setRunsOnly(ctxFor(sink), 'run:users/get.frreq#r', true)).rejects.toThrow();
   });
 });
+
+describe('set_body content type shorthand', () => {
+  it("stores 'json' as application/json (any case), and other shorthands as their media types", async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'JSON', { text: '{"a":1}' });
+    expect(written(sink, 'users/get.frreq').body).toMatchObject({ contentType: 'application/json', body: '{"a":1}' });
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'xml', { text: '<a/>' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('application/xml');
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'text', { text: 'x' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('text/plain');
+  });
+
+  it('leaves a full media type and none/inherit alone', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'application/vnd.api+json', { text: '{}' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('application/vnd.api+json');
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'none');
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('none');
+  });
+});

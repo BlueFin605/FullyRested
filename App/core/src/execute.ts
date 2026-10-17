@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { FORM_CONTENT_TYPE, FormField, MULTIPART_CONTENT_TYPE, RestActionBody, RestTypeVerb } from './model';
+import { normaliseContentType } from './content-type';
 import { buildMultipart } from './multipart';
 import { IExecuteRestAction, RestActionResult } from './builder';
 import { applyAuthentication, PreparedRequest } from './auth';
@@ -74,7 +75,7 @@ export function prepareRequest(action: IExecuteRestAction): PreparedRequest {
 
   const body = serializeBody(bodyDetails);
   if (body !== undefined && contentTypeHeader == undefined && bodyDetails)
-    headers['content-type'] = bodyDetails.contentType;
+    headers['content-type'] = normaliseContentType(bodyDetails.contentType);
 
   return { method, url: requestUrl(action.protocol, action.url), headers, body };
 }

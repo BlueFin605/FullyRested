@@ -42,6 +42,12 @@ describe('newFolder / newRequest', () => {
     expect(action).toMatchObject({ protocol: 'https', url: 'example.com/users' });
   });
 
+  it('newRequest with http://{{host}}/... sets protocol http and keeps the placeholder', async () => {
+    const sink = new MemoryCollectionSink(base);
+    await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'http://{{host}}/users');
+    expect(JSON.parse(sink.files.get('users/get.frreq')!)).toMatchObject({ protocol: 'http', url: '{{host}}/users' });
+  });
+
   it('newRequest leaves a {{var}} placeholder in the url untouched', async () => {
     const sink = new MemoryCollectionSink(base);
     await newRequest(ctxFor(sink), 'users/get.frreq', 'GET', 'https://{{host}}/users');

@@ -129,3 +129,14 @@ describe('executeRequest', () => {
     expect(result.statusText).toBe('ECONNREFUSED');
   });
 });
+
+describe('prepareRequest content type shorthand', () => {
+  it("sends a stored 'json' body as Content-Type application/json", async () => {
+    const { prepareRequest, ExecuteRestAction, HttpProtocol, RestTypeVerb } = await import('../src');
+    const action = new ExecuteRestAction({
+      name: 'x', verb: RestTypeVerb.post, protocol: HttpProtocol.http, url: 'h/x', headers: {}, parameters: {},
+      body: { contentType: 'json', body: '{}' }
+    } as any);
+    expect(prepareRequest(action).headers['content-type']).toBe('application/json');
+  });
+});
