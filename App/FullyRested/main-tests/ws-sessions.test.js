@@ -255,9 +255,10 @@ test('runWsTest fires its trigger and passes on the event it causes', async () =
 
     assert.equal(result.passed, true);
     assert.deepEqual(result.messages.map(m => m.text), ['{"event":"touched"}']);
-    // the call that caused the event may still be in flight when the test ends, so it is not necessarily recorded
-    assert.ok(Array.isArray(result.triggerCalls));
+    // the call that caused the event is recorded even though it was still in flight when the message arrived
+    assert.ok(result.triggerCalls.length >= 1);
     assert.ok(result.triggerCalls.every(c => c.status == 200));
+    assert.ok(result.triggerCalls.every(c => c.at >= 0 && c.at < 5000), 'at is ms since the test started');
 });
 
 test('runWsTest shows a failing trigger in triggerCalls', async () => {

@@ -85,6 +85,12 @@ describe('websocket trigger in run', () => {
     const c = record.cases[0]!;
     expect(c.outcome).toBe('pass');
     expect(hits).toBeGreaterThanOrEqual(1);
+    // the call that caused the pass is recorded, stamped in ms since the test started
+    const calls = c.websocket?.triggerCalls ?? [];
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls.every(t => t.status == 200)).toBe(true);
+    expect(calls[0]!.at).toBeGreaterThanOrEqual(0);
+    expect(calls[0]!.at).toBeLessThan(5000);
   });
 
   it('passes from the built CLI with no outside script', { timeout: 60000 }, async () => {

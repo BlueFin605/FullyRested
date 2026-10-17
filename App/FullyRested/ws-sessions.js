@@ -6,7 +6,7 @@
 // where request is the renderer's resolved, variable-substituted request (as testRest receives it) and
 // root is the open collection's folder, checked by collection-access.js like every file handler's.
 // The query-placed token is added here and never leaves: every string sent back is scrubbed of it.
-const { LiveSession, applyAuthentication, executeRequest, normaliseExpect, normaliseTrigger, runWebSocketTest, withQueryToken } = require('@fullyrested/core');
+const { LiveSession, applyAuthentication, fireTriggerRequest, normaliseExpect, normaliseTrigger, runWebSocketTest, withQueryToken } = require('@fullyrested/core');
 const { WsTransport } = require('./ws-transport');
 
 const MAX_SESSIONS = 10;
@@ -87,26 +87,15 @@ class WsSessions {
         };
     }
 
-    // A TriggerFirer around core's executeRequest for payload.trigger ({ request: <resolved ExecuteRestAction>,
+    // A TriggerFirer around core's fireTriggerRequest for payload.trigger ({ request: <resolved ExecuteRestAction>,
     // repeat, interval, delay }), or undefined. Fired by main; its calls come back as triggerCalls.
     triggerFirer(trigger) {
         if (trigger == undefined) return undefined;
         if (trigger.request == undefined) throw new Error('The trigger has no request');
         const { request, ...timing } = trigger;
         const { repeat, interval, delay } = normaliseTrigger({ request: '', ...timing });
-        const fire = async () => {
-            const at = Date.now();
-            let response;
-            try {
-                response = await executeRequest(request);
-            } catch (error) {
-                return { at, error: String(error?.message ?? error), ms: Date.now() - at };
-            }
-            const ms = Date.now() - at;
-            return typeof response.status == 'number' && response.status >= 0
-                ? { at, status: response.status, ms }
-                : { at, error: String(response.statusText || response.status), ms };
-        };
+        // The runner passes an abort signal for its per-call timeout and for a call left pending at finish
+        const fire = signal => fireTriggerRequest(request, signal);
         return { repeat, interval, delay, fire };
     }
 

@@ -62,11 +62,12 @@ describe('DisplayResponseComponent trigger calls', () => {
   }
 
   it('lists each call with its time, status or error and duration', () => {
-    const el = render([{ at: Date.UTC(2026, 0, 1, 12, 0, 1), status: 200, ms: 12 }, { at: Date.UTC(2026, 0, 1, 12, 0, 2), error: 'ECONNREFUSED', ms: 3 }]);
+    const el = render([{ at: 0, status: 200, ms: 12 }, { at: 1250, error: 'ECONNREFUSED', ms: 3 }]);
 
     const rows = Array.from(el.querySelectorAll('.trigger-call'));
     expect(rows.length).toBe(2);
-    expect(rows[0].querySelector('.at')!.textContent).toMatch(/^\d\d:\d\d:\d\d\.\d{3}$/);
+    expect(rows[0].querySelector('.at')!.textContent).toBe('+0.000s');
+    expect(rows[1].querySelector('.at')!.textContent).toBe('+1.250s');
     expect(rows[0].querySelector('.outcome')!.textContent).toBe('200');
     expect(rows[0].getAttribute('data-level')).toBe('ok');
     expect(rows[1].querySelector('.outcome')!.textContent).toBe('ECONNREFUSED');

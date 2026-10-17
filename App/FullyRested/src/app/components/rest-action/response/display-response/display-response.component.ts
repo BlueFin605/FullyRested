@@ -49,11 +49,9 @@ export class DisplayResponseComponent {
     return validated?.checks?.filter(c => !c.passed).length ?? validated?.errors.length ?? 0;
   }
 
-  // Time of day of a trigger call
+  // When a trigger call started, relative to the start of the test (its `at` is ms since then)
   callTime(at: number): string {
-    const d = new Date(at);
-    const p = (n: number, w = 2) => String(n).padStart(w, '0');
-    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    return `+${(Math.max(0, at) / 1000).toFixed(3)}s`;
   }
 
   callLevel(call: TriggerCall): 'ok' | 'warn' | 'error' {

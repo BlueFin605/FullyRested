@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { FakeSocket, TriggerCall, TriggerFirer, runWebSocketTest } from '../src/websocket';
+import { FakeSocket, TRIGGER_FINISH_GRACE_MS, TriggerFirer, TriggerOutcome, runWebSocketTest } from '../src/websocket';
 import { CreateEmptyWebSocketExpect, WebSocketExpect } from '../src/model';
 
 const schema = { schema: JSON.stringify({ type: 'object', required: ['ok'], properties: { ok: { type: 'boolean' } } }) };
 const ex = (o: Partial<WebSocketExpect> = {}): WebSocketExpect => ({ ...CreateEmptyWebSocketExpect(), schema, timeout: 10000, settle: 0, ...o });
 const good = '{"ok":true}';
 
-const firer = (o: Partial<TriggerFirer> = {}, call: () => Promise<TriggerCall> = async () => ({ at: Date.now(), status: 200, ms: 1 })) => {
+const firer = (o: Partial<TriggerFirer> = {}, call: (signal?: AbortSignal) => Promise<TriggerOutcome> = async () => ({ status: 200, ms: 1 })) => {
   const f = { repeat: 'until-done', interval: 1000, delay: 0, fire: vi.fn(call), ...o } as TriggerFirer & { fire: ReturnType<typeof vi.fn> };
   return f;
 };
 const start = (s: FakeSocket, trigger?: TriggerFirer, e: WebSocketExpect = ex()) =>
   runWebSocketTest(s, { url: 'wss://x', headers: {}, message: 'hi', expect: e, trigger });
 const tick = (ms: number) => vi.advanceTimersByTimeAsync(ms);
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 describe('runWebSocketTest trigger loop', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -30,7 +31,7 @@ describe('runWebSocketTest trigger loop', () => {
     s.push(good);
     const r = await p;
     expect(r.passed).toBe(true);
-    expect(r.triggerCalls.length).toBe(1);
+    expect(r.triggerCalls).toEqual([{ at: 500, status: 200, ms: 1 }]);
   });
 
   it('once fires exactly once', async () => {
@@ -55,7 +56,74 @@ describe('runWebSocketTest trigger loop', () => {
     const r = await p;
     await tick(5000);
     expect(f.fire).toHaveBeenCalledTimes(3);
-    expect(r.triggerCalls.length).toBe(3);
+    expect(r.triggerCalls.map(c => c.at)).toEqual([0, 1000, 2000]);
+  });
+
+  it('stops firing once the count is reached while settling for extras', async () => {
+    // Every firing provokes one message: firing on through the settle window would fail the test
+    const s = new FakeSocket();
+    const f = firer({ interval: 100 }, async () => { s.push(good); return { status: 200, ms: 1 }; });
+    const p = start(s, f, ex({ count: 1, match: 'any', extras: 'fail', settle: 500 }));
+    await tick(2000);
+    const r = await p;
+    expect(r.errors).toEqual([]);
+    expect(r.passed).toBe(true);
+    expect(f.fire).toHaveBeenCalledTimes(1);
+    expect(r.triggerCalls).toEqual([{ at: 0, status: 200, ms: 1 }]);
+  });
+
+  it('records the call that caused the pass before resolving', async () => {
+    const s = new FakeSocket();
+    const f = firer({ repeat: 'once' }, async () => { s.push(good); await sleep(200); return { status: 202, ms: 200 }; });
+    const p = start(s, f);
+    let resolved = false;
+    void p.then(() => { resolved = true; });
+    await tick(0);
+    expect(resolved).toBe(false); // waiting for the in-flight call
+    await tick(200);
+    const r = await p;
+    expect(r.passed).toBe(true);
+    expect(r.triggerCalls).toEqual([{ at: 0, status: 202, ms: 200 }]);
+    const snapshot = JSON.stringify(r);
+    await tick(5000);
+    expect(JSON.stringify(r)).toBe(snapshot);
+  });
+
+  it('records a call still pending after the finish grace as pending and aborts it', async () => {
+    const s = new FakeSocket();
+    let signal: AbortSignal | undefined;
+    const f = firer({ repeat: 'once' }, sig => { signal = sig; s.push(good); return new Promise(() => { /* hangs */ }); });
+    const p = start(s, f);
+    await tick(TRIGGER_FINISH_GRACE_MS);
+    const r = await p;
+    expect(r.passed).toBe(true);
+    expect(signal?.aborted).toBe(true);
+    expect(r.triggerCalls).toEqual([{ at: 0, error: 'still pending when the test finished', ms: TRIGGER_FINISH_GRACE_MS }]);
+  });
+
+  it('times out a hanging trigger call and aborts it', async () => {
+    const s = new FakeSocket();
+    let signal: AbortSignal | undefined;
+    const f = firer({ interval: 100 }, sig => { signal = sig; return new Promise(() => { /* hangs */ }); });
+    const p = start(s, f, ex({ timeout: 30000 }));
+    await tick(10000);
+    expect(signal?.aborted).toBe(true);
+    await tick(100);
+    expect(f.fire).toHaveBeenCalledTimes(2);
+    s.push(good);
+    await tick(TRIGGER_FINISH_GRACE_MS);
+    const r = await p;
+    expect(r.triggerCalls[0]).toEqual({ at: 0, error: 'timed out after 10000ms', ms: 10000 });
+  });
+
+  it('says the trigger call is still pending when the test times out on it', async () => {
+    const s = new FakeSocket();
+    const f = firer({ repeat: 'once' }, () => new Promise(() => { /* hangs */ }));
+    const p = start(s, f, ex({ timeout: 2000 }));
+    await tick(2000 + TRIGGER_FINISH_GRACE_MS);
+    const r = await p;
+    expect(r.errors[0]).toBe('Timed out after 2000ms with 0 of 1 expected messages; trigger call still pending');
+    expect(r.triggerCalls.length).toBe(1);
   });
 
   it('stops on fail (match all mismatch)', async () => {
@@ -97,9 +165,9 @@ describe('runWebSocketTest trigger loop', () => {
     let inFlight = 0, maxInFlight = 0;
     const f = firer({ interval: 100 }, async () => {
       inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
-      await new Promise(r => setTimeout(r, 1000));
+      await sleep(1000);
       inFlight--;
-      return { at: 0, status: 200, ms: 1000 };
+      return { status: 200, ms: 1000 };
     });
     const p = start(s, f);
     await tick(0);
@@ -112,18 +180,21 @@ describe('runWebSocketTest trigger loop', () => {
     await tick(3000);
     expect(maxInFlight).toBe(1);
     s.push(good);
+    await tick(1000);
     await p;
   });
 
-  it('does not fire after finish when a fire is in flight', async () => {
+  it('does not fire after finish when a fire is in flight, and records that call', async () => {
     const s = new FakeSocket();
-    const f = firer({ interval: 100 }, async () => { await new Promise(r => setTimeout(r, 500)); return { at: 0, status: 200, ms: 500 }; });
+    const f = firer({ interval: 100 }, async () => { await sleep(500); return { status: 200, ms: 500 }; });
     const p = start(s, f);
     await tick(100);
     s.push(good);
-    await p;
+    await tick(400);
+    const r = await p;
     await tick(5000);
     expect(f.fire).toHaveBeenCalledTimes(1);
+    expect(r.triggerCalls).toEqual([{ at: 0, status: 200, ms: 500 }]);
   });
 
   it('records a throwing fire as an error call', async () => {
@@ -138,7 +209,7 @@ describe('runWebSocketTest trigger loop', () => {
 
   it('names an all-failed trigger in the timeout error', async () => {
     const s = new FakeSocket();
-    const f = firer({}, async () => ({ at: 0, status: 404, ms: 1 }));
+    const f = firer({}, async () => ({ status: 404, ms: 1 }));
     const p = start(s, f, ex({ timeout: 2500 }));
     await tick(2500);
     const r = await p;
@@ -147,7 +218,7 @@ describe('runWebSocketTest trigger loop', () => {
 
   it('names an erroring trigger in the timeout error', async () => {
     const s = new FakeSocket();
-    const f = firer({ repeat: 'once' }, async () => ({ at: 0, error: 'ECONNREFUSED', ms: 1 }));
+    const f = firer({ repeat: 'once' }, async () => ({ error: 'ECONNREFUSED', ms: 1 }));
     const p = start(s, f, ex({ timeout: 500 }));
     await tick(500);
     expect((await p).errors[0]).toContain('trigger returned ECONNREFUSED on all 1 calls');
@@ -156,7 +227,7 @@ describe('runWebSocketTest trigger loop', () => {
   it('does not blame the trigger when some calls succeeded', async () => {
     const s = new FakeSocket();
     let n = 0;
-    const f = firer({}, async () => ({ at: 0, status: n++ == 0 ? 200 : 500, ms: 1 }));
+    const f = firer({}, async () => ({ status: n++ == 0 ? 200 : 500, ms: 1 }));
     const p = start(s, f, ex({ timeout: 2500 }));
     await tick(2500);
     expect((await p).errors[0]).not.toContain('trigger returned');

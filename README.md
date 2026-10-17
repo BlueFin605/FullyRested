@@ -136,8 +136,12 @@ The trigger fires with the same environment and secrets as the test and only
 during a test (**Run**, `fullyrested run`, the MCP `run` tool), never in a live
 session. A failing trigger does not fail the test by itself; the `expect`
 rules decide. A timeout where every trigger call failed names the trigger, for
-example "trigger returned 401 on all 7 calls". Each firing is recorded as a
-trigger call (time, status or error, duration) in the run record and shown in
+example "trigger returned 401 on all 7 calls", or "trigger call still pending"
+when the call never answered. Firing stops as soon as the expected messages
+arrive, each call is cut off after the test's timeout or 10 seconds (whichever
+is shorter), and a call still in flight when the test ends gets up to 1.5
+seconds to answer before it is aborted. Each firing is recorded as a trigger
+call (start in ms since the test began, status or error, duration) in the run record and shown in
 the app's response pane. In the app, the websocket editor has a **Trigger**
 section, and the live panel has a **Fire request** button that sends any
 request of the collection once into a running session.

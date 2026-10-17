@@ -17,8 +17,8 @@ export const NETWORK_ERROR_STATUS: { [code: string]: number } = {
 export const UNKNOWN_ERROR_STATUS = -99;
 
 // Sends a request whose variables have already been substituted (ExecuteRestAction.replaceVariables).
-// Never throws: network failures come back as a negative status.
-export async function executeRequest(action: IExecuteRestAction): Promise<RestActionResult> {
+// Never throws: network failures (and an abort through options.signal) come back as a negative status.
+export async function executeRequest(action: IExecuteRestAction, options: { signal?: AbortSignal } = {}): Promise<RestActionResult> {
   try {
     const request = await applyAuthentication(prepareRequest(action), action.authentication);
 
@@ -27,6 +27,7 @@ export async function executeRequest(action: IExecuteRestAction): Promise<RestAc
       url: request.url,
       headers: request.headers,
       data: request.body,
+      signal: options.signal,
       responseType: 'arraybuffer',
       transformResponse: (data: unknown) => data,
       validateStatus: () => true

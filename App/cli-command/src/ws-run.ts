@@ -1,6 +1,6 @@
 import {
-  CaseRecord, CollectionNode, ExecuteRestAction, RequestNode, RunNode, SocketFactory, SocketTransport, TriggerCall, TriggerFirer,
-  WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, executeRequest, normaliseExpect, normaliseTrigger, redactCase,
+  CaseRecord, CollectionNode, ExecuteRestAction, RequestNode, RunNode, SocketFactory, SocketTransport, TriggerFirer,
+  WebSocketExpect, applyAuthentication, buildWebSocketCaseRecord, fireTriggerRequest, normaliseExpect, normaliseTrigger, redactCase,
   runWebSocketTest, substituteDeep, validateTimeoutMs, withQueryToken
 } from '@fullyrested/core';
 import { WsTransport } from './ws-transport';
@@ -52,7 +52,7 @@ export async function resolveWebSocketTarget(node: RequestNode | RunNode, enviro
 
 /**
  * Resolves the websocket request's trigger against the loaded tree with the same environment and
- * returns a firer around executeRequest. Throws, naming the locator, when it cannot be resolved.
+ * returns a firer around core's fireTriggerRequest (executeRequest with the runner's abort signal). Throws, naming the locator, when it cannot be resolved.
  */
 export function buildTriggerFirer(action: RequestNode['action'], root: CollectionNode, environmentId: string | undefined): TriggerFirer | undefined {
   if (action.trigger == undefined)
@@ -74,14 +74,7 @@ export function buildTriggerFirer(action: RequestNode['action'], root: Collectio
   }
   const request = node.resolve({ environmentId }).replaceVariables();
 
-  const fire = async (): Promise<TriggerCall> => {
-    const at = Date.now();
-    const response = await executeRequest(request);
-    const ms = Date.now() - at;
-    return typeof response.status == 'number' && response.status >= 0
-      ? { at, status: response.status, ms }
-      : { at, error: String(response.statusText || response.status), ms };
-  };
+  const fire = (signal?: AbortSignal) => fireTriggerRequest(request, signal);
   return { repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay, fire };
 }
 
