@@ -166,6 +166,48 @@ request's `expect:` and `trigger:` lines.
   From a terminal use `fullyrested ws watch`; for an agent, the `ws_session_*`
   MCP tools.
 
+## MCP requests
+
+A request with `"type": "mcp"` calls an MCP server over streamable HTTP: one
+JSON-RPC call, sent as a POST to the request's URL. FullyRested writes the
+envelope (`jsonrpc`, `id` 1, `method`, `params`) and an
+`Accept: application/json, text/event-stream` header; the request's method
+and body are not used. Everything else is the HTTP request's: variables,
+secrets, auth, headers, folders, environments, runs, capture and HTTP
+validation. A reply that comes back as an SSE stream is shown, checked and
+recorded as the JSON-RPC message it carried.
+
+| Field | Meaning |
+|---|---|
+| `mcp.method` | The JSON-RPC method: `initialize`, `tools/list`, `tools/call`, or any other. Default `tools/list`. A `notifications/...` method is sent without an id |
+| `mcp.params` | The params as JSON text, which may hold `{{variables}}`. Empty sends none; an empty `initialize` gets default params |
+| `mcp.handshake` | `true`: send `initialize` and `notifications/initialized` first, then the call with the `Mcp-Session-Id` (and `MCP-Protocol-Version`) the server gave. Needed for a stateful server; a stateless one (BlueFinWiki's `/mcp`) needs none. Default `false` |
+| `mcp.expect.outcome` | `result` (default): a result that is not a tool error. `tool-error`: a tool result with `isError: true`. `rpc-error`: a JSON-RPC error. `any`: no MCP check, HTTP validation only (for a `401` test, say) |
+| `mcp.expect.code` | With `rpc-error`: the error code it must have, such as `-32602` |
+| `mcp.expect.text` | The tool result text (every text content item, one per line) or the error message must contain this. `{{variables}}` are substituted |
+
+The MCP check is recorded as an `mcp` check beside `status`, `body` and
+`headers`, and it runs even when HTTP validation is `None`.
+
+```sh
+fullyrested edit new-request -c api.frcol --path "mcp/get ticket.frreq" --method post --url "{{api}}/mcp"
+fullyrested edit set-type mcp -c api.frcol --scope "request:mcp/get ticket.frreq"
+fullyrested edit set-mcp -c api.frcol --scope "request:mcp/get ticket.frreq" --tool kanban_get --arguments '{"guid":"{{ticket}}"}'
+fullyrested edit set-mcp-expect -c api.frcol --scope "request:mcp/get ticket.frreq" --text "{{ticket}}"
+```
+
+`set-mcp` takes `--method`, `--params`, `--tool` with `--arguments` (the short
+way to write a `tools/call`; `--arguments` alone changes the arguments of the
+tool already named) and `--handshake true|false`; `--params` and `--arguments`
+also take `@file`. `set-mcp-expect` takes `--outcome`, `--code` and `--text`
+(`''` clears either of the last two). An agent uses `set_type`, `set_mcp` and
+`set_mcp_expect`. The call and its expect belong to the request; a run varies
+it through variables, headers, auth and HTTP validation, so a negative case
+with a different outcome is its own request. To capture from a tool result,
+capture the body at `$.result.content[0].text`. In the app, the request editor
+has an **MCP** type, shows the call on one line and drops the Body tab; the
+call itself is edited with the CLI or MCP verbs.
+
 ## Installing
 
 Download the latest build from
@@ -337,6 +379,7 @@ write landing outside the collection's folder.
 | Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
 | Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `set-capture`, `remove-setting` |
 | Request | `set-url`, `set-protocol`, `set-method`, `set-body`, `set-runs-only` |
+| Request type | `set-type`; `set-message`, `set-expect`, `set-trigger` (websocket); `set-mcp`, `set-mcp-expect` (MCP) |
 | Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
 | Structure | `rename`, `delete`, `move` |
 
@@ -539,7 +582,8 @@ has:
 | `set_url`, `set_protocol`, `set_method`, `set_body` | A request's own fields. `set_url` and `set_body` also take a `run:` scope, to override the url or body for that run. `set_protocol` takes `http` or `https` (request only). `set_body` takes multipart parts (`fields` with `filename`, `base64`, `size` or `path`) |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |
-| `set_type`, `set_message`, `set_expect`, `set_trigger` | Websocket requests: switch a request between `http` and `websocket` (switching back keeps `message`, `expect` and `trigger`), set the frame to send, set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`), and set the trigger, an http request in the collection fired to provoke messages (`request`, `run`, `repeat`, `interval`, `delay`, or `clear`); give only the fields to change. `set_auth` also takes `placement`. The CLI has the same as `edit set-type`, `set-message`, `set-expect` and `set-trigger`. `tree` and `show_request` report a websocket request's expect and trigger |
+| `set_type`, `set_message`, `set_expect`, `set_trigger` | Websocket requests: switch a request between `http` and `websocket` (`set_type` also takes `mcp`; switching back keeps `message`, `expect` and `trigger`), set the frame to send, set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`), and set the trigger, an http request in the collection fired to provoke messages (`request`, `run`, `repeat`, `interval`, `delay`, or `clear`); give only the fields to change. `set_auth` also takes `placement`. The CLI has the same as `edit set-type`, `set-message`, `set-expect` and `set-trigger`. `tree` and `show_request` report a websocket request's expect and trigger |
+| `set_mcp`, `set_mcp_expect` | MCP requests (after `set_type` `mcp`): the JSON-RPC call (`method`, `params`, or `tool` with `arguments`, and `handshake`) and what its reply must be (`outcome`, `code`, `text`). See **MCP requests** |
 | `ws_session_open` | Open a live websocket session on a websocket request (`target` plus `collection`, optionally `environment` and `run`) or a `ws://` / `wss://` URL. Returns a `sessionId`. A failed connect never reveals the URL or token |
 | `ws_session_events` | Read a session's events after a cursor (`after`, default 0). Returns `events`, the new `cursor` and `closed`; pass the cursor back to read only what is new |
 | `ws_session_send` | Send a text frame. A session the server has closed returns an error result |
