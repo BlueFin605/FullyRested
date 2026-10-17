@@ -7,7 +7,7 @@ import { Command } from 'commander';
 import {
   AuthFields, AuthoringContext, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
-  newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody,
+  newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody, setCapture,
   setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
@@ -304,7 +304,7 @@ function parseHttpCode(value: string): number {
   return code;
 }
 
-const SETTING_KINDS: SettingKind[] = ['header', 'param', 'variable', 'secret', 'validation-header'];
+const SETTING_KINDS: SettingKind[] = ['header', 'param', 'variable', 'secret', 'validation-header', 'capture'];
 
 editNamespace.command('new-collection')
   .description('Create a new collection file; has no -c, since the file does not exist yet')
@@ -364,6 +364,13 @@ withScope(editCommand('set-variable', 'Set (or add) a variable'))
   .requiredOption('--value <value>', 'variable value')
   .action(queryAction(async (options: EditOptions & { scope: string; name: string; value: string }) =>
     runEdit(options, ctx => setVariable(ctx, options.scope, options.name, options.value))));
+
+withScope(editCommand('set-capture', 'Capture a value from the response into a {{variable}} for the requests that run after it (requests and runs only)'))
+  .requiredOption('--name <name>', 'variable to capture into, used as {{name}} by later requests')
+  .requiredOption('--from <from>', 'where the value comes from: body, header or status')
+  .option('--path <path>', 'body: a JSONPath such as $.id or $.items[0].guid; header: the header name')
+  .action(queryAction(async (options: EditOptions & { scope: string; name: string; from: string; path?: string }) =>
+    runEdit(options, ctx => setCapture(ctx, options.scope, options.name, options.from, options.path))));
 
 withScope(editCommand('add-secret-ref', 'Add a reference to a secret ({$secret}), never its value'))
   .requiredOption('--name <name>', 'secret name, as used in {{$name}}')
@@ -439,7 +446,7 @@ withScope(editCommand('set-trigger', 'Set or clear the http request a websocket 
       interval: options.interval, delay: options.delay, clear: options.clear
     }))));
 
-withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference or validation header'))
+withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference, validation header or capture rule'))
   .requiredOption('--kind <kind>', `setting kind (${SETTING_KINDS.join(', ')})`)
   .requiredOption('--name <name>', 'setting name')
   .action(queryAction(async (options: EditOptions & { scope: string; kind: string; name: string }) => {

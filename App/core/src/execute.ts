@@ -64,7 +64,13 @@ export function prepareRequest(action: IExecuteRestAction): PreparedRequest {
   if (body !== undefined && !hasContentType && bodyDetails)
     headers['content-type'] = bodyDetails.contentType;
 
-  return { method, url: `${action.protocol}://${action.url}`, headers, body };
+  return { method, url: requestUrl(action.protocol, action.url), headers, body };
+}
+
+// The url a request is sent to. A url that already carries its scheme -- a captured presigned
+// uploadUrl, say -- is used as it is; otherwise the request's protocol is put in front.
+export function requestUrl(protocol: string, url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `${protocol}://${url}`;
 }
 
 function serializeBody(body: RestActionBody | undefined): string | undefined {

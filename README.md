@@ -334,7 +334,7 @@ write landing outside the collection's folder.
 | Group | Verbs |
 |---|---|
 | Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
-| Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `remove-setting` |
+| Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `set-capture`, `remove-setting` |
 | Request | `set-url`, `set-method`, `set-body` |
 | Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
 | Structure | `rename`, `delete`, `move` |
@@ -344,7 +344,7 @@ before you reach for `--help`:
 
 - **Each `set-*` is an upsert**, keyed by name at that scope: it replaces the
   entry of that name or adds it if there is none. `remove-setting --kind` takes
-  it away again (`header`, `param`, `variable`, `secret`, `validation-header`).
+  it away again (`header`, `param`, `variable`, `secret`, `validation-header`, `capture`).
 - **Not every verb takes every locator.** Parameters, url, method, body and
   validation are request- and run-level; variables and secret references are
   not request-level, because a request has nowhere to keep them — put them on
@@ -389,6 +389,33 @@ accept a single `{{$name}}` reference and nothing else. A literal, a
 so auth can be wired up completely without a value ever passing through the
 command line or an agent.
 
+### Capturing a value from one response for later requests
+
+`set-capture` (MCP `set_capture`) puts a rule on a request or a run: after it is
+sent, the value is held in `{{variable}}` for every request that runs after it
+in the same run.
+
+```
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name pageGuid --from body --path '$.guid'
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name trace --from header --path X-Trace
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name code --from status
+```
+
+- `--from body` takes a JSONPath (`$.id`, `$.items[0].guid`; the first match);
+  `header` takes the header name, matched without regard to case; `status` takes no path.
+- A captured value overrides the same name set at any other level, and lives
+  only for that run: it is never written to a variable table. Run order is tree
+  order, so name files to put the creating request first (`1-create.frreq`).
+- A request's rules apply to each of its runs; a run's rule for the same
+  variable replaces the request's.
+- A value may be a whole url, such as a presigned `uploadUrl`: a request url of
+  `{{uploadUrl}}` is sent as it is, without the request's protocol put in front.
+- A rule that finds nothing (no such path, header, or a non-JSON body) turns the
+  case into an `error` naming the rule. A case lists the variables it captured as
+  `captured` in the run record, never their values. `show` lists a request's rules.
+- Capture works in `run`, the MCP `run` tool and the desktop app's run-folder and
+  run-collection. Sending one request alone has nothing earlier to capture from.
+
 ### Known gaps
 
 - **Deleting a scope leaves its keychain entries behind.** `delete` removes the
@@ -426,6 +453,7 @@ has:
 | `settings` | What is set at every scope, or at one (`scope`), by name only — no values. Answers "is this header already set above me?" |
 | `new_collection`, `new_folder`, `new_request`, `new_run`, `new_environment`, `select_environment` | Create things |
 | `set_header`, `set_param`, `set_variable`, `add_secret_ref`, `set_auth`, `remove_setting` | Settings, at any scope the locator allows |
+| `set_capture` | Capture a response value (`body` JSONPath, `header` or `status`) into a `{{variable}}` for later requests in the same run; requests and runs only |
 | `set_url`, `set_method`, `set_body` | A request's own fields |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |

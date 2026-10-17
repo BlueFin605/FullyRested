@@ -321,6 +321,24 @@ describe('ExecuteRestCallsService', () => {
       expect(record!.cases[1].error).toBe('ipc down');
     });
 
+    it('feeds a value captured by one case to the cases after it in the batch', async () => {
+      stub();
+      (window as any).ipc.invoke = async (channel: string, args: any) => {
+        if (channel == 'saveRun') return;
+        sentUrls.push(args.url);
+        return { status: 200, statusText: 'OK', headers: {}, headersSent: {},
+          body: { contentType: 'application/json', body: new TextEncoder().encode('{"id":"g-7"}').buffer }, validated: undefined };
+      };
+      const root = rootNode();
+      root.children.push(new RequestNode(root, 'a.frreq', { ...CreateEmptyAction(), url: 'a.example',
+        capture: [{ variable: 'newId', from: 'body', path: '$.id', id: 'c1' }, { variable: 'gone', from: 'body', path: '$.nope', id: 'c2' }] }));
+      root.children.push(new RequestNode(root, 'b.frreq', { ...CreateEmptyAction(), url: 'b.example/{{newId}}' }));
+      const record = await service.executeScope(root);
+      expect(sentUrls).toEqual(['a.example', 'b.example/g-7']);
+      expect(record!.cases.map(c => c.outcome)).toEqual(['error', 'pass']);
+      expect(record!.cases[0].error).toContain("capture 'gone'");
+    });
+
     it('saves the cases finished when cancelled', async () => {
       stub();
       onSend = () => service.cancelScope();

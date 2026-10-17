@@ -6,7 +6,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
-  newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
+  newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setCapture, setHeader,
   setExpect, setTrigger, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
@@ -29,7 +29,7 @@ const collection = z.string().describe('Path to the .frcol file');
 const scope = z.string().describe(`Scope to edit: ${LOCATOR_FORMS}`);
 const settingName = z.string().describe('Setting name');
 const settingValue = z.string().describe('Setting value');
-const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-header'] as const;
+const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-header', 'capture'] as const;
 
 export function createServer(opts: McpOptions): McpServer {
   const server = new McpServer({ name: 'fullyrested', version: require('../package.json').version });
@@ -275,6 +275,16 @@ export function createServer(opts: McpOptions): McpServer {
     inputSchema: { collection, scope, name: settingName, value: settingValue }
   }, a => runEdit(a.collection, ctx => setVariable(ctx, a.scope, a.name, a.value)));
 
+  server.registerTool('set_capture', {
+    description: 'Capture a response value (body JSONPath, header or status) into a {{variable}} for later requests in the same run; requests and runs only. May hold an absolute url.',
+    inputSchema: {
+      collection, scope,
+      name: z.string().describe("Variable to capture into: letters, digits, '-' and '_' only"),
+      from: z.enum(['body', 'header', 'status']).describe('Where the value comes from'),
+      path: z.string().optional().describe('body: a JSONPath such as $.id or $.items[0].guid; header: the header name; unused for status')
+    }
+  }, a => runEdit(a.collection, ctx => setCapture(ctx, a.scope, a.name, a.from, a.path)));
+
   // No value parameter, and there never may be one: this writes the reference, nothing else.
   server.registerTool('add_secret_ref', {
     description: 'Add a reference to a secret, never its value; a human stores the value with the CLI.',
@@ -304,7 +314,7 @@ export function createServer(opts: McpOptions): McpServer {
   })));
 
   server.registerTool('remove_setting', {
-    description: 'Remove one header, parameter, variable, secret reference or validation header.',
+    description: 'Remove one header, parameter, variable, secret reference, validation header or capture rule.',
     inputSchema: { collection, scope, kind: z.enum(SETTING_KINDS).describe('Setting kind'), name: settingName }
   }, a => runEdit(a.collection, ctx => removeSetting(ctx, a.scope, a.kind as SettingKind, a.name)));
 

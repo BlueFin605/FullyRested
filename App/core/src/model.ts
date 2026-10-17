@@ -132,6 +132,17 @@ export interface WebSocketTrigger {
     delay: number;     // ms to wait after the message is sent before the first firing
 }
 
+// Takes a value out of a response and holds it in a variable for the requests that run after it in the
+// same run. Never written to a variable table on disk: it lives only for the run that captured it.
+export type CaptureFrom = 'body' | 'header' | 'status';
+
+export interface CaptureRule {
+    variable: string;   // the {{name}} the later requests use
+    from: CaptureFrom;
+    path: string;       // body: a JSONPath ($.id, $.items[0].guid); header: the header name; status: unused
+    id: string;
+}
+
 export interface RestActionRun {
     id: string;
     name: string;
@@ -141,6 +152,8 @@ export interface RestActionRun {
     headers: HeaderTable[];
     parameters: ParamTable[];
     validation: RestActionValidation;
+    // Absent in files written before capture existed
+    capture?: CaptureRule[];
 }
 
 export interface RestAction {
@@ -155,6 +168,8 @@ export interface RestAction {
     body: RestActionBody;
     runs: RestActionRun[];
     validation: RestActionValidation;
+    // Values to take from the response; a run's rule for the same variable replaces the request's
+    capture?: CaptureRule[];
     // Websocket requests only. A missing type means 'http', so older files load unchanged.
     type?: RequestType;
     message?: string;

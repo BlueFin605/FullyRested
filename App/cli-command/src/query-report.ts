@@ -152,6 +152,7 @@ export function formatShown(r: ShownRequest): string {
   section('variables', r.variables.map(v => `${v.variable} = ${v.value}   ${tag(v.source, v.overridden)}`));
   section('secrets', r.secrets.map(s => `${s.name}   ${tag(s.source, s.overridden)}`));
   if (r.websocket) section('websocket', [...(r.message !== undefined ? [`message: ${r.message}`] : []), ...webSocketSummary(r.websocket)]);
+  if (r.capture) section('capture', r.capture.map(c => `{{${c.variable}}} = ${c.from}${c.path ? ' ' + c.path : ''}`));
   if (r.auth) section('auth', [`${r.auth.type}   (${r.auth.source})`]);
   if (r.validation !== undefined && r.validation !== null) section('validation', JSON.stringify(r.validation, null, 2).split('\n'));
   return lines.join('\n');

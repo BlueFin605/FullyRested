@@ -15,6 +15,8 @@ export interface CaseRecord {
   request: { method: string; url: string; headers: Record<string, string>; body?: RecordBody };
   response?: { status: number; statusText?: string; headers: Record<string, string>; body?: RecordBody };
   validation?: { valid: boolean; checks: ValidationCheck[] };
+  /** Names of the variables this case captured for later cases (never their values) */
+  captured?: string[];
   error?: string;
   /** Set for a websocket case: what the socket received and how it ended. */
   websocket?: WebSocketRecord;

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, substituteDeep, validateResponse } from '@fullyrested/core';
-import type { RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, SecretTable, WebSocketTestResult } from '@fullyrested/core';
+import { RequestNode, RunNode, normaliseTrigger, buildAppRunRecord, buildAppWebSocketRunRecord, buildScopeRunRecord, casesForScope, prepareRequest, addCaptured, captureFromResponse, substituteDeep, validateResponse } from '@fullyrested/core';
+import type { Captured, RestAction, TriggerCall, AppScopeCase, AppSendNode, Collection, ContainerNode, ExecuteRestAction, RestActionResult, RunRecord, SecretTable, WebSocketTestResult } from '@fullyrested/core';
 import { LatestResultsService, resultKey } from '../latest-results/latest-results.service';
 import { CollectionTreeService } from '../collection-tree/collection-tree.service';
 import { RunHistoryService } from '../run-history/run-history.service';
@@ -224,6 +224,8 @@ export class ExecuteRestCallsService {
     this.running = true;
     this.cancelled = false;
     const done: AppScopeCase[] = [];
+    // Values captured by one case, for the cases after it in this batch only
+    const captured: Captured = [];
     let passed = 0;
     let failed = 0;
     let recorded = false;
@@ -245,7 +247,7 @@ export class ExecuteRestCallsService {
           this.progress.next({ done: done.length, total: cases.length, passed, failed });
           continue;
         }
-        const sent = await this.sendNode(c.node, environmentId);
+        const sent = await this.sendNode(c.node, environmentId, captured);
         this.latest.set(this.keyOf(c.node), sent.result ?? errorResult(sent.error ?? 'The request failed', sent.ms));
         const ok = sent.error == undefined && sent.result?.validated?.valid !== false;
         if (ok) passed++; else failed++;
@@ -289,11 +291,11 @@ export class ExecuteRestCallsService {
   }
 
   // Never throws: a send that could not be resolved or sent comes back as an error
-  private async sendNode(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentCase> {
+  private async sendNode(node: RequestNode | RunNode, environmentId: string | undefined, captured?: Captured): Promise<SentCase> {
     const started = performance.now();
     let resolved: ExecuteRestAction | undefined;
     try {
-      resolved = node.resolve({ environmentId });
+      resolved = node.resolve({ environmentId, captured });
       const request = resolved.replaceVariables();
       const response: RestActionResult = this.getIpcRenderer() == undefined
         ? await mockRestResult(request)
@@ -304,6 +306,14 @@ export class ExecuteRestCallsService {
         durationMs: Math.round(performance.now() - started),
         sizeBytes: response.body?.body?.byteLength,
       };
+      // A value captured here is for the cases after this one; one that finds nothing fails this case
+      const rules = captured != undefined && typeof response.status == 'number' && response.status >= 0 ? node.captureRules() : [];
+      if (captured != undefined && rules.length > 0) {
+        const outcome = captureFromResponse(rules, response);
+        addCaptured(captured, outcome.values);
+        if (outcome.errors.length > 0)
+          return { resolved, substituted: request, result, error: outcome.errors.join('; '), ms: result.durationMs ?? 0 };
+      }
       return { resolved, substituted: request, result, ms: result.durationMs ?? 0 };
     } catch (error) {
       return { error: (error as Error)?.message ?? String(error), thrown: error, ms: Math.round(performance.now() - started) };

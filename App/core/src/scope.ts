@@ -5,6 +5,8 @@ import {
 } from './model';
 import { basenameOf, dirnameOf, extensionOf, joinPath } from './paths';
 import { buildRequestUrl } from './resolve';
+import { Captured, mergeCaptureRules } from './capture';
+import { CaptureRule } from './model';
 
 // A collection is a tree: the collection, its folders, their requests and each request's runs.
 // Every level can set variables, secrets, auth and headers; a request inherits from the levels above it,
@@ -25,6 +27,7 @@ export interface ScopeLayer {
 
 export interface ResolveContext {
     environmentId?: string;   // defaults to the collection's selected environment
+    captured?: Captured;      // values earlier requests in this run captured; they override every other level
 }
 
 export interface EffectiveValue<T> {
@@ -84,7 +87,7 @@ function winners<T>(values: EffectiveValue<T>[]): T[] {
     return values.filter(v => !v.overridden).map(v => v.value);
 }
 
-function toExecute(action: RestAction, run: RestActionRun | undefined, layers: ScopeLayer[]): ExecuteRestAction {
+function toExecute(action: RestAction, run: RestActionRun | undefined, layers: ScopeLayer[], captured: Captured | undefined): ExecuteRestAction {
     const effective = mergeLayers(layers);
     const params = run == undefined ? action.parameters : action.parameters.concat(run.parameters);
     const validation = run != undefined && run.validation.type != ValidationType.Inherit
@@ -99,6 +102,7 @@ function toExecute(action: RestAction, run: RestActionRun | undefined, layers: S
         .setHeaders(Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value])))
         .authentication_pushBack(effective.auth?.value)
         .variables_pushBack(winners(effective.variables))
+        .variables_pushFront(captured)
         .secrets_pushBack(winners(effective.secrets))
         .setValidation(validation);
 }
@@ -258,6 +262,10 @@ export class RequestNode extends ScopeNode {
         return [{ source: { kind: 'request', name: this.name }, settings: { headers: this.action.headers, auth: this.action.authentication } }];
     }
 
+    captureRules(): CaptureRule[] {
+        return this.action.capture ?? [];
+    }
+
     runs(): RunNode[] {
         return this.action.runs.map(r => new RunNode(this, r));
     }
@@ -271,7 +279,7 @@ export class RequestNode extends ScopeNode {
 
     // The request ready for replaceVariables(): everything it inherits applied
     resolve(context: ResolveContext = {}): ExecuteRestAction {
-        return toExecute(this.action, undefined, this.chain(context));
+        return toExecute(this.action, undefined, this.chain(context), context.captured);
     }
 }
 
@@ -295,7 +303,12 @@ export class RunNode extends ScopeNode {
         return [{ source: { kind: 'run', name: run.name }, settings: { variables: run.variables, secrets: run.secrets, headers: run.headers, auth: run.authentication } }];
     }
 
+    // The request's rules with this run's laid over them
+    captureRules(): CaptureRule[] {
+        return mergeCaptureRules(this.request.action.capture, this.run.capture);
+    }
+
     resolve(context: ResolveContext = {}): ExecuteRestAction {
-        return toExecute(this.request.action, this.run, this.chain(context));
+        return toExecute(this.request.action, this.run, this.chain(context), context.captured);
     }
 }

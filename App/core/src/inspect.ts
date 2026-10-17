@@ -4,6 +4,7 @@ import {
   ValidationType,
 } from './model';
 import { normaliseExpect, normaliseTrigger } from './normalise';
+import { requestUrl } from './execute';
 import { QueryError } from './query-error';
 import { maskPresignedUrl, secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
@@ -313,6 +314,8 @@ export interface ShownRequest {
   secrets: { name: string; source: string; overridden: boolean }[];
   auth: { type: string; source: string } | undefined;
   validation: unknown;
+  /** What this request (or run) takes from its response for later requests */
+  capture?: { variable: string; from: string; path: string }[];
   /** Present on a websocket request only */
   requestType?: 'websocket';
   message?: string;
@@ -350,13 +353,15 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
     const shown: ShownRequest = {
       name: node.name,
       method: request.action.verb,
-      url: replace(maskPresignedUrl(`${resolved.protocol}://${resolved.url}`)),
+      url: replace(maskPresignedUrl(requestUrl(resolved.protocol, resolved.url))),
       headers: eff.headers.map(h => ({ key: h.value.key, value: label(h.value.value), source: sourceOf(h.source), overridden: h.overridden })),
       variables: eff.variables.map(v => ({ variable: v.value.variable, value: label(v.value.value), source: sourceOf(v.source), overridden: v.overridden })),
       secrets: eff.secrets.map(s => ({ name: s.value.$secret, source: sourceOf(s.source), overridden: s.overridden })),
       auth: auth ? { type: auth.value.authentication, source: sourceOf(auth.source) } : undefined,
       validation: redactDeep(resolved.validation, replace),
     };
+    const rules = node.captureRules();
+    if (rules.length > 0) shown.capture = rules.map(c => ({ variable: c.variable, from: c.from, path: c.path }));
     if (request.action.type == 'websocket') {
       shown.requestType = 'websocket';
       shown.message = label(request.action.message ?? '');
