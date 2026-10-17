@@ -7,7 +7,7 @@ import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setCapture, setHeader,
-  setExpect, setTrigger, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setTrigger, setMcp, setMcpExpect, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { readFileField } from './body-parts';
@@ -381,9 +381,33 @@ export function createServer(opts: McpOptions): McpServer {
   }, a => runEdit(a.collection, ctx => setRunsOnly(ctx, a.scope, a.runsOnly)));
 
   server.registerTool('set_type', {
-    description: 'Set whether a request is plain http or a websocket.',
-    inputSchema: { collection, scope, type: z.string().describe('http | websocket') }
+    description: 'Set whether a request is plain http, a websocket or an MCP call (JSON-RPC over HTTP; then set_mcp).',
+    inputSchema: { collection, scope, type: z.string().describe('http | websocket | mcp') }
   }, a => runEdit(a.collection, ctx => setType(ctx, a.scope, a.type)));
+
+  server.registerTool('set_mcp', {
+    description: 'Set the JSON-RPC call an MCP request sends (envelope, id and Accept are generated); give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      method: z.string().optional().describe('JSON-RPC method, e.g. initialize, tools/list, tools/call'),
+      params: z.string().optional().describe('Params as JSON text (may hold {{variables}}); empty sends none'),
+      tool: z.string().optional().describe('Shorthand for a tools/call of this tool'),
+      arguments: z.string().optional().describe('Tool arguments as a JSON object text (may hold {{variables}})'),
+      handshake: z.boolean().optional().describe('Send initialize first and carry the Mcp-Session-Id (stateful servers)')
+    }
+  }, a => runEdit(a.collection, ctx => setMcp(ctx, a.scope, {
+    method: a.method, params: a.params, tool: a.tool, arguments: a.arguments, handshake: a.handshake
+  })));
+
+  server.registerTool('set_mcp_expect', {
+    description: "Set what an MCP request's JSON-RPC reply must be; give only the fields to change.",
+    inputSchema: {
+      collection, scope,
+      outcome: z.string().optional().describe('result (default) | tool-error (isError) | rpc-error | any (HTTP validation only)'),
+      code: z.number().int().nullable().optional().describe('rpc-error: the JSON-RPC error code; null clears it'),
+      text: z.string().optional().describe('The tool result text (or error message) must contain this; empty clears it')
+    }
+  }, a => runEdit(a.collection, ctx => setMcpExpect(ctx, a.scope, { outcome: a.outcome, code: a.code, text: a.text })));
 
   server.registerTool('set_message', {
     description: 'Set the text frame a websocket request sends once the socket opens.',

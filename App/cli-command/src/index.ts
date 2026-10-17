@@ -8,7 +8,7 @@ import {
   AuthFields, AuthoringContext, BodyField, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody, setCapture,
-  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
+  setExpect, setTrigger, setHeader, setMcp, setMcpExpect, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
@@ -298,6 +298,14 @@ function parseBool(flag: string, value: string): boolean {
   throw new UsageError(`${flag} must be true or false (got '${value}')`);
 }
 
+// '@path' reads the text from a file; anything else (undefined too) is the text itself
+function textOrFile(value: string | undefined, flag: string): string | undefined {
+  if (value === undefined || !value.startsWith('@')) return value;
+  const file = value.slice(1);
+  try { return fs.readFileSync(file, 'utf8'); }
+  catch { throw new UsageError(`${flag} file '${file}' cannot be read`); }
+}
+
 function parseHttpCode(value: string): number {
   const code = Number(value);
   if (!Number.isInteger(code))
@@ -409,8 +417,8 @@ withScope(editCommand('set-runs-only', 'Mark a request runs-only: suite runs tes
     await runEdit(options, ctx => setRunsOnly(ctx, options.scope, flag === 'on'));
   }));
 
-withScope(editCommand('set-type', 'Set whether a request is plain HTTP or a websocket'))
-  .argument('<type>', 'http | websocket')
+withScope(editCommand('set-type', 'Set whether a request is plain HTTP, a websocket or an MCP call'))
+  .argument('<type>', 'http | websocket | mcp')
   .action(queryAction(async (type: string, options: EditOptions & { scope: string }) =>
     runEdit(options, ctx => setType(ctx, options.scope, type))));
 
@@ -455,6 +463,25 @@ withScope(editCommand('set-trigger', 'Set or clear the http request a websocket 
       request: options.request, run: options.run, repeat: options.repeat,
       interval: options.interval, delay: options.delay, clear: options.clear
     }))));
+
+withScope(editCommand('set-mcp', 'Set the JSON-RPC call an MCP request sends; only the options given change'))
+  .option('--method <method>', 'JSON-RPC method, e.g. initialize, tools/list, tools/call')
+  .option('--params <json|@file>', "params as JSON text (may hold {{variables}}) or @path to a file; '' sends none")
+  .option('--tool <name>', 'shorthand for a tools/call of this tool')
+  .option('--arguments <json|@file>', 'the tool arguments, a JSON object (may hold {{variables}}) or @path to a file')
+  .option('--handshake <true|false>', 'send initialize first and carry the Mcp-Session-Id the server gives', (v: string) => parseBool('--handshake', v))
+  .action(queryAction(async (options: EditOptions & { scope: string; method?: string; params?: string; tool?: string; arguments?: string; handshake?: boolean }) =>
+    runEdit(options, ctx => setMcp(ctx, options.scope, {
+      method: options.method, params: textOrFile(options.params, '--params'), tool: options.tool,
+      arguments: textOrFile(options.arguments, '--arguments'), handshake: options.handshake
+    }))));
+
+withScope(editCommand('set-mcp-expect', "Set what an MCP request's JSON-RPC reply must be; only the options given change"))
+  .option('--outcome <outcome>', 'result | tool-error | rpc-error | any (any: HTTP validation only)')
+  .option('--code <n>', "rpc-error: the JSON-RPC error code, e.g. -32602; '' clears it", (v: string) => v === '' ? null : Number(v))
+  .option('--text <text>', "the tool result text (or error message) must contain this; '' clears it")
+  .action(queryAction(async (options: EditOptions & { scope: string; outcome?: string; code?: number | null; text?: string }) =>
+    runEdit(options, ctx => setMcpExpect(ctx, options.scope, { outcome: options.outcome, code: options.code, text: options.text }))));
 
 withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference, validation header or capture rule'))
   .requiredOption('--kind <kind>', `setting kind (${SETTING_KINDS.join(', ')})`)

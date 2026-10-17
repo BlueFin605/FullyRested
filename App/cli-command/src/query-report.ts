@@ -1,4 +1,4 @@
-import { BodyResult, EditResult, WebSocketView, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
+import { BodyResult, EditResult, McpView, WebSocketView, EnvironmentsView, RunListing, ScopeSettingNames, SettingsView, ShownRequest, TreeNodeView, TreeValidation, TreeView, caseRequest, caseResponse, failures, summary } from '@fullyrested/core';
 
 type Summary = ReturnType<typeof summary>;
 type Failures = ReturnType<typeof failures>;
@@ -95,6 +95,13 @@ function webSocketSummary(w: WebSocketView): string[] {
   return lines;
 }
 
+// One line for an MCP request's call and expect, shared by tree and show.
+function mcpSummary(m: McpView): string {
+  const e = m.expect;
+  const expect = [e.outcome, e.code !== undefined ? `code ${e.code}` : undefined, e.text !== undefined ? `text '${e.text}'` : undefined].filter(p => p !== undefined).join(', ');
+  return `mcp: ${m.method}${m.tool !== undefined ? ' ' + m.tool : ''}${m.handshake ? ', handshake' : ''}; expect ${expect}`;
+}
+
 function treeLines(nodes: TreeNodeView[], depth: number): string[] {
   const pad = '  '.repeat(depth);
   return nodes.flatMap(n => {
@@ -104,7 +111,8 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
     const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
       `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
     const ws = n.websocket ? webSocketSummary(n.websocket).map(l => `${pad}  ${l}`) : [];
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}${n.runsOnly ? '  [runs-only]' : ''}`, ...ws, ...(n.runs ?? []).map(runLine)];
+    const mcp = n.mcp ? [`${pad}  ${mcpSummary(n.mcp)}`] : [];
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}${n.runsOnly ? '  [runs-only]' : ''}`, ...ws, ...mcp, ...(n.runs ?? []).map(runLine)];
   });
 }
 
@@ -157,6 +165,7 @@ export function formatShown(r: ShownRequest): string {
   section('variables', r.variables.map(v => `${v.variable} = ${v.value}   ${tag(v.source, v.overridden)}`));
   section('secrets', r.secrets.map(s => `${s.name}   ${tag(s.source, s.overridden)}`));
   if (r.websocket) section('websocket', [...(r.message !== undefined ? [`message: ${r.message}`] : []), ...webSocketSummary(r.websocket)]);
+  if (r.mcp) section('mcp', [mcpSummary(r.mcp).replace(/^mcp: /, ''), ...(r.mcp.params !== '' ? [`params: ${r.mcp.params}`] : [])]);
   if (r.capture) section('capture', r.capture.map(c => `{{${c.variable}}} = ${c.from}${c.path ? ' ' + c.path : ''}`));
   if (r.auth) section('auth', [`${r.auth.type}   (${r.auth.source})`]);
   if (r.validation !== undefined && r.validation !== null) section('validation', JSON.stringify(r.validation, null, 2).split('\n'));
