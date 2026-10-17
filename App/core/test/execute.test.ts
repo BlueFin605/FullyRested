@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { ExecuteRestAction, HttpProtocol, NETWORK_ERROR_STATUS, RestTypeVerb, bodyToString, executeRequest } from '../src';
+import { ExecuteRestAction, HttpProtocol, NETWORK_ERROR_STATUS, RestTypeVerb, bodyToString, executeRequest, prepareRequest } from '../src';
 
 let server: Server;
 let host = '';
@@ -141,7 +141,6 @@ describe('executeRequest', () => {
 
 describe('prepareRequest content type shorthand', () => {
   it("sends a stored 'json' body as Content-Type application/json", async () => {
-    const { prepareRequest, ExecuteRestAction, HttpProtocol, RestTypeVerb } = await import('../src');
     const action = new ExecuteRestAction({
       name: 'x', verb: RestTypeVerb.post, protocol: HttpProtocol.http, url: 'h/x', headers: {}, parameters: {},
       body: { contentType: 'json', body: '{}' }
