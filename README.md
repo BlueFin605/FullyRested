@@ -434,6 +434,12 @@ name replaces the earlier one, and the case in between sees the newer value. A c
 whose product the endpoint under test does not delete is cleaned up by a trailing
 request that deletes `{{commentId}}`.
 
+The same pattern covers a created invite code that a later request revokes: capture
+`$.code` on `invites/1-create.frreq`, then `invites/2-revoke.frreq` (200), `3-revoke again`
+(409), and a list with the revoked filter. Throwaway users work the same way when the target
+app has an endpoint that creates one; FullyRested adds nothing for a target that cannot
+(a register that 500s, or a dev profile with no email, role or status is the app's to fix or seed).
+
 `set-body` (MCP `set_body`) also takes a run: a run's body replaces its request's.
 `--content-type none` on a run sends no body at all (to test a "Request body is required"
 400 beside the happy-path run of the same request); `--content-type inherit` removes the override.
