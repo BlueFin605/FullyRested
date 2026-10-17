@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { redactCase, maskPresignedUrl, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, executeRequest, prepareRequest } from '../src';
+import { redactCase, maskPresignedUrl, maskPresignedText, CaseRecord, SecretTable, ExecuteRestAction, HttpProtocol, RestTypeVerb, buildRequestUrl, executeRequest, prepareRequest } from '../src';
 
 const secret = (name: string, value: string, active = true): SecretTable => ({ $secret: name, $value: value, active, id: name });
 
@@ -269,5 +269,16 @@ describe('redactCase on a websocket case with trigger calls', () => {
     expect(out.websocket!.triggerCalls![0]!.error).toContain('X-Amz-Signature=***');
     expect(out.websocket!.triggerCalls![0]!.error).toContain('AKIDEXAMPLE');
     expect(out.websocket!.triggerCalls![0]!.error).toContain('&k=v');
+  });
+});
+
+describe('maskPresignedText', () => {
+  it('fully masks a security token that contains s or S', () => {
+    expect(maskPresignedText('failed https://x.test/?X-Amz-Security-Token=AbsSSsTokenss&a=1'))
+      .toBe('failed https://x.test/?X-Amz-Security-Token=***&a=1');
+  });
+
+  it('stops the masked value at whitespace', () => {
+    expect(maskPresignedText('x-amz-signature=abc123 then more text')).toBe('x-amz-signature=*** then more text');
   });
 });

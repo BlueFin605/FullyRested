@@ -99,7 +99,7 @@ export function maskPresignedUrl(url: string): string {
 // maskPresignedUrl for free text (an error message that quotes a url): masks the same parameters wherever
 // they appear, up to the next '&', quote or whitespace.
 export function maskPresignedText(text: string): string {
-  return text.replace(/(x-amz-(?:signature|security-token|credential)=)([^&s"'<>]*)/gi, (_m, name: string, value: string) =>
+  return text.replace(/(x-amz-(?:signature|security-token|credential)=)([^&\s"'<>]*)/gi, (_m, name: string, value: string) =>
     name.toLowerCase() === 'x-amz-credential=' ? `${name}${maskCredentialScope(value)}` : `${name}***`);
 }
 
