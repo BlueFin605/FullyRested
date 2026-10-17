@@ -178,3 +178,18 @@ export async function setBody(
     });
 }
 
+
+// Marks a request runs-only (or clears it). A runs-only request is tested only through its runs: a
+// suite run (--all, --folder, run-all in the desktop) skips the bare request, and the CLI refuses to
+// send it bare with --action alone. Use it for a request whose bare form is harmful or meaningless,
+// e.g. a DELETE that must only ever run as a named run against a fixture.
+export async function setRunsOnly(ctx: AuthoringContext, scope: string, runsOnly: boolean): Promise<EditResult> {
+    return editScope(ctx, 'set_runs_only', scope, ['request'], target => {
+        const action = requestAction(target);
+        if ((action.runsOnly ?? false) == runsOnly)
+            return '';
+
+        if (runsOnly) action.runsOnly = true; else delete action.runsOnly;
+        return runsOnly ? `Marked ${scope} runs-only` : `${scope} is no longer runs-only`;
+    }, runOverrideHint('runs-only flag'));
+}

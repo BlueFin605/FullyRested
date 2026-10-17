@@ -188,6 +188,9 @@ export interface RestAction {
     body: RestActionBody;
     runs: RestActionRun[];
     validation: RestActionValidation;
+    // true: a suite run (--all, --folder, the desktop's run-all) tests only this request's runs and
+    // never sends it bare. Absent = false.
+    runsOnly?: boolean;
     // Values to take from the response; a run's rule for the same variable replaces the request's
     capture?: CaptureRule[];
     // Websocket requests only. A missing type means 'http', so older files load unchanged.

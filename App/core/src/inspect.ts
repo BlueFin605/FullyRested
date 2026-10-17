@@ -83,6 +83,8 @@ export interface TreeRequest {
   requestType?: 'websocket';
   websocket?: WebSocketView;
   runs?: TreeRun[];
+  /** Present (true) when suite runs test only this request's runs, never the bare request */
+  runsOnly?: true;
 }
 
 export interface TreeFolder {
@@ -165,6 +167,7 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
     }
     const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
+    if (action.runsOnly == true) view.runsOnly = true;
     return [view];
   });
 }

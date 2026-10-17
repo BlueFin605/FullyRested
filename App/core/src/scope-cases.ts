@@ -5,9 +5,12 @@ export interface TestCase {
   name: string;
 }
 
-// A request with runs is tested once per run; one without runs is tested as it is
+// A request with runs is tested once per run; one without runs is tested as it is, unless it is
+// runs-only: then it has no case of its own (and none at all when it has no runs)
 export function casesFor(request: RequestNode): TestCase[] {
   const runs = request.runs();
+  if (request.action.runsOnly == true)
+    return runs.map(r => ({ node: r, name: r.name }));
   if (runs.length == 0)
     return [{ node: request, name: request.name }];
 

@@ -347,6 +347,19 @@ describe('fullyrested edit: websocket verbs', () => {
     expect(readReq().type).toBe('http');
   });
 
+  it('set-runs-only marks a request runs-only, clears it, and refuses a bad flag', async () => {
+    let r = await edit('set-runs-only', 'on', '--scope', req);
+    expect(r.code).toBe(0);
+    expect(readReq().runsOnly).toBe(true);
+
+    r = await edit('set-runs-only', 'maybe', '--scope', req);
+    expect(r.code).toBe(2);
+
+    r = await edit('set-runs-only', 'off', '--scope', req);
+    expect(r.code).toBe(0);
+    expect(readReq().runsOnly).toBeUndefined();
+  });
+
   it('set-message writes the message of a websocket request, and refuses an http one', async () => {
     let r = await edit('set-message', 'hello', '--scope', req);
     expect(r.code).toBe(2); // still http

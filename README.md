@@ -336,7 +336,7 @@ write landing outside the collection's folder.
 |---|---|
 | Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
 | Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `set-capture`, `remove-setting` |
-| Request | `set-url`, `set-method`, `set-body` |
+| Request | `set-url`, `set-method`, `set-body`, `set-runs-only` |
 | Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
 | Structure | `rename`, `delete`, `move` |
 
@@ -444,6 +444,22 @@ app has an endpoint that creates one; FullyRested adds nothing for a target that
 `--content-type none` on a run sends no body at all (to test a "Request body is required"
 400 beside the happy-path run of the same request); `--content-type inherit` removes the override.
 
+### Unique values and runs-only requests
+
+`{{$guid}}` (a fresh uuid) and `{{$timestamp}}` (epoch milliseconds) are built in. They are written like a secret,
+so a secret you declare with the same name wins. They also expand inside a variable's value, so a run can set
+`tagName = api-{{$guid}}` and a create case gets a unique name every time. One request sees one value everywhere
+(url, body, validation); the next request gets a new one. Nothing else inside a variable value is expanded.
+
+`set-runs-only on|off` (MCP `set_runs_only`) marks a request runs-only: `--all` and `--folder` (and the desktop's
+run-all) test only its runs and never send it bare, and `--action` alone on it is refused (use `--run` or `--all`).
+Use it for a DELETE or update whose bare form would destroy a shared fixture. `tree` marks it `[runs-only]`.
+A request with no runs that is runs-only has no cases at all.
+
+```
+fullyrested edit set-runs-only -c api.frcol --scope request:page-types/delete.frreq on
+```
+
 ### Multipart uploads and a different url per run
 
 `set-body --content-type multipart/form-data` builds a `multipart/form-data` body. The
@@ -512,6 +528,7 @@ has:
 | `new_collection`, `new_folder`, `new_request`, `new_run`, `new_environment`, `select_environment` | Create things |
 | `set_header`, `set_param`, `set_variable`, `add_secret_ref`, `set_auth`, `remove_setting` | Settings, at any scope the locator allows |
 | `set_capture` | Capture a response value (`body` JSONPath, `header` or `status`) into a `{{variable}}` for later requests in the same run; requests and runs only |
+| `set_runs_only` | Mark a request runs-only (`runsOnly` true/false): suite runs test only its runs |
 | `set_url`, `set_method`, `set_body` | A request's own fields. `set_url` and `set_body` also take a `run:` scope, to override the url or body for that run. `set_body` takes multipart parts (`fields` with `filename`, `base64`, `size` or `path`) |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |

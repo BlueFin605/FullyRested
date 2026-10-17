@@ -43,6 +43,15 @@ describe('scope cases', () => {
         expect(cases.map(c => c.node)).toEqual(multi.runs());
     });
 
+it('gives a runs-only request no bare case, only its runs (none at all without runs)', () => {
+        const { multi, plain, outer } = build();
+        multi.action.runsOnly = true;
+        plain.action.runsOnly = true;
+        expect(casesFor(multi).map(c => c.name)).toEqual(['multi › first', 'multi › second']);
+        expect(casesFor(plain)).toEqual([]);
+        expect(casesForScope(outer).map(c => c.name)).toEqual(['multi › first', 'multi › second']);
+    });
+
     it('lists a folder\'s cases including nested folders, in tree order', () => {
         const { outer } = build();
         expect(casesForScope(outer).map(c => c.name)).toEqual(['plain', 'multi › first', 'multi › second']);

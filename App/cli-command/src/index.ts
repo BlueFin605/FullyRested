@@ -8,7 +8,7 @@ import {
   AuthFields, AuthoringContext, BodyField, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
   newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody, setCapture,
-  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
+  setExpect, setTrigger, setHeader, setMessage, setMethod, setParam, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
@@ -398,6 +398,14 @@ withScope(editCommand('set-auth', 'Set the authentication of a scope'))
       placement: options.placement
     };
     await runEdit(options, ctx => setAuth(ctx, options.scope, options.type, fields));
+  }));
+
+withScope(editCommand('set-runs-only', 'Mark a request runs-only: suite runs test its runs and never send it bare'))
+  .argument('<on|off>', 'on | off')
+  .action(queryAction(async (flag: string, options: EditOptions & { scope: string }) => {
+    if (flag !== 'on' && flag !== 'off')
+      throw new UsageError("set-runs-only takes 'on' or 'off'");
+    await runEdit(options, ctx => setRunsOnly(ctx, options.scope, flag === 'on'));
   }));
 
 withScope(editCommand('set-type', 'Set whether a request is plain HTTP or a websocket'))

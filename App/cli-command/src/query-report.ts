@@ -100,7 +100,7 @@ function treeLines(nodes: TreeNodeView[], depth: number): string[] {
     const runLine = (r: { name: string; validation: TreeValidation | undefined }) =>
       `${pad}  › ${r.name}${r.validation ? `  [${validationMarker(r.validation)}]` : ''}`;
     const ws = n.websocket ? webSocketSummary(n.websocket).map(l => `${pad}  ${l}`) : [];
-    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}`, ...ws, ...(n.runs ?? []).map(runLine)];
+    return [`${pad}${n.name}  ${n.method.toUpperCase()} ${n.url}${validation}${n.runsOnly ? '  [runs-only]' : ''}`, ...ws, ...(n.runs ?? []).map(runLine)];
   });
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { setBody, setMethod, setUrl } from '../src/authoring';
+import { newRun, setBody, setMethod, setRunsOnly, setUrl } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { FORM_CONTENT_TYPE, MULTIPART_CONTENT_TYPE } from '../src/model';
 import { QueryError } from '../src/query-error';
@@ -283,5 +283,27 @@ describe('setBody', () => {
   it('refuses a collection locator', async () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setBody(ctxFor(sink), 'collection', 'none')).rejects.toThrow(/set_body accepts/);
+  });
+});
+
+describe('setRunsOnly', () => {
+  it('sets and clears the flag, reporting no change the second time', async () => {
+    const sink = new MemoryCollectionSink(files);
+    let r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', true);
+    expect(r.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runsOnly).toBe(true);
+
+    r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', true);
+    expect(r.changed).toBe(false);
+
+    r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', false);
+    expect(r.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runsOnly).toBeUndefined();
+  });
+
+  it('refuses a run scope', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await newRun(ctxFor(sink), 'users/get.frreq', 'r');
+    await expect(setRunsOnly(ctxFor(sink), 'run:users/get.frreq#r', true)).rejects.toThrow();
   });
 });

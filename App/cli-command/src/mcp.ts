@@ -7,7 +7,7 @@ import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
   newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setCapture, setHeader,
-  setExpect, setTrigger, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  setExpect, setTrigger, setMessage, setMethod, setParam, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
 import { readFileField } from './body-parts';
@@ -368,6 +368,11 @@ export function createServer(opts: McpOptions): McpServer {
     description: 'Learn a validation from one recorded case of a run.',
     inputSchema: { collection, scope, case: caseRef, runId, store }
   }, a => runEdit(a.collection, ctx => validationFromCase(ctx, storesFor(a.store), a.scope, a.case, a.runId)));
+
+  server.registerTool('set_runs_only', {
+    description: "Mark a request runs-only: suite runs (all/folder) test its runs and never send the request bare. Use for a request whose bare form is harmful, e.g. a DELETE that must only run against a fixture.",
+    inputSchema: { collection, scope, runsOnly: z.boolean().describe('true to mark runs-only, false to clear') }
+  }, a => runEdit(a.collection, ctx => setRunsOnly(ctx, a.scope, a.runsOnly)));
 
   server.registerTool('set_type', {
     description: 'Set whether a request is plain http or a websocket.',

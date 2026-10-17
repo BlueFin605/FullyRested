@@ -129,6 +129,9 @@ async function selectCases(options: RunOptions, root: CollectionNode, collection
     return [{ node: run, name: run.name }];
   }
 
+  if (request.action.runsOnly == true && !options.all)
+    throw new UsageError(`'${request.name}' is runs-only: give --run <name> or --all (sending it bare is refused)`);
+
   return options.all ? casesFor(request) : [{ node: request, name: request.name }];
 }
 
