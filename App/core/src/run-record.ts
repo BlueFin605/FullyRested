@@ -1,7 +1,7 @@
 import { ResponseValidation, ValidationCheck } from './model';
 import { RestActionResult } from './builder';
 import { PreparedRequest } from './auth';
-import type { ReceivedMessage, WebSocketTestResult } from './websocket/test-run';
+import type { ReceivedMessage, TriggerCall, WebSocketTestResult } from './websocket/test-run';
 
 export interface RecordBody { contentType?: string; bytes: number; text?: string; base64?: string }
 
@@ -28,6 +28,8 @@ export interface WebSocketRecord {
   connectStatus?: number;
   /** Why the test failed; empty when it passed. */
   errors: string[];
+  /** Every trigger firing, in order; omitted when the case has no trigger. */
+  triggerCalls?: TriggerCall[];
 }
 
 export interface RunRecord {
@@ -157,6 +159,7 @@ export function buildWebSocketCaseRecord(input: WebSocketCaseInput): CaseRecord 
     if (result.closeCode !== undefined) ws.closeCode = result.closeCode;
     if (result.closeReason !== undefined) ws.closeReason = result.closeReason;
     if (result.connectStatus !== undefined) ws.connectStatus = result.connectStatus;
+    if (result.triggerCalls?.length) ws.triggerCalls = result.triggerCalls.map(t => ({ ...t }));
     record.websocket = ws;
   }
 
