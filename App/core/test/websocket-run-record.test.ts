@@ -6,9 +6,9 @@ const secret: SecretTable = { $secret: 'tok', $value: 'sup3r-s3cret', active: tr
 const wsCase = (index: number, passed: boolean) => buildWebSocketCaseRecord({
   index, name: 'feed ' + index, requestFile: 'feed.frreq', ms: 7, url: 'wss://x.test/feed', headers: {}, message: 'hello',
   result: passed
-    ? { passed: true, errors: [], messages: [{ text: '{"ok":1}', matched: true }] }
+    ? { passed: true, errors: [], triggerCalls: [], messages: [{ text: '{"ok":1}', matched: true }] }
     : { passed: false, errors: ['Server closed the socket (code 1008, denied) after 0 of 1 expected messages'],
-        messages: [{ text: '{"bad":"sup3r-s3cret"}', matched: false }], closeCode: 1008, closeReason: 'denied' }
+        triggerCalls: [], messages: [{ text: '{"bad":"sup3r-s3cret"}', matched: false }], closeCode: 1008, closeReason: 'denied' }
 });
 
 const run = (cases: RunRecord['cases']): RunRecord =>

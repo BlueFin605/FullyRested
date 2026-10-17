@@ -1,6 +1,22 @@
-import { WebSocketExpect } from '../model';
+import { TriggerRepeat, WebSocketExpect } from '../model';
 import { compileSchema } from '../validate';
 import { SocketConnectError, SocketTransport } from './socket';
+
+export interface TriggerCall {
+  /** Epoch ms when the call started. */
+  at: number;
+  status?: number;
+  error?: string;
+  ms: number;
+}
+
+/** Fires the trigger request once; must resolve with the outcome rather than throw. */
+export interface TriggerFirer {
+  repeat: TriggerRepeat;
+  interval: number;
+  delay: number;
+  fire(): Promise<TriggerCall>;
+}
 
 export interface WebSocketTestInput {
   url: string;
@@ -8,6 +24,8 @@ export interface WebSocketTestInput {
   /** Text frame sent once the socket opens. Nothing is sent when undefined or empty. */
   message?: string;
   expect: WebSocketExpect;
+  /** Optional HTTP request fired after the message is sent, repeated until the test finishes. */
+  trigger?: TriggerFirer;
 }
 
 export interface ReceivedMessage {
@@ -20,6 +38,8 @@ export interface WebSocketTestResult {
   passed: boolean;
   errors: string[];
   messages: ReceivedMessage[];
+  /** Every trigger firing, in order; empty when there is no trigger. */
+  triggerCalls: TriggerCall[];
   /** Set when the server closed the socket during the run. */
   closeCode?: number;
   closeReason?: string;
@@ -33,7 +53,7 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
   const required = Math.max(1, expect.count);
   const messages: ReceivedMessage[] = [];
   const errors: string[] = [];
-  const result: WebSocketTestResult = { passed: false, errors, messages };
+  const result: WebSocketTestResult = { passed: false, errors, messages, triggerCalls: [] };
 
   let check: ((v: unknown) => boolean) | undefined;
   if (expect.schema?.schema) {
@@ -57,16 +77,46 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
     let requirementReached = false;
     let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    let triggerTimer: ReturnType<typeof setTimeout> | undefined;
 
     const finish = (passed: boolean, error?: string) => {
       if (done) return;
       done = true;
       clearTimeout(timeoutTimer);
       clearTimeout(settleTimer);
+      clearTimeout(triggerTimer);
       if (error) errors.push(error);
       result.passed = passed && errors.length == 0;
       try { socket.close(); } catch { /* already closed */ }
       resolve(result);
+    };
+
+    const startTrigger = () => {
+      const trigger = input.trigger;
+      if (!trigger) return;
+      const schedule = (wait: number) => {
+        triggerTimer = setTimeout(async () => {
+          if (done) return;
+          const started = Date.now();
+          let call: TriggerCall;
+          try {
+            call = await trigger.fire();
+          } catch (error) {
+            call = { at: started, error: (error as Error)?.message ?? String(error), ms: Date.now() - started };
+          }
+          result.triggerCalls.push(call);
+          if (done || trigger.repeat != 'until-done') return;
+          schedule(trigger.interval);
+        }, wait);
+      };
+      schedule(trigger.delay);
+    };
+
+    const triggerFailureNote = (): string => {
+      const calls = result.triggerCalls;
+      if (calls.length == 0 || !calls.every(c => c.error != undefined || (c.status ?? 0) >= 400)) return '';
+      const last = calls[calls.length - 1];
+      return '; trigger returned ' + (last.error != undefined ? last.error : last.status) + ' on all ' + calls.length + ' calls';
     };
 
     const reached = () => {
@@ -114,7 +164,7 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
     });
 
     timeoutTimer = setTimeout(() => {
-      finish(false, 'Timed out after ' + expect.timeout + 'ms with ' + matchedCount + ' of ' + required + ' expected messages');
+      finish(false, 'Timed out after ' + expect.timeout + 'ms with ' + matchedCount + ' of ' + required + ' expected messages' + triggerFailureNote());
     }, expect.timeout);
 
     socket.connect(input.url, input.headers).then(
@@ -124,7 +174,9 @@ export function runWebSocketTest(socket: SocketTransport, input: WebSocketTestIn
           if (input.message) socket.send(input.message);
         } catch (error) {
           finish(false, 'Send failed: ' + (error as Error).message);
+          return;
         }
+        startTrigger();
       },
       (error: Error) => {
         const status = error instanceof SocketConnectError ? error.status : undefined;

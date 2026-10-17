@@ -179,7 +179,7 @@ describe('buildAppWebSocketRunRecord', () => {
   };
 
   it('records a passing run as one redacted WS case', () => {
-    const run = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: true, errors: [], messages: [{ text: '{"a":1}', matched: true }] } });
+    const run = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: true, errors: [], triggerCalls: [], messages: [{ text: '{"a":1}', matched: true }] } });
 
     expect(run.redacted).toBe(true);
     expect(run.selection).toBe('request:ws/feed.frreq');
@@ -190,7 +190,7 @@ describe('buildAppWebSocketRunRecord', () => {
   });
 
   it('records a failed test as fail and a thrown error as error', () => {
-    const failed = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: false, errors: ['timed out'], messages: [] } });
+    const failed = buildAppWebSocketRunRecord({ ...wsInput, result: { passed: false, errors: ['timed out'], triggerCalls: [], messages: [] } });
     const errored = buildAppWebSocketRunRecord({ ...wsInput, error: 'no main process' });
 
     expect(failed.cases[0].outcome).toBe('fail');
