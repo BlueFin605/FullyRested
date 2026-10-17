@@ -136,7 +136,7 @@ function requestNodeOf(node: RequestNode | RunNode): RequestNode {
   return node instanceof RunNode ? node.request : node;
 }
 
-async function runCase(test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean, timeoutMs?: number): Promise<CaseRecord> {
+async function runCase(root: CollectionNode, test: TestCase, index: number, environmentId: string | undefined, includeSecrets: boolean, timeoutMs?: number): Promise<CaseRecord> {
   const base = {
     index,
     name: test.name,
@@ -145,7 +145,7 @@ async function runCase(test: TestCase, index: number, environmentId: string | un
   };
 
   if (isWebSocketRequest(requestNodeOf(test.node)))
-    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs);
+    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs, root);
 
   let request;
   try {
@@ -211,7 +211,7 @@ export async function runCollection(options: RunOptions, store: SecretStore, hoo
     record.environment = environment.name;
 
   for (const [i, test] of cases.entries()) {
-    const c = await runCase(test, i + 1, environment.id, includeSecrets, timeoutMs); // case indexes are 1-based
+    const c = await runCase(root, test, i + 1, environment.id, includeSecrets, timeoutMs); // case indexes are 1-based
     record.cases.push(c);
     hooks.onCase?.(c);
   }
