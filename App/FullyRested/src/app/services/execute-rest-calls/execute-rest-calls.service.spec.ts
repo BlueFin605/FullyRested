@@ -107,6 +107,29 @@ describe('ExecuteRestCallsService', () => {
     expect(result.validated!.errors.join(' ')).toContain('200');
   });
 
+  it('sends an MCP request to the main process as a POST of its JSON-RPC call, and checks the reply', async () => {
+    const sent: IExecuteRestAction[] = [];
+    const reply = new TextEncoder().encode(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'boom' }], isError: true } }));
+    (window as any).ipc = {
+      invoke: async (_channel: string, request: IExecuteRestAction) => {
+        sent.push(request);
+        return { status: 200, statusText: 'OK', headers: {}, headersSent: {}, body: { contentType: 'application/json', body: reply.buffer }, validated: undefined };
+      },
+    };
+    const node = rootNode().attach({
+      ...CreateEmptyAction(), url: '{{host}}/mcp', type: 'mcp',
+      mcp: { method: 'tools/call', params: '{"name":"fail"}', handshake: false, expect: { outcome: 'result' } },
+    }, 'mcp.frreq');
+
+    const result = await service.executeNode(node, 'prod');
+
+    expect(sent[0].verb).toBe('post' as any);
+    expect(sent[0].url).toBe('prod.example/mcp');
+    expect(JSON.parse(sent[0].body.body)).toEqual({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'fail' } });
+    expect(sent[0].mcp).toEqual({ method: 'tools/call', handshake: false, expect: { outcome: 'result' } });
+    expect(result.validated?.checks).toEqual([{ check: 'mcp', passed: false, errors: ['Tool reported an error: boom'] }]);
+  });
+
   it('rejects without sending when the request cannot be resolved', async () => {
     const invoke = jasmine.createSpy('invoke');
     (window as any).ipc = { invoke };
