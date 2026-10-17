@@ -133,7 +133,7 @@ an HTTP request in the same collection to fire after the message is sent:
 | `trigger.interval` | Milliseconds between firings. Default 1000, at least 100 |
 | `trigger.delay` | Milliseconds to wait after the message is sent before the first firing. Default 0 |
 
-The trigger fires with the same environment and secrets as the test and only
+The trigger fires with the same environment, secrets and captured values as the test and only
 during a test (**Run**, `fullyrested run`, the MCP `run` tool), never in a live
 session. A failing trigger does not fail the test by itself; the `expect`
 rules decide. A timeout where every trigger call failed names the trigger, for
@@ -464,6 +464,11 @@ fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --n
   `captured` in the run record, never their values. `show` lists a request's rules.
 - Capture works in `run`, the MCP `run` tool and the desktop app's run-folder and
   run-collection. Sending one request alone has nothing earlier to capture from.
+- A websocket case receives captured values like an http one: in its url,
+  headers, auth, `message` and `expect` (the schema), and in its trigger request.
+  So a websocket test can watch, and its trigger change, a page an earlier case
+  created. A websocket case does not capture itself: there is no single response
+  to read, so capture rules on a websocket request are not applied.
 
 ### Setup inside the run, empty bodies and cleanup
 

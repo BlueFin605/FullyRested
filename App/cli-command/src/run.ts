@@ -148,7 +148,7 @@ async function runCase(root: CollectionNode, test: TestCase, index: number, envi
   };
 
   if (isWebSocketRequest(requestNodeOf(test.node)))
-    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs, root);
+    return runWebSocketCase(base, test.node, environmentId, includeSecrets, undefined, timeoutMs, root, captured);
 
   let request;
   try {

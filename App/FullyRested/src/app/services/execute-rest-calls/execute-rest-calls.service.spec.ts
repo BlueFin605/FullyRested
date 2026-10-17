@@ -649,6 +649,35 @@ describe('ExecuteRestCallsService', () => {
         expect([trigger.repeat, trigger.interval, trigger.delay]).toEqual(['once', 250, 50]);
       });
 
+      it('gives a websocket case and its trigger the values captured earlier in a batch', async () => {
+        const invoke = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => channel == 'testRest'
+          ? { status: 200, statusText: 'OK', headers: {}, headersSent: {},
+              body: { contentType: 'application/json', body: new TextEncoder().encode('{"id":"g-7"}').buffer } }
+          : invoke(channel, args);
+        root.children.push(new RequestNode(root, 'trig.frreq', { ...CreateEmptyAction(), url: '{{host}}/touch/{{newId}}' }));
+        const chain = new FolderNode(root, 'chain', CreateEmptyFolderConfig('chain'), true);
+        chain.children.push(new RequestNode(chain, 'chain/a.frreq', { ...CreateEmptyAction(), url: 'a.example',
+          capture: [{ variable: 'newId', from: 'body', path: '$.id', id: 'c1' }] }));
+        chain.children.push(new RequestNode(chain, 'chain/ws.frreq', {
+          ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed/{{newId}}', message: 'hi {{newId}}',
+          headers: [{ key: 'x-id', value: '{{newId}}', active: true, id: 'xh' }],
+          expect: { count: 1, schema: { schema: '{"properties":{"id":{"const":"{{newId}}"}}}' } } as any,
+          trigger: { request: 'trig.frreq', repeat: 'once', interval: 1000, delay: 0 },
+        }));
+        root.children.push(chain);
+
+        const record = await service.executeScope(chain, 'prod');
+
+        const run = calls.find(c => c.channel == 'runWsTest')!.args;
+        expect(run.request.url).toBe('wss://prod.example/feed/g-7');
+        expect(run.request.headers['x-id']).toBe('g-7');
+        expect(run.message).toBe('hi g-7');
+        expect(run.expect.schema.schema).toBe('{"properties":{"id":{"const":"g-7"}}}');
+        expect(run.trigger.request.url).toBe('prod.example/touch/g-7');
+        expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'pass']);
+      });
+
       it('sends no trigger when the request has none', async () => {
         await service.executeNode(withTrigger(undefined));
 

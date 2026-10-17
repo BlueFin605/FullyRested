@@ -98,9 +98,9 @@ export class ExecuteRestCallsService {
   }
 
   // The http request a websocket request's trigger names, resolved like any send (folders, environment, variables),
-  // with its timing, ready for the runWsTest payload. undefined when there is no trigger; throws, naming the
-  // locator, when it cannot be resolved.
-  resolveTrigger(action: RestAction, environmentId: string | undefined) {
+  // with its timing, ready for the runWsTest payload. In a batch, `captured` holds the values earlier cases
+  // captured. undefined when there is no trigger; throws, naming the locator, when it cannot be resolved.
+  resolveTrigger(action: RestAction, environmentId: string | undefined, captured?: Captured) {
     if (action.trigger == undefined) return undefined;
     const trigger = normaliseTrigger(action.trigger);
     const target = this.trees.tree.value?.find(trigger.request);
@@ -112,7 +112,7 @@ export class ExecuteRestCallsService {
       if (run == undefined) throw new Error(`Trigger run '${trigger.run}' not found in '${trigger.request}'`);
       node = run;
     }
-    const request = node.resolve({ environmentId }).replaceVariables();
+    const request = node.resolve({ environmentId, captured }).replaceVariables();
     return { request, repeat: trigger.repeat, interval: trigger.interval, delay: trigger.delay };
   }
 
@@ -150,7 +150,9 @@ export class ExecuteRestCallsService {
   }
 
   // The one websocket run, shared by a single Run and by a folder or collection run. Never throws.
-  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined): Promise<SentWebSocket> {
+  // In a batch, `captured` (read, never added to: a websocket case does not capture) reaches the url,
+  // headers, message, expect and the trigger request.
+  private async sendWebSocket(node: RequestNode | RunNode, environmentId: string | undefined, captured?: Captured): Promise<SentWebSocket> {
     const started = performance.now();
     const action = (node instanceof RunNode ? node.request : node).action;
     let resolved: ExecuteRestAction | undefined;
@@ -161,13 +163,14 @@ export class ExecuteRestCallsService {
     let error: string | undefined;
     let secrets: SecretTable[] | undefined;
     try {
-      resolved = node.resolve({ environmentId });
+      resolved = node.resolve({ environmentId, captured });
       secrets = resolved.secrets;
       const request = resolved.replaceVariables();
       url = request.url;
       headers = request.headers;
       message = substituteDeep(action.message ?? '', request.variables, request.secrets);
-      const trigger = this.resolveTrigger(action, environmentId);
+      const expect = substituteDeep(action.expect, request.variables, request.secrets);
+      const trigger = this.resolveTrigger(action, environmentId, captured);
       if (trigger != undefined) secrets = [...(secrets ?? []), ...(trigger.request.secrets ?? [])];
       const ipc = this.getIpcRenderer();
       if (ipc == undefined) throw new Error('Websocket requests can only be run in the desktop app');
@@ -175,7 +178,7 @@ export class ExecuteRestCallsService {
         root: this.trees.openCollection?.path,
         request: { url, headers, authentication: request.authentication },
         message,
-        expect: action.expect,
+        expect,
         ...(trigger == undefined ? {} : { trigger })
       });
     } catch (e) {
@@ -234,7 +237,7 @@ export class ExecuteRestCallsService {
       for (const c of cases) {
         if (this.cancelled) break;
         if (isWebSocketNode(c.node)) {
-          const ws = await this.sendWebSocket(c.node, environmentId);
+          const ws = await this.sendWebSocket(c.node, environmentId, captured);
           this.latest.set(this.keyOf(c.node), ws.shown);
           if (ws.result?.passed === true) passed++; else failed++;
           done.push({

@@ -18,11 +18,25 @@ let server: http.Server;
 let wss: WebSocketServer;
 let folder = '';
 let hits = 0;
+// What the captured-value cases sent: the upgrade's url and x-token header, the first message, and the trigger's path
+const chain = { upgradeUrl: '', upgradeToken: '', message: '', triggered: [] as string[] };
 
-// One port serves both: every http hit to /touch pushes one ws message to every connected client; /locked is a 401
+// One port serves both: every http hit to /touch pushes one ws message to every connected client; /locked is a 401.
+// /mint answers {"id":"tok-42"} (captured by chain/1-mint); /touch-token/<id> pushes {"id":"<id>"} only.
 beforeAll(async () => {
   wss = new WebSocketServer({ noServer: true });
   server = http.createServer((req, res) => {
+    if (req.url == '/mint') {
+      res.writeHead(200, { 'content-type': 'application/json' }).end('{"id":"tok-42"}');
+      return;
+    }
+    if (req.url?.startsWith('/touch-token/')) {
+      const id = decodeURIComponent(req.url.substring('/touch-token/'.length));
+      chain.triggered.push(id);
+      for (const c of wss.clients) c.send(JSON.stringify({ id }));
+      res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+      return;
+    }
     if (req.url?.startsWith('/locked')) {
       res.writeHead(401).end();
       return;
@@ -31,7 +45,12 @@ beforeAll(async () => {
     for (const c of wss.clients) c.send(EVENT);
     res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
   });
-  server.on('upgrade', (req, socket, head) => wss.handleUpgrade(req, socket, head, () => { }));
+  server.on('upgrade', (req, socket, head) => wss.handleUpgrade(req, socket, head, client => {
+    if (!req.url?.startsWith('/chain/')) return;
+    chain.upgradeUrl = req.url;
+    chain.upgradeToken = String(req.headers['x-token'] ?? '');
+    client.once('message', m => { chain.message = m.toString(); });
+  }));
   await new Promise<void>(r => server.listen(0, '127.0.0.1', r));
   const port = (server.address() as AddressInfo).port;
 
@@ -60,6 +79,20 @@ beforeAll(async () => {
   ws('w1', 'watch-touch', { request: 'touch.frreq', repeat: 'until-done', interval: 200, delay: 0 });
   ws('w2', 'watch-locked', { request: 'locked.frreq', repeat: 'until-done', interval: 200, delay: 0 });
   ws('w3', 'watch-missing', { request: 'nope.frreq', repeat: 'once', interval: 200, delay: 0 });
+
+  // chain/: an http case captures `token`; the websocket case after it uses the value in its url, header,
+  // message and expect, and so does its trigger (which sits outside the folder, so is not itself a case)
+  fs.mkdirSync(path.join(folder, 'chain'));
+  fs.writeFileSync(path.join(folder, 'chain', '1-mint.frreq'), JSON.stringify(request('c1', 'mint', '{{http}}/mint', {
+    ...ok, headers: [], capture: [{ variable: 'token', from: 'body', path: '$.id', id: 'cap1' }]
+  })));
+  fs.writeFileSync(path.join(folder, 'chain', '2-watch.frreq'), JSON.stringify(request('c2', 'watch-token', '{{ws}}/chain/{{token}}', {
+    type: 'websocket', message: 'hello {{token}}', authentication: { authentication: 'inherit' },
+    headers: [{ key: 'x-token', value: '{{token}}', active: true, id: 'xh' }],
+    expect: { count: 1, timeout: 2500, schema: { schema: '{"type":"object","required":["id"],"properties":{"id":{"const":"{{token}}"}}}' } },
+    trigger: { request: 'touch-token.frreq', repeat: 'until-done', interval: 200, delay: 0 }
+  })));
+  fs.writeFileSync(path.join(folder, 'touch-token.frreq'), JSON.stringify(request('h3', 'touch-token', '{{http}}/touch-token/{{token}}', { ...ok, headers: [] })));
 });
 
 afterAll(async () => {
@@ -116,6 +149,38 @@ describe('websocket trigger in run', () => {
     const record = await runCollection({ collection: collection(), action: 'watch-missing.frreq' }, secrets);
     expect(record.cases[0]!.outcome).toBe('error');
     expect(record.cases[0]!.error).toContain("'nope.frreq'");
+  });
+
+  it('gives a websocket case and its trigger the values captured earlier in the run', { timeout: 60000 }, async () => {
+    chain.triggered = [];
+    const record = await runCollection({ collection: collection(), folder: 'chain' }, secrets);
+    expect(record.cases.map(c => [c.name, c.outcome])).toEqual([['mint', 'pass'], ['watch-token', 'pass']]);
+    expect(record.cases[0]!.captured).toEqual(['token']);
+    // url, header and message of the websocket case
+    expect(chain.upgradeUrl).toBe('/chain/tok-42');
+    expect(chain.upgradeToken).toBe('tok-42');
+    expect(chain.message).toBe('hello tok-42');
+    expect(record.cases[1]!.request?.url).toContain('/chain/tok-42');
+    // the trigger request resolved with the captured value; the expect schema's const was substituted too
+    expect(chain.triggered.length).toBeGreaterThanOrEqual(1);
+    expect(chain.triggered.every(id => id == 'tok-42')).toBe(true);
+    expect(record.cases[1]!.websocket?.messages[0]?.text).toBe('{"id":"tok-42"}');
+  });
+
+  it('runs the websocket case without the captured value when it runs alone', { timeout: 60000 }, async () => {
+    chain.triggered = [];
+    const record = await runCollection({ collection: collection(), action: 'chain/2-watch.frreq', timeout: 800 }, secrets);
+    // nothing captured: {{token}} is empty everywhere, so the pushed {"id":""} matches the substituted const
+    expect(chain.upgradeUrl).toBe('/chain/');
+    expect(chain.triggered.every(id => id == '')).toBe(true);
+    expect(record.cases[0]!.outcome).toBe('pass');
+  });
+
+  it('passes the captured-value chain through the MCP run tool', { timeout: 60000 }, async () => {
+    const client = await connectMcp({ secrets });
+    const run = await call(client, 'run', { collection: collection(), folder: 'chain' });
+    expect(run.isError, run.text).toBe(false);
+    expect(run.json()).toMatchObject({ passed: 2, failed: 0 });
   });
 
   it('passes through the MCP run tool', { timeout: 60000 }, async () => {
