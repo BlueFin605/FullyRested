@@ -119,6 +119,19 @@ export interface WebSocketExpect {
     settle: number;    // ms to keep listening after a pass; used only when extras is 'fail'
 }
 
+export type TriggerRepeat = 'once' | 'until-done';
+
+export const DEFAULT_TRIGGER_INTERVAL_MS = 1000;
+
+// A request to fire (optionally with one of its runs) to provoke a websocket message
+export interface WebSocketTrigger {
+    request: string;
+    run?: string;
+    repeat: TriggerRepeat;
+    interval: number;  // ms between firings when repeat is 'until-done'
+    delay: number;     // ms to wait after the socket opens before the first firing
+}
+
 export interface RestActionRun {
     id: string;
     name: string;
@@ -146,6 +159,7 @@ export interface RestAction {
     type?: RequestType;
     message?: string;
     expect?: WebSocketExpect;
+    trigger?: WebSocketTrigger;
 }
 
 

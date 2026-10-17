@@ -3,7 +3,7 @@ import {
     ValidationType, ValidationTypeBody,
     CreateEmptyActionBody, CreateEmptyAuthenticationDetails, CreateEmptyAuthenticationDetailsAwsSig,
     CreateEmptyAuthenticationDetailsBasicAuth, CreateEmptyAuthenticationDetailsBearerToken, CreateEmptyRestActionValidation,
-    WebSocketExpect, CreateEmptyWebSocketExpect
+    WebSocketExpect, CreateEmptyWebSocketExpect, WebSocketTrigger, DEFAULT_TRIGGER_INTERVAL_MS
 } from './model';
 
 // Older .frreq / .frcol files (and the saved session state) can be missing fields that
@@ -68,6 +68,8 @@ export function normaliseAction(action: RestAction): RestAction {
     if (action.type == 'websocket') {
         action.message = action.message ?? '';
         action.expect = normaliseExpect(action.expect);
+        if (action.trigger != undefined)
+            action.trigger = normaliseTrigger(action.trigger);
         action.authentication.placement = action.authentication.placement ?? 'header';
     }
 
@@ -77,6 +79,11 @@ export function normaliseAction(action: RestAction): RestAction {
 export function normaliseExpect(expect: Partial<WebSocketExpect> | undefined): WebSocketExpect {
     const defined = Object.fromEntries(Object.entries(expect ?? {}).filter(([, v]) => v !== undefined));
     return { ...CreateEmptyWebSocketExpect(), ...defined };
+}
+
+export function normaliseTrigger(trigger: Partial<WebSocketTrigger> & { request: string }): WebSocketTrigger {
+    const defined = Object.fromEntries(Object.entries(trigger).filter(([, v]) => v !== undefined));
+    return { repeat: 'until-done', interval: DEFAULT_TRIGGER_INTERVAL_MS, delay: 0, ...defined } as WebSocketTrigger;
 }
 
 export function normaliseEnvironment(env: Environment): Environment {
