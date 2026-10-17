@@ -384,7 +384,7 @@ describe('fullyrested edit: websocket verbs', () => {
     }
     expect((await edit('set-expect', '--scope', req, '--timeout', '0')).err).toMatch(/timeout must be a positive whole number/);
     expect(fs.readFileSync(path.join(dir, 'chat.frreq'), 'utf8')).toBe(before);
-  });
+  }, 60000); // about a dozen CLI spawns; Windows CI runs them well over the 5s default
 
   it('set-auth --placement stores where the token goes, and refuses a bad name', async () => {
     let r = await edit('set-auth', '--scope', req, '--type', 'bearertoken', '--token', 'abc', '--placement', 'token');
