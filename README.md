@@ -39,7 +39,7 @@ I like Postman, but it falls short in a few places:
 | Desktop app (Electron + Angular) | Working: edit, run, validate and save requests and collections |
 | Shared core (`App/core`) | Holds the model, substitution, authentication, execution, validation and secret handling. Covered by unit tests |
 | CLI (`App/cli-command`) | Working: `fullyrested run` sends a request, one run, or a whole collection and reports pass or fail; `fullyrested edit` creates and changes collections, and `fullyrested mcp` serves both over MCP |
-| Request chaining | **Not built yet.** Runs (named variants of a request) exist, but one request can't feed values into the next |
+| Request chaining | Working: a capture rule on a request or run holds a response value (body JSONPath, header or status) in a `{{variable}}` for the requests after it in the same run, in the CLI, MCP and the desktop app's folder and collection runs. The desktop app has no editor for capture rules yet |
 
 ## Concepts
 
