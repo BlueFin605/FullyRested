@@ -19,6 +19,12 @@ describe('ShortcutsService', () => {
     expect(commandFor(key('k', { ctrlKey: true }))).toBe('commandPalette');
   });
 
+  it('maps a bare F1 to help, but not F1 with modifiers', () => {
+    expect(commandFor(key('F1'))).toBe('help');
+    expect(commandFor(key('F1', { ctrlKey: true }))).toBeUndefined();
+    expect(commandFor(key('F1', { shiftKey: true }))).toBeUndefined();
+  });
+
   it('leaves plain typing and other combinations alone', () => {
     expect(commandFor(key('s'))).toBeUndefined();
     expect(commandFor(key('Enter'))).toBeUndefined();

@@ -1,0 +1,14 @@
+<nav class="help-topics" aria-label="Help topics">
+  @for (t of topics; track t.slug) {
+    <button class="help-topic" [class.selected]="t.slug == current?.slug" (click)="openTopic(t.slug)">{{ t.title }}</button>
+  }
+</nav>
+<div class="help-content" #content (click)="onContentClick($event)">
+  @if (error) {
+    <p class="help-error">{{ error }}</p>
+  } @else if (loading) {
+    <p class="help-loading">Loading help…</p>
+  } @else {
+    <article class="help-body" [innerHTML]="html"></article>
+  }
+</div>

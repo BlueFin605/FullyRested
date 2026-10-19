@@ -105,6 +105,14 @@
           <mat-icon>dark_mode</mat-icon> Theme: Dark
         </button>
       </mat-menu>
+
+      <button class="menu-trigger" [matMenuTriggerFor]="helpMenu">Help</button>
+      <mat-menu #helpMenu="matMenu">
+        <button mat-menu-item (click)="showHelp()">
+          Help topics
+          <span class="shortcut">F1</span>
+        </button>
+      </mat-menu>
     </nav>
 
     <span class="spacer"></span>
@@ -292,6 +300,10 @@
 
       <div class="pane settings-pane" [hidden]="!historyVisible()">
         <app-run-history [collection]="collection"></app-run-history>
+      </div>
+
+      <div class="pane settings-pane" [hidden]="!helpVisible()">
+        <app-help-viewer></app-help-viewer>
       </div>
 
       <app-scope-run-status (viewHistory)="showHistory()"></app-scope-run-status>

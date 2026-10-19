@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { MatSelectModule } from '@angular/material/select';
@@ -24,6 +25,7 @@ import { CommandPaletteComponent } from './components/command-palette/command-pa
 import { SplitterDirective } from './components/splitter/splitter.directive';
 import { RunTimePipe } from './pipes/run-time.pipe';
 import { ScopeRunStatusComponent } from './components/scope-run-status/scope-run-status.component';
+import { HelpViewerComponent } from './components/help-viewer/help-viewer.component';
 import { RunHistoryComponent } from './components/run-history/run-history.component';
 import { VerbLabelPipe } from './pipes/verb-label.pipe';
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
@@ -68,6 +70,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     SplitterDirective,
     VerbLabelPipe,
     RunHistoryComponent,
+    HelpViewerComponent,
     RunTimePipe,
     SplitPaneComponent,
     AppComponent,
@@ -120,7 +123,7 @@ import { EditRequestValidationComponent } from './components/rest-action/request
     MatButtonToggleModule,
     MatProgressSpinnerModule
   ],
-  providers: [],
+  providers: [provideHttpClient()],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

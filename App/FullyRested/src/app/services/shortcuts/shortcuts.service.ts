@@ -11,7 +11,8 @@ export type ShortcutCommand =
   | 'previousTab'
   | 'toggleSidebar'
   | 'focusUrl'
-  | 'commandPalette';
+  | 'commandPalette'
+  | 'help';
 
 interface KeyLike {
   key: string;
@@ -23,6 +24,9 @@ interface KeyLike {
 
 // The app's keyboard map (Ctrl on Windows/Linux, Cmd on macOS)
 export function commandFor(event: KeyLike): ShortcutCommand | undefined {
+  // F1 is the one unmodified shortcut
+  if (event.key == 'F1' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) return 'help';
+
   const mod = event.ctrlKey || event.metaKey;
   if (!mod || event.altKey) return undefined;
 

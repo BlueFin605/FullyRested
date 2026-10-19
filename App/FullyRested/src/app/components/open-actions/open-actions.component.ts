@@ -539,6 +539,14 @@ export class OpenActionsComponent implements OnInit {
     this.openSystem({ activeTab: true, key: 'system.history', runkey: '', type: 'system', subtype: 'history', enabledMenuOptions: [] });
   }
 
+  helpVisible(): boolean {
+    return this.selectedTab.selectedType == 'system' && this.selectedTab.selectedSubType == 'help';
+  }
+
+  showHelp() {
+    this.openSystem({ activeTab: true, key: 'system.help', runkey: '', type: 'system', subtype: 'help', enabledMenuOptions: [] });
+  }
+
   authenticationVisible(): boolean {
     if (
       this.selectedTab.selectedType == 'system' &&
@@ -667,6 +675,9 @@ export class OpenActionsComponent implements OnInit {
       case 'focusUrl':
         this.activeRestAction()?.focusUrl();
         break;
+      case 'help':
+        this.showHelp();
+        break;
       case 'commandPalette':
         this.paletteOpen ? (this.paletteOpen = false) : this.openPalette();
         break;
@@ -721,6 +732,7 @@ export class OpenActionsComponent implements OnInit {
       command('New collection…', 'create_new_folder', () => this.newCollection()),
       command(`${this.layout.sidebarVisible() ? 'Hide' : 'Show'} sidebar`, 'view_sidebar', () => this.layout.toggleSidebar(), 'Ctrl+B'),
       command('Toggle response position', 'view_agenda', () => this.layout.toggleOrientation()),
+      command('Help topics', 'help_outline', () => this.showHelp(), 'F1'),
       ...(this.collection ? [command('Run history', 'history', () => this.showHistory())] : []),
       command('Theme: System', 'brightness_auto', () => this.theme.set('system')),
       command('Theme: Light', 'light_mode', () => this.theme.set('light')),
