@@ -1,0 +1,45 @@
+{
+    "id": "b4a1a804-6ed2-4b15-932f-58bb20431aa8",
+    "name": "create-user",
+    "verb": "post",
+    "protocol": "http",
+    "url": "{{host}}/post",
+    "headers": [
+        {
+            "key": "content-type",
+            "value": "application/json",
+            "active": true,
+            "id": "79b25b98-311e-4a39-8c2e-99502dfb47e8"
+        }
+    ],
+    "parameters": [],
+    "body": {
+        "contentType": "application/json",
+        "body": "{\"name\":\"{{userName}}\",\"role\":\"admin\"}"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "ResponseCode",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    }
+}

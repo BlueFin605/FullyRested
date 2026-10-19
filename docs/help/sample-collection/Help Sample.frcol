@@ -1,0 +1,108 @@
+{
+    "collectionGuid": "a31daedf-0464-48a8-843c-807e81a16ebd",
+    "collectionEnvironment": {
+        "name": "",
+        "id": "",
+        "variables": [
+            {
+                "variable": "host",
+                "value": "https://httpbin.org",
+                "active": true,
+                "id": "6795991e-da1e-4b5d-8b91-cd3a808811de"
+            }
+        ],
+        "secrets": [
+            {
+                "$secret": "apiKey",
+                "active": true,
+                "id": "c6bb5d24-ed6b-48cf-9a58-e74f5650f911"
+            }
+        ],
+        "auth": {
+            "authentication": "inherit",
+            "awsSig": {
+                "signUrl": false,
+                "accessKey": "",
+                "secretKey": "",
+                "sessionToken": "",
+                "awsRegion": "eu-central-1",
+                "serviceName": ""
+            },
+            "basicAuth": {
+                "userName": "",
+                "password": ""
+            },
+            "bearerToken": {
+                "token": ""
+            }
+        },
+        "headers": []
+    },
+    "environments": [
+        {
+            "name": "local-test",
+            "id": "52ac2790-1e41-4348-a209-63bcc70a51c8",
+            "variables": [
+                {
+                    "variable": "greeting",
+                    "value": "hello-local",
+                    "active": true,
+                    "id": "fd3ede02-e275-4ba4-be15-d65a00da282e"
+                }
+            ],
+            "secrets": [],
+            "auth": {
+                "authentication": "inherit",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "sessionToken": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "headers": []
+        },
+        {
+            "name": "staging",
+            "id": "e3d52258-6a97-4871-875b-6b84784cb29b",
+            "variables": [
+                {
+                    "variable": "greeting",
+                    "value": "hello-staging",
+                    "active": true,
+                    "id": "64b3e750-f523-4764-9d3c-972e5b9186e1"
+                }
+            ],
+            "secrets": [],
+            "auth": {
+                "authentication": "inherit",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "sessionToken": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "headers": []
+        }
+    ],
+    "selectedEnvironmentId": "52ac2790-1e41-4348-a209-63bcc70a51c8"
+}

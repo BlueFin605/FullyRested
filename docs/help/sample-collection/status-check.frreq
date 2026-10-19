@@ -1,0 +1,103 @@
+{
+    "id": "2775e2bc-ab8d-4504-a422-866b4fd87f25",
+    "name": "status-check",
+    "verb": "get",
+    "protocol": "http",
+    "url": "{{host}}/status/200",
+    "headers": [],
+    "parameters": [],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [
+        {
+            "id": "4a46250e-205c-46ae-9faa-ba8d868378bf",
+            "name": "ok",
+            "parameters": [],
+            "headers": [],
+            "variables": [],
+            "secrets": [],
+            "authentication": {
+                "authentication": "inherit",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "sessionToken": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "validation": {
+                "type": "ResponseCode",
+                "headers": [],
+                "body": "None",
+                "httpCode": 200
+            }
+        },
+        {
+            "id": "b64ff81e-e55b-4b17-aa3b-d39dd27bdc2a",
+            "name": "not-found",
+            "parameters": [],
+            "headers": [],
+            "variables": [],
+            "secrets": [],
+            "authentication": {
+                "authentication": "inherit",
+                "awsSig": {
+                    "signUrl": false,
+                    "accessKey": "",
+                    "secretKey": "",
+                    "sessionToken": "",
+                    "awsRegion": "eu-central-1",
+                    "serviceName": ""
+                },
+                "basicAuth": {
+                    "userName": "",
+                    "password": ""
+                },
+                "bearerToken": {
+                    "token": ""
+                }
+            },
+            "validation": {
+                "type": "ResponseCode",
+                "headers": [],
+                "body": "None",
+                "httpCode": 404
+            },
+            "url": "{{host}}/status/404"
+        }
+    ],
+    "validation": {
+        "type": "ResponseCode",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    }
+}

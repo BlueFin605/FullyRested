@@ -1,0 +1,38 @@
+{
+    "folderId": "08085568-11cf-4980-997b-bebb4934d132",
+    "variables": [
+        {
+            "variable": "userName",
+            "value": "ada",
+            "active": true,
+            "id": "528aa9b6-b83d-4e40-95bd-eafb13a51805"
+        }
+    ],
+    "secrets": [],
+    "auth": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "headers": [
+        {
+            "key": "accept-language",
+            "value": "en-NZ",
+            "active": true,
+            "id": "1575e11d-fde8-4358-b05b-fda64b6dc16e"
+        }
+    ]
+}

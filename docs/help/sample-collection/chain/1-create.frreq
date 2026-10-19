@@ -1,0 +1,53 @@
+{
+    "id": "dc5c84cd-eaf1-47e1-be27-0dee4ddc6b4e",
+    "name": "1-create",
+    "verb": "post",
+    "protocol": "http",
+    "url": "{{host}}/anything",
+    "headers": [
+        {
+            "key": "content-type",
+            "value": "application/json",
+            "active": true,
+            "id": "61063d88-ba56-4e08-b412-5c9fcf54818a"
+        }
+    ],
+    "parameters": [],
+    "body": {
+        "contentType": "application/json",
+        "body": "{\"id\":\"item-42\",\"name\":\"widget\"}"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "ResponseCode",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    },
+    "capture": [
+        {
+            "variable": "itemId",
+            "from": "body",
+            "path": "$.json.id",
+            "id": "75757f4a-9d6a-4fe3-a141-0a5460ed43c1"
+        }
+    ]
+}

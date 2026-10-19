@@ -1,0 +1,37 @@
+{
+    "id": "8a454d90-4bbb-4e9a-8b19-c59566850d20",
+    "name": "3-delete",
+    "verb": "delete",
+    "protocol": "http",
+    "url": "{{host}}/anything/{{itemId}}",
+    "headers": [],
+    "parameters": [],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "ResponseCode",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    }
+}

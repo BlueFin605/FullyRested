@@ -1,0 +1,50 @@
+{
+    "id": "8e71b650-2f9a-45be-b2c2-37e6078d4b53",
+    "name": "echo-socket",
+    "verb": "get",
+    "protocol": "https",
+    "url": "wss://echo.websocket.org",
+    "headers": [],
+    "parameters": [],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        },
+        "placement": "header"
+    },
+    "runs": [],
+    "validation": {
+        "type": "None",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    },
+    "type": "websocket",
+    "message": "{\"hello\":\"FullyRested\"}",
+    "expect": {
+        "count": 1,
+        "match": "any",
+        "schema": {
+            "schema": "{\"type\":\"object\",\"required\":[\"hello\"],\"properties\":{\"hello\":{\"const\":\"FullyRested\"}}}"
+        },
+        "extras": "ignore",
+        "timeout": 10000,
+        "settle": 500
+    }
+}
