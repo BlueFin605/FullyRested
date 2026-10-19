@@ -208,6 +208,12 @@ capture the body at `$.result.content[0].text`. In the app, the request editor
 has an **MCP** type, shows the call on one line and drops the Body tab; the
 call itself is edited with the CLI or MCP verbs.
 
+## Help
+
+User guides, from first launch to websockets, are in
+[`docs/help/`](docs/help/README.md). The desktop app carries the same pages
+under **Help** (or F1).
+
 ## Installing
 
 Download the latest build from
@@ -672,7 +678,7 @@ after the current request.
 | `App/FullyRested` | The desktop app: Electron main process plus an Angular UI |
 | `App/cli-command` | The command-line runner |
 | `Test Collection` | Example collection and requests |
-| `docs/` | Point-in-time reviews |
+| `docs/` | User guides (`help/`) and point-in-time reviews |
 | `.github/workflows` | Build on every push and pull request; release on a version tag |
 
 See [`SYSDOC.md`](SYSDOC.md) for how the layers fit together and how to

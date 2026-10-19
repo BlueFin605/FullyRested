@@ -76,6 +76,15 @@ The UI and the CLI run one pipeline. Only file access and reporting differ:
 | Author: create or change a document | core `authoring/` over `editScope`: resolve the locator, read the document raw through `CollectionSource`, apply the verb, `normalise*`, `storeSecrets`, write through `CollectionSink` — `FsCollectionSink` in the CLI and the MCP server, `MemoryCollectionSink` in tests. The app still has its own write handlers in `main.js` |
 | Report | Angular response components; the CLI's `report.ts` (text lines, JUnit XML) |
 
+## Help
+
+The user guides are `docs/help/` (`README.md` index, guides `01`-`10`, `images/`,
+`sample-collection/`); that folder is the only copy. The app shows the same
+pages under **Help**, the palette's "Help topics" and F1:
+`App/FullyRested/src/app/components/help-viewer` renders them through
+`services/help-markdown` (`marked`), reading the build copy described under
+Running it. `window-links.js` sends external http(s) links to the system browser.
+
 ## Known limitations
 
 Recorded because they are decisions rather than oversights — the code shows
@@ -124,6 +133,9 @@ initiative; its design is
 The `feature/desktop-distribution` branch maps to the same **AI First**
 initiative; its design is
 `docs/superpowers/specs/2026-10-15-desktop-distribution-design.md`.
+The `feature/help-docs` branch maps to the **Help & Docs** initiative
+(`53ca2055-5193-4e84-9ca9-0338a9186979`); its design is
+`docs/superpowers/specs/2026-10-19-help-docs-design.md`.
 `docs/reviews/` holds dated reviews; they are snapshots, not living docs.
 
 ## Running it
@@ -140,10 +152,11 @@ source directly, through a `paths` mapping in `App/FullyRested/tsconfig.json`.
 | Run the desktop app | `App/FullyRested`: `npm run electron` (builds core, runs `ng build`, starts Electron) |
 | UI only, in a browser | `App/FullyRested`: `ng serve`. With no Electron IPC, the repository and execute services return built-in mock data |
 | Angular unit tests | `App/FullyRested`: `npm test`. The specs are still CLI boilerplate |
-| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` (now also covers `run-records.js`) |
-| Package installers | `App/FullyRested`: `npm run make` (electron-forge). Not yet checked against the `file:../core` link |
-| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` |
+| Test the main process (node:test) | `App/FullyRested`: `npm run test:main` (also covers `run-records.js`) |
 | Package installers | `App/FullyRested`: `npm run make` (electron-forge). Output lands in `out/make/` |
+| Refresh the bundled help | `App/FullyRested`: `npm run build`, not bare `ng build` / `ng test`: its `prebuild` runs `scripts/help-index.mjs`, which copies `docs/help` into git-ignored `src/assets/help/` and writes `src/assets/help-index.json` |
+| Retake help screenshots | `App/FullyRested`: `npm run help:screenshots [-- <shot-name>]` drives the real app (`scripts/help-screenshots.mjs`, one `scripts/shots/*.mjs` per guide; `scrub.mjs` strips real IPs and trace ids first). The sample collection hits httpbin.org and echo.websocket.org, so it needs the network |
+| Launch env vars (`dev-hooks.js`) | `FR_REMOTE_DEBUGGING_PORT` (open a debugging port), `FR_OPEN_COLLECTION` (open this collection), `FR_USER_DATA` (use this userData folder), `FR_NO_DEVTOOLS` (no DevTools window). Used by the screenshot tooling |
 | Cut a release | See [RELEASING.md](RELEASING.md): `npm version x.y.z` in `App/FullyRested`, then `git push --follow-tags` |
 | Regenerate the icons | `App/FullyRested`: `npm run icons`, after `npm run icons:master` if `icons/source.png` changed. Output is committed |
 | Build and try the CLI | `App/cli-command`: `npm run build` (builds core too), then `node dist/index.js run --help`; `npm link` puts `fullyrested` on the PATH |
