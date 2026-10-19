@@ -4,10 +4,46 @@ import { Environment, REConstants, RestActionRun } from '../model';
 import { basenameOf, dirnameOf, extensionOf, joinPath } from '../paths';
 import { QueryError } from '../query-error';
 import { SecretStore } from '../secrets';
+import { CollectionNode } from '../scope';
 import { CollectionSource, loadCollectionTree } from '../tree';
 import {
     AuthoringContext, EditResult, requireAllowed, normaliseDocument, editScope, writeDocument, resolveTarget
 } from './edit-scope';
+
+// --- websocket triggers follow their target ---------------------------------------------------------
+
+// A websocket request's trigger.request is a collection-relative path. When the request it names (or a folder
+// above it) is renamed or moved, every trigger pointing at it is rewritten to the new path so it does not
+// dangle. `mapPath` returns the new path for a trigger target, or undefined when it is untouched; `locate`
+// says where a websocket file lives now (it may itself have just moved with a folder). Returns the count.
+async function retargetTriggers(
+    ctx: AuthoringContext, root: CollectionNode, mapPath: (target: string) => string | undefined, locate: (file: string) => string
+): Promise<number> {
+    let count = 0;
+    for (const node of root.requestNodes()) {
+        const trigger = node.action.trigger;
+        const next = trigger == undefined ? undefined : mapPath(trigger.request);
+        if (next == undefined)
+            continue;
+        const file = locate(node.path);
+        const doc = JSON.parse(await ctx.source.readText(file));
+        doc.trigger = { ...doc.trigger, request: next };
+        await writeDocument(ctx, file, doc);
+        count++;
+    }
+    return count;
+}
+
+const retargetNote = (count: number) => count == 0 ? '' : `; updated the trigger of ${count} websocket request${count == 1 ? '' : 's'}`;
+
+// The websocket requests whose trigger names the path (or anything beneath it when it is a folder)
+function triggersPointingAt(root: CollectionNode, path: string, folder: boolean): string[] {
+    return root.requestNodes()
+        .filter(n => n.action.trigger != undefined && (n.action.trigger.request == path || (folder && n.action.trigger.request.startsWith(path + '/'))))
+        .map(n => n.path);
+}
+
+const deleteWarning = (files: string[]) => files.length == 0 ? '' : `; warning: the trigger of ${files.join(', ')} now names a request that no longer exists`;
 
 // --- rename --------------------------------------------------------------------------------------
 
@@ -122,7 +158,9 @@ async function renameRequestFile(ctx: AuthoringContext, scope: string, newName: 
 
     await writeDocument(ctx, newPath, doc);
     await ctx.sink.remove(oldPath);
-    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
+    const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
+    const updated = await retargetTriggers(ctx, root, t => t == oldPath ? newPath : undefined, f => f);
+    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}${retargetNote(updated)}` };
 }
 
 // Every file at or below dir, depth first — there is no recursive list on CollectionSource.
@@ -162,8 +200,9 @@ async function renameFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
     for (const file of files)
         await ctx.sink.writeText(joinPath(newPath, file.slice(oldPath.length + 1)), await ctx.source.readText(file));
     await ctx.sink.remove(oldPath);
+    const updated = await retargetTriggers(ctx, root, t => t.startsWith(oldPath + '/') ? newPath + t.slice(oldPath.length) : undefined, f => f.startsWith(oldPath + '/') ? newPath + f.slice(oldPath.length) : f);
 
-    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}` };
+    return { file: newPath, scope, changed: true, message: `Renamed ${oldPath} to ${newPath}${retargetNote(updated)}` };
 }
 
 // --- move ------------------------------------------------------------------------------------------
@@ -229,12 +268,13 @@ async function moveRequestFile(ctx: AuthoringContext, locator: Locator, scope: s
 
     await ctx.sink.writeText(newPath, await ctx.source.readText(oldPath));
     await ctx.sink.remove(oldPath);
+    const updated = await retargetTriggers(ctx, root, t => t == oldPath ? newPath : undefined, f => f);
 
     const oldChain = inheritsFrom(root, dirnameOf(oldPath));
     const newChain = inheritsFrom(root, dirnameOf(newPath));
     const inheritance = oldChain == newChain ? '' : `; it now inherits from ${newChain} instead of ${oldChain}`;
 
-    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}${inheritance}` };
+    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}${inheritance}${retargetNote(updated)}` };
 }
 
 // Moving a directory carries everything beneath it (filesBeneath, under rename above), the same
@@ -258,8 +298,9 @@ async function moveFolderDir(ctx: AuthoringContext, locator: Locator, scope: str
     for (const file of files)
         await ctx.sink.writeText(joinPath(newPath, file.slice(oldPath.length + 1)), await ctx.source.readText(file));
     await ctx.sink.remove(oldPath);
+    const updated = await retargetTriggers(ctx, root, t => t.startsWith(oldPath + '/') ? newPath + t.slice(oldPath.length) : undefined, f => f.startsWith(oldPath + '/') ? newPath + f.slice(oldPath.length) : f);
 
-    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}` };
+    return { file: newPath, scope, changed: true, message: `Moved ${oldPath} to ${newPath}${retargetNote(updated)}` };
 }
 
 // --- delete --------------------------------------------------------------------------------------
@@ -274,7 +315,7 @@ const DELETE_COLLECTION_HINT = 'the collection file itself is not something dele
 // settings file, wherever in the sub-tree it sits. Anything else is reported back to the caller
 // rather than silently removed — an agent should never delete something it did not put there.
 function isDeletableFolderFile(path: string): boolean {
-    if (basenameOf(path) == REConstants.FolderSettingsFile)
+    if (basenameOf(path) == REConstants.FolderSettingsFile || basenameOf(path) == REConstants.FolderKeepFile)
         return true;
 
     const ext = extensionOf(path);
@@ -346,8 +387,9 @@ async function removeRequestFile(ctx: AuthoringContext, locator: Locator, scope:
     const root = await loadCollectionTree(ctx.collectionFile, ctx.source, ctx.secrets);
     const resolved = resolveLocator(root, locator);
 
+    const dangling = triggersPointingAt(root, resolved.file, false);
     await ctx.sink.remove(resolved.file);
-    return { file: resolved.file, scope, changed: true, message: `Deleted ${resolved.file}` };
+    return { file: resolved.file, scope, changed: true, message: `Deleted ${resolved.file}${deleteWarning(dangling)}` };
 }
 
 // folder: removes the directory and everything beneath it, but only once every file down there has
@@ -364,7 +406,8 @@ async function removeFolderDir(ctx: AuthoringContext, locator: Locator, scope: s
     if (strays.length > 0)
         throw new QueryError(`${scope} holds file(s) delete will not remove: ${strays.join(', ')}`);
 
+    const dangling = triggersPointingAt(root, path, true).filter(f => !f.startsWith(path + '/'));
     await ctx.sink.remove(path);
-    return { file: path, scope, changed: true, message: `Deleted ${path}` };
+    return { file: path, scope, changed: true, message: `Deleted ${path}${deleteWarning(dangling)}` };
 }
 

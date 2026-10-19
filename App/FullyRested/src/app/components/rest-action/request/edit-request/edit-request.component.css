@@ -102,4 +102,16 @@
 .type-bar {
   padding: 6px 12px;
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mcp-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fr-text-muted);
+  font: 12px var(--fr-font-mono);
 }

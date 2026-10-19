@@ -11,3 +11,6 @@
 .close-event .text { font-weight: 600; }
 .empty, .closed-note { color: var(--fr-text-muted); margin: 4px 0; }
 .pane-error { color: var(--fr-danger, #c62828); margin: 4px 0; }
+.fire-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pick { min-width: 160px; max-width: 260px; padding: 5px 8px; font: inherit; color: inherit; background: transparent; border: 1px solid var(--fr-border); border-radius: 4px; }
+.fire-result { color: var(--fr-text-muted); font-variant-numeric: tabular-nums; }

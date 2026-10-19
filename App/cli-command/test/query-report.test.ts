@@ -133,3 +133,14 @@ describe('formatSettings', () => {
       .toEqual(['request:items/ok.frreq', '  —']);
   });
 });
+
+describe('formatTree environment and status detail', () => {
+  it('prints the selected environment under the collection line', () => {
+    expect(formatTree({ collection: 'api', environment: 'dev', children: [] })).toBe('api/\n  environment: dev');
+  });
+
+  it('appends expected status and header count to the marker', () => {
+    expect(formatTree(tree({ type: 'HeadersBody', schema: true, status: 201, headers: 2 }))).toBe('api/\n  req  GET /x  [HeadersBody(schema) 201 hdrs:2]');
+    expect(formatTree(tree({ type: 'Inherit', effective: 'ResponseCode', schema: false, status: 200 }))).toBe('api/\n  req  GET /x  [Inherit→ResponseCode 200]');
+  });
+});

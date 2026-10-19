@@ -107,6 +107,29 @@ describe('ExecuteRestCallsService', () => {
     expect(result.validated!.errors.join(' ')).toContain('200');
   });
 
+  it('sends an MCP request to the main process as a POST of its JSON-RPC call, and checks the reply', async () => {
+    const sent: IExecuteRestAction[] = [];
+    const reply = new TextEncoder().encode(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'boom' }], isError: true } }));
+    (window as any).ipc = {
+      invoke: async (_channel: string, request: IExecuteRestAction) => {
+        sent.push(request);
+        return { status: 200, statusText: 'OK', headers: {}, headersSent: {}, body: { contentType: 'application/json', body: reply.buffer }, validated: undefined };
+      },
+    };
+    const node = rootNode().attach({
+      ...CreateEmptyAction(), url: '{{host}}/mcp', type: 'mcp',
+      mcp: { method: 'tools/call', params: '{"name":"fail"}', handshake: false, expect: { outcome: 'result' } },
+    }, 'mcp.frreq');
+
+    const result = await service.executeNode(node, 'prod');
+
+    expect(sent[0].verb).toBe('post' as any);
+    expect(sent[0].url).toBe('prod.example/mcp');
+    expect(JSON.parse(sent[0].body.body)).toEqual({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'fail' } });
+    expect(sent[0].mcp).toEqual({ method: 'tools/call', handshake: false, expect: { outcome: 'result' } });
+    expect(result.validated?.checks).toEqual([{ check: 'mcp', passed: false, errors: ['Tool reported an error: boom'] }]);
+  });
+
   it('rejects without sending when the request cannot be resolved', async () => {
     const invoke = jasmine.createSpy('invoke');
     (window as any).ipc = { invoke };
@@ -319,6 +342,24 @@ describe('ExecuteRestCallsService', () => {
       expect(sentUrls.length).toBe(3);
       expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'error', 'pass']);
       expect(record!.cases[1].error).toBe('ipc down');
+    });
+
+    it('feeds a value captured by one case to the cases after it in the batch', async () => {
+      stub();
+      (window as any).ipc.invoke = async (channel: string, args: any) => {
+        if (channel == 'saveRun') return;
+        sentUrls.push(args.url);
+        return { status: 200, statusText: 'OK', headers: {}, headersSent: {},
+          body: { contentType: 'application/json', body: new TextEncoder().encode('{"id":"g-7"}').buffer }, validated: undefined };
+      };
+      const root = rootNode();
+      root.children.push(new RequestNode(root, 'a.frreq', { ...CreateEmptyAction(), url: 'a.example',
+        capture: [{ variable: 'newId', from: 'body', path: '$.id', id: 'c1' }, { variable: 'gone', from: 'body', path: '$.nope', id: 'c2' }] }));
+      root.children.push(new RequestNode(root, 'b.frreq', { ...CreateEmptyAction(), url: 'b.example/{{newId}}' }));
+      const record = await service.executeScope(root);
+      expect(sentUrls).toEqual(['a.example', 'b.example/g-7']);
+      expect(record!.cases.map(c => c.outcome)).toEqual(['error', 'pass']);
+      expect(record!.cases[0].error).toContain("capture 'gone'");
     });
 
     it('saves the cases finished when cancelled', async () => {
@@ -577,6 +618,174 @@ describe('ExecuteRestCallsService', () => {
       await service.executeNode(wsNode());
 
       expect(latest.get(resultKey('C:/c/api.frcol', 'ws/feed.frreq'))?.status).toBe('PASS');
+    });
+
+    describe('with a trigger', () => {
+      let root: CollectionNode;
+      const touch = () => root.children.find(c => c.path == 'touch.frreq') as RequestNode;
+
+      beforeEach(() => {
+        root = rootNode();
+        root.children.push(new RequestNode(root, 'touch.frreq', {
+          ...CreateEmptyAction(), url: '{{host}}/touch',
+          runs: [{ ...CreateEmptyRestActionRun({ generateGUID: () => 'r1' }, undefined), name: 'loud', headers: [{ key: 'x-run', value: 'loud', active: true, id: 'h1' }] }],
+        }));
+        root.children.push(new RequestNode(root, 'other.frws', { ...CreateEmptyAction(), type: 'websocket', url: 'wss://x' }));
+        TestBed.inject(CollectionTreeService).tree.next(root);
+        const base = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) =>
+          channel == 'testRest' ? { status: 200, statusText: 'OK', headers: {}, headersSent: {} } : base(channel, args);
+      });
+
+      const withTrigger = (trigger: any) => root.attach({
+        ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed', trigger,
+      }, 'ws/feed.frreq');
+
+      it('adds the resolved trigger request and timing to the runWsTest payload', async () => {
+        await service.executeNode(withTrigger({ request: 'touch.frreq', repeat: 'once', interval: 250, delay: 50 }), 'prod');
+
+        const trigger = calls.find(c => c.channel == 'runWsTest')!.args.trigger;
+        expect(trigger.request.replaceVariables().url).toBe('prod.example/touch');
+        expect([trigger.repeat, trigger.interval, trigger.delay]).toEqual(['once', 250, 50]);
+      });
+
+      it('gives a websocket case and its trigger the values captured earlier in a batch', async () => {
+        const invoke = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => channel == 'testRest'
+          ? { status: 200, statusText: 'OK', headers: {}, headersSent: {},
+              body: { contentType: 'application/json', body: new TextEncoder().encode('{"id":"g-7"}').buffer } }
+          : invoke(channel, args);
+        root.children.push(new RequestNode(root, 'trig.frreq', { ...CreateEmptyAction(), url: '{{host}}/touch/{{newId}}' }));
+        const chain = new FolderNode(root, 'chain', CreateEmptyFolderConfig('chain'), true);
+        chain.children.push(new RequestNode(chain, 'chain/a.frreq', { ...CreateEmptyAction(), url: 'a.example',
+          capture: [{ variable: 'newId', from: 'body', path: '$.id', id: 'c1' }] }));
+        chain.children.push(new RequestNode(chain, 'chain/ws.frreq', {
+          ...CreateEmptyAction(), type: 'websocket', url: 'wss://{{host}}/feed/{{newId}}', message: 'hi {{newId}}',
+          headers: [{ key: 'x-id', value: '{{newId}}', active: true, id: 'xh' }],
+          expect: { count: 1, schema: { schema: '{"properties":{"id":{"const":"{{newId}}"}}}' } } as any,
+          trigger: { request: 'trig.frreq', repeat: 'once', interval: 1000, delay: 0 },
+        }));
+        root.children.push(chain);
+
+        const record = await service.executeScope(chain, 'prod');
+
+        const run = calls.find(c => c.channel == 'runWsTest')!.args;
+        expect(run.request.url).toBe('wss://prod.example/feed/g-7');
+        expect(run.request.headers['x-id']).toBe('g-7');
+        expect(run.message).toBe('hi g-7');
+        expect(run.expect.schema.schema).toBe('{"properties":{"id":{"const":"g-7"}}}');
+        expect(run.trigger.request.replaceVariables().url).toBe('prod.example/touch/g-7');
+        expect(record!.cases.map(c => c.outcome)).toEqual(['pass', 'pass']);
+      });
+
+      it('sends the trigger request unsubstituted so each firing gets fresh built-ins', async () => {
+        root.children.push(new RequestNode(root, 'guid.frreq', { ...CreateEmptyAction(), url: '{{host}}/touch/{{$guid}}' }));
+        await service.executeNode(withTrigger({ request: 'guid.frreq', repeat: 'once' }), 'prod');
+
+        const request = calls.find(c => c.channel == 'runWsTest')!.args.trigger.request;
+        expect(request.url).toBe('{{host}}/touch/{{$guid}}');
+        const [first, second] = [request.replaceVariables().url, request.replaceVariables().url];
+        expect(first).toMatch(/^prod\.example\/touch\/[0-9a-f-]{36}$/);
+        expect(first).not.toBe(second);
+      });
+
+      it('uses one {{$guid}} for the url, headers, message and expect of a websocket case', async () => {
+        const node = root.attach({
+          ...CreateEmptyAction(), type: 'websocket', url: 'wss://x/{{$guid}}', message: 'm {{$guid}}',
+          headers: [{ key: 'x-id', value: '{{$guid}}', active: true, id: 'xh' }],
+          expect: { count: 1, schema: { schema: '{"const":"{{$guid}}"}' } } as any,
+        }, 'ws/guid.frreq');
+        await service.executeNode(node, 'prod');
+
+        const args = calls.find(c => c.channel == 'runWsTest')!.args;
+        const guid = /[0-9a-f-]{36}/.exec(args.request.url)![0];
+        expect(args.request.headers['x-id']).toBe(guid);
+        expect(args.message).toBe('m ' + guid);
+        expect(args.expect.schema.schema).toBe(`{"const":"${guid}"}`);
+      });
+
+      it('names the real type when the trigger request is an mcp request', async () => {
+        root.children.push(new RequestNode(root, 'mcp.frreq', { ...CreateEmptyAction(), type: 'mcp', url: 'x/mcp' }));
+        const result = await service.executeNode(withTrigger({ request: 'mcp.frreq' }));
+
+        expect(result.status).toBe('error');
+        expect(result.statusText).toContain('is a mcp request; a trigger must be http');
+      });
+
+      it('sends no trigger when the request has none', async () => {
+        await service.executeNode(withTrigger(undefined));
+
+        expect('trigger' in calls.find(c => c.channel == 'runWsTest')!.args).toBeFalse();
+      });
+
+      it('resolves a trigger run by id or name', () => {
+        const action = withTrigger({ request: 'touch.frreq', run: 'loud' }).action;
+        expect(service.resolveTrigger(action, 'prod')?.request.replaceVariables().url).toBe('prod.example/touch');
+        action.trigger!.run = 'r1';
+        expect(service.resolveTrigger(action, 'prod')?.request.replaceVariables().url).toBe('prod.example/touch');
+      });
+
+      for (const [name, trigger, message] of [
+        ['a missing request', { request: 'nope.frreq' }, "Trigger request 'nope.frreq' not found"],
+        ['a websocket request', { request: 'other.frws' }, 'must be http'],
+        ['a missing run', { request: 'touch.frreq', run: 'ghost' }, "Trigger run 'ghost' not found"],
+      ] as const) {
+        it(`errors before connecting on ${name}, naming the locator`, async () => {
+          const result = await service.executeNode(withTrigger(trigger));
+
+          expect(result.status).toBe('error');
+          expect(result.statusText).toContain(message);
+          expect(calls.some(c => c.channel == 'runWsTest')).toBeFalse();
+        });
+      }
+
+      it('puts the trigger calls on the shown result', async () => {
+        const triggerCalls = [{ at: 1, status: 200, ms: 4 }, { at: 2, error: 'ECONNREFUSED', ms: 1 }];
+        wsOutcome = async () => ({ passed: true, errors: [], messages: [], triggerCalls });
+
+        const result = await service.executeNode(withTrigger({ request: 'touch.frreq' }));
+
+        expect(result.triggerCalls).toEqual(triggerCalls);
+      });
+
+      it('leaves triggerCalls off when none were fired', async () => {
+        const result = await service.executeNode(withTrigger(undefined));
+
+        expect(result.triggerCalls).toBeUndefined();
+      });
+
+      it('fires an http request once through the normal send path', async () => {
+        const sent: string[] = [];
+        const base = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => {
+          if (channel == 'testRest') { sent.push(args.url); return { status: 202, statusText: 'Accepted', headers: {}, headersSent: {} }; }
+          return base(channel, args);
+        };
+
+        const result = await service.fireRequest('touch.frreq', undefined, 'prod');
+
+        expect(sent).toEqual(['prod.example/touch']);
+        expect(result.status).toBe(202);
+        await expectAsync(service.fireRequest('nope.frreq', undefined, 'prod')).toBeRejectedWithError(/not found/);
+      });
+
+      it('fires a run of the request', async () => {
+        const sent: any[] = [];
+        const base = (window as any).ipc.invoke;
+        (window as any).ipc.invoke = async (channel: string, args: any) => {
+          if (channel == 'testRest') sent.push(args);
+          return base(channel, args);
+        };
+
+        const result = await service.fireRequest('touch.frreq', 'r1', 'prod');
+        await service.fireRequest('touch.frreq', undefined, 'prod');
+
+        expect(result.status).toBe(200);
+        expect(sent.length).toBe(2);
+        // run r1 adds its own header; the request itself does not
+        expect(sent[0].headers['x-run']).toBe('loud');
+        expect(sent[1].headers['x-run']).toBeUndefined();
+      });
     });
   });
 });

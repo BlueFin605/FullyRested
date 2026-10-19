@@ -6,9 +6,9 @@ const secret: SecretTable = { $secret: 'tok', $value: 'sup3r-s3cret', active: tr
 const wsCase = (index: number, passed: boolean) => buildWebSocketCaseRecord({
   index, name: 'feed ' + index, requestFile: 'feed.frreq', ms: 7, url: 'wss://x.test/feed', headers: {}, message: 'hello',
   result: passed
-    ? { passed: true, errors: [], messages: [{ text: '{"ok":1}', matched: true }] }
+    ? { passed: true, errors: [], triggerCalls: [], messages: [{ text: '{"ok":1}', matched: true }] }
     : { passed: false, errors: ['Server closed the socket (code 1008, denied) after 0 of 1 expected messages'],
-        messages: [{ text: '{"bad":"sup3r-s3cret"}', matched: false }], closeCode: 1008, closeReason: 'denied' }
+        triggerCalls: [], messages: [{ text: '{"bad":"sup3r-s3cret"}', matched: false }], closeCode: 1008, closeReason: 'denied' }
 });
 
 const run = (cases: RunRecord['cases']): RunRecord =>
@@ -47,6 +47,27 @@ describe('websocket cases in a run record', () => {
     expect(JSON.stringify(out)).not.toContain('sup3r-s3cret');
     expect(out.websocket?.messages[0]?.text).toBe('{"bad":"{{$secret:tok}}"}');
     expect(out.websocket?.closeReason).toBe('bad {{$secret:tok}}');
+  });
+
+  it('records trigger calls and omits the key when there are none', () => {
+    const calls = [{ at: 5, status: 200, ms: 3 }, { at: 1005, error: 'ECONNRESET', ms: 2 }];
+    const withTrigger = buildWebSocketCaseRecord({
+      index: 1, name: 'f', requestFile: 'f.frreq', ms: 1, url: 'wss://x.test', headers: {},
+      result: { passed: true, errors: [], triggerCalls: calls, messages: [] }
+    });
+    expect(withTrigger.websocket?.triggerCalls).toEqual(calls);
+    expect(wsCase(1, true).websocket).not.toHaveProperty('triggerCalls');
+  });
+
+  it('redacts a secret in a trigger error', () => {
+    const c = buildWebSocketCaseRecord({
+      index: 1, name: 'f', requestFile: 'f.frreq', ms: 1, url: 'wss://x.test', headers: {},
+      result: { passed: false, errors: ['x'], messages: [], triggerCalls: [{ at: 1, error: 'bad sup3r-s3cret', ms: 1 }, { at: 2, status: 401, ms: 1 }] }
+    });
+    const out = redactCase(c, [secret]);
+    expect(JSON.stringify(out)).not.toContain('sup3r-s3cret');
+    expect(out.websocket?.triggerCalls?.[0]?.error).toBe('bad {{$secret:tok}}');
+    expect(out.websocket?.triggerCalls?.[1]).toEqual({ at: 2, status: 401, ms: 1 });
   });
 
   it('round-trips through a run store', async () => {

@@ -66,3 +66,18 @@
   border-radius: var(--fr-radius);
   overflow: hidden;
 }
+
+.pick {
+  min-width: 180px;
+  max-width: 280px;
+  padding: 4px 8px;
+  border: 1px solid var(--fr-border-strong);
+  border-radius: var(--fr-radius);
+  background: var(--fr-bg);
+  color: var(--fr-text);
+  font: inherit;
+}
+
+.clear-trigger {
+  align-self: flex-end;
+}

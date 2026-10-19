@@ -100,3 +100,37 @@ describe('names holding - and _', () => {
     expect(isRawCredential('literal')).toBe(true);
   });
 });
+
+describe('built-in values', () => {
+  const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+  it('{{$guid}} is a fresh uuid and {{$timestamp}} the epoch milliseconds', () => {
+    expect(substituteText('{{$guid}}', undefined, undefined)).toMatch(GUID);
+    expect(substituteText('{{$guid}}', undefined, undefined)).not.toBe(substituteText('{{$guid}}', undefined, undefined));
+    expect(Number(substituteText('{{$timestamp}}', undefined, undefined))).toBeGreaterThan(1.7e12);
+  });
+
+  it('a secret with the same name wins', () => {
+    expect(substituteText('{{$guid}}', undefined, secrets({ guid: 'mine' }))).toBe('mine');
+  });
+
+  it('an unknown $name is still empty', () => {
+    expect(substituteText('[{{$nope}}]', undefined, undefined)).toBe('[]');
+  });
+
+  it('expands inside a variable value, but not other placeholders there', () => {
+    const out = substituteText('{{name}}', vars({ name: 'tag-{{$guid}}-{{other}}', other: 'X' }), undefined);
+    expect(out).toMatch(/^tag-[0-9a-f-]{36}-\{\{other\}\}$/);
+  });
+
+  it('a request sees the same guid in its url, body and validation', () => {
+    const action = ExecuteRestAction.NewExecuteRestAction()
+      .setUrl('h/{{id}}')
+      .setBody({ contentType: 'application/json', body: '{"n":"{{id}}"}' })
+      .variables_pushBack(vars({ id: '{{$guid}}' }))
+      .replaceVariables();
+    const id = action.url.substring(2);
+    expect(id).toMatch(GUID);
+    expect(action.body.body).toBe(`{"n":"${id}"}`);
+  });
+});

@@ -110,3 +110,35 @@
   height: 100%;
   overflow: auto;
 }
+
+.trigger-calls {
+  flex: none;
+  max-height: 140px;
+  overflow: auto;
+  padding: 6px 12px;
+  border-top: 1px solid var(--fr-border);
+}
+
+.trigger-calls ol {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trigger-call {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 70px;
+  gap: 12px;
+  padding: 2px 0;
+  font-size: var(--fr-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.trigger-call .at,
+.trigger-call .ms {
+  color: var(--fr-text-muted);
+}
+
+.trigger-call[data-level='error'] .outcome {
+  color: var(--fr-error);
+}

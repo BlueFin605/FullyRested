@@ -43,3 +43,25 @@
   <button mat-flat-button class="send" [disabled]="!live || draft == ''" (click)="send()">Send</button>
 </div>
 @if (sendError) { <p class="pane-error">{{ sendError }}</p> }
+
+@if (fireChoices.length > 0) {
+  <div class="fire-bar">
+    <select class="pick fire-request" [(ngModel)]="firePath" (ngModelChange)="fireRun = ''" aria-label="Request to fire">
+      <option value="">Request to fire</option>
+      @for (c of fireChoices; track c.path) {
+        <option [value]="c.path">{{ c.name }}</option>
+      }
+    </select>
+    @if (fireRuns.length > 0) {
+      <select class="pick fire-run" [(ngModel)]="fireRun" aria-label="Run to fire">
+        <option value="">The request itself</option>
+        @for (r of fireRuns; track r.id) {
+          <option [value]="r.id">{{ r.name }}</option>
+        }
+      </select>
+    }
+    <button mat-stroked-button class="fire" [disabled]="!live || firePath == '' || firing" (click)="fire()">Fire request</button>
+    @if (fireOutcome) { <span class="fire-result">{{ fireOutcome }}</span> }
+  </div>
+}
+@if (fireError) { <p class="pane-error">{{ fireError }}</p> }

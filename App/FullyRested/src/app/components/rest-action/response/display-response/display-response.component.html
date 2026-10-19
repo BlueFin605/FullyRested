@@ -73,5 +73,19 @@
         <app-display-response-headers [headers]="response.headersSent"></app-display-response-headers>
       </mat-tab>
     </mat-tab-group>
+    @if (response.triggerCalls?.length) {
+      <section class="trigger-calls" aria-label="Trigger calls">
+        <div class="pane-label">Trigger calls<span class="count">{{ response.triggerCalls!.length }}</span></div>
+        <ol>
+          @for (c of response.triggerCalls; track $index) {
+            <li class="trigger-call" [attr.data-level]="callLevel(c)">
+              <span class="at">{{ callTime(c.at) }}</span>
+              <span class="outcome">{{ c.error ?? c.status }}</span>
+              <span class="ms">{{ c.ms }} ms</span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
   }
 </div>

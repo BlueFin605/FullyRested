@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setBody, setMethod, setUrl } from '../src/authoring';
+import { newRun, setBody, setMethod, setProtocol, setRunsOnly, setUrl } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
-import { FORM_CONTENT_TYPE } from '../src/model';
+import { FORM_CONTENT_TYPE, MULTIPART_CONTENT_TYPE } from '../src/model';
 import { QueryError } from '../src/query-error';
 import { files } from './fixtures/collection';
 
@@ -62,12 +62,70 @@ describe('setUrl', () => {
     expect(written(sink, 'users/get.frreq')).toMatchObject({ protocol: 'http', url: 'example.com/users' });
   });
 
-  it('refuses a run: locator, saying what a run does override', async () => {
+  it('overrides the url on a run, leaving the request alone, and removes the override with an empty url', async () => {
     const sink = new MemoryCollectionSink(files);
-    await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y')).rejects.toThrow(QueryError);
-    await expect(setUrl(ctxFor(sink), 'run:users/get.frreq#not found', 'https://x/y'))
-      .rejects.toThrow(/set_url accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the url/);
-    expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+    const run = 'run:users/get.frreq#not found';
+    const result = await setUrl(ctxFor(sink), run, 'http://{{host}}/users/not-a-guid');
+
+    expect(result.changed).toBe(true);
+    const action = written(sink, 'users/get.frreq');
+    expect(action.url).toBe('https://x/u');
+    expect(action.runs[0]).toMatchObject({ url: '{{host}}/users/not-a-guid', protocol: 'http' });
+    expect((await setUrl(ctxFor(sink), run, 'http://{{host}}/users/not-a-guid')).changed).toBe(false);
+
+    expect((await setUrl(ctxFor(sink), run, '')).changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runs[0].url).toBeUndefined();
+    expect(written(sink, 'users/get.frreq').runs[0].protocol).toBeUndefined();
+    expect((await setUrl(ctxFor(sink), run, '')).changed).toBe(false);
+  });
+});
+
+describe('setBody multipart', () => {
+  const run = 'run:users/get.frreq#not found';
+
+  it('stores text, text-file, binary and generated parts', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', MULTIPART_CONTENT_TYPE, { fields: [
+      { name: 'note', value: 'hi' },
+      { name: 'doc', value: 'abc', filename: 'a.txt', contentType: 'text/plain' },
+      { name: 'bin', value: '', filename: 'b.bin', base64: 'AAEC' },
+      { name: 'big', value: '', size: 10 }
+    ] });
+
+    expect(written(sink, 'users/get.frreq').body).toEqual({ contentType: MULTIPART_CONTENT_TYPE, body: [
+      { key: 'note', value: 'hi', active: true, id: expect.any(String) },
+      { key: 'doc', value: 'abc', active: true, id: expect.any(String), filename: 'a.txt', contentType: 'text/plain' },
+      { key: 'bin', value: '', active: true, id: expect.any(String), filename: 'b.bin', base64: 'AAEC' },
+      { key: 'big', value: '', active: true, id: expect.any(String), filename: 'file', size: 10 }
+    ] });
+  });
+
+  it('works as a run override and rejects bad input', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: 'AAEC' }] });
+    expect(written(sink, 'users/get.frreq').runs[0].body.contentType).toBe(MULTIPART_CONTENT_TYPE);
+
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { text: 'x' })).rejects.toThrow(/takes fields/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: '!!' }] })).rejects.toThrow(/not valid base64/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', base64: 'AA==', size: 3 }] })).rejects.toThrow(/not both/);
+    await expect(setBody(ctxFor(sink), run, MULTIPART_CONTENT_TYPE, { fields: [{ name: 'f', value: '', size: -1 }] })).rejects.toThrow(/whole number/);
+    await expect(setBody(ctxFor(sink), run, 'application/json', { fields: [{ name: 'f', value: '', size: 1 }] })).rejects.toThrow(/Only multipart/);
+  });
+});
+
+describe('setProtocol', () => {
+  it('sets the protocol, matching case-insensitively, and reports no change when it already is', async () => {
+    const sink = new MemoryCollectionSink(files);
+    const result = await setProtocol(ctxFor(sink), 'request:users/get.frreq', 'HTTP');
+    expect(result).toMatchObject({ file: 'users/get.frreq', changed: true });
+    expect(written(sink, 'users/get.frreq')).toMatchObject({ protocol: 'http', url: 'https://x/u' });
+    expect((await setProtocol(ctxFor(sink), 'request:users/get.frreq', 'http')).changed).toBe(false);
+  });
+
+  it('rejects an unknown protocol and a run scope', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setProtocol(ctxFor(sink), 'request:users/get.frreq', 'ftp')).rejects.toThrow(/Unknown protocol 'ftp' \(have http, https\)/);
+    await expect(setProtocol(ctxFor(sink), 'run:users/get.frreq#not found', 'http')).rejects.toThrow(/set_protocol accepts request: only/);
   });
 });
 
@@ -107,7 +165,7 @@ describe('setMethod', () => {
   it('refuses a run: locator, saying what a run does override', async () => {
     const sink = new MemoryCollectionSink(files);
     await expect(setMethod(ctxFor(sink), 'run:users/get.frreq#not found', 'post'))
-      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the method/);
+      .rejects.toThrow(/set_method accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth, validation, capture rules, the body and the url, not the method/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
   });
 });
@@ -209,10 +267,79 @@ describe('setBody', () => {
     expect(sink.files.get('users/get.frreq')).toBe(before);
   });
 
-  it('refuses a run: locator, saying what a run does override', async () => {
+  it('overrides the body on a run, leaving the request body alone', async () => {
     const sink = new MemoryCollectionSink(files);
-    await expect(setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'application/json', { text: '{}' }))
-      .rejects.toThrow(/set_body accepts request: only \(given run:\); a run overrides variables, secrets, headers, parameters, auth and validation, not the body/);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'application/json', { text: '{"a":1}' });
+    const result = await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'none');
+
+    expect(result).toMatchObject({ changed: true });
+    const action = written(sink, 'users/get.frreq');
+    expect(action.body).toEqual({ contentType: 'application/json', body: '{"a":1}' });
+    expect(action.runs[0].body).toEqual({ contentType: 'none' });
+    expect((await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'none')).changed).toBe(false);
+  });
+
+  it('sets a text body on a run and removes the override with inherit', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'application/json', { text: '{}' });
+    expect(written(sink, 'users/get.frreq').runs[0].body).toEqual({ contentType: 'application/json', body: '{}' });
+
+    const result = await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'inherit');
+    expect(result.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runs[0].body).toBeUndefined();
+    expect((await setBody(ctxFor(sink), 'run:users/get.frreq#not found', 'inherit')).changed).toBe(false);
+  });
+
+  it('refuses inherit on a request', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setBody(ctxFor(sink), 'request:users/get.frreq', 'inherit')).rejects.toThrow(/for a run/);
     expect(sink.files.get('users/get.frreq')).toBe(files['users/get.frreq']);
+  });
+
+  it('refuses a collection locator', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await expect(setBody(ctxFor(sink), 'collection', 'none')).rejects.toThrow(/set_body accepts/);
+  });
+});
+
+describe('setRunsOnly', () => {
+  it('sets and clears the flag, reporting no change the second time', async () => {
+    const sink = new MemoryCollectionSink(files);
+    let r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', true);
+    expect(r.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runsOnly).toBe(true);
+
+    r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', true);
+    expect(r.changed).toBe(false);
+
+    r = await setRunsOnly(ctxFor(sink), 'request:users/get.frreq', false);
+    expect(r.changed).toBe(true);
+    expect(written(sink, 'users/get.frreq').runsOnly).toBeUndefined();
+  });
+
+  it('refuses a run scope', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await newRun(ctxFor(sink), 'users/get.frreq', 'r');
+    await expect(setRunsOnly(ctxFor(sink), 'run:users/get.frreq#r', true)).rejects.toThrow();
+  });
+});
+
+describe('set_body content type shorthand', () => {
+  it("stores 'json' as application/json (any case), and other shorthands as their media types", async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'JSON', { text: '{"a":1}' });
+    expect(written(sink, 'users/get.frreq').body).toMatchObject({ contentType: 'application/json', body: '{"a":1}' });
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'xml', { text: '<a/>' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('application/xml');
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'text', { text: 'x' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('text/plain');
+  });
+
+  it('leaves a full media type and none/inherit alone', async () => {
+    const sink = new MemoryCollectionSink(files);
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'application/vnd.api+json', { text: '{}' });
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('application/vnd.api+json');
+    await setBody(ctxFor(sink), 'request:users/get.frreq', 'none');
+    expect(written(sink, 'users/get.frreq').body.contentType).toBe('none');
   });
 });

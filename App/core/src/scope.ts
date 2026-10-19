@@ -5,6 +5,9 @@ import {
 } from './model';
 import { basenameOf, dirnameOf, extensionOf, joinPath } from './paths';
 import { buildRequestUrl } from './resolve';
+import { Captured, mergeCaptureRules } from './capture';
+import { CaptureRule, McpCall, RestTypeVerb } from './model';
+import { MCP_ACCEPT, mcpEnvelope, normaliseMcpCall, toExecuteMcp } from './mcp';
 
 // A collection is a tree: the collection, its folders, their requests and each request's runs.
 // Every level can set variables, secrets, auth and headers; a request inherits from the levels above it,
@@ -25,6 +28,7 @@ export interface ScopeLayer {
 
 export interface ResolveContext {
     environmentId?: string;   // defaults to the collection's selected environment
+    captured?: Captured;      // values earlier requests in this run captured; they override every other level
 }
 
 export interface EffectiveValue<T> {
@@ -84,23 +88,39 @@ function winners<T>(values: EffectiveValue<T>[]): T[] {
     return values.filter(v => !v.overridden).map(v => v.value);
 }
 
-function toExecute(action: RestAction, run: RestActionRun | undefined, layers: ScopeLayer[]): ExecuteRestAction {
+function toExecute(action: RestAction, run: RestActionRun | undefined, layers: ScopeLayer[], captured: Captured | undefined): ExecuteRestAction {
     const effective = mergeLayers(layers);
     const params = run == undefined ? action.parameters : action.parameters.concat(run.parameters);
     const validation = run != undefined && run.validation.type != ValidationType.Inherit
         ? run.validation
         : (action.validation ?? CreateEmptyRestActionValidation(undefined));
 
-    return ExecuteRestAction.NewExecuteRestAction()
+    const headers = Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value]));
+    const resolved = ExecuteRestAction.NewExecuteRestAction()
         .setVerb(action.verb)
-        .setProtocol(action.protocol)
-        .setBody(action.body)
-        .setUrl(buildRequestUrl(action.url, params))
-        .setHeaders(Object.fromEntries(winners(effective.headers).map(h => [h.key, h.value])))
+        .setProtocol(run?.protocol ?? action.protocol)
+        .setBody(run?.body ?? action.body)
+        .setUrl(buildRequestUrl(run?.url ?? action.url, params))
+        .setHeaders(headers)
         .authentication_pushBack(effective.auth?.value)
         .variables_pushBack(winners(effective.variables))
+        .variables_pushFront(captured)
         .secrets_pushBack(winners(effective.secrets))
         .setValidation(validation);
+    return action.type == 'mcp' ? asMcp(resolved, normaliseMcpCall(action.mcp), headers) : resolved;
+}
+
+// An MCP call is a POST of its JSON-RPC envelope, accepting JSON or an SSE stream. The request's own
+// verb and body are not used (a run's body override neither); a header set anywhere still wins.
+function asMcp(resolved: ExecuteRestAction, call: McpCall, headers: { [h: string]: string }): ExecuteRestAction {
+    const has = (name: string) => Object.keys(headers).some(k => k.toLowerCase() == name);
+    const mcpHeaders = { ...headers };
+    if (!has('accept')) mcpHeaders['Accept'] = MCP_ACCEPT;
+    return resolved
+        .setVerb(RestTypeVerb.post)
+        .setBody({ contentType: 'application/json', body: mcpEnvelope(call.method, call.params) })
+        .setHeaders(mcpHeaders)
+        .setMcp(toExecuteMcp(call));
 }
 
 export abstract class ScopeNode {
@@ -258,6 +278,10 @@ export class RequestNode extends ScopeNode {
         return [{ source: { kind: 'request', name: this.name }, settings: { headers: this.action.headers, auth: this.action.authentication } }];
     }
 
+    captureRules(): CaptureRule[] {
+        return this.action.capture ?? [];
+    }
+
     runs(): RunNode[] {
         return this.action.runs.map(r => new RunNode(this, r));
     }
@@ -271,7 +295,7 @@ export class RequestNode extends ScopeNode {
 
     // The request ready for replaceVariables(): everything it inherits applied
     resolve(context: ResolveContext = {}): ExecuteRestAction {
-        return toExecute(this.action, undefined, this.chain(context));
+        return toExecute(this.action, undefined, this.chain(context), context.captured);
     }
 }
 
@@ -295,7 +319,12 @@ export class RunNode extends ScopeNode {
         return [{ source: { kind: 'run', name: run.name }, settings: { variables: run.variables, secrets: run.secrets, headers: run.headers, auth: run.authentication } }];
     }
 
+    // The request's rules with this run's laid over them
+    captureRules(): CaptureRule[] {
+        return mergeCaptureRules(this.request.action.capture, this.run.capture);
+    }
+
     resolve(context: ResolveContext = {}): ExecuteRestAction {
-        return toExecute(this.request.action, this.run, this.chain(context));
+        return toExecute(this.request.action, this.run, this.chain(context), context.captured);
     }
 }

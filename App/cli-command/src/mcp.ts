@@ -6,10 +6,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   AuthoringContext, EditResult, LOCATOR_FORMS, LiveSession, MemoryRunStore, QueryError, RunRecord, RunStore, SecretStore, SettingKind,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment, newFolder,
-  newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setHeader,
-  setExpect, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
+  newRequest, newRun, remove, removeSetting, rename, resolveRun, runResult, selectEnvironment, setAuth, setBody, setCapture, setHeader,
+  setExpect, setTrigger, setMcp, setMcpExpect, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader, setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { edit } from './authoring';
+import { readFileField } from './body-parts';
 import { inspectEnvironments, inspectRequest, inspectSettings, inspectTree } from './inspect';
 import { FsRunStore } from './run-store';
 import { runCollection } from './run';
@@ -29,7 +30,7 @@ const collection = z.string().describe('Path to the .frcol file');
 const scope = z.string().describe(`Scope to edit: ${LOCATOR_FORMS}`);
 const settingName = z.string().describe('Setting name');
 const settingValue = z.string().describe('Setting value');
-const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-header'] as const;
+const SETTING_KINDS = ['header', 'param', 'variable', 'secret', 'validation-header', 'capture'] as const;
 
 export function createServer(opts: McpOptions): McpServer {
   const server = new McpServer({ name: 'fullyrested', version: require('../package.json').version });
@@ -237,9 +238,10 @@ export function createServer(opts: McpOptions): McpServer {
       collection,
       path: z.string().describe('Request path, relative to the collection (.frreq)'),
       method: z.string().describe('HTTP method (get, post, patch, option, delete, put)'),
-      url: z.string().describe('Request url (may hold {{variables}})')
+      url: z.string().describe('Request url (may hold {{variables}})'),
+      protocol: z.string().optional().describe('http or https; set it when the url is {{baseUrl}}/path, since a variable cannot carry the scheme (default https)')
     }
-  }, a => runEdit(a.collection, ctx => newRequest(ctx, a.path, a.method, a.url)));
+  }, a => runEdit(a.collection, ctx => newRequest(ctx, a.path, a.method, a.url, a.protocol)));
 
   server.registerTool('new_run', {
     description: 'Add a run to a request.',
@@ -275,6 +277,16 @@ export function createServer(opts: McpOptions): McpServer {
     inputSchema: { collection, scope, name: settingName, value: settingValue }
   }, a => runEdit(a.collection, ctx => setVariable(ctx, a.scope, a.name, a.value)));
 
+  server.registerTool('set_capture', {
+    description: 'Capture a response value (body JSONPath, header or status) into a {{variable}} for later requests in the same run; requests and runs only. May hold an absolute url.',
+    inputSchema: {
+      collection, scope,
+      name: z.string().describe("Variable to capture into: letters, digits, '-' and '_' only"),
+      from: z.enum(['body', 'header', 'status']).describe('Where the value comes from'),
+      path: z.string().optional().describe('body: a JSONPath such as $.id or $.items[0].guid; header: the header name; unused for status')
+    }
+  }, a => runEdit(a.collection, ctx => setCapture(ctx, a.scope, a.name, a.from, a.path)));
+
   // No value parameter, and there never may be one: this writes the reference, nothing else.
   server.registerTool('add_secret_ref', {
     description: 'Add a reference to a secret, never its value; a human stores the value with the CLI.',
@@ -304,14 +316,19 @@ export function createServer(opts: McpOptions): McpServer {
   })));
 
   server.registerTool('remove_setting', {
-    description: 'Remove one header, parameter, variable, secret reference or validation header.',
+    description: 'Remove one header, parameter, variable, secret reference, validation header or capture rule.',
     inputSchema: { collection, scope, kind: z.enum(SETTING_KINDS).describe('Setting kind'), name: settingName }
   }, a => runEdit(a.collection, ctx => removeSetting(ctx, a.scope, a.kind as SettingKind, a.name)));
 
   server.registerTool('set_url', {
-    description: 'Set the url of a request.',
-    inputSchema: { collection, scope, url: z.string().describe('Request url (may hold {{variables}})') }
+    description: "Set the url of a request, or of a run (which overrides its request's for that run).",
+    inputSchema: { collection, scope, url: z.string().describe("Url (may hold {{variables}}); on a run, '' removes the override") }
   }, a => runEdit(a.collection, ctx => setUrl(ctx, a.scope, a.url)));
+
+  server.registerTool('set_protocol', {
+    description: 'Set the protocol (http or https) of a request, for a url whose host comes from a variable such as {{baseUrl}}.',
+    inputSchema: { collection, scope, protocol: z.string().describe('http or https') }
+  }, a => runEdit(a.collection, ctx => setProtocol(ctx, a.scope, a.protocol)));
 
   server.registerTool('set_method', {
     description: 'Set the HTTP method of a request.',
@@ -319,14 +336,21 @@ export function createServer(opts: McpOptions): McpServer {
   }, a => runEdit(a.collection, ctx => setMethod(ctx, a.scope, a.method)));
 
   server.registerTool('set_body', {
-    description: "Set the body of a request; content type 'none' clears it.",
+    description: "Set the body of a request or run (a run's overrides). 'none' sends no body; 'inherit' (runs only) drops a run's override. multipart/form-data takes parts, including binary file parts.",
     inputSchema: {
       collection, scope,
-      contentType: z.string().describe("Content type, or 'none' to clear the body"),
+      contentType: z.string().describe("Content type, 'none' to send no body, or 'inherit' to drop a run's override"),
       text: z.string().optional().describe('Body text (every content type but the form one)'),
-      fields: z.array(z.object({ name: z.string(), value: z.string() })).optional().describe('Form fields, for the form content type')
+      fields: z.array(z.object({
+        name: z.string(), value: z.string(),
+        filename: z.string().optional().describe('multipart/form-data: makes this a file part'),
+        contentType: z.string().optional().describe("multipart/form-data: the file part's own Content-Type"),
+        base64: z.string().optional().describe('multipart/form-data: binary content of the file part'),
+        size: z.number().optional().describe('multipart/form-data: file part of this many generated bytes (e.g. to go over a size limit)'),
+        path: z.string().optional().describe('multipart/form-data: read the file part from this local file (stored in the request as base64)')
+      })).optional().describe('Form fields for application/x-www-form-urlencoded, or parts for multipart/form-data (text field, or a file part with filename/base64/size/path)')
     }
-  }, a => runEdit(a.collection, ctx => setBody(ctx, a.scope, a.contentType, { text: a.text, fields: a.fields })));
+  }, a => runEdit(a.collection, ctx => setBody(ctx, a.scope, a.contentType, { text: a.text, fields: a.fields?.map(readFileField) })));
 
   server.registerTool('set_validation', {
     description: 'Set the validation of a request or run.',
@@ -351,10 +375,39 @@ export function createServer(opts: McpOptions): McpServer {
     inputSchema: { collection, scope, case: caseRef, runId, store }
   }, a => runEdit(a.collection, ctx => validationFromCase(ctx, storesFor(a.store), a.scope, a.case, a.runId)));
 
+  server.registerTool('set_runs_only', {
+    description: "Mark a request runs-only: suite runs (all/folder) test its runs and never send the request bare. Use for a request whose bare form is harmful, e.g. a DELETE that must only run against a fixture.",
+    inputSchema: { collection, scope, runsOnly: z.boolean().describe('true to mark runs-only, false to clear') }
+  }, a => runEdit(a.collection, ctx => setRunsOnly(ctx, a.scope, a.runsOnly)));
+
   server.registerTool('set_type', {
-    description: 'Set whether a request is plain http or a websocket.',
-    inputSchema: { collection, scope, type: z.string().describe('http | websocket') }
+    description: 'Set whether a request is plain http, a websocket or an MCP call (JSON-RPC over HTTP; then set_mcp).',
+    inputSchema: { collection, scope, type: z.string().describe('http | websocket | mcp') }
   }, a => runEdit(a.collection, ctx => setType(ctx, a.scope, a.type)));
+
+  server.registerTool('set_mcp', {
+    description: 'Set the JSON-RPC call an MCP request sends (envelope, id and Accept are generated); give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      method: z.string().optional().describe('JSON-RPC method, e.g. initialize, tools/list, tools/call'),
+      params: z.string().optional().describe('Params as JSON text (may hold {{variables}}); empty sends none'),
+      tool: z.string().optional().describe('Shorthand for a tools/call of this tool'),
+      arguments: z.string().optional().describe('Tool arguments as a JSON object text (may hold {{variables}})'),
+      handshake: z.boolean().optional().describe('Send initialize first and carry the Mcp-Session-Id (stateful servers)')
+    }
+  }, a => runEdit(a.collection, ctx => setMcp(ctx, a.scope, {
+    method: a.method, params: a.params, tool: a.tool, arguments: a.arguments, handshake: a.handshake
+  })));
+
+  server.registerTool('set_mcp_expect', {
+    description: "Set what an MCP request's JSON-RPC reply must be; give only the fields to change.",
+    inputSchema: {
+      collection, scope,
+      outcome: z.string().optional().describe('result (default) | tool-error (isError) | rpc-error | any (HTTP validation only)'),
+      code: z.number().int().nullable().optional().describe('rpc-error: the JSON-RPC error code; null clears it'),
+      text: z.string().optional().describe('The tool result text (or error message) must contain this; empty clears it')
+    }
+  }, a => runEdit(a.collection, ctx => setMcpExpect(ctx, a.scope, { outcome: a.outcome, code: a.code, text: a.text })));
 
   server.registerTool('set_message', {
     description: 'Set the text frame a websocket request sends once the socket opens.',
@@ -374,6 +427,21 @@ export function createServer(opts: McpOptions): McpServer {
     }
   }, a => runEdit(a.collection, ctx => setExpect(ctx, a.scope, {
     count: a.count, match: a.match, schema: a.schema, extras: a.extras, timeout: a.timeout, settle: a.settle
+  })));
+
+  server.registerTool('set_trigger', {
+    description: 'Set or clear the http request a websocket request fires to provoke its messages; give only the fields to change.',
+    inputSchema: {
+      collection, scope,
+      request: z.string().optional().describe('The http request to fire, a path in this collection (e.g. orders/list.frreq)'),
+      run: z.string().optional().describe('A run of that request; empty clears it'),
+      repeat: z.string().optional().describe('once | until-done'),
+      interval: z.number().int().optional().describe('ms between firings when repeating (at least 100)'),
+      delay: z.number().int().optional().describe('ms to wait after the message is sent before the first firing'),
+      clear: z.boolean().optional().describe('Remove the trigger (give nothing else)')
+    }
+  }, a => runEdit(a.collection, ctx => setTrigger(ctx, a.scope, {
+    request: a.request, run: a.run, repeat: a.repeat, interval: a.interval, delay: a.delay, clear: a.clear
   })));
 
   server.registerTool('rename', {

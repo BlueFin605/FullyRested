@@ -1,8 +1,11 @@
 import { Locator, resolveLocator, ResolvedScope } from './locator';
 import {
-  AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestActionRun, RestActionValidation, ScopeSettings, SecretTable,
+  AuthenticationDetails, CollectionConfig, CreateEmptyRestActionValidation, RestAction, RestActionRun, RestActionValidation, ScopeSettings, SecretTable,
   ValidationType,
 } from './model';
+import { normaliseExpect, normaliseTrigger } from './normalise';
+import { mcpToolName, normaliseMcpCall } from './mcp';
+import { requestUrl } from './execute';
 import { QueryError } from './query-error';
 import { maskPresignedUrl, secretReplacer } from './redact';
 import { CollectionNode, ContainerNode, EffectiveValue, FolderNode, LoadError, RequestNode, RunNode, SettingSource } from './scope';
@@ -39,11 +42,47 @@ export interface TreeValidation {
   effective?: string;
   schema: boolean;
   incomplete?: true;
+  /** Expected status code of the validation in force; absent when nothing is checked (None) */
+  status?: number;
+  /** Count of active expected response headers; present only when headers are checked */
+  headers?: number;
 }
 
 export interface TreeRun {
   name: string;
   validation: TreeValidation | undefined;
+}
+
+// A websocket request's expectation and trigger as the tree and show report them. The schema is
+// reported as present or not, never inlined.
+export interface WebSocketExpectView {
+  count: number;
+  match: string;
+  extras: string;
+  timeout: number;
+  settle: number;
+  schema: boolean;
+}
+
+export interface WebSocketTriggerView {
+  request: string;
+  run?: string;
+  repeat: string;
+  interval: number;
+  delay: number;
+}
+
+export interface WebSocketView {
+  expect: WebSocketExpectView;
+  trigger?: WebSocketTriggerView;
+}
+
+export interface McpView {
+  method: string;
+  /** tools/call only: the tool it calls */
+  tool?: string;
+  handshake: boolean;
+  expect: { outcome: string; code?: number; text?: string };
 }
 
 export interface TreeRequest {
@@ -53,7 +92,13 @@ export interface TreeRequest {
   method: string;
   url: string;
   validation: TreeValidation | undefined;
+  /** Present on a websocket or MCP request only */
+  requestType?: 'websocket' | 'mcp';
+  websocket?: WebSocketView;
+  mcp?: McpView;
   runs?: TreeRun[];
+  /** Present (true) when suite runs test only this request's runs, never the bare request */
+  runsOnly?: true;
 }
 
 export interface TreeFolder {
@@ -68,6 +113,8 @@ export type TreeNodeView = TreeFolder | TreeRequest | TreeError;
 export interface TreeView {
   collection: string;
   folder?: string;
+  /** Name of the collection's selected environment; absent when none is selected */
+  environment?: string;
   warnings?: string[];
   children: TreeNodeView[];
 }
@@ -75,6 +122,7 @@ export interface TreeView {
 const toError = (e: LoadError): TreeError => ({ type: 'error', file: e.file, message: e.message });
 
 const checksBody = (type: string) => type === ValidationType.Body || type === ValidationType.HeadersBody;
+const checksHeaders = (type: string) => type === ValidationType.Headers || type === ValidationType.HeadersBody;
 const hasSchema = (v: RestActionValidation) => (v.jsonSchema?.schema ?? '').length > 0;
 
 // The two-level inherit chain: a run whose own type is Inherit takes its request's type (own);
@@ -97,6 +145,31 @@ function toTreeValidation(own: RestActionValidation | undefined, above?: RestAct
   const view: TreeValidation = { type: own.type, schema };
   if (checksBody(resolved.type) && !schema) view.incomplete = true;
   if (own.type === ValidationType.Inherit) view.effective = resolved.type;
+  if (resolved.type !== ValidationType.None) view.status = resolved.httpCode;
+  if (checksHeaders(resolved.type)) view.headers = (resolved.headers ?? []).filter(h => h.active).length;
+  return view;
+}
+
+export function webSocketView(action: RestAction): WebSocketView {
+  const expect = normaliseExpect(action.expect);
+  const view: WebSocketView = {
+    expect: {
+      count: expect.count, match: expect.match, extras: expect.extras, timeout: expect.timeout, settle: expect.settle,
+      schema: (expect.schema?.schema ?? '').length > 0
+    }
+  };
+  if (action.trigger) {
+    const t = normaliseTrigger(action.trigger);
+    view.trigger = { request: t.request, ...(t.run !== undefined && { run: t.run }), repeat: t.repeat, interval: t.interval, delay: t.delay };
+  }
+  return view;
+}
+
+export function mcpView(action: RestAction): McpView {
+  const call = normaliseMcpCall(action.mcp);
+  const view: McpView = { method: call.method, handshake: call.handshake, expect: { ...call.expect } };
+  const tool = mcpToolName(call);
+  if (tool != undefined) view.tool = tool;
   return view;
 }
 
@@ -115,8 +188,18 @@ function childrenOf(container: ContainerNode): TreeNodeView[] {
       type: 'request', name: child.name, path: child.path,
       method: action.verb, url: action.url, validation: toTreeValidation(action.validation),
     };
+    if (action.type == 'websocket') {
+      view.requestType = 'websocket';
+      view.websocket = webSocketView(action);
+    }
+    if (action.type == 'mcp') {
+      view.requestType = 'mcp';
+      view.method = 'mcp';
+      view.mcp = mcpView(action);
+    }
     const runs = child.runs().map(r => ({ name: r.run.name, validation: toTreeValidation(r.run.validation, action.validation) }));
     if (runs.length > 0) view.runs = runs;
+    if (action.runsOnly == true) view.runsOnly = true;
     return [view];
   });
 }
@@ -147,6 +230,8 @@ export function treeView(root: CollectionNode, folder?: string): TreeView {
     view.folder = found.path;
     view.children = children;
   }
+  const env = root.config.environments.find(e => e.id === root.config.selectedEnvironmentId);
+  if (env) view.environment = env.name;
   if (root.warnings.length > 0) view.warnings = root.warnings;
   return view;
 }
@@ -266,6 +351,13 @@ export interface ShownRequest {
   secrets: { name: string; source: string; overridden: boolean }[];
   auth: { type: string; source: string } | undefined;
   validation: unknown;
+  /** What this request (or run) takes from its response for later requests */
+  capture?: { variable: string; from: string; path: string }[];
+  /** Present on a websocket or MCP request only */
+  requestType?: 'websocket' | 'mcp';
+  message?: string;
+  websocket?: WebSocketView;
+  mcp?: McpView & { params: string };
 }
 
 export const sourceOf = (s: SettingSource) => `${s.kind}:${s.name}`;
@@ -296,16 +388,29 @@ export function showRequest(node: RequestNode | RunNode, environmentId?: string)
       return secretNames.reduce((out, name, i) => out.split(sentinel(i)).join(`{{$secret:${name}}}`), replace(marked));
     };
     const auth: EffectiveValue<AuthenticationDetails> | undefined = eff.auth;
-    return {
+    const shown: ShownRequest = {
       name: node.name,
       method: request.action.verb,
-      url: replace(maskPresignedUrl(`${resolved.protocol}://${resolved.url}`)),
+      url: replace(maskPresignedUrl(requestUrl(resolved.protocol, resolved.url))),
       headers: eff.headers.map(h => ({ key: h.value.key, value: label(h.value.value), source: sourceOf(h.source), overridden: h.overridden })),
       variables: eff.variables.map(v => ({ variable: v.value.variable, value: label(v.value.value), source: sourceOf(v.source), overridden: v.overridden })),
       secrets: eff.secrets.map(s => ({ name: s.value.$secret, source: sourceOf(s.source), overridden: s.overridden })),
       auth: auth ? { type: auth.value.authentication, source: sourceOf(auth.source) } : undefined,
       validation: redactDeep(resolved.validation, replace),
     };
+    const rules = node.captureRules();
+    if (rules.length > 0) shown.capture = rules.map(c => ({ variable: c.variable, from: c.from, path: c.path }));
+    if (request.action.type == 'websocket') {
+      shown.requestType = 'websocket';
+      shown.message = label(request.action.message ?? '');
+      shown.websocket = webSocketView(request.action);
+    }
+    if (request.action.type == 'mcp') {
+      shown.requestType = 'mcp';
+      shown.method = 'mcp';
+      shown.mcp = { ...mcpView(request.action), params: label(normaliseMcpCall(request.action.mcp).params) };
+    }
+    return shown;
   } catch (e) {
     if (e instanceof TypeError || e instanceof ReferenceError) throw e;
     throw new QueryError((e as Error).message);

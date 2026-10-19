@@ -6,7 +6,7 @@
 // where request is the renderer's resolved, variable-substituted request (as testRest receives it) and
 // root is the open collection's folder, checked by collection-access.js like every file handler's.
 // The query-placed token is added here and never leaves: every string sent back is scrubbed of it.
-const { LiveSession, applyAuthentication, normaliseExpect, runWebSocketTest, withQueryToken } = require('@fullyrested/core');
+const { LiveSession, applyAuthentication, fireTriggerRequest, maskPresignedText, normaliseExpect, normaliseTrigger, runWebSocketTest, secretReplacer, withQueryToken } = require('@fullyrested/core');
 const { WsTransport } = require('./ws-transport');
 
 const MAX_SESSIONS = 10;
@@ -45,10 +45,11 @@ function scrubber(target, request) {
 
 class WsSessions {
     // newTransport: a fresh SocketTransport per socket. emit(channel, payload): pushes to the renderer.
-    constructor(access, { newTransport = () => new WsTransport(), emit = () => {} } = {}) {
+    constructor(access, { newTransport = () => new WsTransport(), emit = () => {}, executeRequest } = {}) {
         this.access = access;
         this.newTransport = newTransport;
         this.emit = emit;
+        this.executeRequest = executeRequest; // test seam for the trigger's http call; undefined uses core's
         this.sessions = new Map();
         this.nextId = 1;
     }
@@ -61,25 +62,45 @@ class WsSessions {
     // Runs one bounded test and returns its WebSocketTestResult. A failed test is a result, not a rejection.
     async runWsTest(payload) {
         this.guard(payload?.root);
+        const trigger = this.triggerFirer(payload.trigger);
         const target = await connectTarget(payload.request);
         const scrub = scrubber(target, payload.request);
+        // trigger error text may echo the trigger request's own secrets or a presigned url
+        const redactTrigger = secretReplacer(payload.trigger?.request?.secrets);
+        const scrubTrigger = text => redactTrigger(maskPresignedText(scrub(text)));
         let result;
         try {
             result = await runWebSocketTest(this.newTransport(), {
                 url: target.connectUrl,
                 headers: target.headers,
                 message: payload.message,
-                expect: normaliseExpect(payload.expect)
+                expect: normaliseExpect(payload.expect),
+                trigger
             });
         } catch (error) {
             throw new Error(scrub(error.message));
         }
         return {
             ...result,
-            errors: result.errors.map(scrub),
+            ...(result.triggerCalls === undefined ? {} : {
+                triggerCalls: result.triggerCalls.map(c => c.error === undefined ? c : { ...c, error: scrubTrigger(c.error) })
+            }),
+            errors: result.errors.map(scrubTrigger),
             messages: result.messages.map(m => ({ ...m, text: scrub(m.text) })),
             ...(result.closeReason === undefined ? {} : { closeReason: scrub(result.closeReason) })
         };
+    }
+
+    // A TriggerFirer around core's fireTriggerRequest for payload.trigger ({ request: <resolved, unsubstituted ExecuteRestAction>,
+    // repeat, interval, delay }), or undefined. Fired by main; its calls come back as triggerCalls.
+    triggerFirer(trigger) {
+        if (trigger == undefined) return undefined;
+        if (trigger.request == undefined) throw new Error('The trigger has no request');
+        const { request, ...timing } = trigger;
+        const { repeat, interval, delay } = normaliseTrigger({ request: '', ...timing });
+        // The runner passes an abort signal for its per-call timeout and for a call left pending at finish
+        const fire = signal => fireTriggerRequest(request, signal, this.executeRequest);
+        return { repeat, interval, delay, fire };
     }
 
     // Opens a live session and returns { sessionId } or { error }. Events are pushed on 'wsSessionEvent'

@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import type { SessionEvent } from '@fullyrested/core';
+import { CollectionTreeService } from '../../services/collection-tree/collection-tree.service';
+import { ExecuteRestCallsService } from '../../services/execute-rest-calls/execute-rest-calls.service';
 import { WsSessionPush, WsSessionService } from '../../services/ws-session/ws-session.service';
 import { LiveSessionComponent, isWebSocketUrl } from './live-session.component';
 
@@ -13,6 +15,9 @@ describe('LiveSessionComponent', () => {
   let push$: Subject<WsSessionPush>;
   let service: { open: jasmine.Spy; read: jasmine.Spy; send: jasmine.Spy; close: jasmine.Spy; events$: jasmine.Spy };
 
+  let choices: { path: string; name: string; runs: { id: string; name: string }[] }[];
+  let executor: { fireRequest: jasmine.Spy };
+
   function create(request: any = { url: 'ws://localhost:9/x', headers: {} }, none = false) {
     push$ = new Subject<WsSessionPush>();
     service = {
@@ -22,11 +27,16 @@ describe('LiveSessionComponent', () => {
       close: jasmine.createSpy('close').and.resolveTo(undefined),
       events$: jasmine.createSpy('events$').and.callFake(() => push$.asObservable())
     };
+    choices = [{ path: 'pages/touch.frreq', name: 'touch', runs: [{ id: 'r1', name: 'loud' }] }];
+    executor = { fireRequest: jasmine.createSpy('fireRequest').and.resolveTo({ status: 202, statusText: 'Accepted', durationMs: 7 }) };
     TestBed.configureTestingModule({
       declarations: [LiveSessionComponent],
       imports: [FormsModule],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
-      providers: [provideZoneChangeDetection(), { provide: WsSessionService, useValue: service }]
+      providers: [provideZoneChangeDetection(), { provide: WsSessionService, useValue: service },
+        { provide: CollectionTreeService, useValue: { httpRequests: () => choices } },
+        { provide: ExecuteRestCallsService, useValue: executor }
+      ]
     });
     const fixture = TestBed.createComponent(LiveSessionComponent);
     if (!none) fixture.componentRef.setInput('request', request);
@@ -148,6 +158,68 @@ describe('LiveSessionComponent', () => {
     await settle(f);
     f.destroy();
     expect(service.close).toHaveBeenCalledOnceWith('ws-1');
+  });
+
+  it('fires the chosen http request once while the session is open and shows the outcome', async () => {
+    const f = create();
+    f.componentRef.setInput('environmentId', 'prod');
+    await settle(f);
+    const button = () => el(f).querySelector('button.fire') as HTMLButtonElement;
+    expect(button().disabled).toBeTrue();
+
+    f.componentInstance.firePath = 'pages/touch.frreq';
+    f.componentInstance.fireRun = 'r1';
+    await settle(f);
+    expect(button().disabled).toBeFalse();
+    await f.componentInstance.fire();
+    await settle(f);
+
+    expect(executor.fireRequest).toHaveBeenCalledOnceWith('pages/touch.frreq', 'r1', 'prod');
+    expect(el(f).querySelector('.fire-result')!.textContent).toContain('202 Accepted in 7 ms');
+    expect(service.close).not.toHaveBeenCalled();
+  });
+
+  it('fires the request itself when no run is chosen', async () => {
+    const f = create();
+    await settle(f);
+    f.componentInstance.firePath = 'pages/touch.frreq';
+
+    await f.componentInstance.fire();
+
+    expect(executor.fireRequest).toHaveBeenCalledOnceWith('pages/touch.frreq', undefined, undefined);
+  });
+
+  it('shows why a fire failed', async () => {
+    const f = create();
+    await settle(f);
+    executor.fireRequest.and.rejectWith(new Error('ipc down'));
+    f.componentInstance.firePath = 'pages/touch.frreq';
+
+    await f.componentInstance.fire();
+    await settle(f);
+
+    expect(el(f).textContent).toContain('ipc down');
+    expect(f.componentInstance.firing).toBeFalse();
+  });
+
+  it('does not fire once the session is closed', async () => {
+    const f = create();
+    await settle(f);
+    push$.next({ sessionId: 'ws-1', events: [closeEvent(1, 1000, 'bye')], lastSeq: 1, closed: true });
+    await settle(f);
+    f.componentInstance.firePath = 'pages/touch.frreq';
+
+    await f.componentInstance.fire();
+
+    expect(executor.fireRequest).not.toHaveBeenCalled();
+  });
+
+  it('hides the fire bar when the collection has no http requests', async () => {
+    const f = create();
+    choices.length = 0;
+    await settle(f);
+
+    expect(el(f).querySelector('.fire-bar')).toBeNull();
   });
 
   it('recognises ws and wss urls only', () => {

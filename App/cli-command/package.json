@@ -17,7 +17,8 @@
     "build": "npm --prefix ../core run build && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
     "pretest": "npm run build && npm run typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke": "npm run build && node smoke/run-smoke.mjs"
   },
   "license": "GPL-3.0",
   "dependencies": {

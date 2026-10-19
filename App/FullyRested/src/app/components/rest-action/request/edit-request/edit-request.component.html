@@ -10,6 +10,8 @@
   <div class="url-bar">
     @if (isWebSocket) {
       <span class="fr-method" data-verb="ws" aria-label="Websocket request">WS</span>
+    } @else if (isMcp) {
+      <span class="fr-method" data-verb="mcp" aria-label="MCP request">MCP</span>
     } @else {
     <mat-select
       class="verb-select"
@@ -56,7 +58,13 @@
   >
     <mat-button-toggle value="http">HTTP</mat-button-toggle>
     <mat-button-toggle value="websocket">WebSocket</mat-button-toggle>
+    <mat-button-toggle value="mcp">MCP</mat-button-toggle>
   </mat-button-toggle-group>
+  @if (isMcp) {
+    <span class="mcp-summary" matTooltip="Edit the call with 'fullyrested edit set-mcp' / 'set-mcp-expect', or the set_mcp / set_mcp_expect MCP tools">
+      {{ mcpSummary }}
+    </span>
+  }
 </div>
 
 <mat-tab-group class="fr-subtabs request-tabs" animationDuration="0ms" [mat-stretch-tabs]="false">
@@ -112,6 +120,7 @@
     </div>
   </mat-tab>
   @if (!isWebSocket) {
+  @if (!isMcp) {
   <mat-tab>
     <ng-template mat-tab-label>
       Body<span class="count">{{ bodyLabel(action.body.contentType) }}</span>
@@ -123,6 +132,7 @@
       ></app-edit-request-body>
     </div>
   </mat-tab>
+  }
   <mat-tab>
     <ng-template mat-tab-label>Validation</ng-template>
     <div class="tab-body">

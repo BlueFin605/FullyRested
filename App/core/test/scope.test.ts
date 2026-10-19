@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    AuthenticationDetails, CollectionConfig, CollectionNode, CreateEmptyAction, CreateEmptyAuthenticationDetails,
+    AuthenticationDetails, CollectionConfig, CollectionNode, HttpProtocol, CreateEmptyAction, CreateEmptyAuthenticationDetails,
     CreateEmptyFolderConfig, CreateEmptyRestActionValidation, FolderConfig, FolderNode, RequestNode, ScopeSettings,
     ValidationType, normaliseCollectionConfig
 } from '../src';
@@ -167,6 +167,26 @@ describe('request and run resolution', () => {
         const secrets = request.resolve().secrets;
         expect(secrets?.find(x => x.$secret == 'key')?.$value).toBe('dev');
         expect(secrets?.find(x => x.$secret == 'only')?.$value).toBe('collection');
+    });
+
+    it('sends the run body in place of the request body, and no body when the run says none', () => {
+        const { request } = build();
+        request.action.body = { contentType: 'application/json', body: '{"a":1}' };
+        expect(request.run('r1').resolve().body).toEqual({ contentType: 'application/json', body: '{"a":1}' });
+        request.action.runs[0].body = { contentType: 'none', body: undefined };
+        expect(request.run('r1').resolve().body.contentType).toBe('none');
+        expect(request.resolve().body.contentType).toBe('application/json');
+    });
+
+    it('sends a run url in place of the request url, keeping the request query parameters', () => {
+        const { request } = build();
+        request.action.url = 'api.test/users/{{guid}}';
+        request.action.runs[0].url = 'other.test/users/bad';
+        request.action.runs[0].protocol = HttpProtocol.http;
+        const run = request.run('r1').resolve();
+        expect(run.url).toBe('other.test/users/bad');
+        expect(run.protocol).toBe('http');
+        expect(request.resolve().url).toBe('api.test/users/{{guid}}');
     });
 
     it('finds a run by name', () => {

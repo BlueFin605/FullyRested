@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import type { SessionEvent } from '@fullyrested/core';
+import { CollectionTreeService, HttpRequestChoice } from '../../services/collection-tree/collection-tree.service';
+import { ExecuteRestCallsService } from '../../services/execute-rest-calls/execute-rest-calls.service';
 import { WsConnectRequest, WsSessionPush, WsSessionService } from '../../services/ws-session/ws-session.service';
 
 // The renderer keeps the same cap as the session's own feed
@@ -23,6 +25,8 @@ export class LiveSessionComponent implements OnChanges, OnDestroy {
   // A resolved websocket request to connect on. Without one the panel asks for a typed ws:// or wss:// URL.
   @Input() request: WsConnectRequest | undefined;
   @Input() message: string | undefined;
+  // The environment a fired request is resolved with
+  @Input() environmentId: string | undefined;
   // Raised when the user hides the panel
   @Output() dismiss = new EventEmitter<void>();
 
@@ -36,7 +40,15 @@ export class LiveSessionComponent implements OnChanges, OnDestroy {
   sendError: string | undefined;
   lastSeq = 0;
 
+  firePath = '';
+  fireRun = '';
+  firing = false;
+  fireOutcome: string | undefined;
+  fireError: string | undefined;
+
   private readonly sessions = inject(WsSessionService);
+  private readonly trees = inject(CollectionTreeService);
+  private readonly executor = inject(ExecuteRestCallsService);
   private subscription: Subscription | undefined;
   private filling = false;
   // bumped by every connect, so a late answer for an abandoned connect is ignored
@@ -144,6 +156,31 @@ export class LiveSessionComponent implements OnChanges, OnDestroy {
     const result = await this.sessions.send(this.sessionId!, this.draft);
     if (result.ok) this.draft = '';
     else this.sendError = result.error ?? 'The message could not be sent';
+  }
+
+  // The http requests that can be fired into the open session
+  get fireChoices(): HttpRequestChoice[] {
+    return this.trees.httpRequests();
+  }
+
+  get fireRuns(): HttpRequestChoice['runs'] {
+    return this.fireChoices.find(c => c.path == this.firePath)?.runs ?? [];
+  }
+
+  // Sends the chosen http request once through the normal send path while the session stays open
+  async fire(): Promise<void> {
+    if (!this.live || this.firePath == '' || this.firing) return;
+    this.firing = true;
+    this.fireError = undefined;
+    this.fireOutcome = undefined;
+    try {
+      const result = await this.executor.fireRequest(this.firePath, this.fireRun || undefined, this.environmentId);
+      this.fireOutcome = `${result.status} ${result.statusText ?? ''}`.trim() + (result.durationMs == undefined ? '' : ` in ${result.durationMs} ms`);
+    } catch (e) {
+      this.fireError = (e as Error)?.message ?? String(e);
+    } finally {
+      this.firing = false;
+    }
   }
 
   async close(): Promise<void> {

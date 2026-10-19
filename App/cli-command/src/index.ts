@@ -5,14 +5,15 @@ import * as readline from 'readline';
 import { Readable, Writable } from 'stream';
 import { Command } from 'commander';
 import {
-  AuthFields, AuthoringContext, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
+  AuthFields, AuthoringContext, BodyField, EditResult, LOCATOR_FORMS, QueryError, SettingKind, ValidationFields,
   addSecretRef, caseBody, caseRequest, caseResponse, failures, listRuns, move, newCollection, newEnvironment,
-  newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody,
-  setExpect, setHeader, setMessage, setMethod, setParam, setType, setUrl, setValidation, setValidationHeader,
+  newFolder, newRequest, newRun, remove, removeSetting, rename, resolveRun, selectEnvironment, setAuth, setBody, setCapture,
+  setExpect, setTrigger, setHeader, setMcp, setMcpExpect, setMessage, setMethod, setParam, setProtocol, setRunsOnly, setType, setUrl, setValidation, setValidationHeader,
   setVariable, summary, validationFromCase
 } from '@fullyrested/core';
 import { RunOptions, UsageError, runCollection, setup, toTestResult } from './run';
 import { edit } from './authoring';
+import { filePart, generatedPart } from './body-parts';
 import { loadTree } from './files';
 import { FsRunStore, RUNS_FOLDER } from './run-store';
 import { formatResult, formatSummary, toJUnit } from './report';
@@ -297,6 +298,14 @@ function parseBool(flag: string, value: string): boolean {
   throw new UsageError(`${flag} must be true or false (got '${value}')`);
 }
 
+// '@path' reads the text from a file; anything else (undefined too) is the text itself
+function textOrFile(value: string | undefined, flag: string): string | undefined {
+  if (value === undefined || !value.startsWith('@')) return value;
+  const file = value.slice(1);
+  try { return fs.readFileSync(file, 'utf8'); }
+  catch { throw new UsageError(`${flag} file '${file}' cannot be read`); }
+}
+
 function parseHttpCode(value: string): number {
   const code = Number(value);
   if (!Number.isInteger(code))
@@ -304,7 +313,7 @@ function parseHttpCode(value: string): number {
   return code;
 }
 
-const SETTING_KINDS: SettingKind[] = ['header', 'param', 'variable', 'secret', 'validation-header'];
+const SETTING_KINDS: SettingKind[] = ['header', 'param', 'variable', 'secret', 'validation-header', 'capture'];
 
 editNamespace.command('new-collection')
   .description('Create a new collection file; has no -c, since the file does not exist yet')
@@ -326,8 +335,9 @@ editCommand('new-request', 'Create a request file')
   .requiredOption('--path <path>', 'request path, relative to the collection (.frreq)')
   .requiredOption('--method <verb>', 'HTTP method (get, post, patch, option, delete, put)')
   .requiredOption('--url <url>', 'request url (may hold {{variables}})')
-  .action(queryAction(async (options: EditOptions & { path: string; method: string; url: string }) =>
-    runEdit(options, ctx => newRequest(ctx, options.path, options.method, options.url))));
+  .option('--protocol <http|https>', 'protocol; use it when the url is {{baseUrl}}/path, since a variable cannot carry the scheme (default https)')
+  .action(queryAction(async (options: EditOptions & { path: string; method: string; url: string; protocol?: string }) =>
+    runEdit(options, ctx => newRequest(ctx, options.path, options.method, options.url, options.protocol))));
 
 editCommand('new-run', 'Add a run to a request')
   .requiredOption('--request <path>', 'request path, relative to the collection (.frreq)')
@@ -365,6 +375,13 @@ withScope(editCommand('set-variable', 'Set (or add) a variable'))
   .action(queryAction(async (options: EditOptions & { scope: string; name: string; value: string }) =>
     runEdit(options, ctx => setVariable(ctx, options.scope, options.name, options.value))));
 
+withScope(editCommand('set-capture', 'Capture a value from the response into a {{variable}} for the requests that run after it (requests and runs only)'))
+  .requiredOption('--name <name>', 'variable to capture into, used as {{name}} by later requests')
+  .requiredOption('--from <from>', 'where the value comes from: body, header or status')
+  .option('--path <path>', 'body: a JSONPath such as $.id or $.items[0].guid; header: the header name')
+  .action(queryAction(async (options: EditOptions & { scope: string; name: string; from: string; path?: string }) =>
+    runEdit(options, ctx => setCapture(ctx, options.scope, options.name, options.from, options.path))));
+
 withScope(editCommand('add-secret-ref', 'Add a reference to a secret ({$secret}), never its value'))
   .requiredOption('--name <name>', 'secret name, as used in {{$name}}')
   .action(queryAction(async (options: EditOptions & { scope: string; name: string }) =>
@@ -392,8 +409,16 @@ withScope(editCommand('set-auth', 'Set the authentication of a scope'))
     await runEdit(options, ctx => setAuth(ctx, options.scope, options.type, fields));
   }));
 
-withScope(editCommand('set-type', 'Set whether a request is plain HTTP or a websocket'))
-  .argument('<type>', 'http | websocket')
+withScope(editCommand('set-runs-only', 'Mark a request runs-only: suite runs test its runs and never send it bare'))
+  .argument('<on|off>', 'on | off')
+  .action(queryAction(async (flag: string, options: EditOptions & { scope: string }) => {
+    if (flag !== 'on' && flag !== 'off')
+      throw new UsageError("set-runs-only takes 'on' or 'off'");
+    await runEdit(options, ctx => setRunsOnly(ctx, options.scope, flag === 'on'));
+  }));
+
+withScope(editCommand('set-type', 'Set whether a request is plain HTTP, a websocket or an MCP call'))
+  .argument('<type>', 'http | websocket | mcp')
   .action(queryAction(async (type: string, options: EditOptions & { scope: string }) =>
     runEdit(options, ctx => setType(ctx, options.scope, type))));
 
@@ -426,7 +451,39 @@ withScope(editCommand('set-expect', 'Set what a websocket test waits for; only t
     }));
   }));
 
-withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference or validation header'))
+withScope(editCommand('set-trigger', 'Set or clear the http request a websocket request fires to provoke its messages; only the options given change'))
+  .option('--request <locator>', 'the http request to fire, a path in this collection (e.g. orders/list.frreq)')
+  .option('--run <name>', "a run of that request; '' clears it")
+  .option('--repeat <once|until-done>', 'fire once, or keep firing until the test is done')
+  .option('--interval <ms>', 'milliseconds between firings when repeating', toNumber)
+  .option('--delay <ms>', 'milliseconds to wait after the message is sent before the first firing', toNumber)
+  .option('--clear', 'remove the trigger')
+  .action(queryAction(async (options: EditOptions & { scope: string; request?: string; run?: string; repeat?: string; interval?: number; delay?: number; clear?: boolean }) =>
+    runEdit(options, ctx => setTrigger(ctx, options.scope, {
+      request: options.request, run: options.run, repeat: options.repeat,
+      interval: options.interval, delay: options.delay, clear: options.clear
+    }))));
+
+withScope(editCommand('set-mcp', 'Set the JSON-RPC call an MCP request sends; only the options given change'))
+  .option('--method <method>', 'JSON-RPC method, e.g. initialize, tools/list, tools/call')
+  .option('--params <json|@file>', "params as JSON text (may hold {{variables}}) or @path to a file; '' sends none")
+  .option('--tool <name>', 'shorthand for a tools/call of this tool')
+  .option('--arguments <json|@file>', 'the tool arguments, a JSON object (may hold {{variables}}) or @path to a file')
+  .option('--handshake <true|false>', 'send initialize first and carry the Mcp-Session-Id the server gives', (v: string) => parseBool('--handshake', v))
+  .action(queryAction(async (options: EditOptions & { scope: string; method?: string; params?: string; tool?: string; arguments?: string; handshake?: boolean }) =>
+    runEdit(options, ctx => setMcp(ctx, options.scope, {
+      method: options.method, params: textOrFile(options.params, '--params'), tool: options.tool,
+      arguments: textOrFile(options.arguments, '--arguments'), handshake: options.handshake
+    }))));
+
+withScope(editCommand('set-mcp-expect', "Set what an MCP request's JSON-RPC reply must be; only the options given change"))
+  .option('--outcome <outcome>', 'result | tool-error | rpc-error | any (any: HTTP validation only)')
+  .option('--code <n>', "rpc-error: the JSON-RPC error code, e.g. -32602; '' clears it", (v: string) => v === '' ? null : Number(v))
+  .option('--text <text>', "the tool result text (or error message) must contain this; '' clears it")
+  .action(queryAction(async (options: EditOptions & { scope: string; outcome?: string; code?: number | null; text?: string }) =>
+    runEdit(options, ctx => setMcpExpect(ctx, options.scope, { outcome: options.outcome, code: options.code, text: options.text }))));
+
+withScope(editCommand('remove-setting', 'Remove one header, parameter, variable, secret reference, validation header or capture rule'))
   .requiredOption('--kind <kind>', `setting kind (${SETTING_KINDS.join(', ')})`)
   .requiredOption('--name <name>', 'setting name')
   .action(queryAction(async (options: EditOptions & { scope: string; kind: string; name: string }) => {
@@ -435,24 +492,32 @@ withScope(editCommand('remove-setting', 'Remove one header, parameter, variable,
     await runEdit(options, ctx => removeSetting(ctx, options.scope, options.kind as SettingKind, options.name));
   }));
 
-withScope(editCommand('set-url', 'Set the url of a request'))
-  .requiredOption('--url <url>', 'request url (may hold {{variables}})')
+withScope(editCommand('set-url', "Set the url of a request, or of a run (which overrides its request's)"))
+  .requiredOption('--url <url>', "url (may hold {{variables}}); on a run '' removes the override")
   .action(queryAction(async (options: EditOptions & { scope: string; url: string }) =>
     runEdit(options, ctx => setUrl(ctx, options.scope, options.url))));
 
-withScope(editCommand('set-method', 'Set the method of a request'))
+withScope(editCommand('set-protocol', 'Set the protocol (http or https) of a request, for a url whose host comes from a variable'))
+  .requiredOption('--protocol <http|https>', 'http or https')
+  .action(queryAction(async (options: EditOptions & { scope: string; protocol: string }) =>
+    runEdit(options, ctx => setProtocol(ctx, options.scope, options.protocol))));
+
+withScope(editCommand('set-method','Set the method of a request'))
   .requiredOption('--method <verb>', 'HTTP method (get, post, patch, option, delete, put)')
   .action(queryAction(async (options: EditOptions & { scope: string; method: string }) =>
     runEdit(options, ctx => setMethod(ctx, options.scope, options.method))));
 
-withScope(editCommand('set-body', 'Set the body of a request'))
-  .requiredOption('--content-type <type>', "content type, or 'none' to clear the body")
+withScope(editCommand('set-body', "Set the body of a request, or of a run (which overrides its request's)"))
+  .requiredOption('--content-type <type>', "content type; 'none' clears the body (on a run: sends no body); 'inherit' (runs only) removes the run's override")
   .option('--text <text>', 'body text (every content type but the form one)')
-  .option('--field <name=value>', 'form field, for the form content type (repeatable; splits on the first \'=\')', collectField, [] as string[])
-  .action(queryAction(async (options: EditOptions & { scope: string; contentType: string; text?: string; field: string[] }) => {
-    const content: { text?: string; fields?: { name: string; value: string }[] } = {};
+  .option('--field <name=value>', 'form field, or text part of multipart/form-data (repeatable; splits on the first \'=\')', collectField, [] as string[])
+  .option('--file <name=path>', "multipart/form-data file part read from a local file and stored in the request as base64 (repeatable); ';type=<mime>' and ';filename=<name>' may follow the path", collectField, [] as string[])
+  .option('--generate <name=bytes>', "multipart/form-data file part of that many generated bytes, e.g. to go over a size limit (repeatable); ';type=<mime>' and ';filename=<name>' may follow", collectField, [] as string[])
+  .action(queryAction(async (options: EditOptions & { scope: string; contentType: string; text?: string; field: string[]; file: string[]; generate: string[] }) => {
+    const content: { text?: string; fields?: BodyField[] } = {};
     if (options.text !== undefined) content.text = options.text;
-    if (options.field.length > 0) content.fields = options.field.map(parseField);
+    const fields: BodyField[] = [...options.field.map(parseField), ...options.file.map(s => filePart('--file', s)), ...options.generate.map(s => generatedPart('--generate', s))];
+    if (fields.length > 0) content.fields = fields;
     await runEdit(options, ctx => setBody(ctx, options.scope, options.contentType, content));
   }));
 

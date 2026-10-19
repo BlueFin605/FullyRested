@@ -208,7 +208,7 @@ export function splitScheme(url: string): { protocol: HttpProtocol | undefined; 
 // Every level of the hierarchy holds headers, so set_header takes any locator.
 export const ALL_LOCATORS: LocatorKind[] = ['collection', 'environment', 'folder', 'request', 'run'];
 
-export type SettingKind = 'header' | 'param' | 'variable' | 'secret' | 'validation-header';
+export type SettingKind = 'header' | 'param' | 'variable' | 'secret' | 'validation-header' | 'capture';
 
 // Which locators each kind of setting can live at. Variables and secrets are absent from
 // request: because RestAction has no field for them (see the design spec).
@@ -217,7 +217,8 @@ export const SETTING_LOCATORS: Record<SettingKind, LocatorKind[]> = {
     'param': ['request', 'run'],
     'variable': ['collection', 'environment', 'folder', 'run'],
     'secret': ['collection', 'environment', 'folder', 'run'],
-    'validation-header': ['request', 'run']
+    'validation-header': ['request', 'run'],
+    'capture': ['request', 'run']
 };
 
 // editScope has already refused the locators these verbs do not take; the guards are only so the

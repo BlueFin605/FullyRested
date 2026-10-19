@@ -75,3 +75,69 @@
     <span class="field-error" role="alert" data-field="schema">{{ errors.schema }}</span>
   }
 </section>
+
+<section class="group" data-section="trigger">
+  <div class="group-label">Trigger</div>
+  <p class="help">An http request of this collection sent after the message, to make the server push what is expected.</p>
+  <div class="fields">
+    <label class="field">
+      <span>Request</span>
+      <select class="pick" name="triggerRequest" aria-label="Trigger request"
+        [(ngModel)]="triggerRequest" (ngModelChange)="onTriggerRequestChange()">
+        <option value="">None</option>
+        @if (triggerMissing) {
+          <option [value]="triggerRequest">{{ triggerRequest }} (not found)</option>
+        }
+        @for (c of triggerChoices; track c.path) {
+          <option [value]="c.path">{{ c.name }}</option>
+        }
+      </select>
+    </label>
+
+    @if (triggerRequest != '') {
+      @if (triggerRuns.length > 0) {
+        <label class="field">
+          <span>Run</span>
+          <select class="pick" name="triggerRun" aria-label="Trigger run"
+            [(ngModel)]="triggerRun" (ngModelChange)="onTriggerChange()">
+            <option value="">The request itself</option>
+            @for (r of triggerRuns; track r.id) {
+              <option [value]="r.id">{{ r.name }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <div class="field">
+        <span>Repeat</span>
+        <mat-button-toggle-group class="fr-segmented" [(ngModel)]="triggerRepeat" (ngModelChange)="onTriggerChange()"
+          hideSingleSelectionIndicator aria-label="Trigger repeat">
+          <mat-button-toggle value="once">Once</mat-button-toggle>
+          <mat-button-toggle value="until-done">Until done</mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      @if (triggerRepeat == 'until-done') {
+        <label class="field">
+          <span>Interval (ms)</span>
+          <input class="num" type="text" inputmode="numeric" name="triggerInterval" aria-label="Trigger interval in milliseconds"
+            [(ngModel)]="intervalText" (ngModelChange)="onTriggerChange()" />
+          @if (triggerErrors.interval) {
+            <span class="field-error" role="alert" data-field="interval">{{ triggerErrors.interval }}</span>
+          }
+        </label>
+      }
+
+      <label class="field">
+        <span>Delay (ms)</span>
+        <input class="num" type="text" inputmode="numeric" name="triggerDelay" aria-label="Trigger delay in milliseconds"
+          [(ngModel)]="delayText" (ngModelChange)="onTriggerChange()" />
+        @if (triggerErrors.delay) {
+          <span class="field-error" role="alert" data-field="delay">{{ triggerErrors.delay }}</span>
+        }
+      </label>
+
+      <button mat-stroked-button class="clear-trigger" type="button" (click)="clearTrigger()">Clear</button>
+    }
+  </div>
+</section>

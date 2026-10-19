@@ -50,7 +50,7 @@ describe('setType', () => {
   it('rejects an unknown type, writing nothing', async () => {
     const sink = new MemoryCollectionSink(files);
     const before = sink.files.get(FILE);
-    await expect(setType(ctxFor(sink), REQ, 'grpc')).rejects.toThrow(/Unknown request type 'grpc' \(have http, websocket\)/);
+    await expect(setType(ctxFor(sink), REQ, 'grpc')).rejects.toThrow(/Unknown request type 'grpc' \(have http, websocket, mcp\)/);
     expect(sink.files.get(FILE)).toBe(before);
   });
 

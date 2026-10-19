@@ -69,8 +69,9 @@ From the CLI, run one folder with `--folder <path>`.
 Files from the older Rest Easy app (`.reasycol` / `.reasyreq`) still open.
 **Save** keeps a file's name. **Save As** uses the new extensions.
 
-**Request bodies:** JSON, or form fields sent as
-`application/x-www-form-urlencoded`.
+**Request bodies:** JSON, form fields sent as
+`application/x-www-form-urlencoded`, or `multipart/form-data` (text fields and file parts,
+including binary ones; see "Multipart uploads" below).
 
 **Authentication:** none, basic, bearer token and AWS Signature V4 (header or
 presigned URL, with a session token for temporary credentials).
@@ -120,6 +121,37 @@ name of a query parameter, such as `token`. The token is URL-encoded into the
 connect URL. Run records, output and errors show the URL without it, and a
 failed connect never prints it.
 
+**Trigger.** A server often pushes a message only after something else
+happens, such as an HTTP call that changes data. A websocket request can name
+an HTTP request in the same collection to fire after the message is sent:
+
+| Field | Meaning |
+|---|---|
+| `trigger.request` | The HTTP request to fire, as a path relative to the collection (for example `pages/touch.frreq`). It must exist, be `http`, and not be the websocket request itself |
+| `trigger.run` | A run of that request, by name or id. Default: the request itself |
+| `trigger.repeat` | `until-done` (default): fire again every `interval` until the test finishes, which avoids racing the server's subscription of the new socket. `once`: fire a single time |
+| `trigger.interval` | Milliseconds between firings. Default 1000, at least 100 |
+| `trigger.delay` | Milliseconds to wait after the message is sent before the first firing. Default 0 |
+
+The trigger fires with the same environment, secrets and captured values as the test and only
+during a test (**Run**, `fullyrested run`, the MCP `run` tool), never in a live
+session. A failing trigger does not fail the test by itself; the `expect`
+rules decide. A timeout where every trigger call failed names the trigger, for
+example "trigger returned 401 on all 7 calls", or "trigger call still pending"
+when the call never answered. Firing stops as soon as the expected messages
+arrive, each call is cut off after the test's timeout or 10 seconds (whichever
+is shorter), and a call still in flight when the test ends gets up to 1.5
+seconds to answer before it is aborted. Each firing is recorded as a trigger
+call (start in ms since the test began, status or error, duration) in the run record and shown in
+the app's response pane. In the app, the websocket editor has a **Trigger**
+section, and the live panel has a **Fire request** button that sends any
+http request of the collection once into a running session.
+
+Set it from a terminal with `fullyrested edit set-trigger` (flags `--request`,
+`--run`, `--repeat`, `--interval`, `--delay`, `--clear`; give only what changes)
+or from an agent with `set_trigger`. `tree` and `show` print a websocket
+request's `expect:` and `trigger:` lines.
+
 **Two ways to use a socket.**
 
 - **A test is bounded.** **Run** in the app, `fullyrested run` and the MCP
@@ -133,6 +165,48 @@ failed connect never prints it.
   app, press **Live** on a websocket request, or type a URL into the panel.
   From a terminal use `fullyrested ws watch`; for an agent, the `ws_session_*`
   MCP tools.
+
+## MCP requests
+
+A request with `"type": "mcp"` calls an MCP server over streamable HTTP: one
+JSON-RPC call, sent as a POST to the request's URL. FullyRested writes the
+envelope (`jsonrpc`, `id` 1, `method`, `params`) and an
+`Accept: application/json, text/event-stream` header; the request's method
+and body are not used. Everything else is the HTTP request's: variables,
+secrets, auth, headers, folders, environments, runs, capture and HTTP
+validation. A reply that comes back as an SSE stream is shown, checked and
+recorded as the JSON-RPC message it carried.
+
+| Field | Meaning |
+|---|---|
+| `mcp.method` | The JSON-RPC method: `initialize`, `tools/list`, `tools/call`, or any other. Default `tools/list`. A `notifications/...` method is sent without an id |
+| `mcp.params` | The params as JSON text, which may hold `{{variables}}`. Empty sends none; an empty `initialize` gets default params |
+| `mcp.handshake` | `true`: send `initialize` and `notifications/initialized` first, then the call with the `Mcp-Session-Id` (and `MCP-Protocol-Version`) the server gave. Needed for a stateful server; a stateless one (BlueFinWiki's `/mcp`) needs none. Default `false` |
+| `mcp.expect.outcome` | `result` (default): a result that is not a tool error. `tool-error`: a tool result with `isError: true`. `rpc-error`: a JSON-RPC error. `any`: no MCP check, HTTP validation only (for a `401` test, say) |
+| `mcp.expect.code` | With `rpc-error`: the error code it must have, such as `-32602` |
+| `mcp.expect.text` | The tool result text (every text content item, one per line) or the error message must contain this. `{{variables}}` are substituted |
+
+The MCP check is recorded as an `mcp` check beside `status`, `body` and
+`headers`, and it runs even when HTTP validation is `None`.
+
+```sh
+fullyrested edit new-request -c api.frcol --path "mcp/get ticket.frreq" --method post --url "{{api}}/mcp"
+fullyrested edit set-type mcp -c api.frcol --scope "request:mcp/get ticket.frreq"
+fullyrested edit set-mcp -c api.frcol --scope "request:mcp/get ticket.frreq" --tool kanban_get --arguments '{"guid":"{{ticket}}"}'
+fullyrested edit set-mcp-expect -c api.frcol --scope "request:mcp/get ticket.frreq" --text "{{ticket}}"
+```
+
+`set-mcp` takes `--method`, `--params`, `--tool` with `--arguments` (the short
+way to write a `tools/call`; `--arguments` alone changes the arguments of the
+tool already named) and `--handshake true|false`; `--params` and `--arguments`
+also take `@file`. `set-mcp-expect` takes `--outcome`, `--code` and `--text`
+(`''` clears either of the last two). An agent uses `set_type`, `set_mcp` and
+`set_mcp_expect`. The call and its expect belong to the request; a run varies
+it through variables, headers, auth and HTTP validation, so a negative case
+with a different outcome is its own request. To capture from a tool result,
+capture the body at `$.result.content[0].text`. In the app, the request editor
+has an **MCP** type, shows the call on one line and drops the Body tab; the
+call itself is edited with the CLI or MCP verbs.
 
 ## Installing
 
@@ -303,8 +377,9 @@ write landing outside the collection's folder.
 | Group | Verbs |
 |---|---|
 | Create | `new-collection`, `new-folder`, `new-request`, `new-run`, `new-environment`, `select-environment` |
-| Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `remove-setting` |
-| Request | `set-url`, `set-method`, `set-body` |
+| Settings | `set-header`, `set-param`, `set-variable`, `add-secret-ref`, `set-auth`, `set-capture`, `remove-setting` |
+| Request | `set-url`, `set-protocol`, `set-method`, `set-body`, `set-runs-only` |
+| Request type | `set-type`; `set-message`, `set-expect`, `set-trigger` (websocket); `set-mcp`, `set-mcp-expect` (MCP) |
 | Validation | `set-validation`, `set-validation-header`, `validation-from-case` |
 | Structure | `rename`, `delete`, `move` |
 
@@ -313,7 +388,7 @@ before you reach for `--help`:
 
 - **Each `set-*` is an upsert**, keyed by name at that scope: it replaces the
   entry of that name or adds it if there is none. `remove-setting --kind` takes
-  it away again (`header`, `param`, `variable`, `secret`, `validation-header`).
+  it away again (`header`, `param`, `variable`, `secret`, `validation-header`, `capture`).
 - **Not every verb takes every locator.** Parameters, url, method, body and
   validation are request- and run-level; variables and secret references are
   not request-level, because a request has nowhere to keep them — put them on
@@ -332,7 +407,12 @@ before you reach for `--help`:
   does not fail the check.
 - **Nothing is overwritten silently.** `new-*`, `rename` and `move` onto an
   existing path are refused, and `delete folder:` only goes ahead when the
-  folder holds nothing but `.frreq` and `folder.frfolder` files.
+  folder holds nothing but `.frreq`, `folder.frfolder` and `.gitkeep` files.
+- **Empty folders survive git.** The `.frcol` has no folder list, and git does
+  not track empty directories, so `new-folder` / `new_folder` writes an empty
+  `.gitkeep` in the new folder. The loader ignores it (it is not a request), and
+  `move`, `rename` and `delete` carry or remove it with the folder. Folders
+  created by hand need their own `.gitkeep` to be committed.
 - **`--json`** prints the result as JSON. Usage and locator errors exit 2.
 
 ### Secrets, end to end
@@ -357,6 +437,118 @@ accept a single `{{$name}}` reference and nothing else. A literal, a
 `{{variable}}`, an empty string or two references run together are all refused,
 so auth can be wired up completely without a value ever passing through the
 command line or an agent.
+
+### Capturing a value from one response for later requests
+
+`set-capture` (MCP `set_capture`) puts a rule on a request or a run: after it is
+sent, the value is held in `{{variable}}` for every request that runs after it
+in the same run.
+
+```
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name pageGuid --from body --path '$.guid'
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name trace --from header --path X-Trace
+fullyrested edit set-capture -c api.frcol --scope request:pages/create.frreq --name code --from status
+```
+
+- `--from body` takes a JSONPath (`$.id`, `$.items[0].guid`; the first match);
+  `header` takes the header name, matched without regard to case; `status` takes no path.
+- A captured value overrides the same name set at any other level, and lives
+  only for that run: it is never written to a variable table. Run order is tree
+  order, so name files to put the creating request first (`1-create.frreq`).
+- A request's rules apply to each of its runs; a run's rule for the same
+  variable replaces the request's.
+- A value may be a whole url, such as a presigned `uploadUrl`: a request url of
+  `{{uploadUrl}}` is sent as it is, without the request's protocol put in front.
+- A rule that finds nothing (no such path, header, or a non-JSON body) turns the
+  case into an `error` naming the rule. A case lists the variables it captured as
+  `captured` in the run record, never their values. `show` lists a request's rules.
+- Capture works in `run`, the MCP `run` tool and the desktop app's run-folder and
+  run-collection. Sending one request alone has nothing earlier to capture from.
+- A websocket case receives captured values like an http one: in its url,
+  headers, auth, `message` and `expect` (the schema), and in its trigger request.
+  So a websocket test can watch, and its trigger change, a page an earlier case
+  created. A websocket case does not capture itself: there is no single response
+  to read, so capture rules on a websocket request are not applied.
+
+### Setup inside the run, empty bodies and cleanup
+
+A case that consumes its fixture (a `DELETE` that succeeds once) or leaves data
+behind (every create) needs no per-case setup verb: capture does it. Put the
+create first, capture its id, delete with it, and the run owns its fixture end to end.
+
+```
+fullyrested edit set-capture -c api.frcol --scope request:comments/1-create.frreq --name commentId --from body --path '$.id'
+# comments/2-delete.frreq: DELETE {{host}}/comments/{{commentId}}, expects 200
+# comments/3-delete again.frreq: the same url, expects 404 (proves the delete took)
+```
+
+Several create/delete pairs in one run work the same way: a later capture of the same
+name replaces the earlier one, and the case in between sees the newer value. A create
+whose product the endpoint under test does not delete is cleaned up by a trailing
+request that deletes `{{commentId}}`.
+
+The same pattern covers a created invite code that a later request revokes: capture
+`$.code` on `invites/1-create.frreq`, then `invites/2-revoke.frreq` (200), `3-revoke again`
+(409), and a list with the revoked filter. Throwaway users work the same way when the target
+app has an endpoint that creates one; FullyRested adds nothing for a target that cannot
+(a register that 500s, or a dev profile with no email, role or status is the app's to fix or seed).
+
+`set-body` (MCP `set_body`) also takes a run: a run's body replaces its request's.
+`--content-type none` on a run sends no body at all (to test a "Request body is required"
+400 beside the happy-path run of the same request); `--content-type inherit` removes the override.
+
+### Content types, protocols and a request with runs
+
+- `set-body --content-type json` (also `xml`, `text`, `html`, `form`, `multipart`, any case) is stored as the media type (`application/json`...), so the header is never a bare `json`. A full media type is kept as written; `none` and `inherit` are not media types.
+- A url is https unless it says otherwise: `new-request ... "http://{{host}}/x"` and `set-url` with an `http://` prefix set the protocol to http and keep the `{{host}}` placeholder in the url. A variable cannot carry the scheme. For `{{baseUrl}}/pages` (host from a variable) there is no scheme to split, so pass `new-request --protocol http` or run `edit set-protocol --protocol http` (MCP: `new_request` `protocol`, `set_protocol`). A request that fails with EPROTO (https handshake against a plain-http server) says so and names this fix.
+- A request with runs is tested through its runs; the bare request is the base they override and is not a case of its own. Write the happy path as a run (it can change nothing), or run the bare request alone with `--action`.
+- A target app that answers a malformed body with an HTML error (Express's default) is the app's to fix; validation cannot assert JSON on a reply that is not JSON.
+
+### Unique values and runs-only requests
+
+`{{$guid}}` (a fresh uuid) and `{{$timestamp}}` (epoch milliseconds) are built in. They are written like a secret,
+so a secret you declare with the same name wins. They also expand inside a variable's value, so a run can set
+`tagName = api-{{$guid}}` and a create case gets a unique name every time. One request sees one value everywhere
+(url, body, validation); the next request gets a new one. Nothing else inside a variable value is expanded.
+
+`set-runs-only on|off` (MCP `set_runs_only`) marks a request runs-only: `--all` and `--folder` (and the desktop's
+run-all) test only its runs and never send it bare, and `--action` alone on it is refused (use `--run` or `--all`).
+Use it for a DELETE or update whose bare form would destroy a shared fixture. `tree` marks it `[runs-only]`.
+A request with no runs that is runs-only has no cases at all.
+
+```
+fullyrested edit set-runs-only -c api.frcol --scope request:page-types/delete.frreq on
+```
+
+### Multipart uploads and a different url per run
+
+`set-body --content-type multipart/form-data` builds a `multipart/form-data` body. The
+boundary and the CRLF framing are generated when the request is sent, so nothing in the
+file depends on line endings. The `Content-Type` header gets the boundary; a header you set
+yourself as `multipart/form-data` gets it added, and any other value (`application/json`, to
+see a 415) is sent as written over the same bytes.
+
+```
+# text field + a binary file read from disk (kept in the request as base64) + a part of generated bytes
+fullyrested edit set-body -c api.frcol --scope request:attachments/upload.frreq --content-type multipart/form-data   --field kind=note --file 'file=./logo.png;type=image/png'
+fullyrested edit set-body -c api.frcol --scope 'run:attachments/upload.frreq#too big' --content-type multipart/form-data   --generate file=6000000
+```
+
+- `--field name=value` is a text part; `--file name=path` reads a local file (`;type=<mime>` and
+  `;filename=<name>` may follow); `--generate name=bytes` makes a file part of that many bytes, to
+  go over a size limit without a big file on disk. MCP `set_body` takes the same as `fields`
+  (`filename`, `contentType`, `base64`, `size`, or `path` to read a local file).
+- Run records show the body with binary and generated content as `<N bytes>`; `bytes` is the real size.
+
+`set-url` (MCP `set_url`) also takes a run: the run's url replaces its request's for that run
+(`http://` or `https://` at the front sets the run's protocol; query parameters still apply).
+`--url ''` removes the override. Use it to send the same request to a bad guid or another host.
+
+The upload-then-confirm flow needs no fixture file: presign (capture `uploadUrl` and
+`attachmentKey`), PUT to `{{uploadUrl}}` (a captured absolute url is sent as it is), then confirm with
+`{{attachmentKey}}` in the body, all in one run. Variable values are substituted in a single
+pass on purpose, so a variable that holds `{{another}}` is not expanded: capture the whole value
+instead of composing it from other variables.
 
 ### Known gaps
 
@@ -395,10 +587,13 @@ has:
 | `settings` | What is set at every scope, or at one (`scope`), by name only — no values. Answers "is this header already set above me?" |
 | `new_collection`, `new_folder`, `new_request`, `new_run`, `new_environment`, `select_environment` | Create things |
 | `set_header`, `set_param`, `set_variable`, `add_secret_ref`, `set_auth`, `remove_setting` | Settings, at any scope the locator allows |
-| `set_url`, `set_method`, `set_body` | A request's own fields |
+| `set_capture` | Capture a response value (`body` JSONPath, `header` or `status`) into a `{{variable}}` for later requests in the same run; requests and runs only |
+| `set_runs_only` | Mark a request runs-only (`runsOnly` true/false): suite runs test only its runs |
+| `set_url`, `set_protocol`, `set_method`, `set_body` | A request's own fields. `set_url` and `set_body` also take a `run:` scope, to override the url or body for that run. `set_protocol` takes `http` or `https` (request only). `set_body` takes multipart parts (`fields` with `filename`, `base64`, `size` or `path`) |
 | `set_validation`, `set_validation_header`, `validation_from_case` | Turn a request into an assertion. `validation_from_case` infers it from a recorded case; `set_validation` takes `jsonSchema` as text, where the CLI takes a file path |
 | `rename`, `delete`, `move` | Structure |
-| `set_type`, `set_message`, `set_expect` | Websocket requests: switch a request between `http` and `websocket` (switching back keeps `message` and `expect`), set the frame to send, and set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`; give only the fields to change). `set_auth` also takes `placement`. The CLI's `edit` command does not have these |
+| `set_type`, `set_message`, `set_expect`, `set_trigger` | Websocket requests: switch a request between `http` and `websocket` (`set_type` also takes `mcp`; switching back keeps `message`, `expect` and `trigger`), set the frame to send, set the expectation (`count`, `match`, `schema` as text, `extras`, `timeout`, `settle`), and set the trigger, an http request in the collection fired to provoke messages (`request`, `run`, `repeat`, `interval`, `delay`, or `clear`); give only the fields to change. `set_auth` also takes `placement`. The CLI has the same as `edit set-type`, `set-message`, `set-expect` and `set-trigger`. `tree` and `show_request` report a websocket request's expect and trigger |
+| `set_mcp`, `set_mcp_expect` | MCP requests (after `set_type` `mcp`): the JSON-RPC call (`method`, `params`, or `tool` with `arguments`, and `handshake`) and what its reply must be (`outcome`, `code`, `text`). See **MCP requests** |
 | `ws_session_open` | Open a live websocket session on a websocket request (`target` plus `collection`, optionally `environment` and `run`) or a `ws://` / `wss://` URL. Returns a `sessionId`. A failed connect never reveals the URL or token |
 | `ws_session_events` | Read a session's events after a cursor (`after`, default 0). Returns `events`, the new `cursor` and `closed`; pass the cursor back to read only what is new |
 | `ws_session_send` | Send a text frame. A session the server has closed returns an error result |
@@ -407,11 +602,21 @@ has:
 `run` also takes `timeoutMs`, the same override as the CLI's `--timeout`.
 Sessions live in the MCP server's memory until closed or the server exits.
 
+**Provoking a message in a live session.** To watch what an HTTP call causes,
+open the session first, make the call, then read the events:
+`ws_session_open` (a websocket request or URL) -> `run` the HTTP request ->
+`ws_session_events` (with the cursor from the last read) -> `ws_session_close`.
+For a repeatable test, put the HTTP request in the websocket request's trigger
+with `set_trigger` and `run` the websocket request instead.
+
 The authoring tools take the same locators the CLI does (see **Editing a
 collection**), and the loop is three steps:
 
 1. `tree` — what exists, and which requests and runs still have no real
-   validation.
+   validation. It also names the selected environment and, per request
+   and run, the expected status and whether a schema or response headers are
+   checked (`[Body(schema) 201]`, `[Headers 200 hdrs:2]`), so a second
+   `environments` call is not needed.
 2. `settings` — only when inheritance is in question: is this header, variable
    or auth already set at a scope above?
 3. Edit, then `run` — and from then on `tree` and `run`.

@@ -8,6 +8,7 @@ import {
   TimedActionResult,
 } from 'src/app/services/execute-rest-calls/execute-rest-calls.service';
 import { LayoutService } from 'src/app/services/layout/layout.service';
+import type { TriggerCall } from '@fullyrested/core';
 import { formatBytes } from '../display-response-body/body-format';
 
 @Component({
@@ -46,6 +47,16 @@ export class DisplayResponseComponent {
   failedCount(): number {
     const validated = this.response.validated;
     return validated?.checks?.filter(c => !c.passed).length ?? validated?.errors.length ?? 0;
+  }
+
+  // When a trigger call started, relative to the start of the test (its `at` is ms since then)
+  callTime(at: number): string {
+    return `+${(Math.max(0, at) / 1000).toFixed(3)}s`;
+  }
+
+  callLevel(call: TriggerCall): 'ok' | 'warn' | 'error' {
+    if (call.error != undefined || call.status === undefined) return 'error';
+    return call.status >= 200 && call.status < 300 ? 'ok' : call.status < 400 ? 'warn' : 'error';
   }
 
   size(): string {

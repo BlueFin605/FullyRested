@@ -46,6 +46,43 @@ function memoryKeychain() {
   };
 }
 
+describe('websocket trigger over MCP', () => {
+  it('sets, shows and clears a trigger', async () => {
+    const ws = workspace();
+    const client = await connectMcp({ secrets: createSecretStore({}, undefined) });
+    const call = (name: string, args: Record<string, unknown> = {}) => callTool(client, name, args);
+    const c = ws.collection;
+    try {
+      await call('new_collection', { file: c });
+      await call('new_request', { collection: c, path: 'touch.frreq', method: 'put', url: 'http://localhost/touch' });
+      await call('new_request', { collection: c, path: 'feed.frreq', method: 'get', url: 'ws://localhost/feed' });
+      await call('set_type', { collection: c, scope: 'request:feed.frreq', type: 'websocket' });
+
+      const set = await call('set_trigger', { collection: c, scope: 'request:feed.frreq', request: 'touch.frreq', repeat: 'once', delay: 20 });
+      expect(set.isError, set.text).toBe(false);
+      expect(readAction(path.join(ws.folder, 'feed.frreq')).trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', delay: 20 });
+
+      const tree = (await call('tree', { collection: c })).json();
+      const feed = tree.children.find((n: { name: string }) => n.name === 'feed');
+      expect(feed.websocket.trigger).toMatchObject({ request: 'touch.frreq', repeat: 'once', delay: 20 });
+      expect(feed.websocket.expect).toMatchObject({ count: 1, match: 'all', schema: false });
+      expect(tree.children.find((n: { name: string }) => n.name === 'touch').websocket).toBeUndefined();
+
+      const shown = (await call('show_request', { collection: c, action: 'feed.frreq' })).json();
+      expect(shown.websocket.trigger.request).toBe('touch.frreq');
+      expect(shown.websocket.expect.timeout).toBeGreaterThan(0);
+
+      const bad = await call('set_trigger', { collection: c, scope: 'request:feed.frreq', request: 'feed.frreq' });
+      expect(bad.isError).toBe(true);
+
+      expect((await call('set_trigger', { collection: c, scope: 'request:feed.frreq', clear: true })).isError).toBe(false);
+      expect(readAction(path.join(ws.folder, 'feed.frreq')).trigger).toBeUndefined();
+    } finally {
+      ws.cleanup();
+    }
+  });
+});
+
 describe('the authoring loop over MCP', () => {
   it('creates a collection, learns a validation from a run, and the learnt check then catches a change', async () => {
     const ws = workspace();
@@ -95,7 +132,7 @@ describe('the authoring loop over MCP', () => {
 
       // 5. the tree now reports a real body check, with nothing missing
       const after = (await call('tree', { collection: ws.collection })).json();
-      expect(after.children[0].runs).toEqual([{ name: 'not found', validation: { type: 'Body', schema: true } }]);
+      expect(after.children[0].runs).toEqual([{ name: 'not found', validation: { type: 'Body', schema: true, status: 404 } }]);
 
       // 6. and it passes, this time because the response really matches the schema
       const second = (await call('run', { collection: ws.collection })).json();
@@ -195,6 +232,35 @@ describe('the authoring loop over MCP', () => {
       expect(settings.text).toContain('apikey');
       expect(settings.text).not.toContain('sk-must-not-leak');
       expect(settings.json().scopes[0]).toMatchObject({ scope: 'collection', secrets: ['apikey'] });
+    } finally {
+      ws.cleanup();
+    }
+  });
+});
+
+describe('multipart body and run url over MCP', () => {
+  it('sets file parts (base64, size, local path) and a run url override', async () => {
+    const ws = workspace();
+    const client = await connectMcp({ secrets: createSecretStore({}, undefined) });
+    const c = ws.collection;
+    try {
+      await callTool(client, 'new_collection', { file: c });
+      await callTool(client, 'new_request', { collection: c, path: 'up.frreq', method: 'post', url: 'http://localhost/up' });
+      await callTool(client, 'new_run', { collection: c, request: 'up.frreq', name: 'bad' });
+      fs.writeFileSync(path.join(ws.folder, 'a.bin'), Buffer.from([1, 2, 3]));
+      const body = await callTool(client, 'set_body', {
+        collection: c, scope: 'request:up.frreq', contentType: 'multipart/form-data',
+        fields: [{ name: 'k', value: 'v' }, { name: 'f', value: '', path: path.join(ws.folder, 'a.bin') }, { name: 'g', value: '', size: 9, filename: 'g.bin' }]
+      });
+      expect(body.isError).toBe(false);
+      const parts = readAction(path.join(ws.folder, 'up.frreq')).body.body as { key: string; base64?: string; size?: number; filename?: string }[];
+      expect(parts.map(p => p.key)).toEqual(['k', 'f', 'g']);
+      expect(parts[1]).toMatchObject({ filename: 'a.bin', base64: 'AQID' });
+      expect(parts[2]).toMatchObject({ filename: 'g.bin', size: 9 });
+
+      const url = await callTool(client, 'set_url', { collection: c, scope: 'run:up.frreq#bad', url: 'http://localhost/other' });
+      expect(url.isError).toBe(false);
+      expect(readAction(path.join(ws.folder, 'up.frreq')).runs[0]).toMatchObject({ url: 'localhost/other', protocol: 'http' });
     } finally {
       ws.cleanup();
     }
