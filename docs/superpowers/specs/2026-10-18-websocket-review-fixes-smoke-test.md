@@ -49,23 +49,6 @@ it). `SMOKE_KEEP=1` keeps the scratch folder on success too.
 The checks are not timing-exact. Gaps allow about ±150 ms, and the note counts allow ±1
 call for timing. The old-bug values in Part B are far outside those windows.
 
-### Part C only: the desktop app's collection
-
-Part C runs in the desktop app and needs the collection and server by hand:
-
-```bash
-cd ~/Development/Projects/Home/FullyRested/App/cli-command
-node smoke/make-collection.mjs ~/fr-smoke     # writes ~/fr-smoke/smoke.frcol
-node smoke/smoke-server.mjs                   # Terminal 1, leave it running
-```
-
-Terminal 2 helpers, to paste in for Part C:
-
-```bash
-log()   { curl -s localhost:8787/log | node -e 'for (const e of JSON.parse(require("fs").readFileSync(0))) console.log(`${e.at}ms  gap ${e.gap}  ${e.path} ${e.status} ${e.id ?? ""}`)'; }
-reset() { curl -s -X POST localhost:8787/reset > /dev/null; }
-```
-
 ---
 
 ## Part B — What `npm run smoke` checks
@@ -92,6 +75,28 @@ Part C. Those stay manual.
 The desktop app has its own code path for websocket runs (`execute-rest-calls.service.ts`)
 and its own editor, so it needs its own checks. Keep the server running and the helpers
 loaded in Terminal 2.
+
+### Setup (once per session)
+
+The app opens `C:\Users\mitch\fr-smoke\smoke.frcol`. Build it with the same generator
+the automated run uses (run from Git Bash):
+
+```bash
+cd ~/Development/Projects/Home/FullyRested/App/cli-command
+npm run build                                   # if dist is stale
+node smoke/make-collection.mjs ~/fr-smoke       # writes ~/fr-smoke/smoke.frcol
+node smoke/smoke-server.mjs                     # Terminal 1, leave it running
+```
+
+Check the file exists before you open the app: `ls ~/fr-smoke/smoke.frcol`. The
+generator rebuilds it every time, so rerunning this is always safe.
+
+Terminal 2 helpers, to paste in for this part:
+
+```bash
+log()   { curl -s localhost:8787/log | node -e 'for (const e of JSON.parse(require("fs").readFileSync(0))) console.log(`${e.at}ms  gap ${e.gap}  ${e.path} ${e.status} ${e.id ?? ""}`)'; }
+reset() { curl -s -X POST localhost:8787/reset > /dev/null; }
+```
 
 ### C0. Start the app on this branch (Terminal 3)
 
