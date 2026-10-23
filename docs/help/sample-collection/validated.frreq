@@ -1,0 +1,47 @@
+{
+    "id": "2730684f-8e36-4acc-b2aa-66ebd50ee829",
+    "name": "validated",
+    "verb": "get",
+    "protocol": "http",
+    "url": "{{host}}/get",
+    "headers": [],
+    "parameters": [
+        {
+            "key": "check",
+            "value": "schema",
+            "active": true,
+            "id": "84efcdf0-5330-45b5-838b-aa089231186d"
+        }
+    ],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "Body",
+        "headers": [],
+        "body": "JsonSchema",
+        "httpCode": 200,
+        "jsonSchema": {
+            "schema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"required\":[\"url\",\"args\"],\"properties\":{\"url\":{\"type\":\"string\"},\"args\":{\"type\":\"object\"}}}\n"
+        }
+    }
+}

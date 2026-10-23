@@ -1,0 +1,50 @@
+{
+    "id": "1af55041-c29b-4134-8e6f-45ce0fa2d9f7",
+    "name": "list-users",
+    "verb": "get",
+    "protocol": "http",
+    "url": "{{host}}/get",
+    "headers": [],
+    "parameters": [
+        {
+            "key": "page",
+            "value": "1",
+            "active": true,
+            "id": "2d5573fa-3834-4fbb-b511-6e17735f6453"
+        },
+        {
+            "key": "user",
+            "value": "{{userName}}",
+            "active": true,
+            "id": "b48fb785-9148-41e6-8401-0ea7e7d3861e"
+        }
+    ],
+    "body": {
+        "contentType": "none"
+    },
+    "authentication": {
+        "authentication": "inherit",
+        "awsSig": {
+            "signUrl": false,
+            "accessKey": "",
+            "secretKey": "",
+            "sessionToken": "",
+            "awsRegion": "eu-central-1",
+            "serviceName": ""
+        },
+        "basicAuth": {
+            "userName": "",
+            "password": ""
+        },
+        "bearerToken": {
+            "token": ""
+        }
+    },
+    "runs": [],
+    "validation": {
+        "type": "ResponseCode",
+        "headers": [],
+        "body": "None",
+        "httpCode": 200
+    }
+}

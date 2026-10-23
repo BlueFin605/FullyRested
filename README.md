@@ -39,7 +39,7 @@ I like Postman, but it falls short in a few places:
 | Desktop app (Electron + Angular) | Working: edit, run, validate and save requests and collections |
 | Shared core (`App/core`) | Holds the model, substitution, authentication, execution, validation and secret handling. Covered by unit tests |
 | CLI (`App/cli-command`) | Working: `fullyrested run` sends a request, one run, or a whole collection and reports pass or fail; `fullyrested edit` creates and changes collections, and `fullyrested mcp` serves both over MCP |
-| Request chaining | **Not built yet.** Runs (named variants of a request) exist, but one request can't feed values into the next |
+| Request chaining | Working: a capture rule on a request or run holds a response value (body JSONPath, header or status) in a `{{variable}}` for the requests after it in the same run, in the CLI, MCP and the desktop app's folder and collection runs. The desktop app has no editor for capture rules yet |
 
 ## Concepts
 
@@ -207,6 +207,12 @@ with a different outcome is its own request. To capture from a tool result,
 capture the body at `$.result.content[0].text`. In the app, the request editor
 has an **MCP** type, shows the call on one line and drops the Body tab; the
 call itself is edited with the CLI or MCP verbs.
+
+## Help
+
+User guides, from first launch to websockets, are in
+[`docs/help/`](docs/help/README.md). The desktop app carries the same pages
+under **Help** (or F1).
 
 ## Installing
 
@@ -672,7 +678,7 @@ after the current request.
 | `App/FullyRested` | The desktop app: Electron main process plus an Angular UI |
 | `App/cli-command` | The command-line runner |
 | `Test Collection` | Example collection and requests |
-| `docs/` | Point-in-time reviews |
+| `docs/` | User guides (`help/`) and point-in-time reviews |
 | `.github/workflows` | Build on every push and pull request; release on a version tag |
 
 See [`SYSDOC.md`](SYSDOC.md) for how the layers fit together and how to

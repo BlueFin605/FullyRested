@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme, shell } = require('electron')
 // include the Node.js 'path' module at the top of your file
 const path = require('node:path')
 const fs = require('fs');
@@ -6,6 +6,8 @@ const { AsyncEntry } = require('@napi-rs/keyring');
 const { CollectionAccess } = require('./collection-access');
 const { handleSaveRun, handleListRuns, handleLoadRun } = require('./run-records');
 const { WsSessions } = require('./ws-sessions');
+const { applyExternalLinkGuards } = require('./window-links');
+const { readHooks, applyEarlyHooks, applyOpenCollection } = require('./dev-hooks');
 const { executeRequest, loadSecrets, storeSecrets, secretServiceForCollection, secretServiceForRequest, secretServiceForFolder, COLLECTION_FILE_EXTENSIONS, ACTION_FILE_EXTENSIONS } = require('@fullyrested/core');
 
 // The Squirrel installer runs the app with --squirrel-* flags to create/remove shortcuts; quit once that's done
@@ -43,6 +45,9 @@ const keychain = {
     set: (service, account, value) => new AsyncEntry(service, account).setPassword(value)
 };
 
+// Opt-in FR_* launch hooks for screenshots/automation; no-ops when unset. userData must be set before ready.
+const devHooks = applyEarlyHooks(app, readHooks());
+
 let win;
 let access;
 let wsSessions;
@@ -62,9 +67,11 @@ const createWindow = () => {
         }
     })
 
-    if (!app.isPackaged)
+    if (!app.isPackaged && !devHooks.noDevTools)
         win.webContents.openDevTools();
 
+    applyExternalLinkGuards(win.webContents, url => shell.openExternal(url));
+    applyOpenCollection(win.webContents, devHooks, loadCollectionFromFile);
     win.loadFile('dist/fullyrested/index.html');
 }
 
