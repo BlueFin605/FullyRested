@@ -1,7 +1,7 @@
 {
   "name": "fullyrested",
   "productName": "FullyRested",
-  "version": "0.1.2",
+  "version": "1.1.0",
   "description": "A desktop REST client whose collections are plain files",
   "author": "BlueFin605",
   "license": "GPL-3.0",
@@ -72,8 +72,8 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.0.0",
     "karma-jasmine-html-reporter": "~1.7.0",
-    "material-icons": "^1.13.14",
     "marked": "18.0.14",
+    "material-icons": "^1.13.14",
     "png2icons": "^2.0.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
