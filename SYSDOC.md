@@ -105,39 +105,6 @@ What the guards *do* cover — escaping the folder, symlinked ancestors and
 dangling symlinks — is core `collection-guard.ts`, shared by both hosts,
 with the escape tests beside it.
 
-## Where the plan lives
-
-On the BlueFinWiki kanban board, under initiative **AI Refresh**
-(`e58ec7d8-09c2-4d67-81b7-9b1b2e72d989`), with epics for the core engine,
-secrets hygiene, the CLI runner, the stack upgrade and cleanup. Home's
-`configuration/fullyrested/config.json` maps this repo to that initiative.
-The `feature/collection-hierarchy` branch maps to the **Collection Hierarchy**
-initiative (`78286444-4af7-4e63-9929-1a63a8b641c7`); `active` stays UI Refresh.
-The `feature/ai-interface` branch maps to the **AI First** initiative
-(`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
-`docs/superpowers/specs/2026-10-11-ai-interface-design.md`.
-The `feature/authoring-apis` branch maps to the same **AI First** initiative
-(`7cb3c7ac-1344-4db1-8cc9-81f1a14a7212`); its design is
-`docs/superpowers/specs/2026-10-11-authoring-apis-design.md`.
-The `feature/websocket-support` branch has its own **WebSocket Support**
-initiative; its design is
-`docs/superpowers/specs/2026-10-17-websocket-design.md`.
-Running a folder or collection from the UI (UI Refresh) is designed in
-`docs/superpowers/specs/2026-10-17-ui-run-scope-design.md`.
-The `feature/ai-first-followups` branch maps to the same **AI First**
-initiative and carries that board's tail: the review and follow-up tickets
-left after the two epics shipped.
-The `feature/app-run-records` branch maps to the same **AI First**
-initiative; its design is
-`docs/superpowers/specs/2026-10-15-app-run-records-design.md`.
-The `feature/desktop-distribution` branch maps to the same **AI First**
-initiative; its design is
-`docs/superpowers/specs/2026-10-15-desktop-distribution-design.md`.
-The `feature/help-docs` branch maps to the **Help & Docs** initiative
-(`53ca2055-5193-4e84-9ca9-0338a9186979`); its design is
-`docs/superpowers/specs/2026-10-19-help-docs-design.md`.
-`docs/reviews/` holds dated reviews; they are snapshots, not living docs.
-
 ## Running it
 
 Build order: the app's main process and the CLI load core's compiled
