@@ -64,7 +64,7 @@
     "@lezer/highlight": "^1.2.5",
     "@types/jasmine": "~4.0.0",
     "codemirror": "^6.0.2",
-    "electron": "^44.7.0",
+    "electron": "^45.0.0",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~4.1.0",
     "karma": "~6.3.0",
