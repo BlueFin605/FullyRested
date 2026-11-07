@@ -18,14 +18,14 @@ jobs:
       # One platform failing should not hide the state of the other two.
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-24.04, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
 
-      # ubuntu-latest ships dpkg but not rpmbuild, which maker-rpm requires.
+      # Pinned to 24.04: ubuntu-latest is now 26.04 (rpm 6), whose per-package build dir breaks electron-installer-redhat's spec (cp usr/*). Ships dpkg but not rpmbuild, which maker-rpm requires.
       - name: Install rpm tooling
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: sudo apt-get update && sudo apt-get install -y rpm
 
       - uses: actions/setup-node@v4
