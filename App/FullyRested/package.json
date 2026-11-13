@@ -64,20 +64,20 @@
     "@lezer/highlight": "^1.2.5",
     "@types/jasmine": "~4.0.0",
     "codemirror": "^6.0.2",
-    "electron": "^44.7.0",
+    "electron": "^45.0.0",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~4.1.0",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.0.0",
-    "karma-jasmine-html-reporter": "~1.7.0",
+    "karma-jasmine-html-reporter": "^2.3.0",
     "marked": "18.0.14",
     "material-icons": "^1.13.14",
     "png2icons": "^2.0.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
     "typescript": "~6.0.3",
-    "zone.js": "~0.15.1"
+    "zone.js": "^0.16.3"
   }
 }

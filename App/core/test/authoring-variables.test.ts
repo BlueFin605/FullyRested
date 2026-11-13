@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { addSecretRef, setVariable } from '../src/authoring';
 import { MemoryCollectionSink } from '../src/collection-sink';
 import { QueryError } from '../src/query-error';
@@ -7,7 +7,7 @@ import { files } from './fixtures/collection';
 const guid = { generateGUID: () => 'generated' };
 
 // A fresh spy per test, so 'set was never called' means never called by that test.
-let secrets: { get: () => Promise<null>; set: ReturnType<typeof vi.fn> };
+let secrets: { get: () => Promise<null>; set: Mock<(service: string, account: string, value: string) => Promise<void>> };
 beforeEach(() => {
   secrets = { get: async () => null, set: vi.fn(async () => { }) };
 });
